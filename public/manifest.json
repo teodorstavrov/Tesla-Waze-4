@@ -1,0 +1,19 @@
+{
+  "name": "Tesla Radar",
+  "short_name": "TeslaRadar",
+  "description": "EV charging stations and road events for Bulgaria",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0f",
+  "theme_color": "#0a0a0f",
+  "orientation": "landscape",
+  "lang": "bg",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
