@@ -5,6 +5,7 @@ import { useSyncExternalStore } from 'react'
 import { evStore } from '@/features/ev/evStore'
 import { filterStore } from '@/features/ev/filterStore'
 import { gpsStore } from '@/features/gps/gpsStore'
+import { eventStore } from '@/features/events/eventStore'
 
 export function FloatingStatsCard() {
   const evState = useSyncExternalStore(
@@ -22,6 +23,12 @@ export function FloatingStatsCard() {
   const filteredCount = useSyncExternalStore(
     filterStore.subscribe.bind(filterStore),
     () => filterStore.getFilteredStations().length,
+    () => 0,
+  )
+
+  const eventCount = useSyncExternalStore(
+    eventStore.subscribe.bind(eventStore),
+    () => eventStore.getState().events.length,
     () => 0,
   )
 
@@ -65,7 +72,7 @@ export function FloatingStatsCard() {
         accent={evState.status === 'error' ? '#ef4444' : filtersActive ? '#e31937' : undefined}
         title={evState.error ?? undefined}
       />
-      <Stat label="Events" value="—" />
+      <Stat label="Events" value={eventCount > 0 ? String(eventCount) : '—'} />
       <Stat label="GPS" value={gpsValue} />
     </div>
   )

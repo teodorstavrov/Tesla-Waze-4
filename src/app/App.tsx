@@ -1,6 +1,7 @@
 // ─── Tesla EV Nav — App root ───────────────────────────────────────────
 // Phase 1+2: foundation shell + GPS/follow/audio UX.
 // Phase 4: EV marker layer + station panel.
+// Phase 6: road event markers + report modal.
 
 import { MapShell } from '@/components/MapShell'
 import { HeadingAvatar } from '@/components/HeadingAvatar'
@@ -15,6 +16,9 @@ import { useAudioUnlock } from '@/features/audio/useAudioUnlock'
 import { EvMarkerLayer } from '@/features/ev/EvMarkerLayer'
 import { StationPanel } from '@/features/ev/StationPanel'
 import { FilterBar } from '@/features/ev/FilterBar'
+import { EventMarkerLayer } from '@/features/events/EventMarkerLayer'
+import { ReportModal } from '@/features/events/ReportModal'
+import { EventPanel } from '@/features/events/EventPanel'
 
 export function App() {
   // Start GPS watching (feeds gpsStore; no rerenders from GPS ticks)
@@ -42,6 +46,7 @@ export function App() {
       {/* Layer 0.5: imperative map overlays (no React DOM output) */}
       <HeadingAvatar />
       <EvMarkerLayer />
+      <EventMarkerLayer />
 
       {/* Layer 1: floating UI */}
       <FloatingTitleCard />
@@ -51,9 +56,13 @@ export function App() {
       <ZoomControls />
       <BottomDock />
 
-      {/* Layer 2: station filter bar + detail panel (above dock) */}
+      {/* Layer 2: panels + filter bar (above dock) */}
       <FilterBar />
       <StationPanel />
+      <EventPanel />
+
+      {/* Layer 3: modal overlays */}
+      <ReportModal />
     </div>
   )
 }

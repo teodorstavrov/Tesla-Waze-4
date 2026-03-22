@@ -1,8 +1,9 @@
 // ─── Bottom-center action dock ─────────────────────────────────────────
-// Phase 4: EV button toggles marker visibility.
+// Phase 4: EV toggle. Phase 6: Report button opens event modal.
 
 import { useSyncExternalStore } from 'react'
 import { evStore } from '@/features/ev/evStore'
+import { eventStore } from '@/features/events/eventStore'
 
 export function BottomDock() {
   const markersVisible = useSyncExternalStore(
@@ -42,6 +43,7 @@ export function BottomDock() {
       <button
         aria-label="Report a road event"
         title="Report"
+        onClick={() => eventStore.openReportModal()}
         style={{
           display: 'flex',
           alignItems: 'center',
