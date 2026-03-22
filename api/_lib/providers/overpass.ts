@@ -8,11 +8,11 @@
 // Uses the public Overpass API endpoint (free, no auth required).
 // If overpass-api.de is slow, an alternative is overpass.kumi.systems.
 
-import type { BBox } from '../utils/bbox'
-import { toOverpassBBox, bboxCacheKey, quantizeBBox } from '../utils/bbox'
-import { fetchWithTimeout, errorMessage } from '../utils/request'
-import { cacheGet, cacheSet } from '../cache/memory'
-import type { NormalizedStation, ProviderResult, Connector } from '../normalize/types'
+import type { BBox } from '../utils/bbox.js'
+import { toOverpassBBox, bboxCacheKey, quantizeBBox } from '../utils/bbox.js'
+import { fetchWithTimeout, errorMessage } from '../utils/request.js'
+import { cacheGet, cacheSet } from '../cache/memory.js'
+import type { NormalizedStation, ProviderResult, Connector } from '../normalize/types.js'
 
 const CACHE_TTL_MS = 30 * 60 * 1000  // 30 minutes
 const FETCH_TIMEOUT_MS = 15_000       // Overpass can be slow on complex queries
