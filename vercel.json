@@ -13,5 +13,8 @@
       "path": "/api/cron/sync-stations",
       "schedule": "0 3 * * 0"
     }
+  ],
+  "rewrites": [
+    { "source": "/admin", "destination": "/admin.html" }
   ]
 }

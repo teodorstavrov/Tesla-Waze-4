@@ -14,6 +14,10 @@ export default defineConfig({
     target: 'es2018',
     sourcemap: true,
     rollupOptions: {
+      input: {
+        main:  path.resolve(__dirname, 'index.html'),
+        admin: path.resolve(__dirname, 'admin.html'),
+      },
       output: {
         manualChunks(id: string) {
           if (id.includes('node_modules/leaflet')) return 'leaflet'

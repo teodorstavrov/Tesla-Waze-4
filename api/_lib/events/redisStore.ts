@@ -53,6 +53,20 @@ export const eventRedisStore = {
     await _write(all)
   },
 
+  async remove(id: string): Promise<boolean> {
+    const all = _pruneExpired(await _readAll())
+    const filtered = all.filter((e) => e.id !== id)
+    if (filtered.length === all.length) return false
+    await _write(filtered)
+    return true
+  },
+
+  async getAll(): Promise<RoadEvent[]> {
+    const all = _pruneExpired(await _readAll())
+    void _write(all)
+    return all
+  },
+
   async confirm(id: string): Promise<RoadEvent | null> {
     const all = _pruneExpired(await _readAll())
     const idx = all.findIndex((e) => e.id === id)
