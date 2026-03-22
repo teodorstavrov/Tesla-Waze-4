@@ -43,6 +43,7 @@ export function useUserPosition(): void {
         lat,
         lng,
         heading: speed != null && speed > MIN_SPEED_MS && heading != null ? heading : null,
+        speedKmh: speed != null ? Math.round(speed * 3.6) : null,
         accuracy,
         timestamp: raw.timestamp,
       }

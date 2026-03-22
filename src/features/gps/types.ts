@@ -5,6 +5,8 @@ export interface GpsPosition {
   lng: number
   /** Compass heading in degrees from true north. null when unavailable or speed too low. */
   heading: number | null
+  /** Speed in km/h. null when unavailable. */
+  speedKmh: number | null
   /** Accuracy radius in meters */
   accuracy: number
   /** Unix timestamp in ms */
