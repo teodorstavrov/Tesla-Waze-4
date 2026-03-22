@@ -2,6 +2,7 @@
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { SatelliteButton } from '@/components/SatelliteButton'
 import { LocationButton } from '@/components/LocationButton'
+import { MuteButton } from '@/components/MuteButton'
 
 export function LeftControls() {
   return (
@@ -17,6 +18,7 @@ export function LeftControls() {
     }}>
       <ThemeToggle />
       <SatelliteButton />
+      <MuteButton />
       <div style={{ marginTop: 4 }}>
         <LocationButton />
       </div>

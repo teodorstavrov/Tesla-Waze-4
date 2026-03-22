@@ -21,10 +21,15 @@ import { ReportModal } from '@/features/events/ReportModal'
 import { EventPanel } from '@/features/events/EventPanel'
 import { RouteLayer } from '@/features/route/RouteLayer'
 import { RoutePanel } from '@/features/route/RoutePanel'
+import { AlertToast } from '@/features/audio/AlertToast'
+import { alertEngine } from '@/features/audio/alertEngine'
 
 export function App() {
   // Start GPS watching (feeds gpsStore; no rerenders from GPS ticks)
   useUserPosition()
+
+  // Start proximity alert engine (subscribes to gpsStore — no React)
+  alertEngine.start()
 
   // Get the audio unlock trigger
   const { unlock } = useAudioUnlock()
@@ -67,6 +72,9 @@ export function App() {
 
       {/* Layer 3: modal overlays */}
       <ReportModal />
+
+      {/* Layer 4: alert toast (above everything) */}
+      <AlertToast />
     </div>
   )
 }
