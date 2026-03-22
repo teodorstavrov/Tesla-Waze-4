@@ -1,8 +1,16 @@
 // ─── Bottom-center action dock ─────────────────────────────────────────
-// Phase 1+2: visual shell. Report action, EV panel, and route picker
-// wired in later phases.
+// Phase 4: EV button toggles marker visibility.
+
+import { useSyncExternalStore } from 'react'
+import { evStore } from '@/features/ev/evStore'
 
 export function BottomDock() {
+  const markersVisible = useSyncExternalStore(
+    evStore.subscribe.bind(evStore),
+    () => evStore.getState().markersVisible,
+    () => true,
+  )
+
   return (
     <div style={{
       position: 'absolute',
@@ -14,9 +22,19 @@ export function BottomDock() {
       gap: 10,
       alignItems: 'center',
     }}>
-      {/* EV Stations */}
-      <button className="icon-btn" style={{ width: 52, height: 52 }}
-        title="EV Charging Stations" aria-label="EV stations panel">
+      {/* EV Stations toggle */}
+      <button
+        className="icon-btn"
+        style={{
+          width: 52, height: 52,
+          color: markersVisible ? '#e31937' : 'var(--text-secondary)',
+          boxShadow: markersVisible ? '0 0 0 2px #e3193744' : undefined,
+        }}
+        title={markersVisible ? 'Hide EV stations' : 'Show EV stations'}
+        aria-label={markersVisible ? 'Hide EV stations' : 'Show EV stations'}
+        aria-pressed={markersVisible}
+        onClick={() => evStore.toggleMarkersVisible()}
+      >
         <EVIcon />
       </button>
 
