@@ -4,6 +4,8 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { eventMemStore } from '../_lib/events/store.js'
+import { eventRedisStore } from '../_lib/events/redisStore.js'
+import { isRedisConfigured } from '../_lib/db/redis.js'
 import { errorMessage } from '../_lib/utils/request.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
@@ -19,7 +21,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     const id = String(body?.id ?? '')
     if (!id) { res.status(400).json({ error: 'Missing id' }); return }
 
-    const event = eventMemStore.confirm(id)
+    const event = isRedisConfigured()
+      ? await eventRedisStore.confirm(id)
+      : eventMemStore.confirm(id)
     if (!event) { res.status(404).json({ error: 'Event not found or expired' }); return }
 
     res.status(200).json({ event })

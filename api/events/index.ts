@@ -9,6 +9,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { parseBBox, BULGARIA_BBOX } from '../_lib/utils/bbox.js'
 import { eventMemStore } from '../_lib/events/store.js'
+import { eventRedisStore } from '../_lib/events/redisStore.js'
+import { isRedisConfigured } from '../_lib/db/redis.js'
 import { ttlMs } from '../_lib/events/types.js'
 import type { EventType, RoadEvent } from '../_lib/events/types.js'
 import { setCacheHeaders } from '../_lib/cache/headers.js'
@@ -26,11 +28,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   if (req.method === 'OPTIONS') { res.status(204).end(); return }
 
+  const useRedis = isRedisConfigured()
+
   // ── GET ──────────────────────────────────────────────────────────
   if (req.method === 'GET') {
     try {
       const bbox = parseBBox(req.query['bbox'] as string | undefined) ?? BULGARIA_BBOX
-      const events = eventMemStore.getInBBox(bbox)
+      const events = useRedis
+        ? await eventRedisStore.getInBBox(bbox)
+        : eventMemStore.getInBBox(bbox)
       setCacheHeaders(res, 0)  // events should not be CDN-cached
       res.status(200).json({ events })
     } catch (err) {
@@ -49,7 +55,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       const lng  = Number(body?.lng)
       const description: string | null = body?.description ?? null
 
-      if (!VALID_TYPES.has(type))          { res.status(400).json({ error: `Invalid type: ${String(type)}` }); return }
+      if (!VALID_TYPES.has(type))           { res.status(400).json({ error: `Invalid type: ${String(type)}` }); return }
       if (!isFinite(lat) || !isFinite(lng)) { res.status(400).json({ error: 'Invalid coordinates' }); return }
 
       const now = new Date()
@@ -66,7 +72,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         confirms:    0,
       }
 
-      eventMemStore.add(event)
+      if (useRedis) {
+        await eventRedisStore.add(event)
+      } else {
+        eventMemStore.add(event)
+      }
       res.status(201).json({ event })
     } catch (err) {
       res.status(500).json({ error: errorMessage(err) })
