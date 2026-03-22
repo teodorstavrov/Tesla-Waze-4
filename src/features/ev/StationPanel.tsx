@@ -4,6 +4,7 @@
 
 import { useSyncExternalStore } from 'react'
 import { evStore } from './evStore'
+import { routeStore } from '@/features/route/routeStore'
 import type { NormalizedStation, Connector } from './types'
 
 export function StationPanel() {
@@ -95,6 +96,32 @@ export function StationPanel() {
       {station.connectors.length > 0 && (
         <ConnectorList connectors={station.connectors} />
       )}
+
+      {/* Navigate */}
+      <button
+        onClick={() => {
+          void routeStore.navigateTo({ lat: station.lat, lng: station.lng, name: station.name })
+          evStore.selectStation(null)
+        }}
+        style={{
+          width: '100%',
+          padding: '11px 0',
+          borderRadius: 10,
+          background: '#2B7FFF22',
+          border: '1.5px solid #2B7FFF55',
+          color: '#2B7FFF',
+          fontSize: 13,
+          fontWeight: 700,
+          cursor: 'pointer',
+          touchAction: 'manipulation',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 6,
+        }}
+      >
+        ↗ Navigate here
+      </button>
     </div>
   )
 }

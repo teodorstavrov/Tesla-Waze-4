@@ -19,6 +19,8 @@ import { FilterBar } from '@/features/ev/FilterBar'
 import { EventMarkerLayer } from '@/features/events/EventMarkerLayer'
 import { ReportModal } from '@/features/events/ReportModal'
 import { EventPanel } from '@/features/events/EventPanel'
+import { RouteLayer } from '@/features/route/RouteLayer'
+import { RoutePanel } from '@/features/route/RoutePanel'
 
 export function App() {
   // Start GPS watching (feeds gpsStore; no rerenders from GPS ticks)
@@ -47,6 +49,7 @@ export function App() {
       <HeadingAvatar />
       <EvMarkerLayer />
       <EventMarkerLayer />
+      <RouteLayer />
 
       {/* Layer 1: floating UI */}
       <FloatingTitleCard />
@@ -58,6 +61,7 @@ export function App() {
 
       {/* Layer 2: panels + filter bar (above dock) */}
       <FilterBar />
+      <RoutePanel />
       <StationPanel />
       <EventPanel />
 

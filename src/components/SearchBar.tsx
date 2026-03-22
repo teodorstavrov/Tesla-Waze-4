@@ -13,6 +13,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { getMap } from '@/components/MapShell'
 import { evStore } from '@/features/ev/evStore'
+import { routeStore } from '@/features/route/routeStore'
 import { searchNominatim } from '@/features/search/nominatim'
 import { searchStations } from '@/features/search/stationSearch'
 import type { GeoResult } from '@/features/search/nominatim'
@@ -117,7 +118,9 @@ export function SearchBar() {
       evStore.selectStation(s)
       map.setView([s.lat, s.lng], Math.max(map.getZoom(), 15), { animate: true })
     } else {
+      // Geocoding result — offer to navigate or just pan
       map.setView([result.lat, result.lng], 15, { animate: true })
+      void routeStore.navigateTo({ lat: result.lat, lng: result.lng, name: result.shortName })
     }
 
     closeSearch()

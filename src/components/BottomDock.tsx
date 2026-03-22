@@ -4,12 +4,19 @@
 import { useSyncExternalStore } from 'react'
 import { evStore } from '@/features/ev/evStore'
 import { eventStore } from '@/features/events/eventStore'
+import { routeStore } from '@/features/route/routeStore'
 
 export function BottomDock() {
   const markersVisible = useSyncExternalStore(
     evStore.subscribe.bind(evStore),
     () => evStore.getState().markersVisible,
     () => true,
+  )
+
+  const routeActive = useSyncExternalStore(
+    routeStore.subscribe.bind(routeStore),
+    () => routeStore.getState().status !== 'idle',
+    () => false,
   )
 
   return (
@@ -70,8 +77,13 @@ export function BottomDock() {
       </button>
 
       {/* Route */}
-      <button className="icon-btn" style={{ width: 52, height: 52 }}
-        title="Route planning" aria-label="Route planning">
+      <button
+        className={`icon-btn${routeActive ? ' active' : ''}`}
+        style={{ width: 52, height: 52 }}
+        title={routeActive ? 'Cancel route' : 'Route planning'}
+        aria-label={routeActive ? 'Cancel route' : 'Route planning'}
+        onClick={() => { if (routeActive) routeStore.clear() }}
+      >
         <RouteIcon />
       </button>
     </div>
