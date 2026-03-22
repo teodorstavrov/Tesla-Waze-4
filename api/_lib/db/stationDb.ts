@@ -14,8 +14,8 @@ import { redis } from './redis.js'
 import type { NormalizedStation } from '../normalize/types.js'
 import type { ProviderMeta } from '../normalize/types.js'
 
-const STATIONS_KEY = 'stations:v1'
-const META_KEY     = 'stations:v1:meta'
+const STATIONS_KEY = 'teslaradar:stations:v1'
+const META_KEY     = 'teslaradar:stations:v1:meta'
 
 export interface StationSyncMeta {
   syncedAt:    string   // ISO 8601

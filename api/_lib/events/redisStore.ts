@@ -14,7 +14,7 @@
 import { redis } from '../db/redis.js'
 import type { RoadEvent } from './types.js'
 
-const KEY = 'events:v1'
+const KEY = 'teslaradar:events:v1'
 const MAX_EVENTS = 500
 
 async function _readAll(): Promise<RoadEvent[]> {
