@@ -15,6 +15,7 @@ import { ttlMs } from '../_lib/events/types.js'
 import type { EventType, RoadEvent } from '../_lib/events/types.js'
 import { setCacheHeaders } from '../_lib/cache/headers.js'
 import { errorMessage } from '../_lib/utils/request.js'
+import { rateLimit } from '../_lib/utils/rateLimit.js'
 
 const VALID_TYPES = new Set<EventType>([
   'police', 'accident', 'hazard', 'traffic', 'closure', 'construction',
@@ -48,6 +49,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   // ── POST ─────────────────────────────────────────────────────────
   if (req.method === 'POST') {
     try {
+      // Rate limit: 5 event reports per IP per 10 minutes
+      const ip = (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() ?? 'unknown'
+      const allowed = await rateLimit(ip, 'events', 5, 600)
+      if (!allowed) { res.status(429).json({ error: 'Too many reports. Please wait a few minutes.' }); return }
+
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body
 
       const type: EventType = body?.type
