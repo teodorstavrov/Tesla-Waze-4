@@ -13,8 +13,8 @@
 // If this ever becomes a bottleneck, replace with a grid-cell bucketing
 // approach (O(n) average).
 
-import type { NormalizedStation, ProviderResult } from '../normalize/types.ts'
-import { haversineMeters } from '../utils/geo.ts'
+import type { NormalizedStation, ProviderResult } from '../normalize/types'
+import { haversineMeters } from '../utils/geo'
 
 /** Stations within this distance (meters) are considered the same location */
 const DEDUP_METERS = 80

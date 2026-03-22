@@ -24,14 +24,14 @@
 // If all fail     → empty stations array with error meta (never a 500)
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { parseBBox, BULGARIA_BBOX, bboxCacheKey, quantizeBBox } from '../_lib/utils/bbox.ts'
-import { fetchTeslaStations } from '../_lib/providers/tesla.ts'
-import { fetchOCMStations } from '../_lib/providers/ocm.ts'
-import { fetchOverpassStations } from '../_lib/providers/overpass.ts'
-import { mergeStations } from '../_lib/merge/stations.ts'
-import { cacheGet, cacheSet } from '../_lib/cache/memory.ts'
-import { setCacheHeaders } from '../_lib/cache/headers.ts'
-import type { StationsApiResponse, ProviderMeta, ProviderResult } from '../_lib/normalize/types.ts'
+import { parseBBox, BULGARIA_BBOX, bboxCacheKey, quantizeBBox } from '../_lib/utils/bbox'
+import { fetchTeslaStations } from '../_lib/providers/tesla'
+import { fetchOCMStations } from '../_lib/providers/ocm'
+import { fetchOverpassStations } from '../_lib/providers/overpass'
+import { mergeStations } from '../_lib/merge/stations'
+import { cacheGet, cacheSet } from '../_lib/cache/memory'
+import { setCacheHeaders } from '../_lib/cache/headers'
+import type { StationsApiResponse, ProviderMeta, ProviderResult } from '../_lib/normalize/types'
 
 const MERGED_CACHE_TTL_MS = 10 * 60 * 1000  // 10 min merged response cache
 

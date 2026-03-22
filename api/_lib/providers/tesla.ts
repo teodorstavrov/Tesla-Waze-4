@@ -17,11 +17,11 @@
 //
 // Cached 2 hours per bbox — Supercharger locations rarely change.
 
-import type { BBox } from '../utils/bbox.ts'
-import { toOverpassBBox, bboxCacheKey, quantizeBBox } from '../utils/bbox.ts'
-import { fetchWithTimeout, errorMessage } from '../utils/request.ts'
-import { cacheGet, cacheSet } from '../cache/memory.ts'
-import type { NormalizedStation, ProviderResult, Connector } from '../normalize/types.ts'
+import type { BBox } from '../utils/bbox'
+import { toOverpassBBox, bboxCacheKey, quantizeBBox } from '../utils/bbox'
+import { fetchWithTimeout, errorMessage } from '../utils/request'
+import { cacheGet, cacheSet } from '../cache/memory'
+import type { NormalizedStation, ProviderResult, Connector } from '../normalize/types'
 
 const CACHE_TTL_MS = 2 * 60 * 60 * 1000   // 2 hours
 const FETCH_TIMEOUT_MS = 12_000

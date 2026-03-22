@@ -9,11 +9,11 @@
 //
 // Cached per-bbox for 15 minutes — status updates are semi-frequent.
 
-import type { BBox } from '../utils/bbox.ts'
-import { toOCMBBox, bboxCacheKey, quantizeBBox } from '../utils/bbox.ts'
-import { fetchWithTimeout, errorMessage } from '../utils/request.ts'
-import { cacheGet, cacheSet } from '../cache/memory.ts'
-import type { NormalizedStation, ProviderResult, Connector } from '../normalize/types.ts'
+import type { BBox } from '../utils/bbox'
+import { toOCMBBox, bboxCacheKey, quantizeBBox } from '../utils/bbox'
+import { fetchWithTimeout, errorMessage } from '../utils/request'
+import { cacheGet, cacheSet } from '../cache/memory'
+import type { NormalizedStation, ProviderResult, Connector } from '../normalize/types'
 
 const CACHE_TTL_MS = 15 * 60 * 1000   // 15 minutes
 const FETCH_TIMEOUT_MS = 12_000
