@@ -1,0 +1,209 @@
+@import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
+
+/* ─── CSS custom properties ────────────────────────────────────────── */
+:root {
+  --glass-bg: rgba(22, 22, 30, 0.92);
+  --glass-border: rgba(255, 255, 255, 0.18);
+  --glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.7), 0 1px 0 rgba(255,255,255,0.06) inset;
+  --accent: #e31937;
+  --accent-dim: rgba(227, 25, 55, 0.22);
+  --text-primary: #f2f2f2;
+  --text-secondary: #9ca3af;
+  --surface-hover: rgba(255, 255, 255, 0.08);
+}
+
+[data-theme="light"] {
+  --glass-bg: rgba(255, 255, 255, 0.92);
+  --glass-border: rgba(0, 0, 0, 0.12);
+  --glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.18);
+  --text-primary: #111;
+  --text-secondary: #555;
+  --surface-hover: rgba(0, 0, 0, 0.05);
+}
+
+/* ─── Reset ─────────────────────────────────────────────────────────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body,
+#root {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: #0a0a0f;
+  color: var(--text-primary);
+}
+
+/* ─── Map container ──────────────────────────────────────────────────── */
+#map {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  /* GPU layer — critical for Tesla browser scroll smoothness */
+  transform: translateZ(0);
+  will-change: transform;
+  background: #1a1a2e;
+}
+
+/* ─── Leaflet overrides ──────────────────────────────────────────────── */
+.leaflet-container {
+  background: #1a1a2e;
+  font-family: inherit;
+  outline: none;
+}
+
+.leaflet-control-attribution {
+  font-size: 9px !important;
+  opacity: 0.5;
+  background: rgba(0, 0, 0, 0.5) !important;
+  color: #aaa !important;
+  border-radius: 4px 0 0 0;
+}
+
+.leaflet-control-attribution a {
+  color: #ccc !important;
+}
+
+/* We provide our own zoom controls */
+.leaflet-control-zoom {
+  display: none !important;
+}
+
+.leaflet-tile {
+  transition: opacity 0.15s ease;
+}
+
+/* Prevent accidental text selection during drag */
+.leaflet-container * {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ─── Glass card ─────────────────────────────────────────────────────── */
+.glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 12px;
+}
+
+/* ─── Icon button ────────────────────────────────────────────────────── */
+.icon-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+  /* Ensure crisp on dark map */
+  outline: none;
+}
+
+.icon-btn:hover {
+  background: var(--surface-hover);
+}
+
+.icon-btn:active {
+  transform: scale(0.93);
+}
+
+.icon-btn.active {
+  background: var(--accent-dim);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* ─── GPS Avatar ─────────────────────────────────────────────────────── */
+
+/* Leaflet default class reset — we own all avatar styles */
+.gps-avatar-root {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.gps-avatar-dot {
+  position: relative;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gps-avatar-halo {
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: rgba(41, 121, 255, 0.2);
+  animation: gps-pulse 2.2s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.gps-avatar-circle {
+  width: 14px;
+  height: 14px;
+  background: #2979ff;
+  border: 2.5px solid #fff;
+  border-radius: 50%;
+  box-shadow: 0 2px 8px rgba(41, 121, 255, 0.6);
+  position: relative;
+  z-index: 1;
+}
+
+/* Arrow container — rotated via inline transform */
+.gps-avatar-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  /* transition: transform 0.3s ease; — intentionally disabled: can cause jitter on Tesla */
+}
+
+@keyframes gps-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.55;
+  }
+  50% {
+    transform: scale(1.7);
+    opacity: 0;
+  }
+}
+
+/* ─── Scrollbar ──────────────────────────────────────────────────────── */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+}
