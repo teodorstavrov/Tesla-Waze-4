@@ -1,9 +1,9 @@
 // ─── Top-right status card ─────────────────────────────────────────────
-// Phase 4: shows live EV station count from evStore.
-// GPS accuracy wired via gpsStore.
+// Phase 4+5: live station count (filtered/total), GPS accuracy.
 
 import { useSyncExternalStore } from 'react'
 import { evStore } from '@/features/ev/evStore'
+import { filterStore } from '@/features/ev/filterStore'
 import { gpsStore } from '@/features/gps/gpsStore'
 
 export function FloatingStatsCard() {
@@ -13,23 +13,35 @@ export function FloatingStatsCard() {
     () => evStore.getState(),
   )
 
+  const filtersActive = useSyncExternalStore(
+    filterStore.subscribe.bind(filterStore),
+    () => filterStore.isActive(),
+    () => false,
+  )
+
+  const filteredCount = useSyncExternalStore(
+    filterStore.subscribe.bind(filterStore),
+    () => filterStore.getFilteredStations().length,
+    () => 0,
+  )
+
   const gpsPos = useSyncExternalStore(
     gpsStore.onPosition.bind(gpsStore),
     () => gpsStore.getPosition(),
     () => null,
   )
 
-  const stationCount =
-    evState.status === 'loading' && evState.stations.length === 0 ? '…'
-    : evState.status === 'error'                                   ? '!'
-    : evState.stations.length > 0                                  ? String(evState.stations.length)
-    :                                                                '—'
+  const totalCount = evState.stations.length
+
+  const stationValue =
+    evState.status === 'loading' && totalCount === 0 ? '…'
+    : evState.status === 'error'                      ? '!'
+    : totalCount === 0                                ? '—'
+    : filtersActive                                   ? `${filteredCount}/${totalCount}`
+    :                                                   String(totalCount)
 
   const gpsValue =
-    gpsPos == null           ? '—'
-    : gpsPos.accuracy < 20   ? `${Math.round(gpsPos.accuracy)}m`
-    : gpsPos.accuracy < 100  ? `${Math.round(gpsPos.accuracy)}m`
-    :                          `${Math.round(gpsPos.accuracy)}m`
+    gpsPos == null ? '—' : `${Math.round(gpsPos.accuracy)}m`
 
   return (
     <div
@@ -49,8 +61,8 @@ export function FloatingStatsCard() {
     >
       <Stat
         label="Stations"
-        value={stationCount}
-        accent={evState.status === 'error' ? '#ef4444' : undefined}
+        value={stationValue}
+        accent={evState.status === 'error' ? '#ef4444' : filtersActive ? '#e31937' : undefined}
         title={evState.error ?? undefined}
       />
       <Stat label="Events" value="—" />

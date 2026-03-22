@@ -14,6 +14,7 @@ import { useUserPosition } from '@/features/gps/useUserPosition'
 import { useAudioUnlock } from '@/features/audio/useAudioUnlock'
 import { EvMarkerLayer } from '@/features/ev/EvMarkerLayer'
 import { StationPanel } from '@/features/ev/StationPanel'
+import { FilterBar } from '@/features/ev/FilterBar'
 
 export function App() {
   // Start GPS watching (feeds gpsStore; no rerenders from GPS ticks)
@@ -50,7 +51,8 @@ export function App() {
       <ZoomControls />
       <BottomDock />
 
-      {/* Layer 2: station detail panel (above dock) */}
+      {/* Layer 2: station filter bar + detail panel (above dock) */}
+      <FilterBar />
       <StationPanel />
     </div>
   )

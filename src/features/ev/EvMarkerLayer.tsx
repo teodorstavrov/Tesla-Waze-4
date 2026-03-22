@@ -1,30 +1,28 @@
 // ─── EV Marker Layer ───────────────────────────────────────────────────
 //
-// Null-render React component that manages Leaflet CircleMarkers for EV
-// stations imperatively. Zero React output — all work done in useEffect.
+// Null-render React component managing Leaflet CircleMarkers imperatively.
 //
 // STABLE MARKER REGISTRY
 // ──────────────────────────────────────────────────────────────────────
-// A Map<id, CircleMarker> is kept in a ref. On each store update:
-//   • New stations → create marker + add to map
-//   • Gone stations → remove from map + delete from registry
-//   • Existing stations → untouched (no style update needed in Phase 4)
+// Map<id, CircleMarker> diff on every store update:
+//   • New stations (pass filter) → create marker
+//   • Gone / filtered-out stations → remove marker
+//   • Existing + still matching → untouched
 //
-// clearLayers() is NEVER called — it would cause a full DOM thrash on
-// every fetch which freezes the Tesla browser.
+// clearLayers() is NEVER called — full DOM thrash on Tesla browser.
 //
-// CANVAS RENDERING
+// FILTERS
 // ──────────────────────────────────────────────────────────────────────
-// The map is initialized with preferCanvas: true. All CircleMarkers are
-// drawn on a single <canvas> — far fewer DOM nodes than SVG/DivIcon.
-// ~800 circle markers = ~800 JS objects but only 1 DOM canvas element.
+// Subscribes to both evStore (new data) and filterStore (filter changes).
+// Uses filterStore.getFilteredStations() as the source of truth.
 
 import { useEffect, useRef } from 'react'
 import { L } from '@/lib/leaflet'
 import { getMap } from '@/components/MapShell'
-import { evStore } from './evStore'
+import { evStore } from './evStore.js'
+import { filterStore } from './filterStore.js'
 import { logger } from '@/lib/logger'
-import type { NormalizedStation } from './types'
+import type { NormalizedStation } from './types.js'
 
 // ── Marker appearance ──────────────────────────────────────────────
 
@@ -41,20 +39,27 @@ function fillColor(s: NormalizedStation): string {
 
 function markerRadius(s: NormalizedStation): number {
   if (s.source === 'tesla') return 9
-  if (s.maxPowerKw != null && s.maxPowerKw >= 100) return 8  // fast charger
-  return 6
+  if (s.maxPowerKw != null && s.maxPowerKw >= 150) return 8  // ultra-fast
+  if (s.maxPowerKw != null && s.maxPowerKw >= 50)  return 7  // fast
+  return 5
 }
 
 function makeMarkerOptions(s: NormalizedStation): L.CircleMarkerOptions {
   return {
     radius:      markerRadius(s),
     fillColor:   fillColor(s),
-    fillOpacity: s.status === 'offline' ? 0.45 : 0.88,
+    fillOpacity: s.status === 'offline' ? 0.4 : 0.88,
     color:       '#fff',
     weight:      1.5,
     opacity:     0.9,
-    // pane defaults to 'markerPane' which sits above tiles
   }
+}
+
+function tooltipContent(s: NormalizedStation): string {
+  const parts = [s.name]
+  if (s.maxPowerKw) parts.push(`${s.maxPowerKw} kW`)
+  if (s.totalPorts > 1) parts.push(`${s.totalPorts} ports`)
+  return parts.join(' · ')
 }
 
 // ── Component ─────────────────────────────────────────────────────
@@ -63,29 +68,26 @@ export function EvMarkerLayer() {
   const registryRef = useRef<Map<string, L.CircleMarker>>(new Map())
 
   useEffect(() => {
-    // MapShell's effect may not have run yet on first render.
-    // Use rAF to let it complete, then initialize.
     let cancelled = false
     let moveTimer: ReturnType<typeof setTimeout> | null = null
-    let unsub: (() => void) | null = null
 
     function init(map: L.Map): () => void {
       const registry = registryRef.current
 
-      // ── Sync markers from store ──────────────────────────────────
+      // ── Sync markers from filtered stations ──────────────────────
       function syncMarkers(): void {
-        const { stations, markersVisible } = evStore.getState()
+        const { markersVisible } = evStore.getState()
 
         if (!markersVisible) {
-          // Hide all markers
           for (const marker of registry.values()) marker.remove()
           registry.clear()
           return
         }
 
+        const stations = filterStore.getFilteredStations()
         const incoming = new Set(stations.map((s) => s.id))
 
-        // Remove markers for stations no longer in the result
+        // Remove markers for stations no longer in filtered set
         for (const [id, marker] of registry) {
           if (!incoming.has(id)) {
             marker.remove()
@@ -93,7 +95,7 @@ export function EvMarkerLayer() {
           }
         }
 
-        // Add markers for new stations
+        // Add markers for newly visible stations
         for (const station of stations) {
           if (registry.has(station.id)) continue
 
@@ -102,22 +104,31 @@ export function EvMarkerLayer() {
             makeMarkerOptions(station),
           ).addTo(map)
 
+          // Tooltip — shows on hover (desktop dev); invisible on touch
+          marker.bindTooltip(tooltipContent(station), {
+            direction: 'top',
+            offset: L.point(0, -6),
+            className: 'ev-tooltip',
+            sticky: false,
+          })
+
           marker.on('click', () => {
             evStore.selectStation(station)
-            logger.ev.debug('Station selected', { id: station.id, name: station.name })
+            logger.ev.debug('Station selected', { id: station.id })
           })
 
           registry.set(station.id, marker)
         }
       }
 
-      // ── Subscribe to store ───────────────────────────────────────
-      unsub = evStore.subscribe(syncMarkers)
+      // Subscribe to both evStore and filterStore
+      const unsubEv = evStore.subscribe(syncMarkers)
+      const unsubFilter = filterStore.subscribe(syncMarkers)
 
-      // Initial sync from any already-loaded data
+      // Initial sync
       syncMarkers()
 
-      // ── Fetch on map moveend (debounced 400ms) ───────────────────
+      // Fetch on map moveend (debounced 400ms)
       function onMoveEnd(): void {
         if (moveTimer) clearTimeout(moveTimer)
         moveTimer = setTimeout(() => {
@@ -133,7 +144,7 @@ export function EvMarkerLayer() {
 
       map.on('moveend', onMoveEnd)
 
-      // ── Initial fetch for current view ───────────────────────────
+      // Initial fetch for current view
       const b = map.getBounds()
       evStore.fetch({
         minLat: b.getSouth(),
@@ -147,7 +158,8 @@ export function EvMarkerLayer() {
       return () => {
         if (moveTimer) clearTimeout(moveTimer)
         map.off('moveend', onMoveEnd)
-        unsub?.()
+        unsubEv()
+        unsubFilter()
         for (const marker of registry.values()) marker.remove()
         registry.clear()
       }
@@ -155,7 +167,6 @@ export function EvMarkerLayer() {
 
     let cleanup: (() => void) | null = null
 
-    // Try immediately, fall back to rAF if map not ready
     const map = getMap()
     if (map) {
       cleanup = init(map)
@@ -168,7 +179,6 @@ export function EvMarkerLayer() {
       return () => {
         cancelled = true
         cancelAnimationFrame(frame)
-        unsub?.()
       }
     }
 

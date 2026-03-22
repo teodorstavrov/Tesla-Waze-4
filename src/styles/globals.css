@@ -195,6 +195,23 @@ body,
   }
 }
 
+/* ─── EV station tooltip ─────────────────────────────────────────────── */
+.ev-tooltip {
+  background: rgba(16, 16, 24, 0.94) !important;
+  border: 1px solid rgba(255, 255, 255, 0.18) !important;
+  border-radius: 8px !important;
+  color: #f2f2f2 !important;
+  font-size: 11px !important;
+  font-weight: 500 !important;
+  padding: 4px 10px !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.6) !important;
+  white-space: nowrap !important;
+}
+
+.ev-tooltip::before {
+  border-top-color: rgba(255, 255, 255, 0.18) !important;
+}
+
 /* ─── Scrollbar ──────────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
   width: 4px;
