@@ -15,6 +15,8 @@ interface EventState {
   bboxKey: string | null
   selectedEvent: RoadEvent | null
   reportModalOpen: boolean
+  /** Pre-set location for the report modal (e.g. station coords). null = use GPS/map center. */
+  reportLocation: { lat: number; lng: number } | null
 }
 
 let _state: EventState = {
@@ -25,6 +27,7 @@ let _state: EventState = {
   bboxKey:         null,
   selectedEvent:   null,
   reportModalOpen: false,
+  reportLocation:  null,
 }
 
 type Listener = () => void
@@ -53,13 +56,13 @@ export const eventStore = {
     _emit()
   },
 
-  openReportModal(): void {
-    _state = { ..._state, reportModalOpen: true, selectedEvent: null }
+  openReportModal(location?: { lat: number; lng: number }): void {
+    _state = { ..._state, reportModalOpen: true, selectedEvent: null, reportLocation: location ?? null }
     _emit()
   },
 
   closeReportModal(): void {
-    _state = { ..._state, reportModalOpen: false }
+    _state = { ..._state, reportModalOpen: false, reportLocation: null }
     _emit()
   },
 

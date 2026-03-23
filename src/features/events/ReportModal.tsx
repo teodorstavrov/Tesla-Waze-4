@@ -28,12 +28,16 @@ export function ReportModal() {
     if (submitting) return
     setSubmitting(true)
 
-    // Use GPS position, fall back to map center
-    const gps = gpsStore.getPosition()
+    // Priority: preset location (e.g. station) → GPS → map center
+    const preset = eventStore.getState().reportLocation
+    const gps    = gpsStore.getPosition()
     let lat: number
     let lng: number
 
-    if (gps) {
+    if (preset) {
+      lat = preset.lat
+      lng = preset.lng
+    } else if (gps) {
       lat = gps.lat
       lng = gps.lng
     } else {

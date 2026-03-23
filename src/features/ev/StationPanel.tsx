@@ -5,6 +5,7 @@
 import { useSyncExternalStore } from 'react'
 import { evStore } from './evStore'
 import { routeStore } from '@/features/route/routeStore'
+import { eventStore } from '@/features/events/eventStore'
 import type { NormalizedStation, Connector } from './types'
 
 export function StationPanel() {
@@ -97,31 +98,62 @@ export function StationPanel() {
         <ConnectorList connectors={station.connectors} />
       )}
 
-      {/* Navigate */}
-      <button
-        onClick={() => {
-          void routeStore.navigateTo({ lat: station.lat, lng: station.lng, name: station.name })
-          evStore.selectStation(null)
-        }}
-        style={{
-          width: '100%',
-          padding: '11px 0',
-          borderRadius: 10,
-          background: '#2B7FFF22',
-          border: '1.5px solid #2B7FFF55',
-          color: '#2B7FFF',
-          fontSize: 13,
-          fontWeight: 700,
-          cursor: 'pointer',
-          touchAction: 'manipulation',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 6,
-        }}
-      >
-        ↗ Navigate here
-      </button>
+      {/* Last updated */}
+      {station.lastUpdated && (
+        <div style={{ fontSize: 11, color: 'var(--text-secondary)', textAlign: 'right' }}>
+          Updated {formatAge(station.lastUpdated)}
+        </div>
+      )}
+
+      {/* Actions */}
+      <div style={{ display: 'flex', gap: 8 }}>
+        <button
+          onClick={() => {
+            void routeStore.navigateTo({ lat: station.lat, lng: station.lng, name: station.name })
+            evStore.selectStation(null)
+          }}
+          style={{
+            flex: 1,
+            padding: '11px 0',
+            borderRadius: 10,
+            background: '#2B7FFF22',
+            border: '1.5px solid #2B7FFF55',
+            color: '#2B7FFF',
+            fontSize: 13,
+            fontWeight: 700,
+            cursor: 'pointer',
+            touchAction: 'manipulation',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+          }}
+        >
+          ↗ Navigate here
+        </button>
+
+        <button
+          onClick={() => {
+            evStore.selectStation(null)
+            eventStore.openReportModal({ lat: station.lat, lng: station.lng })
+          }}
+          title="Report an issue at this station"
+          style={{
+            padding: '11px 14px',
+            borderRadius: 10,
+            background: '#f59e0b18',
+            border: '1.5px solid #f59e0b55',
+            color: '#f59e0b',
+            fontSize: 13,
+            fontWeight: 700,
+            cursor: 'pointer',
+            touchAction: 'manipulation',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          ⚠️ Проблем
+        </button>
+      </div>
     </div>
   )
 }
@@ -176,6 +208,15 @@ function ConnectorList({ connectors }: { connectors: Connector[] }) {
       ))}
     </div>
   )
+}
+
+function formatAge(iso: string): string {
+  const ms = Date.now() - new Date(iso).getTime()
+  const days = Math.floor(ms / 86_400_000)
+  if (days > 0) return `${days}d ago`
+  const hr = Math.floor(ms / 3_600_000)
+  if (hr > 0)   return `${hr}h ago`
+  return 'just now'
 }
 
 function SourceBadge({ source }: { source: NormalizedStation['source'] }) {
