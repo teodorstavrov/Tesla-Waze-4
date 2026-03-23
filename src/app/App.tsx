@@ -2,7 +2,9 @@
 // Phase 1+2: foundation shell + GPS/follow/audio UX.
 // Phase 4: EV marker layer + station panel.
 // Phase 6: road event markers + report modal.
+// Phase 14: auto dark/light theme + onboarding.
 
+import { useEffect } from 'react'
 import { MapShell } from '@/components/MapShell'
 import { HeadingAvatar } from '@/components/HeadingAvatar'
 import { FloatingTitleCard } from '@/components/FloatingTitleCard'
@@ -12,6 +14,7 @@ import { LeftControls } from '@/components/LeftControls'
 import { ZoomControls } from '@/components/ZoomControls'
 import { Speedometer } from '@/components/Speedometer'
 import { BottomDock } from '@/components/BottomDock'
+import { Onboarding } from '@/components/Onboarding'
 import { useUserPosition } from '@/features/gps/useUserPosition'
 import { useAudioUnlock } from '@/features/audio/useAudioUnlock'
 import { EvMarkerLayer } from '@/features/ev/EvMarkerLayer'
@@ -24,6 +27,7 @@ import { RouteLayer } from '@/features/route/RouteLayer'
 import { RoutePanel } from '@/features/route/RoutePanel'
 import { AlertToast } from '@/features/audio/AlertToast'
 import { alertEngine } from '@/features/audio/alertEngine'
+import { useThemeStore } from '@/features/theme/store'
 
 export function App() {
   // Start GPS watching (feeds gpsStore; no rerenders from GPS ticks)
@@ -34,6 +38,14 @@ export function App() {
 
   // Get the audio unlock trigger
   const { unlock } = useAudioUnlock()
+
+  // Auto dark/light theme — re-checks every hour (only when not manually set)
+  const applyAutoTheme = useThemeStore((s) => s.applyAutoTheme)
+  useEffect(() => {
+    applyAutoTheme()
+    const interval = setInterval(applyAutoTheme, 60 * 60 * 1000)
+    return () => clearInterval(interval)
+  }, [applyAutoTheme])
 
   return (
     // Any tap on the app unlocks audio — safe since tryUnlock() is idempotent
@@ -77,6 +89,9 @@ export function App() {
 
       {/* Layer 4: alert toast (above everything) */}
       <AlertToast />
+
+      {/* Layer 5: first-visit onboarding (above toast, dismissable) */}
+      <Onboarding />
     </div>
   )
 }
