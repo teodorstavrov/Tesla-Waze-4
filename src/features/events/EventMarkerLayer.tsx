@@ -10,9 +10,12 @@ import { EVENT_EMOJI, EVENT_COLORS } from './types.js'
 import { logger } from '@/lib/logger'
 import type { RoadEvent } from './types.js'
 
+const NEW_THRESHOLD_MS = 2 * 60 * 1000  // pulse events reported within 2 minutes
+
 function makeIcon(event: RoadEvent): L.DivIcon {
   const color = EVENT_COLORS[event.type] ?? '#888'
   const emoji = EVENT_EMOJI[event.type] ?? '📍'
+  const isNew = Date.now() - new Date(event.reportedAt).getTime() < NEW_THRESHOLD_MS
   return L.divIcon({
     className: '',
     html: `
@@ -23,6 +26,7 @@ function makeIcon(event: RoadEvent): L.DivIcon {
         font-size:17px; line-height:1;
         box-shadow:0 2px 8px rgba(0,0,0,0.55);
         cursor:pointer;
+        animation:${isNew ? 'event-new-pulse 0.9s ease-out 3' : 'none'};
       ">${emoji}</div>`,
     iconSize:   [36, 36],
     iconAnchor: [18, 18],

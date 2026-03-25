@@ -67,12 +67,12 @@ export function FloatingStatsCard() {
       }}
     >
       <Stat
-        label="Stations"
+        label="Станции"
         value={stationValue}
         accent={evState.status === 'error' ? '#ef4444' : filtersActive ? '#e31937' : undefined}
         title={evState.error ?? undefined}
       />
-      <Stat label="Events" value={eventCount > 0 ? String(eventCount) : '—'} />
+      <Stat label="Събития" value={eventCount > 0 ? String(eventCount) : '—'} />
       <Stat label="GPS" value={gpsValue} />
     </div>
   )

@@ -145,8 +145,8 @@ export function SearchBar() {
           <button
             className="icon-btn"
             onClick={openSearch}
-            aria-label="Open search"
-            title="Search"
+            aria-label="Отвори търсачката"
+            title="Търси"
           >
             <SearchIcon />
           </button>
@@ -167,7 +167,7 @@ export function SearchBar() {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search places or charging stations…"
+                placeholder="Търси места или зарядни станции…"
                 style={{
                   flex: 1, background: 'transparent', border: 'none', outline: 'none',
                   color: 'var(--text-primary)', fontSize: 14, padding: '2px 0', minWidth: 0,
@@ -200,7 +200,7 @@ export function SearchBar() {
                 {/* Station results */}
                 {results.filter((r) => r.type === 'station').length > 0 && (
                   <>
-                    <SectionLabel label="Charging stations" />
+                    <SectionLabel label="Зарядни станции" />
                     {results
                       .filter((r): r is StationResult => r.type === 'station')
                       .map((r, i) => (
@@ -219,7 +219,7 @@ export function SearchBar() {
                 {/* Geo results */}
                 {results.filter((r) => r.type === 'geo').length > 0 && (
                   <>
-                    <SectionLabel label="Places" />
+                    <SectionLabel label="Места" />
                     {results
                       .filter((r): r is GeoResult & { _city?: string } => r.type === 'geo')
                       .map((r, i) => {
@@ -250,7 +250,7 @@ export function SearchBar() {
                   textAlign: 'center',
                 }}
               >
-                No results for "{query}"
+                Няма резултати за &ldquo;{query}&rdquo;
               </div>
             )}
           </div>

@@ -38,8 +38,8 @@ export function BottomDock() {
           color: markersVisible ? '#e31937' : 'var(--text-secondary)',
           boxShadow: markersVisible ? '0 0 0 2px #e3193744' : undefined,
         }}
-        title={markersVisible ? 'Hide EV stations' : 'Show EV stations'}
-        aria-label={markersVisible ? 'Hide EV stations' : 'Show EV stations'}
+        title={markersVisible ? 'Скрий станциите' : 'Покажи станциите'}
+        aria-label={markersVisible ? 'Скрий станциите' : 'Покажи станциите'}
         aria-pressed={markersVisible}
         onClick={() => evStore.toggleMarkersVisible()}
       >
@@ -48,8 +48,8 @@ export function BottomDock() {
 
       {/* Report — primary CTA */}
       <button
-        aria-label="Report a road event"
-        title="Report"
+        aria-label="Докладвай събитие"
+        title="Докладвай"
         onClick={() => eventStore.openReportModal()}
         style={{
           display: 'flex',
@@ -73,15 +73,15 @@ export function BottomDock() {
         onPointerLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = '' }}
       >
         <AlertIcon />
-        Report
+        Докладвай
       </button>
 
       {/* Route */}
       <button
         className={`icon-btn${routeActive ? ' active' : ''}`}
         style={{ width: 52, height: 52 }}
-        title={routeActive ? 'Cancel route' : 'Route planning'}
-        aria-label={routeActive ? 'Cancel route' : 'Route planning'}
+        title={routeActive ? 'Откажи маршрут' : 'Маршрут'}
+        aria-label={routeActive ? 'Откажи маршрут' : 'Маршрут'}
         onClick={() => { if (routeActive) routeStore.clear() }}
       >
         <RouteIcon />
