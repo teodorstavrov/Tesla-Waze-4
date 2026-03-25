@@ -73,23 +73,23 @@ export function StationPanel() {
       {/* Info row */}
       <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
         {station.network && (
-          <InfoItem label="Network" value={station.network} />
+          <InfoItem label="Мрежа" value={station.network} />
         )}
         {station.totalPorts > 0 && (
           <InfoItem
-            label="Ports"
+            label="Порта"
             value={
               station.availablePorts != null
-                ? `${station.availablePorts}/${station.totalPorts} free`
+                ? `${station.availablePorts}/${station.totalPorts} свободни`
                 : String(station.totalPorts)
             }
           />
         )}
         {station.maxPowerKw != null && (
-          <InfoItem label="Max power" value={`${station.maxPowerKw} kW`} />
+          <InfoItem label="Макс. мощност" value={`${station.maxPowerKw} kW`} />
         )}
         {station.isFree != null && (
-          <InfoItem label="Cost" value={station.isFree ? 'Free' : 'Paid'} />
+          <InfoItem label="Цена" value={station.isFree ? 'Безплатно' : 'Платено'} />
         )}
       </div>
 
@@ -101,7 +101,7 @@ export function StationPanel() {
       {/* Last updated */}
       {station.lastUpdated && (
         <div style={{ fontSize: 11, color: 'var(--text-secondary)', textAlign: 'right' }}>
-          Updated {formatAge(station.lastUpdated)}
+          Обновено {formatAge(station.lastUpdated)}
         </div>
       )}
 
@@ -129,7 +129,7 @@ export function StationPanel() {
             gap: 6,
           }}
         >
-          ↗ Navigate here
+          ↗ Навигирай
         </button>
 
         <button
@@ -211,19 +211,19 @@ function ConnectorList({ connectors }: { connectors: Connector[] }) {
 }
 
 function formatAge(iso: string): string {
-  const ms = Date.now() - new Date(iso).getTime()
+  const ms   = Date.now() - new Date(iso).getTime()
   const days = Math.floor(ms / 86_400_000)
-  if (days > 0) return `${days}d ago`
+  if (days > 0) return `преди ${days}д`
   const hr = Math.floor(ms / 3_600_000)
-  if (hr > 0)   return `${hr}h ago`
-  return 'just now'
+  if (hr > 0)   return `преди ${hr}ч`
+  return 'току-що'
 }
 
 function SourceBadge({ source }: { source: NormalizedStation['source'] }) {
   const labels: Record<string, string> = {
     tesla: 'Tesla',
     ocm:   'OCM',
-    osm:   'OSM',
+    osm:   'OSM',  // OpenStreetMap
   }
   const colors: Record<string, string> = {
     tesla: '#e31937',
@@ -244,11 +244,11 @@ function SourceBadge({ source }: { source: NormalizedStation['source'] }) {
 
 function StatusBadge({ status }: { status: NormalizedStation['status'] }) {
   const cfg: Record<string, { label: string; color: string }> = {
-    available: { label: 'Open',     color: '#22c55e' },
-    busy:      { label: 'Busy',     color: '#f59e0b' },
-    offline:   { label: 'Offline',  color: '#ef4444' },
-    planned:   { label: 'Planned',  color: '#8b8b8b' },
-    unknown:   { label: '?',        color: '#8b8b8b' },
+    available: { label: 'Свободна',  color: '#22c55e' },
+    busy:      { label: 'Заета',     color: '#f59e0b' },
+    offline:   { label: 'Офлайн',   color: '#ef4444' },
+    planned:   { label: 'Планирана', color: '#8b8b8b' },
+    unknown:   { label: '?',         color: '#8b8b8b' },
   }
   const { label, color } = cfg[status] ?? cfg['unknown']!
   return (

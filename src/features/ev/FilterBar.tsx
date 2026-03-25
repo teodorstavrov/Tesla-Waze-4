@@ -1,11 +1,12 @@
 // ─── EV Filter Bar ─────────────────────────────────────────────────────
 // Horizontal chip strip above the bottom dock.
-// Only rendered when EV markers are visible (evStore.markersVisible).
-// Chips toggle filterStore state — active chip highlighted red.
+// Only rendered when EV markers are visible AND no active route.
+// Hides when RoutePanel is showing (both occupy the same bottom: 90 slot).
 
 import { useSyncExternalStore } from 'react'
 import { evStore } from './evStore.js'
 import { filterStore } from './filterStore.js'
+import { routeStore } from '@/features/route/routeStore'
 import type { ConnectorFilter, PowerFilter } from './filterStore.js'
 
 export function FilterBar() {
@@ -21,7 +22,13 @@ export function FilterBar() {
     () => filterStore.getState(),
   )
 
-  if (!markersVisible) return null
+  const routeStatus = useSyncExternalStore(
+    routeStore.subscribe.bind(routeStore),
+    () => routeStore.getState().status,
+    () => 'idle' as const,
+  )
+
+  if (!markersVisible || routeStatus !== 'idle') return null
 
   const { connector, minPowerKw, onlyAvailable } = filterState
 
@@ -38,14 +45,12 @@ export function FilterBar() {
         alignItems: 'center',
         overflowX: 'auto',
         maxWidth: 'calc(100vw - 24px)',
-        // Hide scrollbar but keep functionality
         scrollbarWidth: 'none',
         WebkitOverflowScrolling: 'touch' as React.CSSProperties['WebkitOverflowScrolling'],
-        paddingBottom: 2,  // clip scrollbar
+        paddingBottom: 2,
       }}
-      // eslint-disable-next-line jsx-a11y/no-noninteractive-element-interactions
       role="group"
-      aria-label="Filter charging stations"
+      aria-label="Филтри за зарядни станции"
     >
       {/* Connector chips */}
       <Chip
@@ -75,11 +80,13 @@ export function FilterBar() {
       {/* Power chips */}
       <Chip
         label="50kW+"
+        color="#22c55e"
         active={minPowerKw === 50}
         onClick={() => filterStore.setMinPower(50 as PowerFilter)}
       />
       <Chip
         label="150kW+"
+        color="#F59E0B"
         active={minPowerKw === 150}
         onClick={() => filterStore.setMinPower(150 as PowerFilter)}
       />
@@ -88,15 +95,15 @@ export function FilterBar() {
 
       {/* Availability */}
       <Chip
-        label="Open"
+        label="Свободни"
         active={onlyAvailable}
         onClick={() => filterStore.toggleAvailable()}
       />
 
-      {/* Reset — only shown when any filter is active */}
+      {/* Reset */}
       {filterStore.isActive() && (
         <Chip
-          label="✕ Clear"
+          label="✕ Изчисти"
           active={false}
           muted
           onClick={() => filterStore.reset()}
