@@ -14,8 +14,10 @@ import { redis } from './redis.js'
 import type { NormalizedStation } from '../normalize/types.js'
 import type { ProviderMeta } from '../normalize/types.js'
 
-const STATIONS_KEY = 'teslaradar:stations:v1'
-const META_KEY     = 'teslaradar:stations:v1:meta'
+const STATIONS_KEY    = 'teslaradar:stations:v1'
+const META_KEY        = 'teslaradar:stations:v1:meta'
+const STATIONS_KEY_V0 = 'stations:v1'       // legacy key — migrate on first read
+const META_KEY_V0     = 'stations:v1:meta'
 
 export interface StationSyncMeta {
   syncedAt:    string   // ISO 8601
@@ -32,13 +34,24 @@ export const stationDb = {
   /** Returns all stored stations, or null if not yet seeded. */
   async getAll(): Promise<NormalizedStation[] | null> {
     if (!redis.isConfigured()) return null
-    return redis.get<NormalizedStation[]>(STATIONS_KEY)
+    const data = await redis.get<NormalizedStation[]>(STATIONS_KEY)
+    if (data !== null && data.length > 0) return data
+    // Migrate: try legacy key written before namespace change
+    const legacy = await redis.get<NormalizedStation[]>(STATIONS_KEY_V0)
+    if (legacy !== null && legacy.length > 0) {
+      // Promote to new key silently so future reads are fast
+      void redis.set(STATIONS_KEY, legacy)
+      return legacy
+    }
+    return null
   },
 
   /** Returns sync metadata, or null if not yet synced. */
   async getMeta(): Promise<StationSyncMeta | null> {
     if (!redis.isConfigured()) return null
-    return redis.get<StationSyncMeta>(META_KEY)
+    const meta = await redis.get<StationSyncMeta>(META_KEY)
+    if (meta !== null) return meta
+    return redis.get<StationSyncMeta>(META_KEY_V0)
   },
 
   /** Persists the full station list + metadata. No TTL — cron owns updates. */
