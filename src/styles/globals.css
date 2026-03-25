@@ -225,6 +225,13 @@ body,
   100% { box-shadow: 0 0 0 0 rgba(255, 255, 255, 0), 0 2px 8px rgba(0,0,0,0.55); }
 }
 
+/* ─── Tile-layer crossfade ───────────────────────────────────────────── */
+/* Applied to every L.TileLayer container div — enables smooth opacity
+   transition when switching between normal / satellite / dark tile sets.  */
+.leaflet-layer {
+  transition: opacity 0.45s ease;
+}
+
 /* ─── Scrollbar ──────────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
   width: 4px;

@@ -102,8 +102,12 @@ export function MapShell() {
   }, [])
 
   // ── Update tile layer when theme/satellite changes ────────────
+  // Uses a crossfade: new layer starts at opacity 0, fades to 1 via the
+  // CSS transition on .leaflet-layer; old layer is removed after 500 ms.
   useEffect(() => {
     if (!mapInstance) return
+
+    const map = mapInstance  // stable local ref for async closures
 
     const url =
       mapMode === 'satellite' ? TILE_SATELLITE
@@ -113,17 +117,26 @@ export function MapShell() {
     const attribution =
       mapMode === 'satellite' ? TILE_SATELLITE_ATTRIBUTION : TILE_ATTRIBUTION
 
+    const tileOptions = {
+      attribution,
+      subdomains:        'abcd',
+      maxZoom:           MAX_ZOOM,
+      keepBuffer:        4,
+      updateWhenIdle:    false,
+      updateWhenZooming: false,
+    }
+
     if (tileLayer) {
-      tileLayer.setUrl(url)
+      const prev = tileLayer
+      // New layer starts invisible and fades in via CSS transition
+      const next = L.tileLayer(url, { ...tileOptions, opacity: 0 }).addTo(map)
+      tileLayer = next
+
+      // Double-RAF: browser paints opacity:0 before we trigger the transition
+      requestAnimationFrame(() => requestAnimationFrame(() => next.setOpacity(1)))
+      setTimeout(() => { if (map.hasLayer(prev)) map.removeLayer(prev) }, 500)
     } else {
-      tileLayer = L.tileLayer(url, {
-        attribution,
-        subdomains:        'abcd',
-        maxZoom:           MAX_ZOOM,
-        keepBuffer:        4,     // keep surrounding tiles — prevents flash on pan
-        updateWhenIdle:    false,
-        updateWhenZooming: false,
-      }).addTo(mapInstance)
+      tileLayer = L.tileLayer(url, tileOptions).addTo(map)
     }
 
     logger.map.debug('Tile updated', { mapMode, theme })

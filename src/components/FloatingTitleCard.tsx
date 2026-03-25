@@ -1,7 +1,18 @@
 // ─── Top-left branding card ────────────────────────────────────────────
+import { useSyncExternalStore } from 'react'
 import { APP_NAME } from '@/lib/constants'
+import { routeStore } from '@/features/route/routeStore'
 
 export function FloatingTitleCard() {
+  const routeActive = useSyncExternalStore(
+    routeStore.subscribe.bind(routeStore),
+    () => routeStore.getState().status === 'ok',
+    () => false,
+  )
+
+  // Hide when navigating — TurnInstruction occupies this slot
+  if (routeActive) return null
+
   return (
     <div
       className="glass"

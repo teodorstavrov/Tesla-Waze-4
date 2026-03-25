@@ -3,6 +3,7 @@
 // Phase 4: EV marker layer + station panel.
 // Phase 6: road event markers + report modal.
 // Phase 14: auto dark/light theme + onboarding.
+// Phase 21: turn-by-turn navigation HUD + voice directions.
 
 import { useEffect } from 'react'
 import { MapShell } from '@/components/MapShell'
@@ -25,6 +26,7 @@ import { ReportModal } from '@/features/events/ReportModal'
 import { EventPanel } from '@/features/events/EventPanel'
 import { RouteLayer } from '@/features/route/RouteLayer'
 import { RoutePanel } from '@/features/route/RoutePanel'
+import { TurnInstruction } from '@/features/route/TurnInstruction'
 import { AlertToast } from '@/features/audio/AlertToast'
 import { OfflineToast } from '@/components/OfflineToast'
 import { alertEngine } from '@/features/audio/alertEngine'
@@ -74,6 +76,7 @@ export function App() {
 
       {/* Layer 1: floating UI */}
       <FloatingTitleCard />
+      <TurnInstruction />
       <SearchBar />
       <FloatingStatsCard />
       <LeftControls />

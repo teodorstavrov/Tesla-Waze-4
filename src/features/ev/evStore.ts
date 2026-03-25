@@ -13,7 +13,28 @@
 import type { NormalizedStation, StationsApiResponse } from './types'
 import { logger } from '@/lib/logger'
 
-const STALE_MS = 10 * 60 * 1000  // 10 minutes — mirrors server cache TTL
+const STALE_MS = 10 * 60 * 1000           // 10 minutes — mirrors server cache TTL
+const LS_KEY   = 'ev-stations-cache'
+const LS_TTL   = 24 * 60 * 60 * 1000     // 24 hours — offline fallback max age
+
+// ── localStorage persistence ──────────────────────────────────────
+
+function _saveToLocalStorage(stations: NormalizedStation[]): void {
+  try {
+    localStorage.setItem(LS_KEY, JSON.stringify({ stations, savedAt: Date.now() }))
+  } catch { /* quota exceeded — non-fatal */ }
+}
+
+function _loadFromLocalStorage(): NormalizedStation[] {
+  try {
+    const raw = localStorage.getItem(LS_KEY)
+    if (!raw) return []
+    const { stations, savedAt } = JSON.parse(raw) as { stations: NormalizedStation[], savedAt: number }
+    if (!Array.isArray(stations) || stations.length === 0) return []
+    if (Date.now() - savedAt > LS_TTL) return []  // too stale — discard
+    return stations
+  } catch { return [] }
+}
 
 // ── State shape ───────────────────────────────────────────────────
 
@@ -32,15 +53,23 @@ interface EvState {
 
 // ── Module-level state ────────────────────────────────────────────
 
+// Eagerly hydrate from localStorage so the map shows stations on first
+// render even before the first network request completes (or when offline).
+const _cached = _loadFromLocalStorage()
+
 let _state: EvState = {
-  stations: [],
-  status: 'idle',
-  error: null,
-  fetchedAt: null,
-  bboxKey: null,
-  meta: null,
+  stations:        _cached,
+  status:          _cached.length > 0 ? 'ok' : 'idle',
+  error:           null,
+  fetchedAt:       null,
+  bboxKey:         null,
+  meta:            null,
   selectedStation: null,
-  markersVisible: true,
+  markersVisible:  true,
+}
+
+if (_cached.length > 0) {
+  logger.ev.debug('Hydrated from localStorage cache', { count: _cached.length })
 }
 
 type Listener = () => void
@@ -145,6 +174,8 @@ export const evStore = {
         fetchedAt: Date.now(),
         meta: data.meta,
       }
+
+      _saveToLocalStorage(data.stations)
 
       logger.ev.info('Stations loaded', {
         count: data.stations.length,

@@ -1,14 +1,13 @@
 // ─── Search bar ────────────────────────────────────────────────────────
-// Phase 7: geocoding (Nominatim) + local EV station search.
+// Phase 7:  geocoding (Nominatim) + local EV station search.
+// Phase 24: search history (localStorage) + viewbox bias for Nominatim.
 //
 // UX:
-//   • Click search icon → expands to text input with results dropdown
-//   • 400ms debounce → parallel Nominatim + local station search
+//   • Click search icon → expands; shows history if no text typed
+//   • 400ms debounce → parallel Nominatim (viewbox-biased) + local station search
 //   • Click result → pan map (geo) or open station panel + pan (station)
+//   • Geo results are saved to history (max 5, deduplicated by coords)
 //   • Click outside / Escape / ✕ → collapse
-//
-// Closing: handled by a document mousedown listener (not onBlur) so
-// clicking a result doesn't close before the click fires.
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { getMap } from '@/components/MapShell'
@@ -16,8 +15,10 @@ import { evStore } from '@/features/ev/evStore'
 import { routeStore } from '@/features/route/routeStore'
 import { searchNominatim } from '@/features/search/nominatim'
 import { searchStations } from '@/features/search/stationSearch'
+import { loadHistory, saveToHistory } from '@/features/search/searchHistory'
 import type { GeoResult } from '@/features/search/nominatim'
 import type { StationResult } from '@/features/search/stationSearch'
+import type { HistoryEntry } from '@/features/search/searchHistory'
 import type { NormalizedStation } from '@/features/ev/types'
 
 type SearchResult = (GeoResult & { _city?: string }) | StationResult
@@ -33,11 +34,12 @@ export function SearchBar() {
   const [query, setQuery]       = useState('')
   const [results, setResults]   = useState<SearchResult[]>([])
   const [busy, setBusy]         = useState(false)
-  const [focused, setFocused]   = useState(-1)  // keyboard nav index
+  const [focused, setFocused]   = useState(-1)
+  const [history, setHistory]   = useState<HistoryEntry[]>([])
 
-  const inputRef    = useRef<HTMLInputElement>(null)
+  const inputRef     = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const abortRef    = useRef<AbortController | null>(null)
+  const abortRef     = useRef<AbortController | null>(null)
 
   // ── Open/close helpers ───────────────────────────────────────────
   function openSearch() {
@@ -45,6 +47,7 @@ export function SearchBar() {
     setQuery('')
     setResults([])
     setFocused(-1)
+    setHistory(loadHistory())
     setTimeout(() => inputRef.current?.focus(), 50)
   }
 
@@ -55,6 +58,7 @@ export function SearchBar() {
     setResults([])
     setBusy(false)
     setFocused(-1)
+    setHistory([])
   }, [])
 
   // ── Close on click outside ───────────────────────────────────────
@@ -67,7 +71,7 @@ export function SearchBar() {
     return () => document.removeEventListener('mousedown', onMouseDown)
   }, [open, closeSearch])
 
-  // ── Escape key ───────────────────────────────────────────────────
+  // ── Escape / arrow keys ──────────────────────────────────────────
   useEffect(() => {
     if (!open) return
     function onKey(e: KeyboardEvent) {
@@ -89,9 +93,17 @@ export function SearchBar() {
       abortRef.current?.abort()
       abortRef.current = new AbortController()
 
+      // Viewbox from current map extent — biases Nominatim toward visible area
+      const map = getMap()
+      let viewbox: string | undefined
+      if (map) {
+        const b = map.getBounds()
+        viewbox = `${b.getWest()},${b.getNorth()},${b.getEast()},${b.getSouth()}`
+      }
+
       try {
         const [geoSettled] = await Promise.allSettled([
-          searchNominatim(query, abortRef.current.signal),
+          searchNominatim(query, abortRef.current.signal, viewbox),
         ])
         const stationMatches = searchStations(query)
         const geoMatches = geoSettled.status === 'fulfilled' ? geoSettled.value : []
@@ -118,15 +130,35 @@ export function SearchBar() {
       evStore.selectStation(s)
       map.setView([s.lat, s.lng], Math.max(map.getZoom(), 15), { animate: true })
     } else {
-      // Geocoding result — offer to navigate or just pan
       map.setView([result.lat, result.lng], 15, { animate: true })
       void routeStore.navigateTo({ lat: result.lat, lng: result.lng, name: result.shortName })
+      // Save to history
+      saveToHistory({
+        shortName:   result.shortName,
+        displayName: result.displayName,
+        lat:         result.lat,
+        lng:         result.lng,
+      })
     }
 
     closeSearch()
   }
 
+  // ── Select history entry ─────────────────────────────────────────
+  function selectHistory(entry: HistoryEntry) {
+    const map = getMap()
+    if (!map) return
+    map.setView([entry.lat, entry.lng], 15, { animate: true })
+    void routeStore.navigateTo({ lat: entry.lat, lng: entry.lng, name: entry.shortName })
+    // Bump to top of history
+    saveToHistory({ shortName: entry.shortName, displayName: entry.displayName, lat: entry.lat, lng: entry.lng })
+    closeSearch()
+  }
+
   // ── Render ───────────────────────────────────────────────────────
+  const showHistory = open && !query.trim() && history.length > 0
+  const showResults = results.length > 0
+
   return (
     <div
       ref={containerRef}
@@ -175,7 +207,7 @@ export function SearchBar() {
               />
               <button
                 onMouseDown={(e) => { e.preventDefault(); closeSearch() }}
-                aria-label="Close search"
+                aria-label="Затвори търсачката"
                 style={{
                   background: 'none', border: 'none', color: 'var(--text-secondary)',
                   cursor: 'pointer', padding: 4, lineHeight: 1, flexShrink: 0, fontSize: 16,
@@ -185,16 +217,35 @@ export function SearchBar() {
               </button>
             </div>
 
-            {/* Results dropdown */}
-            {results.length > 0 && (
+            {/* History dropdown */}
+            {showHistory && (
               <div
                 className="glass"
                 style={{
-                  marginTop: 6,
-                  maxHeight: 320,
-                  overflowY: 'auto',
-                  borderRadius: 12,
-                  padding: '4px 0',
+                  marginTop: 6, maxHeight: 280, overflowY: 'auto',
+                  borderRadius: 12, padding: '4px 0',
+                }}
+              >
+                <SectionLabel label="Скорошни" />
+                {history.map((entry) => (
+                  <ResultRow
+                    key={`${entry.lat},${entry.lng}`}
+                    focused={false}
+                    onClick={() => selectHistory(entry)}
+                  >
+                    <HistoryResultContent entry={entry} />
+                  </ResultRow>
+                ))}
+              </div>
+            )}
+
+            {/* Results dropdown */}
+            {showResults && (
+              <div
+                className="glass"
+                style={{
+                  marginTop: 6, maxHeight: 320, overflowY: 'auto',
+                  borderRadius: 12, padding: '4px 0',
                 }}
               >
                 {/* Station results */}
@@ -306,6 +357,37 @@ function ResultRow({
   )
 }
 
+function HistoryResultContent({ entry }: { entry: HistoryEntry }) {
+  const subtitle = entry.displayName.split(',').slice(1, 3).join(',').trim()
+  return (
+    <>
+      <div style={{
+        width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+        background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.15)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }}>
+        <HistoryIcon />
+      </div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{
+          fontSize: 13, fontWeight: 600, color: 'var(--text-primary)',
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>
+          {entry.shortName}
+        </div>
+        {subtitle && (
+          <div style={{
+            fontSize: 11, color: 'var(--text-secondary)', marginTop: 1,
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>
+            {subtitle}
+          </div>
+        )}
+      </div>
+    </>
+  )
+}
+
 function StationResultContent({ result }: { result: StationResult }) {
   const s: NormalizedStation = result.station
   const color = SOURCE_COLOR[s.source] ?? '#888'
@@ -376,6 +458,17 @@ function SearchIcon({ style }: { style?: React.CSSProperties }) {
       style={style} aria-hidden="true">
       <circle cx="11" cy="11" r="8" />
       <line x1="21" y1="21" x2="16.65" y2="16.65" />
+    </svg>
+  )
+}
+
+function HistoryIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
+      stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
     </svg>
   )
 }

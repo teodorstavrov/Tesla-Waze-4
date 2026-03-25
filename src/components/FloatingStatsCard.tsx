@@ -48,7 +48,14 @@ export function FloatingStatsCard() {
     :                                                   String(totalCount)
 
   const gpsValue =
-    gpsPos == null ? '—' : `${Math.round(gpsPos.accuracy)}m`
+    gpsPos == null ? '—' : `${Math.round(gpsPos.accuracy)}м`
+
+  const gpsAccent =
+    gpsPos == null          ? undefined
+    : gpsPos.accuracy < 20  ? '#22c55e'   // green — excellent
+    : gpsPos.accuracy < 50  ? '#eab308'   // yellow — good
+    : gpsPos.accuracy < 100 ? '#f97316'   // orange — poor
+    :                          '#ef4444'  // red — very poor
 
   return (
     <div
@@ -73,7 +80,7 @@ export function FloatingStatsCard() {
         title={evState.error ?? undefined}
       />
       <Stat label="Събития" value={eventCount > 0 ? String(eventCount) : '—'} />
-      <Stat label="GPS" value={gpsValue} />
+      <Stat label="GPS" value={gpsValue} accent={gpsAccent} />
     </div>
   )
 }

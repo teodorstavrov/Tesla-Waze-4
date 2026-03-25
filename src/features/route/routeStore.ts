@@ -1,12 +1,15 @@
 // ─── Route Store (module-level) ────────────────────────────────────────
 // Owns the active route: destination, polyline, distance, ETA.
 // Supports up to 3 routes (primary + 2 OSRM alternatives).
-// Tracks live remaining distance and deviation from route via GPS.
+// Tracks live remaining distance, deviation, step-by-step navigation,
+// voice announcements and arrival detection via GPS.
 
 import { fetchOSRMRoute } from './osrm.js'
+import { maneuverVoiceText } from './maneuver.js'
 import { gpsStore } from '@/features/gps/gpsStore'
+import { audioManager } from '@/features/audio/audioManager'
 import { logger } from '@/lib/logger'
-import type { RouteState, RouteDestination } from './types.js'
+import type { RouteState, RouteDestination, RouteStep } from './types.js'
 
 // ── Geometry helpers ──────────────────────────────────────────────
 
@@ -39,6 +42,18 @@ function remainingDistanceM(fromIdx: number, polyline: [number, number][]): numb
   return total
 }
 
+// ── Voice announcement helpers ────────────────────────────────────
+
+function speak(text: string): void {
+  audioManager.beep(880, 80)
+  setTimeout(() => audioManager.speak(text), 150)
+}
+
+function roundDistM(m: number): number {
+  if (m >= 500) return Math.round(m / 100) * 100
+  return Math.round(m / 50) * 50
+}
+
 // ── State ─────────────────────────────────────────────────────────
 
 let _state: RouteState = {
@@ -50,6 +65,8 @@ let _state: RouteState = {
   error:            null,
   deviated:         false,
   remainingM:       null,
+  currentStepIndex: 1,
+  arrived:          false,
 }
 
 type Listener = () => void
@@ -57,9 +74,20 @@ const _listeners = new Set<Listener>()
 let _abort: AbortController | null = null
 let _unsubGps: (() => void) | null = null
 
+// Per-route announcement tracking (step index → announced)
+const _announced300 = new Set<number>()
+const _announced50  = new Set<number>()
+let _arrivedAnnounced = false
+
+function _resetAnnouncements(): void {
+  _announced300.clear()
+  _announced50.clear()
+  _arrivedAnnounced = false
+}
+
 function _emit(): void { _listeners.forEach((fn) => fn()) }
 
-// ── GPS tracking ──────────────────────────────────────────────────
+// ── GPS tracking + step navigation ───────────────────────────────
 
 function _onGpsUpdate(): void {
   const route = _state.routes[_state.activeRouteIndex]
@@ -75,8 +103,64 @@ function _onGpsUpdate(): void {
   const deviated  = distFromRoute > 200
   const remaining = remainingDistanceM(idx, route.polyline)
 
-  if (deviated !== _state.deviated || Math.abs(remaining - (_state.remainingM ?? 0)) > 50) {
-    _state = { ..._state, deviated, remainingM: remaining }
+  // ── Arrival detection ───────────────────────────────────────────
+  if (_state.destination) {
+    const distToDest = haversineM(gps.lat, gps.lng, _state.destination.lat, _state.destination.lng)
+    if (distToDest < 50 && !_state.arrived) {
+      if (!_arrivedAnnounced) {
+        _arrivedAnnounced = true
+        speak('Пристигнахте на вашата дестинация')
+      }
+      _state = { ..._state, deviated, remainingM: remaining, arrived: true }
+      _emit()
+      return
+    }
+  }
+
+  // ── Step navigation ─────────────────────────────────────────────
+  const steps = route.steps
+  let stepIdx = _state.currentStepIndex
+  let stepChanged = false
+
+  // Advance past steps we've already passed (within 25m of their maneuver point)
+  while (stepIdx < steps.length - 1) {  // don't skip 'arrive'
+    const step: RouteStep = steps[stepIdx]!
+    const distToStep = haversineM(gps.lat, gps.lng, step.lat, step.lng)
+    if (distToStep < 25) {
+      stepIdx++
+      stepChanged = true
+    } else {
+      break
+    }
+  }
+
+  // Voice announcement for the current next step
+  const nextStep = steps[stepIdx]
+  if (nextStep && nextStep.type !== 'depart' && nextStep.type !== 'arrive') {
+    const distToStep = haversineM(gps.lat, gps.lng, nextStep.lat, nextStep.lng)
+
+    // Far announcement: 150–350m
+    if (distToStep < 350 && distToStep > 80 && !_announced300.has(stepIdx)) {
+      _announced300.add(stepIdx)
+      const roundedM = roundDistM(distToStep)
+      speak(`След ${roundedM} метра, ${maneuverVoiceText(nextStep)}`)
+    }
+
+    // Imminent announcement: 20–80m
+    if (distToStep < 80 && distToStep > 20 && !_announced50.has(stepIdx)) {
+      _announced50.add(stepIdx)
+      speak(maneuverVoiceText(nextStep))
+    }
+  }
+
+  const newStep = stepChanged ? stepIdx : _state.currentStepIndex
+  const changed =
+    deviated !== _state.deviated ||
+    stepChanged ||
+    Math.abs(remaining - (_state.remainingM ?? 0)) > 50
+
+  if (changed) {
+    _state = { ..._state, deviated, remainingM: remaining, currentStepIndex: newStep }
     _emit()
   }
 }
@@ -104,7 +188,7 @@ export const routeStore = {
   async navigateTo(dest: RouteDestination): Promise<void> {
     const gps = gpsStore.getPosition()
     if (!gps) {
-      _state = { ..._state, destination: dest, status: 'error', error: 'GPS позицията не е налична', routes: [], route: null, activeRouteIndex: 0, deviated: false, remainingM: null }
+      _state = { ..._state, destination: dest, status: 'error', error: 'GPS позицията не е налична', routes: [], route: null, activeRouteIndex: 0, deviated: false, remainingM: null, currentStepIndex: 1, arrived: false }
       _emit()
       return
     }
@@ -112,8 +196,9 @@ export const routeStore = {
     _abort?.abort()
     _abort = new AbortController()
     _stopGpsTracking()
+    _resetAnnouncements()
 
-    _state = { destination: dest, routes: [], activeRouteIndex: 0, route: null, status: 'loading', error: null, deviated: false, remainingM: null }
+    _state = { destination: dest, routes: [], activeRouteIndex: 0, route: null, status: 'loading', error: null, deviated: false, remainingM: null, currentStepIndex: 1, arrived: false }
     _emit()
 
     try {
@@ -127,18 +212,31 @@ export const routeStore = {
         ..._state,
         routes,
         activeRouteIndex: 0,
-        route:      primary,
-        status:     'ok',
-        error:      null,
-        remainingM: primary.distanceM,
+        route:            primary,
+        status:           'ok',
+        error:            null,
+        remainingM:       primary.distanceM,
+        currentStepIndex: 1,  // skip 'depart' step
+        arrived:          false,
       }
-      logger.route.info('Route found', { routes: routes.length, distanceM: primary.distanceM, durationS: primary.durationS })
+      logger.route.info('Route found', { routes: routes.length, distanceM: primary.distanceM, durationS: primary.durationS, steps: primary.steps.length })
       _emit()
       _startGpsTracking()
+
+      // Announce departure
+      const firstStep = primary.steps[1]
+      if (firstStep) {
+        const roundedM = roundDistM(firstStep.distanceM)
+        speak(`Маршрутът е зареден. ${roundedM > 0 ? `След ${roundedM} метра, ` : ''}${maneuverVoiceText(firstStep)}`)
+      }
     } catch (err) {
       if ((err as Error).name === 'AbortError') return
-      _state = { ..._state, status: 'error', error: (err as Error).message }
-      logger.route.warn('Route failed', { err: String(err) })
+      const isOffline = !navigator.onLine || (err as Error).message.toLowerCase().includes('fetch')
+      const errorMsg = isOffline
+        ? 'Без интернет — маршрутът не може да се изчисли'
+        : (err as Error).message
+      _state = { ..._state, status: 'error', error: errorMsg }
+      logger.route.warn('Route failed', { err: String(err), offline: isOffline })
       _emit()
     }
   },
@@ -147,7 +245,8 @@ export const routeStore = {
   selectRoute(index: number): void {
     const route = _state.routes[index]
     if (!route) return
-    _state = { ..._state, activeRouteIndex: index, route, remainingM: route.distanceM, deviated: false }
+    _resetAnnouncements()
+    _state = { ..._state, activeRouteIndex: index, route, remainingM: route.distanceM, deviated: false, currentStepIndex: 1, arrived: false }
     _emit()
   },
 
@@ -160,7 +259,8 @@ export const routeStore = {
   clear(): void {
     _abort?.abort()
     _stopGpsTracking()
-    _state = { destination: null, routes: [], activeRouteIndex: 0, route: null, status: 'idle', error: null, deviated: false, remainingM: null }
+    _resetAnnouncements()
+    _state = { destination: null, routes: [], activeRouteIndex: 0, route: null, status: 'idle', error: null, deviated: false, remainingM: null, currentStepIndex: 1, arrived: false }
     _emit()
   },
 }

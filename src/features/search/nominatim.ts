@@ -29,8 +29,9 @@ interface NominatimItem {
 }
 
 export async function searchNominatim(
-  query: string,
-  signal?: AbortSignal,
+  query:    string,
+  signal?:  AbortSignal,
+  viewbox?: string,   // 'minLng,maxLat,maxLng,minLat' — prioritises visible map area
 ): Promise<GeoResult[]> {
   const params = new URLSearchParams({
     q:                query,
@@ -40,6 +41,10 @@ export async function searchNominatim(
     addressdetails:   '1',
     'accept-language': 'bg,en',
   })
+
+  // Bias results toward the currently visible map extent (bounded=0 → still
+  // returns results outside the box, just ranked lower)
+  if (viewbox) params.set('viewbox', viewbox)
 
   const res = await fetch(
     `https://nominatim.openstreetmap.org/search?${params.toString()}`,
