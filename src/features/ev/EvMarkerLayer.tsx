@@ -13,16 +13,36 @@
 //
 // FILTERS
 // ──────────────────────────────────────────────────────────────────────
-// Subscribes to both evStore (new data) and filterStore (filter changes).
-// Uses filterStore.getFilteredStations() as the source of truth.
+// Subscribes to evStore (new data), filterStore (filter changes),
+// and routeStore (route changes → highlight nearby stations).
 
 import { useEffect, useRef } from 'react'
 import { L } from '@/lib/leaflet'
 import { getMap } from '@/components/MapShell'
 import { evStore } from './evStore.js'
 import { filterStore } from './filterStore.js'
+import { routeStore } from '@/features/route/routeStore'
 import { logger } from '@/lib/logger'
 import type { NormalizedStation } from './types.js'
+
+// ── Route proximity helpers ───────────────────────────────────────
+
+function isNearRoute(lat: number, lng: number, polyline: [number, number][], thresholdM: number): boolean {
+  const tLat = thresholdM / 111000
+  const tLng = thresholdM / 80000
+  for (const [plat, plng] of polyline) {
+    if (Math.abs(lat - plat) < tLat && Math.abs(lng - plng) < tLng) return true
+  }
+  return false
+}
+
+function buildNearRouteSet(stations: NormalizedStation[], polyline: [number, number][]): Set<string> {
+  const s = new Set<string>()
+  for (const st of stations) {
+    if (isNearRoute(st.lat, st.lng, polyline, 2000)) s.add(st.id)
+  }
+  return s
+}
 
 // ── Marker appearance ──────────────────────────────────────────────
 
@@ -44,13 +64,13 @@ function markerRadius(s: NormalizedStation): number {
   return 5
 }
 
-function makeMarkerOptions(s: NormalizedStation): L.CircleMarkerOptions {
+function makeMarkerOptions(s: NormalizedStation, nearRoute = false): L.CircleMarkerOptions {
   return {
-    radius:      markerRadius(s),
+    radius:      nearRoute ? markerRadius(s) + 2 : markerRadius(s),
     fillColor:   fillColor(s),
     fillOpacity: s.status === 'offline' ? 0.4 : 0.88,
-    color:       '#fff',
-    weight:      1.5,
+    color:       nearRoute ? '#FFD700' : '#fff',
+    weight:      nearRoute ? 3 : 1.5,
     opacity:     0.9,
   }
 }
@@ -65,7 +85,8 @@ function tooltipContent(s: NormalizedStation): string {
 // ── Component ─────────────────────────────────────────────────────
 
 export function EvMarkerLayer() {
-  const registryRef = useRef<Map<string, L.CircleMarker>>(new Map())
+  const registryRef    = useRef<Map<string, L.CircleMarker>>(new Map())
+  const nearRouteRef   = useRef<Set<string>>(new Set())
 
   useEffect(() => {
     let cancelled = false
@@ -73,6 +94,30 @@ export function EvMarkerLayer() {
 
     function init(map: L.Map): () => void {
       const registry = registryRef.current
+
+      // ── Recompute near-route set when route changes ───────────────
+      function syncNearRoute(): void {
+        const { route } = routeStore.getState()
+        const stations  = filterStore.getFilteredStations()
+        const next = route ? buildNearRouteSet(stations, route.polyline) : new Set<string>()
+
+        // Only restyle if set changed
+        const prev = nearRouteRef.current
+        const changed =
+          next.size !== prev.size ||
+          [...next].some((id) => !prev.has(id)) ||
+          [...prev].some((id) => !next.has(id))
+
+        if (!changed) return
+
+        nearRouteRef.current = next
+
+        // Update existing marker styles
+        for (const [id, marker] of registry) {
+          const station = filterStore.getFilteredStations().find((s) => s.id === id)
+          if (station) marker.setStyle(makeMarkerOptions(station, next.has(id)))
+        }
+      }
 
       // ── Sync markers from filtered stations ──────────────────────
       function syncMarkers(): void {
@@ -84,8 +129,9 @@ export function EvMarkerLayer() {
           return
         }
 
-        const stations = filterStore.getFilteredStations()
-        const incoming = new Set(stations.map((s) => s.id))
+        const stations   = filterStore.getFilteredStations()
+        const nearRoute  = nearRouteRef.current
+        const incoming   = new Set(stations.map((s) => s.id))
 
         // Remove markers for stations no longer in filtered set
         for (const [id, marker] of registry) {
@@ -101,10 +147,9 @@ export function EvMarkerLayer() {
 
           const marker = L.circleMarker(
             [station.lat, station.lng],
-            makeMarkerOptions(station),
+            makeMarkerOptions(station, nearRoute.has(station.id)),
           ).addTo(map)
 
-          // Tooltip — shows on hover (desktop dev); invisible on touch
           marker.bindTooltip(tooltipContent(station), {
             direction: 'top',
             offset: L.point(0, -6),
@@ -121,9 +166,10 @@ export function EvMarkerLayer() {
         }
       }
 
-      // Subscribe to both evStore and filterStore
-      const unsubEv = evStore.subscribe(syncMarkers)
-      const unsubFilter = filterStore.subscribe(syncMarkers)
+      // Subscribe to evStore, filterStore, and routeStore
+      const unsubEv     = evStore.subscribe(syncMarkers)
+      const unsubFilter = filterStore.subscribe(() => { syncNearRoute(); syncMarkers() })
+      const unsubRoute  = routeStore.subscribe(() => { syncNearRoute() })
 
       // Initial sync
       syncMarkers()
@@ -160,6 +206,7 @@ export function EvMarkerLayer() {
         map.off('moveend', onMoveEnd)
         unsubEv()
         unsubFilter()
+        unsubRoute()
         for (const marker of registry.values()) marker.remove()
         registry.clear()
       }

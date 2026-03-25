@@ -13,8 +13,12 @@ export interface Route {
 }
 
 export interface RouteState {
-  destination: RouteDestination | null
-  route:       Route | null
-  status:      'idle' | 'loading' | 'ok' | 'error'
-  error:       string | null
+  destination:      RouteDestination | null
+  routes:           Route[]           // primary + alternatives
+  activeRouteIndex: number
+  route:            Route | null      // = routes[activeRouteIndex]
+  status:           'idle' | 'loading' | 'ok' | 'error'
+  error:            string | null
+  deviated:         boolean           // GPS > 200m from route
+  remainingM:       number | null     // live remaining distance
 }
