@@ -52,9 +52,9 @@ export function toOverpassBBox(b: BBox): string {
   return `${b.minLat},${b.minLng},${b.maxLat},${b.maxLng}`
 }
 
-/** OCM boundingbox param: (minLat,minLng,maxLat,maxLng) */
+/** OCM boundingbox param: (sw_lat,sw_lng),(ne_lat,ne_lng) — two coordinate pairs */
 export function toOCMBBox(b: BBox): string {
-  return `(${b.minLat},${b.minLng},${b.maxLat},${b.maxLng})`
+  return `(${b.minLat},${b.minLng}),(${b.maxLat},${b.maxLng})`
 }
 
 /** Is the point inside the bbox? */
