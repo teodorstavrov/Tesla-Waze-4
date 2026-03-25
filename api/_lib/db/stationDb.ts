@@ -30,16 +30,29 @@ export interface StationSyncMeta {
   }
 }
 
+/** Validates that data looks like a NormalizedStation array (not another project's data) */
+function _isValidStations(data: unknown): data is NormalizedStation[] {
+  if (!Array.isArray(data) || data.length === 0) return false
+  const first = data[0] as Record<string, unknown>
+  return (
+    typeof first.id  === 'string' &&
+    typeof first.lat === 'number' &&
+    typeof first.lng === 'number' &&
+    isFinite(first.lat as number) &&
+    isFinite(first.lng as number)
+  )
+}
+
 export const stationDb = {
   /** Returns all stored stations, or null if not yet seeded. */
   async getAll(): Promise<NormalizedStation[] | null> {
     if (!redis.isConfigured()) return null
     const data = await redis.get<NormalizedStation[]>(STATIONS_KEY)
-    if (data !== null && data.length > 0) return data
-    // Migrate: try legacy key written before namespace change
-    const legacy = await redis.get<NormalizedStation[]>(STATIONS_KEY_V0)
-    if (legacy !== null && legacy.length > 0) {
-      // Promote to new key silently so future reads are fast
+    if (data !== null && _isValidStations(data)) return data
+    // Migrate: try legacy key (written before namespace change)
+    const legacy = await redis.get<unknown>(STATIONS_KEY_V0)
+    if (_isValidStations(legacy)) {
+      // Promote to new key so future reads skip this step
       void redis.set(STATIONS_KEY, legacy)
       return legacy
     }
