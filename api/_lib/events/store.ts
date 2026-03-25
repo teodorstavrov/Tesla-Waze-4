@@ -48,6 +48,20 @@ export const eventMemStore = {
     return updated
   },
 
+  /** Returns null if event was auto-deleted (denies >= DENY_THRESHOLD). */
+  deny(id: string): RoadEvent | null | 'deleted' {
+    const ev = _events.get(id)
+    if (!ev) return null
+    const denies = (ev.denies ?? 0) + 1
+    if (denies >= 3) {
+      _events.delete(id)
+      return 'deleted'
+    }
+    const updated: RoadEvent = { ...ev, denies }
+    _events.set(id, updated)
+    return updated
+  },
+
   count(): number {
     _prune()
     return _events.size

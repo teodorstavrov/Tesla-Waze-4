@@ -79,6 +79,13 @@ export function EventMarkerLayer() {
 
       map.on('moveend', onMoveEnd)
 
+      // Long-press on map (contextmenu fires on 500ms touch hold on Tesla browser)
+      // Opens the ReportModal pre-seeded with the tapped lat/lng
+      function onContextMenu(e: L.LeafletMouseEvent): void {
+        eventStore.openReportModal({ lat: e.latlng.lat, lng: e.latlng.lng })
+      }
+      map.on('contextmenu', onContextMenu)
+
       // Initial fetch
       const b = map.getBounds()
       eventStore.fetch({ minLat: b.getSouth(), minLng: b.getWest(), maxLat: b.getNorth(), maxLng: b.getEast() })
@@ -86,6 +93,7 @@ export function EventMarkerLayer() {
       return () => {
         if (moveTimer) clearTimeout(moveTimer)
         map.off('moveend', onMoveEnd)
+        map.off('contextmenu', onContextMenu)
         unsub()
         for (const m of registry.values()) m.remove()
         registry.clear()

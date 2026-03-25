@@ -72,12 +72,22 @@ export const eventStore = {
     _emit()
   },
 
-  /** Update event after confirm */
+  /** Update event after confirm/deny */
   updateEvent(updated: RoadEvent): void {
     _state = {
       ..._state,
       events: _state.events.map((e) => e.id === updated.id ? updated : e),
       selectedEvent: _state.selectedEvent?.id === updated.id ? updated : _state.selectedEvent,
+    }
+    _emit()
+  },
+
+  /** Remove event after it was auto-deleted by deny votes */
+  removeEvent(id: string): void {
+    _state = {
+      ..._state,
+      events: _state.events.filter((e) => e.id !== id),
+      selectedEvent: _state.selectedEvent?.id === id ? null : _state.selectedEvent,
     }
     _emit()
   },
@@ -153,6 +163,25 @@ export const eventStore = {
       eventStore.updateEvent(data.event)
     } catch {
       // silent — confirms are best-effort
+    }
+  },
+
+  async deny(id: string): Promise<void> {
+    try {
+      const res = await fetch('/api/events/deny', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      })
+      if (!res.ok) return
+      const data = (await res.json()) as { event?: RoadEvent; deleted?: boolean }
+      if (data.deleted) {
+        eventStore.removeEvent(id)
+      } else if (data.event) {
+        eventStore.updateEvent(data.event)
+      }
+    } catch {
+      // silent — denies are best-effort
     }
   },
 }

@@ -76,6 +76,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         reportedAt:  now.toISOString(),
         expiresAt:   expiresAt.toISOString(),
         confirms:    0,
+        denies:      0,
       }
 
       if (useRedis) {

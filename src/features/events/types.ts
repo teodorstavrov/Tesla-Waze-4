@@ -17,15 +17,18 @@ export interface RoadEvent {
   reportedAt: string
   expiresAt: string
   confirms: number
+  denies:   number
 }
 
+export const DENY_THRESHOLD = 3
+
 export const EVENT_LABELS: Record<EventType, string> = {
-  police:       'Police',
-  accident:     'Accident',
-  hazard:       'Hazard',
-  traffic:      'Traffic',
-  closure:      'Road Closed',
-  construction: 'Construction',
+  police:       'Полиция',
+  accident:     'Катастрофа',
+  hazard:       'Опасност',
+  traffic:      'Задръстване',
+  closure:      'Затворен път',
+  construction: 'Строеж',
 }
 
 export const EVENT_COLORS: Record<EventType, string> = {

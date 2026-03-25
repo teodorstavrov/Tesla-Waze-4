@@ -75,4 +75,20 @@ export const eventRedisStore = {
     await _write(all)
     return all[idx]!
   },
+
+  /** Returns null if not found, 'deleted' if auto-removed after 3 denies. */
+  async deny(id: string): Promise<RoadEvent | null | 'deleted'> {
+    const all = _pruneExpired(await _readAll())
+    const idx = all.findIndex((e) => e.id === id)
+    if (idx === -1) return null
+    const denies = (all[idx]!.denies ?? 0) + 1
+    if (denies >= 3) {
+      all.splice(idx, 1)
+      await _write(all)
+      return 'deleted'
+    }
+    all[idx] = { ...all[idx]!, denies }
+    await _write(all)
+    return all[idx]!
+  },
 }

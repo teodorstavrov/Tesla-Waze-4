@@ -70,7 +70,7 @@ export function ReportModal() {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Report a road event"
+        aria-label="Докладвай събитие"
         style={{
           position: 'fixed',
           top: '50%', left: '50%',
@@ -87,7 +87,7 @@ export function ReportModal() {
           marginBottom: 20,
           textAlign: 'center',
         }}>
-          What are you reporting?
+          Какво докладвате?
         </div>
 
         {/* 3 × 2 type grid */}
@@ -121,7 +121,7 @@ export function ReportModal() {
             touchAction: 'manipulation',
           }}
         >
-          Cancel
+          Отказ
         </button>
       </div>
     </>

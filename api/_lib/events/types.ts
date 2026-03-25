@@ -30,4 +30,7 @@ export interface RoadEvent {
   reportedAt: string   // ISO 8601
   expiresAt: string    // ISO 8601
   confirms: number
+  denies: number       // vote count for "no longer there"; auto-deletes at DENY_THRESHOLD
 }
+
+export const DENY_THRESHOLD = 3
