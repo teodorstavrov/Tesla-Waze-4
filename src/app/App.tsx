@@ -26,6 +26,7 @@ import { EventPanel } from '@/features/events/EventPanel'
 import { RouteLayer } from '@/features/route/RouteLayer'
 import { RoutePanel } from '@/features/route/RoutePanel'
 import { AlertToast } from '@/features/audio/AlertToast'
+import { OfflineToast } from '@/components/OfflineToast'
 import { alertEngine } from '@/features/audio/alertEngine'
 import { useThemeStore } from '@/features/theme/store'
 
@@ -94,6 +95,9 @@ export function App() {
 
       {/* Layer 5: first-visit onboarding (above toast, dismissable) */}
       <Onboarding />
+
+      {/* Layer 6: offline indicator */}
+      <OfflineToast />
     </div>
   )
 }

@@ -2,14 +2,17 @@
 // Cache strategies:
 //   • Vite assets (/assets/*)            → Cache-first (content-hashed = immutable)
 //   • Map tiles (CARTO, ArcGIS)          → Cache-first, 30-day TTL, max 1500 tiles
-//   • API calls (/api/*)                 → Network-only (always fresh)
+//   • /api/ev/stations                   → Stale-while-revalidate, 1h TTL; offline fallback
+//   • Other API calls (/api/*)           → Network-only (always fresh)
 //   • Navigation (HTML pages)            → Network-first, cache fallback
 
-const CACHE_VERSION  = 'v2'
+const CACHE_VERSION  = 'v3'
 const SHELL_CACHE    = `teslaradar-shell-${CACHE_VERSION}`
 const TILE_CACHE     = `teslaradar-tiles-${CACHE_VERSION}`
+const API_CACHE      = `teslaradar-api-${CACHE_VERSION}`
 const TILE_MAX       = 1500
 const TILE_TTL_MS    = 30 * 24 * 60 * 60 * 1000  // 30 days
+const API_TTL_MS     = 60 * 60 * 1000             // 1 hour
 
 const TILE_HOSTS = [
   'basemaps.cartocdn.com',
@@ -31,7 +34,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((keys) =>
       Promise.all(
         keys
-          .filter((k) => k !== SHELL_CACHE && k !== TILE_CACHE)
+          .filter((k) => k !== SHELL_CACHE && k !== TILE_CACHE && k !== API_CACHE)
           .map((k) => caches.delete(k))
       )
     ).then(() => self.clients.claim())
@@ -46,7 +49,13 @@ self.addEventListener('fetch', (event) => {
   // Skip non-GET
   if (request.method !== 'GET') return
 
-  // API → network-only (never cache live data)
+  // /api/ev/stations → stale-while-revalidate with offline fallback
+  if (url.pathname.startsWith('/api/ev/stations')) {
+    event.respondWith(stationsFirst(request))
+    return
+  }
+
+  // Other API → network-only (always fresh)
   if (url.pathname.startsWith('/api/')) return
 
   // Map tiles → cache-first with TTL
@@ -67,6 +76,46 @@ self.addEventListener('fetch', (event) => {
     return
   }
 })
+
+// ── Strategy: stations stale-while-revalidate ────────────────────────────
+// Serve cached response immediately if fresh (<1h); always revalidate in bg.
+// If network fails and cache is stale, serve stale (offline fallback).
+async function stationsFirst(request) {
+  const cache  = await caches.open(API_CACHE)
+  const cached = await cache.match(request)
+  const age    = cached ? Date.now() - Number(cached.headers.get('x-cached-at') ?? 0) : Infinity
+
+  // Fresh cache: serve immediately, revalidate in background
+  if (cached && age < API_TTL_MS) {
+    fetchAndCacheApi(cache, request)  // background revalidate
+    return cached
+  }
+
+  // Stale or no cache: try network first
+  try {
+    return await fetchAndCacheApi(cache, request)
+  } catch {
+    // Network failed — serve stale if available
+    if (cached) return cached
+    return new Response(JSON.stringify({ stations: [], meta: { offline: true } }), {
+      status: 200,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+}
+
+async function fetchAndCacheApi(cache, request) {
+  const res = await fetch(request)
+  if (res.ok) {
+    const headers = new Headers(res.headers)
+    headers.set('x-cached-at', String(Date.now()))
+    const stamped = new Response(await res.clone().arrayBuffer(), {
+      status: res.status, statusText: res.statusText, headers,
+    })
+    cache.put(request, stamped)
+  }
+  return res
+}
 
 // ── Strategy: tile cache-first with TTL ─────────────────────────────────
 async function tileFirst(request) {

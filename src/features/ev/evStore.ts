@@ -157,8 +157,15 @@ export const evStore = {
       if (version !== _fetchVersion) return
       if ((err as Error).name === 'AbortError') return
 
-      _state = { ..._state, status: 'error', error: String(err) }
       logger.ev.warn('Stations fetch failed', { err: String(err) })
+
+      // If we already have data (possibly from SW cache), keep showing it
+      // rather than switching to error state — user sees stale data, not broken UI
+      if (_state.stations.length > 0) {
+        _state = { ..._state, status: 'ok' }
+      } else {
+        _state = { ..._state, status: 'error', error: String(err) }
+      }
       _emit()
     }
   },
