@@ -33,5 +33,6 @@ export interface RouteState {
   deviated:         boolean           // GPS > 200m from route
   remainingM:       number | null     // live remaining distance
   currentStepIndex: number            // index into route.steps for next upcoming maneuver
+  distToNextStepM:  number | null     // live distance to next maneuver point (metres)
   arrived:          boolean           // GPS within 50m of destination
 }

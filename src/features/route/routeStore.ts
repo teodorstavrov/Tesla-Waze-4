@@ -66,6 +66,7 @@ let _state: RouteState = {
   deviated:         false,
   remainingM:       null,
   currentStepIndex: 1,
+  distToNextStepM:  null,
   arrived:          false,
 }
 
@@ -134,33 +135,37 @@ function _onGpsUpdate(): void {
     }
   }
 
-  // Voice announcement for the current next step
-  const nextStep = steps[stepIdx]
+  // Voice announcement + live distance to next step
+  const newStep = stepChanged ? stepIdx : _state.currentStepIndex
+  const nextStep = steps[newStep]
+
+  let distToNextStepM: number | null = null
   if (nextStep && nextStep.type !== 'depart' && nextStep.type !== 'arrive') {
-    const distToStep = haversineM(gps.lat, gps.lng, nextStep.lat, nextStep.lng)
+    const d = haversineM(gps.lat, gps.lng, nextStep.lat, nextStep.lng)
+    distToNextStepM = Math.round(d)
 
     // Far announcement: 150–350m
-    if (distToStep < 350 && distToStep > 80 && !_announced300.has(stepIdx)) {
-      _announced300.add(stepIdx)
-      const roundedM = roundDistM(distToStep)
-      speak(`След ${roundedM} метра, ${maneuverVoiceText(nextStep)}`)
+    if (d < 350 && d > 80 && !_announced300.has(newStep)) {
+      _announced300.add(newStep)
+      speak(`След ${roundDistM(d)} метра, ${maneuverVoiceText(nextStep)}`)
     }
 
     // Imminent announcement: 20–80m
-    if (distToStep < 80 && distToStep > 20 && !_announced50.has(stepIdx)) {
-      _announced50.add(stepIdx)
+    if (d < 80 && d > 20 && !_announced50.has(newStep)) {
+      _announced50.add(newStep)
       speak(maneuverVoiceText(nextStep))
     }
   }
 
-  const newStep = stepChanged ? stepIdx : _state.currentStepIndex
+  const distDelta = Math.abs((distToNextStepM ?? 0) - (_state.distToNextStepM ?? 0))
   const changed =
     deviated !== _state.deviated ||
     stepChanged ||
-    Math.abs(remaining - (_state.remainingM ?? 0)) > 50
+    Math.abs(remaining - (_state.remainingM ?? 0)) > 50 ||
+    distDelta > 20   // update HUD counter every ~20m
 
   if (changed) {
-    _state = { ..._state, deviated, remainingM: remaining, currentStepIndex: newStep }
+    _state = { ..._state, deviated, remainingM: remaining, currentStepIndex: newStep, distToNextStepM }
     _emit()
   }
 }
@@ -188,7 +193,7 @@ export const routeStore = {
   async navigateTo(dest: RouteDestination): Promise<void> {
     const gps = gpsStore.getPosition()
     if (!gps) {
-      _state = { ..._state, destination: dest, status: 'error', error: 'GPS позицията не е налична', routes: [], route: null, activeRouteIndex: 0, deviated: false, remainingM: null, currentStepIndex: 1, arrived: false }
+      _state = { ..._state, destination: dest, status: 'error', error: 'GPS позицията не е налична', routes: [], route: null, activeRouteIndex: 0, deviated: false, remainingM: null, currentStepIndex: 1, distToNextStepM: null, arrived: false }
       _emit()
       return
     }
@@ -198,7 +203,7 @@ export const routeStore = {
     _stopGpsTracking()
     _resetAnnouncements()
 
-    _state = { destination: dest, routes: [], activeRouteIndex: 0, route: null, status: 'loading', error: null, deviated: false, remainingM: null, currentStepIndex: 1, arrived: false }
+    _state = { destination: dest, routes: [], activeRouteIndex: 0, route: null, status: 'loading', error: null, deviated: false, remainingM: null, currentStepIndex: 1, distToNextStepM: null, arrived: false }
     _emit()
 
     try {
@@ -217,6 +222,7 @@ export const routeStore = {
         error:            null,
         remainingM:       primary.distanceM,
         currentStepIndex: 1,  // skip 'depart' step
+        distToNextStepM:  null,
         arrived:          false,
       }
       logger.route.info('Route found', { routes: routes.length, distanceM: primary.distanceM, durationS: primary.durationS, steps: primary.steps.length })
@@ -246,7 +252,7 @@ export const routeStore = {
     const route = _state.routes[index]
     if (!route) return
     _resetAnnouncements()
-    _state = { ..._state, activeRouteIndex: index, route, remainingM: route.distanceM, deviated: false, currentStepIndex: 1, arrived: false }
+    _state = { ..._state, activeRouteIndex: index, route, remainingM: route.distanceM, deviated: false, currentStepIndex: 1, distToNextStepM: null, arrived: false }
     _emit()
   },
 
@@ -260,7 +266,7 @@ export const routeStore = {
     _abort?.abort()
     _stopGpsTracking()
     _resetAnnouncements()
-    _state = { destination: null, routes: [], activeRouteIndex: 0, route: null, status: 'idle', error: null, deviated: false, remainingM: null, currentStepIndex: 1, arrived: false }
+    _state = { destination: null, routes: [], activeRouteIndex: 0, route: null, status: 'idle', error: null, deviated: false, remainingM: null, currentStepIndex: 1, distToNextStepM: null, arrived: false }
     _emit()
   },
 }
