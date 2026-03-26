@@ -31,32 +31,43 @@ const CLUSTER_ZOOM     = 11       // zoom < this → cluster mode
 const CLUSTER_CELL_DEG = 0.5      // ~50km grid cell
 
 // ── Marker appearance ──────────────────────────────────────────────
+// DivIcon with ⚡ — 44×44px total hit area (Tesla touch target spec),
+// 34×34px visible circle. Original color scheme preserved.
 
-function fillColor(s: NormalizedStation): string {
+function stationColor(s: NormalizedStation): string {
   if (s.status === 'offline' || s.status === 'planned') return '#888'
-  if (s.source === 'tesla') return '#e31937'
-  // Power-based color: ultra-fast = amber, fast = green, normal = blue
-  if (s.maxPowerKw != null && s.maxPowerKw >= 150) return '#F59E0B'
-  if (s.maxPowerKw != null && s.maxPowerKw >= 50)  return '#22c55e'
+  if (s.source === 'tesla')                              return '#e31937'
+  if (s.maxPowerKw != null && s.maxPowerKw >= 150)       return '#F59E0B'
+  if (s.maxPowerKw != null && s.maxPowerKw >= 50)        return '#22c55e'
   return '#2B7FFF'
 }
 
-function markerRadius(s: NormalizedStation): number {
-  if (s.source === 'tesla')                                  return 9
-  if (s.maxPowerKw != null && s.maxPowerKw >= 150)           return 8
-  if (s.maxPowerKw != null && s.maxPowerKw >= 50)            return 7
-  return 5
-}
+function makeStationIcon(s: NormalizedStation, nearRoute = false): L.DivIcon {
+  const color   = stationColor(s)
+  const opacity = s.status === 'offline' || s.status === 'planned' ? 0.5 : 1
+  const border  = nearRoute ? '3px solid #FFD700' : '2.5px solid rgba(255,255,255,0.9)'
+  const shadow  = nearRoute
+    ? '0 0 0 2px #FFD700, 0 3px 12px rgba(0,0,0,0.6)'
+    : '0 3px 12px rgba(0,0,0,0.55)'
 
-function makeMarkerOptions(s: NormalizedStation, nearRoute = false): L.CircleMarkerOptions {
-  return {
-    radius:      nearRoute ? markerRadius(s) + 2 : markerRadius(s),
-    fillColor:   fillColor(s),
-    fillOpacity: s.status === 'offline' ? 0.4 : 0.88,
-    color:       nearRoute ? '#FFD700' : '#fff',
-    weight:      nearRoute ? 3 : 1.5,
-    opacity:     0.9,
-  }
+  return L.divIcon({
+    className: '',   // no Leaflet default styles
+    html: `<div style="
+      width:44px;height:44px;
+      display:flex;align-items:center;justify-content:center;
+      cursor:pointer;
+    "><div style="
+      width:34px;height:34px;border-radius:50%;
+      background:${color};opacity:${opacity};
+      border:${border};
+      box-shadow:${shadow};
+      display:flex;align-items:center;justify-content:center;
+      font-size:18px;line-height:1;
+      user-select:none;-webkit-user-select:none;
+    ">⚡</div></div>`,
+    iconSize:   [44, 44],
+    iconAnchor: [22, 22],
+  })
 }
 
 function tooltipContent(s: NormalizedStation): string {
@@ -153,7 +164,7 @@ function buildNearRouteSet(stations: NormalizedStation[], polyline: [number, num
 // ── Component ─────────────────────────────────────────────────────
 
 export function EvMarkerLayer() {
-  const registryRef      = useRef<Map<string, L.CircleMarker>>(new Map())
+  const registryRef      = useRef<Map<string, L.Marker>>(new Map())
   const clusterRegistryRef = useRef<Map<string, L.Marker>>(new Map())
   const nearRouteRef     = useRef<Set<string>>(new Set())
   const zoomRef          = useRef<number>(13)
@@ -220,7 +231,7 @@ export function EvMarkerLayer() {
         nearRouteRef.current = next
         for (const [id, marker] of registry) {
           const station = filterStore.getFilteredStations().find((s) => s.id === id)
-          if (station) marker.setStyle(makeMarkerOptions(station, next.has(id)))
+          if (station) marker.setIcon(makeStationIcon(station, next.has(id)))
         }
       }
 
@@ -251,9 +262,9 @@ export function EvMarkerLayer() {
 
         for (const station of stations) {
           if (registry.has(station.id)) continue
-          const marker = L.circleMarker(
+          const marker = L.marker(
             [station.lat, station.lng],
-            makeMarkerOptions(station, nearRoute.has(station.id)),
+            { icon: makeStationIcon(station, nearRoute.has(station.id)) },
           ).addTo(map)
           marker.bindTooltip(tooltipContent(station), {
             direction: 'top', offset: L.point(0, -6), className: 'ev-tooltip', sticky: false,
