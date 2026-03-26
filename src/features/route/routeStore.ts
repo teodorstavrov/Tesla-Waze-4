@@ -172,7 +172,12 @@ function _onGpsUpdate(): void {
 
 function _startGpsTracking(): void {
   _unsubGps?.()
-  _unsubGps = gpsStore.onPosition(_onGpsUpdate)
+  // Use queueMicrotask so _onGpsUpdate (which calls routeStore._emit) fires
+  // AFTER gpsStore._posListeners.forEach completes. Without this, React can
+  // receive a routeStore update mid-forEach (from _onGpsUpdate) while another
+  // listener in the same forEach is also notifying React (FloatingStatsCard's
+  // gpsStore.onPosition subscription) — causing React error #310.
+  _unsubGps = gpsStore.onPosition(() => { queueMicrotask(_onGpsUpdate) })
 }
 
 function _stopGpsTracking(): void {
