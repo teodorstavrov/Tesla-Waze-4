@@ -5,7 +5,7 @@
 // Alternative route pills for switching between OSRM alternatives.
 // Phase 26: expandable list of EV stations along the route.
 
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useSyncExternalStore } from 'react'
 import { routeStore } from './routeStore.js'
 import { evStore } from '@/features/ev/evStore'
@@ -21,11 +21,8 @@ export function RoutePanel() {
       () => routeStore.getState(),
     )
 
-  const stations = useSyncExternalStore(
-    evStore.subscribe.bind(evStore),
-    () => evStore.getState().stations,
-    () => [],
-  )
+  const [stations, setStations] = useState(() => evStore.getState().stations)
+  useEffect(() => evStore.subscribe(() => setStations(evStore.getState().stations)), [])
 
   const [showStations, setShowStations] = useState(false)
 
