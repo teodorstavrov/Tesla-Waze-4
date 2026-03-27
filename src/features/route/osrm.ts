@@ -57,7 +57,7 @@ export async function fetchOSRMRoute(
 ): Promise<Route[]> {
   // OSRM coordinate order: lng,lat
   const coords = `${origin[1]},${origin[0]};${dest[1]},${dest[0]}`
-  const url = `${OSRM_BASE}/${coords}?overview=full&geometries=geojson&steps=true&alternatives=2`
+  const url = `${OSRM_BASE}/${coords}?overview=full&geometries=geojson&steps=true&alternatives=3`
 
   const res = await fetch(url, { signal })
   if (!res.ok) throw new Error(`OSRM HTTP ${res.status}`)

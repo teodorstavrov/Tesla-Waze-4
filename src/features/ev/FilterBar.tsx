@@ -133,15 +133,15 @@ function Chip({ label, active, color, muted, onClick }: ChipProps) {
         flexShrink: 0,
         padding: '6px 12px',
         borderRadius: 20,
-        border: `1px solid ${active ? accentColor : 'rgba(255,255,255,0.18)'}`,
+        border: `1px solid ${active ? accentColor : 'var(--glass-border)'}`,
         background: active
           ? `${accentColor}28`
           : muted
-          ? 'rgba(255,255,255,0.06)'
-          : 'rgba(22,22,30,0.88)',
+          ? 'var(--surface-hover)'
+          : 'var(--glass-bg)',
         backdropFilter: 'blur(16px)',
         WebkitBackdropFilter: 'blur(16px)',
-        color: active ? accentColor : muted ? 'rgba(255,255,255,0.45)' : 'var(--text-primary)',
+        color: active ? accentColor : muted ? 'var(--text-secondary)' : 'var(--text-primary)',
         fontSize: 12,
         fontWeight: active ? 700 : 500,
         cursor: 'pointer',

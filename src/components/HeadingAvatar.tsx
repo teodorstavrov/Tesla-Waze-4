@@ -31,8 +31,8 @@ import { getMap } from '@/components/MapShell'
 import { gpsStore } from '@/features/gps/gpsStore'
 import type { GpsPosition } from '@/features/gps/types'
 
-const ICON_SIZE = 28
-const ICON_ANCHOR: L.PointExpression = [14, 14]
+const ICON_SIZE = 56
+const ICON_ANCHOR: L.PointExpression = [28, 28]
 
 // ── Icon HTML builders ────────────────────────────────────────────
 

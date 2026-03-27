@@ -12,8 +12,6 @@ import { FloatingTitleCard } from '@/components/FloatingTitleCard'
 import { FloatingStatsCard } from '@/components/FloatingStatsCard'
 import { SearchBar } from '@/components/SearchBar'
 import { LeftControls } from '@/components/LeftControls'
-import { ZoomControls } from '@/components/ZoomControls'
-import { Speedometer } from '@/components/Speedometer'
 import { BottomDock } from '@/components/BottomDock'
 import { Onboarding } from '@/components/Onboarding'
 import { useUserPosition } from '@/features/gps/useUserPosition'
@@ -80,8 +78,6 @@ export function App() {
       <SearchBar />
       <FloatingStatsCard />
       <LeftControls />
-      <ZoomControls />
-      <Speedometer />
       <BottomDock />
 
       {/* Layer 2: panels + filter bar (above dock) */}

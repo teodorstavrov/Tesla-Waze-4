@@ -27,16 +27,16 @@ export function BottomDock() {
       transform: 'translateX(-50%)',
       zIndex: 400,
       display: 'flex',
-      gap: 10,
+      gap: 16,
       alignItems: 'center',
     }}>
       {/* EV Stations toggle */}
       <button
         className="icon-btn"
         style={{
-          width: 52, height: 52,
+          width: 104, height: 104, borderRadius: 20,
           color: markersVisible ? '#e31937' : 'var(--text-secondary)',
-          boxShadow: markersVisible ? '0 0 0 2px #e3193744' : undefined,
+          boxShadow: markersVisible ? '0 0 0 3px #e3193744' : undefined,
         }}
         title={markersVisible ? 'Скрий станциите' : 'Покажи станциите'}
         aria-label={markersVisible ? 'Скрий станциите' : 'Покажи станциите'}
@@ -54,18 +54,18 @@ export function BottomDock() {
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 8,
-          padding: '0 22px',
-          height: 52,
-          borderRadius: 26,
+          gap: 12,
+          padding: '0 40px',
+          height: 104,
+          borderRadius: 52,
           background: '#e31937',
           border: 'none',
           color: '#fff',
-          fontSize: 14,
+          fontSize: 20,
           fontWeight: 700,
           letterSpacing: '0.04em',
           cursor: 'pointer',
-          boxShadow: '0 4px 20px rgba(227,25,55,0.4)',
+          boxShadow: '0 6px 28px rgba(227,25,55,0.45)',
           touchAction: 'manipulation',
         }}
         onPointerDown={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(0.96)' }}
@@ -79,7 +79,7 @@ export function BottomDock() {
       {/* Route */}
       <button
         className={`icon-btn${routeActive ? ' active' : ''}`}
-        style={{ width: 52, height: 52 }}
+        style={{ width: 104, height: 104, borderRadius: 20 }}
         title={routeActive ? 'Откажи маршрут' : 'Маршрут'}
         aria-label={routeActive ? 'Откажи маршрут' : 'Маршрут'}
         onClick={() => { if (routeActive) routeStore.clear() }}
@@ -92,7 +92,7 @@ export function BottomDock() {
 
 function EVIcon() {
   return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+    <svg width="38" height="38" viewBox="0 0 24 24" fill="none"
       stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z" />
     </svg>
@@ -101,7 +101,7 @@ function EVIcon() {
 
 function AlertIcon() {
   return (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
       stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
       <line x1="12" y1="9" x2="12" y2="13" />
@@ -112,7 +112,7 @@ function AlertIcon() {
 
 function RouteIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+    <svg width="36" height="36" viewBox="0 0 24 24" fill="none"
       stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="5" cy="6" r="2" />
       <circle cx="19" cy="18" r="2" />

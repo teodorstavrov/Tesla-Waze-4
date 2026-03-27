@@ -146,8 +146,8 @@ body,
 
 .gps-avatar-dot {
   position: relative;
-  width: 28px;
-  height: 28px;
+  width: 56px;
+  height: 56px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -155,7 +155,7 @@ body,
 
 .gps-avatar-halo {
   position: absolute;
-  inset: -4px;
+  inset: -8px;
   border-radius: 50%;
   background: rgba(41, 121, 255, 0.2);
   animation: gps-pulse 2.2s ease-in-out infinite;
@@ -163,12 +163,12 @@ body,
 }
 
 .gps-avatar-circle {
-  width: 14px;
-  height: 14px;
+  width: 28px;
+  height: 28px;
   background: #2979ff;
-  border: 2.5px solid #fff;
+  border: 4px solid #fff;
   border-radius: 50%;
-  box-shadow: 0 2px 8px rgba(41, 121, 255, 0.6);
+  box-shadow: 0 3px 14px rgba(41, 121, 255, 0.6);
   position: relative;
   z-index: 1;
 }
@@ -178,8 +178,8 @@ body,
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 56px;
+  height: 56px;
   /* transition: transform 0.3s ease; — intentionally disabled: can cause jitter on Tesla */
 }
 
@@ -230,6 +230,18 @@ body,
    transition when switching between normal / satellite / dark tile sets.  */
 .leaflet-layer {
   transition: opacity 0.45s ease;
+}
+
+/* ─── XL icon buttons — left control strip ──────────────────────────── */
+.left-controls-xl .icon-btn {
+  width: 88px !important;
+  height: 88px !important;
+  border-radius: 16px !important;
+}
+
+.left-controls-xl .icon-btn svg {
+  width: 32px !important;
+  height: 32px !important;
 }
 
 /* ─── Scrollbar ──────────────────────────────────────────────────────── */
