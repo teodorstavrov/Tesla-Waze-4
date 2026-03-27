@@ -26,18 +26,18 @@ export function RoutePanel() {
 
   const [showStations, setShowStations] = useState(false)
 
+  // useMemo must be declared before any early returns (Rules of Hooks)
+  const stationsOnRoute = useMemo(() => {
+    if (!route) return []
+    return findStationsAlongRoute(route.polyline, stations)
+  }, [route, stations])
+
   if (status === 'idle') return null
 
   const remainingDurationS =
     route && remainingM != null
       ? (remainingM / route.distanceM) * route.durationS
       : route?.durationS ?? 0
-
-  // ── Stations along route (memoised — recomputed only when route or stations change)
-  const stationsOnRoute = useMemo(() => {
-    if (!route) return []
-    return findStationsAlongRoute(route.polyline, stations)
-  }, [route, stations])
 
   return (
     <div

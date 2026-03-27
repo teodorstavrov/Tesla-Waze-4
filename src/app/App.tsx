@@ -36,8 +36,8 @@ export function App() {
   // Start GPS watching (feeds gpsStore; no rerenders from GPS ticks)
   useUserPosition()
 
-  // Start proximity alert engine (subscribes to gpsStore — no React)
-  alertEngine.start()
+  // Start proximity alert engine once on mount (not in render body — side-effect safety)
+  useEffect(() => { alertEngine.start() }, [])
 
   // Get the audio unlock trigger
   const { unlock } = useAudioUnlock()
