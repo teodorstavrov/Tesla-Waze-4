@@ -6,6 +6,7 @@
 // Phase 21: turn-by-turn navigation HUD + voice directions.
 
 import { useEffect } from 'react'
+import { Analytics } from '@vercel/analytics/react'
 import { MapShell } from '@/components/MapShell'
 import { HeadingAvatar } from '@/components/HeadingAvatar'
 import { FloatingTitleCard } from '@/components/FloatingTitleCard'
@@ -97,6 +98,9 @@ export function App() {
 
       {/* Layer 6: offline indicator */}
       <OfflineToast />
+
+      {/* Vercel Web Analytics */}
+      <Analytics />
     </div>
   )
 }
