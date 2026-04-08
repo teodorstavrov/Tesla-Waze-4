@@ -7,7 +7,7 @@
       "memory": 128,
       "maxDuration": 60
     },
-    "api/cron/sync-cameras.ts": {
+    "api/cron/*.ts": {
       "memory": 128,
       "maxDuration": 300
     }
