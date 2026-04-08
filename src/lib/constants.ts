@@ -1,6 +1,6 @@
 // ─── Map defaults ─────────────────────────────────────────────────────
 export const DEFAULT_CENTER: [number, number] = [42.6977, 23.3219] // Sofia, Bulgaria
-export const DEFAULT_ZOOM = 13
+export const DEFAULT_ZOOM = 16
 export const MIN_ZOOM = 6
 export const MAX_ZOOM = 19
 
@@ -10,6 +10,10 @@ export const TILE_DARK =
   'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
 export const TILE_LIGHT =
   'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png'
+export const TILE_VOYAGER =
+  'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'
+export const TILE_VOYAGER_DARK =
+  'https://{s}.basemaps.cartocdn.com/rastertiles/voyager_nolabels/{z}/{x}/{y}.png'
 // ArcGIS World Imagery — free for non-commercial use, no key required
 export const TILE_SATELLITE =
   'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
@@ -20,7 +24,7 @@ export const TILE_SATELLITE_ATTRIBUTION =
   'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP'
 
 // ─── App ──────────────────────────────────────────────────────────────
-export const APP_NAME = 'Tesla EV Nav'
+export const APP_NAME = 'Tesla RADAR'
 export const APP_VERSION = '2.0.0'
 
 // ─── Bulgaria bounding box ────────────────────────────────────────────

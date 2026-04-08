@@ -55,7 +55,7 @@ function arrowHtml(heading: number): string {
 
 function makeIcon(heading: number | null): L.DivIcon {
   return L.divIcon({
-    html: heading != null ? arrowHtml(heading) : dotHtml(),
+    html: arrowHtml(heading ?? 0),
     className: 'gps-avatar-root',
     iconSize: [ICON_SIZE, ICON_SIZE],
     iconAnchor: ICON_ANCHOR,
@@ -64,9 +64,8 @@ function makeIcon(heading: number | null): L.DivIcon {
 
 // ─────────────────────────────────────────────────────────────────
 export function HeadingAvatar() {
-  const markerRef    = useRef<L.Marker | null>(null)
-  const addedRef     = useRef(false)
-  const hasHeadingRef = useRef<boolean | null>(null) // null = not yet set
+  const markerRef = useRef<L.Marker | null>(null)
+  const addedRef  = useRef(false)
 
   useEffect(() => {
     const map = getMap()
@@ -94,18 +93,10 @@ export function HeadingAvatar() {
         addedRef.current = true
       }
 
-      const isHeading = pos.heading != null
-
-      if (hasHeadingRef.current === null || hasHeadingRef.current !== isHeading) {
-        // Tier 3: mode switch — recreate icon (rare)
-        m.setIcon(makeIcon(pos.heading))
-        hasHeadingRef.current = isHeading
-      } else if (isHeading && pos.heading != null) {
-        // Tier 2: heading update — mutate DOM directly
-        const el = m.getElement()
-        const wrap = el?.querySelector<HTMLElement>('.gps-avatar-arrow')
-        if (wrap) wrap.style.transform = `rotate(${Math.round(pos.heading)}deg)`
-      }
+      // Tier 2: mutate arrow rotation directly — no icon recreation
+      const el = m.getElement()
+      const wrap = el?.querySelector<HTMLElement>('.gps-avatar-arrow')
+      if (wrap) wrap.style.transform = `rotate(${Math.round(pos.heading ?? 0)}deg)`
     })
 
     return () => {
@@ -113,7 +104,6 @@ export function HeadingAvatar() {
       marker.remove()
       markerRef.current = null
       addedRef.current = false
-      hasHeadingRef.current = null
     }
   }, []) // runs once — map is stable
 

@@ -9,12 +9,19 @@ import { useMemo, useState, useEffect } from 'react'
 import { useSyncExternalStore } from 'react'
 import { routeStore } from './routeStore.js'
 import { evStore } from '@/features/ev/evStore'
+import { followStore } from '@/features/follow/followStore'
+import { gpsStore } from '@/features/gps/gpsStore'
 import { getMap } from '@/components/MapShell'
+import { isTeslaBrowser } from '@/lib/browser'
 import { findStationsAlongRoute, stationDotColor } from './routeStations.js'
 import type { NormalizedStation } from '@/features/ev/types'
+import { vehicleProfileStore } from '@/features/planning/store'
+import { batteryStore } from '@/features/planning/batteryStore'
+import { estimateArrivalBattery } from '@/features/planning/estimator'
+import { PremiumBadge } from '@/components/PremiumBadge'
 
 export function RoutePanel() {
-  const { route, routes, activeRouteIndex, destination, status, error, deviated, remainingM } =
+  const { route, routes, activeRouteIndex, destination, status, mode, error, deviated, remainingM } =
     useSyncExternalStore(
       routeStore.subscribe.bind(routeStore),
       () => routeStore.getState(),
@@ -25,6 +32,19 @@ export function RoutePanel() {
   useEffect(() => evStore.subscribe(() => setStations(evStore.getState().stations)), [])
 
   const [showStations, setShowStations] = useState(false)
+  const [dismissed, setDismissed] = useState(false)
+
+  // Battery arrival estimate — uses live battery session state (not just profile)
+  const [vehicleProfile, setVehicleProfile] = useState(() => vehicleProfileStore.get())
+  useEffect(() => vehicleProfileStore.subscribe(() => setVehicleProfile(vehicleProfileStore.get())), [])
+
+  const [batterySession, setBatterySession] = useState(() => batteryStore.getState())
+  useEffect(() => batteryStore.subscribe(() => setBatterySession(batteryStore.getState())), [])
+
+  // Reset dismissed when a new route loads
+  useEffect(() => {
+    if (status === 'loading' || status === 'ok') setDismissed(false)
+  }, [destination?.name, status])
 
   // useMemo must be declared before any early returns (Rules of Hooks)
   const stationsOnRoute = useMemo(() => {
@@ -32,7 +52,20 @@ export function RoutePanel() {
     return findStationsAlongRoute(route.polyline, stations)
   }, [route, stations])
 
-  if (status === 'idle') return null
+  function handleStart() {
+    const map = getMap()
+    const gps = gpsStore.getPosition()
+    if (map && gps) {
+      // panTo only — preserve user's current zoom level
+      followStore.beginProgrammaticMove()
+      map.once('moveend', () => followStore.endProgrammaticMove())
+      map.panTo([gps.lat, gps.lng], { animate: !isTeslaBrowser })
+    }
+    followStore.setFollowing(true)
+    routeStore.startNavigation()
+  }
+
+  if (status === 'idle' || dismissed) return null
 
   const remainingDurationS =
     route && remainingM != null
@@ -43,10 +76,10 @@ export function RoutePanel() {
     <div
       style={{
         position:  'absolute',
-        bottom:    90,
-        left:      '50%',
+        bottom:    24,
+        left:      'calc(25% - 40px)',
         transform: 'translateX(-50%)',
-        width:     'min(440px, calc(100vw - 24px))',
+        width:     'min(400px, calc(50vw - 220px))',
         zIndex:    500,
         padding:   '14px 18px',
       }}
@@ -102,11 +135,11 @@ export function RoutePanel() {
               <Stat label="Пристигане"  value={formatArrival(remainingDurationS)} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+              <div style={{ fontSize: 13, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
                 До
               </div>
               <div style={{
-                fontSize: 13, fontWeight: 600, color: 'var(--text-primary)',
+                fontSize: 16, fontWeight: 600, color: 'var(--text-primary)',
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 1,
               }}>
                 {destination.name}
@@ -115,76 +148,191 @@ export function RoutePanel() {
             <CancelButton />
           </div>
 
-          {/* Alternative route pills */}
-          {routes.length > 1 && (
-            <div style={{ display: 'flex', gap: 6 }}>
-              {routes.map((r, i) => (
-                <button
-                  key={i}
-                  onClick={() => routeStore.selectRoute(i)}
-                  style={{
-                    flex: 1, padding: '5px 8px', borderRadius: 8,
-                    border: i === activeRouteIndex
-                      ? '1px solid rgba(43,127,255,0.8)'
-                      : '1px solid rgba(255,255,255,0.16)',
-                    background: i === activeRouteIndex
-                      ? 'rgba(43,127,255,0.18)'
-                      : 'rgba(255,255,255,0.06)',
-                    color: i === activeRouteIndex ? '#7DB8FF' : 'var(--text-secondary)',
-                    fontSize: 11, fontWeight: i === activeRouteIndex ? 600 : 400,
-                    cursor: 'pointer', touchAction: 'manipulation', textAlign: 'center' as const,
-                  }}
-                >
-                  {i === 0 ? 'Основен' : `Алт ${i}`}
-                  <div style={{ fontSize: 10, marginTop: 1, opacity: 0.8 }}>{formatDist(r.distanceM)}</div>
-                </button>
-              ))}
-            </div>
+          {/* Route pills — always shown so user can see/switch alternatives */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: -2 }}>
+            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+              Маршрути
+            </span>
+            <PremiumBadge feature="advanced_route_intelligence" />
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {routes.map((r, i) => (
+              <button
+                key={i}
+                onClick={() => routeStore.selectRoute(i)}
+                style={{
+                  flex: 1, padding: '7px 8px', borderRadius: 8,
+                  border: i === activeRouteIndex
+                    ? '1px solid rgba(43,127,255,0.8)'
+                    : '1px solid rgba(255,255,255,0.16)',
+                  background: i === activeRouteIndex
+                    ? 'rgba(43,127,255,0.18)'
+                    : 'rgba(255,255,255,0.06)',
+                  color: i === activeRouteIndex ? '#7DB8FF' : 'var(--text-secondary)',
+                  fontSize: 14, fontWeight: i === activeRouteIndex ? 600 : 400,
+                  cursor: 'pointer', touchAction: 'manipulation', textAlign: 'center' as const,
+                }}
+              >
+                {i === 0 ? 'Основен' : `Алт ${i}`}
+                <div style={{ fontSize: 13, marginTop: 2, opacity: 0.8 }}>{formatDist(r.distanceM)}</div>
+              </button>
+            ))}
+          </div>
+
+          {/* Battery arrival estimate */}
+          {vehicleProfile && route && batterySession && (() => {
+            const gps = gpsStore.getPosition()
+            const distKm = (remainingM ?? route.distanceM) / 1000
+            // Use live session battery % — more accurate than the static profile value
+            const profileWithLiveBattery = {
+              ...vehicleProfile,
+              currentBatteryPercent: batterySession.currentBatteryPercent,
+            }
+            const est = estimateArrivalBattery({
+              profile:     profileWithLiveBattery,
+              distanceKm:  distKm,
+              speedKmh:    gps?.speedKmh ?? null,
+              tempCelsius: null,
+            })
+            const col = est.arrivalBatteryPercent >= 30 ? '#22c55e'
+                      : est.arrivalBatteryPercent >= 15 ? '#eab308'
+                      : '#ef4444'
+            const currentCol = batterySession.currentBatteryPercent >= 50 ? '#22c55e'
+                             : batterySession.currentBatteryPercent >= 25 ? '#eab308'
+                             : '#ef4444'
+            const isEstimate = batterySession.source === 'estimated'
+            return (
+              <div style={{
+                background: 'var(--surface-hover)',
+                border: '1px solid var(--glass-border)',
+                borderRadius: 10, padding: '9px 13px',
+              }}>
+                {/* Current battery row */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <span style={{ fontSize: 11, color: 'var(--text-secondary)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                      Текущ заряд {isEstimate ? '(оценка)' : ''}
+                    </span>
+                    <PremiumBadge feature="smart_arrival_battery" />
+                  </div>
+                  <div style={{ fontSize: 16, fontWeight: 700, color: currentCol, flexShrink: 0 }}>
+                    {isEstimate ? '~' : ''}{Math.round(batterySession.currentBatteryPercent)}%
+                  </div>
+                </div>
+                {/* Arrival battery row */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <div style={{ fontSize: 11, color: 'var(--text-secondary)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+                      При пристигане
+                    </div>
+                    <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 2, opacity: 0.7 }}>
+                      {est.note}
+                    </div>
+                  </div>
+                  <div style={{ fontSize: 22, fontWeight: 800, color: col, flexShrink: 0, marginLeft: 12 }}>
+                    ~{est.arrivalBatteryPercent}%
+                  </div>
+                </div>
+              </div>
+            )
+          })()}
+
+          {/* Старт button — only in preview mode */}
+          {mode === 'preview' && (
+            <button
+              onClick={handleStart}
+              aria-label="Старт навигация"
+              style={{
+                width: '100%',
+                height: 58,
+                borderRadius: 12,
+                background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+                border: 'none',
+                color: '#fff',
+                fontSize: 20,
+                fontWeight: 800,
+                letterSpacing: '0.06em',
+                cursor: 'pointer',
+                touchAction: 'manipulation',
+                boxShadow: '0 4px 20px rgba(34,197,94,0.45)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 10,
+              }}
+            >
+              <StartIcon />
+              Старт
+            </button>
           )}
 
-          {/* EV stations along route */}
-          {stationsOnRoute.length > 0 && (
-            <div>
-              {/* Divider */}
-              <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '2px 0 8px' }} />
+          {/* EV stations along route + Hide button row */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {stationsOnRoute.length > 0 && (
+              <div style={{ flex: 1 }}>
+                {/* Divider */}
+                <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '2px 0 8px' }} />
 
-              {/* Toggle button */}
+                {/* Toggle button */}
+                <button
+                  onClick={() => setShowStations((v) => !v)}
+                  style={{
+                    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    background: 'none', border: 'none', padding: '0 0 2px',
+                    cursor: 'pointer', touchAction: 'manipulation',
+                  }}
+                >
+                  <span style={{ fontSize: 15, fontWeight: 600, color: '#e31937', display: 'flex', alignItems: 'center', gap: 5 }}>
+                    <span style={{ fontSize: 18 }}>⚡</span>
+                    Зареди по пътя
+                    <span style={{
+                      background: 'rgba(227,25,55,0.18)', border: '1px solid rgba(227,25,55,0.4)',
+                      borderRadius: 8, padding: '0 6px', fontSize: 13, fontWeight: 700,
+                      color: '#e31937',
+                    }}>
+                      {stationsOnRoute.length}
+                    </span>
+                  </span>
+                  <ChevronIcon open={showStations} />
+                </button>
+
+                {/* Expandable list */}
+                {showStations && (
+                  <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    {stationsOnRoute.map(({ station, distFromRouteM }) => (
+                      <StationRow
+                        key={station.id}
+                        station={station}
+                        distFromRouteM={distFromRouteM}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Hide panel button */}
+            {!showStations && (
               <button
-                onClick={() => setShowStations((v) => !v)}
+                onClick={() => setDismissed(true)}
+                aria-label="Скрий панела"
                 style={{
-                  width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                  background: 'none', border: 'none', padding: '0 0 2px',
+                  marginLeft: stationsOnRoute.length > 0 ? 0 : 'auto',
+                  marginTop: stationsOnRoute.length > 0 ? 8 : 0,
+                  flexShrink: 0,
+                  padding: '5px 14px',
+                  borderRadius: 8,
+                  background: 'rgba(255,255,255,0.08)',
+                  border: '1px solid rgba(255,255,255,0.16)',
+                  color: 'var(--text-secondary)',
+                  fontSize: 13, fontWeight: 600,
                   cursor: 'pointer', touchAction: 'manipulation',
                 }}
               >
-                <span style={{ fontSize: 12, fontWeight: 600, color: '#e31937', display: 'flex', alignItems: 'center', gap: 5 }}>
-                  <span style={{ fontSize: 14 }}>⚡</span>
-                  Зареди по пътя
-                  <span style={{
-                    background: 'rgba(227,25,55,0.18)', border: '1px solid rgba(227,25,55,0.4)',
-                    borderRadius: 8, padding: '0 6px', fontSize: 10, fontWeight: 700,
-                    color: '#e31937',
-                  }}>
-                    {stationsOnRoute.length}
-                  </span>
-                </span>
-                <ChevronIcon open={showStations} />
+                СКРИИ
               </button>
-
-              {/* Expandable list */}
-              {showStations && (
-                <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  {stationsOnRoute.map(({ station, distFromRouteM }) => (
-                    <StationRow
-                      key={station.id}
-                      station={station}
-                      distFromRouteM={distFromRouteM}
-                    />
-                  ))}
-                </div>
-              )}
-            </div>
-          )}
+            )}
+          </div>
 
         </div>
       )}
@@ -258,6 +406,14 @@ function StationRow({ station, distFromRouteM }: { station: NormalizedStation; d
 
 // ── Small components ──────────────────────────────────────────────
 
+function StartIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <polygon points="5,3 19,12 5,21" />
+    </svg>
+  )
+}
+
 function ChevronIcon({ open }: { open: boolean }) {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -272,10 +428,10 @@ function ChevronIcon({ open }: { open: boolean }) {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div style={{ textAlign: 'center' }}>
-      <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+      <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
         {value}
       </div>
-      <div style={{ fontSize: 9, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em', marginTop: 1 }}>
+      <div style={{ fontSize: 12, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em', marginTop: 1 }}>
         {label}
       </div>
     </div>
@@ -288,12 +444,17 @@ function CancelButton() {
       onClick={() => routeStore.clear()}
       aria-label="Откажи маршрут"
       style={{
-        flexShrink: 0, padding: '6px 12px', borderRadius: 8,
+        flexShrink: 0, width: 36, height: 36, borderRadius: 8,
         background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.16)',
-        color: 'var(--text-secondary)', fontSize: 12, cursor: 'pointer', touchAction: 'manipulation',
+        color: 'var(--text-secondary)', cursor: 'pointer', touchAction: 'manipulation',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}
     >
-      &#x2715;
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"
+        stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+        <line x1="3" y1="3" x2="13" y2="13" />
+        <line x1="13" y1="3" x2="3" y2="13" />
+      </svg>
     </button>
   )
 }

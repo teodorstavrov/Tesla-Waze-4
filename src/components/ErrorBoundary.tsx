@@ -5,6 +5,7 @@
 
 import { Component } from 'react'
 import type { ReactNode, ErrorInfo } from 'react'
+import { captureError } from '@/lib/sentry'
 
 interface Props  { children: ReactNode }
 interface State  { error: Error | null }
@@ -17,8 +18,8 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo): void {
-    // Log to console — visible in Vercel function logs / browser devtools
     console.error('[ErrorBoundary]', error, info.componentStack)
+    captureError(error, 'ErrorBoundary')
   }
 
   render() {

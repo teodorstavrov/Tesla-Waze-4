@@ -5,30 +5,46 @@
 // Phase 14: auto dark/light theme + onboarding.
 // Phase 21: turn-by-turn navigation HUD + voice directions.
 
-import { useEffect } from 'react'
+import { useEffect, lazy, Suspense } from 'react'
 import { MapShell } from '@/components/MapShell'
 import { HeadingAvatar } from '@/components/HeadingAvatar'
 import { FloatingTitleCard } from '@/components/FloatingTitleCard'
 import { FloatingStatsCard } from '@/components/FloatingStatsCard'
 import { SearchBar } from '@/components/SearchBar'
 import { LeftControls } from '@/components/LeftControls'
+import { RightControls } from '@/components/RightControls'
 import { BottomDock } from '@/components/BottomDock'
-import { Onboarding } from '@/components/Onboarding'
+const Onboarding   = lazy(() => import('@/components/Onboarding').then(m => ({ default: m.Onboarding })))
 import { useUserPosition } from '@/features/gps/useUserPosition'
 import { useAudioUnlock } from '@/features/audio/useAudioUnlock'
 import { EvMarkerLayer } from '@/features/ev/EvMarkerLayer'
 import { StationPanel } from '@/features/ev/StationPanel'
 import { FilterBar } from '@/features/ev/FilterBar'
 import { EventMarkerLayer } from '@/features/events/EventMarkerLayer'
-import { ReportModal } from '@/features/events/ReportModal'
+const ReportModal  = lazy(() => import('@/features/events/ReportModal').then(m => ({ default: m.ReportModal })))
 import { EventPanel } from '@/features/events/EventPanel'
+import { CameraMarkerLayer } from '@/features/cameras/CameraMarkerLayer'
+import { SectionLayer } from '@/features/cameras/SectionLayer'
+import { SectionCard } from '@/features/cameras/SectionCard'
+import { sectionEngine } from '@/features/cameras/sectionEngine'
 import { RouteLayer } from '@/features/route/RouteLayer'
+import { SavedPlacesLayer } from '@/features/places/SavedPlacesLayer'
 import { RoutePanel } from '@/features/route/RoutePanel'
 import { TurnInstruction } from '@/features/route/TurnInstruction'
 import { AlertToast } from '@/features/audio/AlertToast'
-import { OfflineToast } from '@/components/OfflineToast'
+const OfflineToast = lazy(() => import('@/components/OfflineToast').then(m => ({ default: m.OfflineToast })))
+import { SupportModal } from '@/components/SupportModal'
+import { DonationNudge } from '@/components/DonationNudge'
+import { RatingModal } from '@/components/RatingModal'
+import { VehicleProfileModal } from '@/components/VehicleProfileModal'
+import { CountryPicker } from '@/components/CountryPicker'
+import { NorwayBetaBanner } from '@/components/NorwayBetaBanner'
+import { UpgradeModal } from '@/components/UpgradeModal'
+import { PricingModal } from '@/components/PricingModal'
 import { alertEngine } from '@/features/audio/alertEngine'
+import { batteryTracker } from '@/features/planning/batteryTracker'
 import { useThemeStore } from '@/features/theme/store'
+import { t } from '@/lib/locale'
 
 export function App() {
   // Start GPS watching (feeds gpsStore; no rerenders from GPS ticks)
@@ -36,6 +52,8 @@ export function App() {
 
   // Start proximity alert engine once on mount (not in render body — side-effect safety)
   useEffect(() => { alertEngine.start() }, [])
+  useEffect(() => { batteryTracker.start() }, [])
+  useEffect(() => { sectionEngine.start() }, [])
 
   // Get the audio unlock trigger
   const { unlock } = useAudioUnlock()
@@ -70,33 +88,67 @@ export function App() {
       <HeadingAvatar />
       <EvMarkerLayer />
       <EventMarkerLayer />
+      <CameraMarkerLayer />
+      <SectionLayer />
       <RouteLayer />
+      <SavedPlacesLayer />
 
       {/* Layer 1: floating UI */}
+      <NorwayBetaBanner />
       <FloatingTitleCard />
       <TurnInstruction />
       <SearchBar />
       <FloatingStatsCard />
       <LeftControls />
+      <RightControls />
       <BottomDock />
 
       {/* Layer 2: panels + filter bar (above dock) */}
+      <SectionCard />
       <FilterBar />
       <RoutePanel />
       <StationPanel />
       <EventPanel />
 
       {/* Layer 3: modal overlays */}
-      <ReportModal />
+      <Suspense fallback={null}><ReportModal /></Suspense>
 
       {/* Layer 4: alert toast (above everything) */}
       <AlertToast />
 
       {/* Layer 5: first-visit onboarding (above toast, dismissable) */}
-      <Onboarding />
+      <Suspense fallback={null}><Onboarding /></Suspense>
 
       {/* Layer 6: offline indicator */}
-      <OfflineToast />
+      <Suspense fallback={null}><OfflineToast /></Suspense>
+
+      {/* Layer 7: support/donation modal (portal, above everything) */}
+      {/* Wire stripeLink + qrImageUrl when Stripe is ready */}
+      <RatingModal />
+      <VehicleProfileModal />
+      <DonationNudge qrImageUrl="/stripe-qr.png" />
+
+      {/* Layer 8: country picker — blocks first load; in-app switcher via openCountryPicker() */}
+      <CountryPicker />
+
+      {/* Layer 9: premium upgrade modal (Stripe-ready; stripeLink/qrImageUrl filled in when live) */}
+      <UpgradeModal
+        price="PRO Plan"
+        // stripeLink="https://buy.stripe.com/…"   ← uncomment + fill when Stripe is ready
+        // qrImageUrl="/pro-qr.png"                ← uncomment + add QR image when ready
+      />
+
+      {/* Layer 10: pricing / plan comparison modal */}
+      <PricingModal
+        price="€4.99 / month"
+        // stripeLink="https://buy.stripe.com/…"   ← same link as UpgradeModal
+      />
+
+      <SupportModal
+        qrImageUrl="/stripe-qr.png"
+        title="Подкрепи проекта"
+        subtitle={t('support.subtitle')}
+      />
     </div>
   )
 }

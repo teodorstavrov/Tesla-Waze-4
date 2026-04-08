@@ -40,6 +40,75 @@ export const audioManager = {
     _emit()
   },
 
+  /** Soft UI feedback pop — panel opens, toast appears. */
+  uiBeep(): void {
+    if (_state.muted || !_state.canUseAudio || !_ctx) return
+    try {
+      const osc  = _ctx.createOscillator()
+      const gain = _ctx.createGain()
+      osc.connect(gain)
+      gain.connect(_ctx.destination)
+      osc.frequency.value = 620
+      osc.type = 'sine'
+      gain.gain.setValueAtTime(0.08, _ctx.currentTime)
+      gain.gain.exponentialRampToValueAtTime(0.001, _ctx.currentTime + 0.07)
+      osc.start(_ctx.currentTime)
+      osc.stop(_ctx.currentTime + 0.07)
+    } catch (err) {
+      logger.audio.warn('uiBeep failed', err)
+    }
+  },
+
+  /** Two ascending tones — marker placed / action confirmed. */
+  confirmBeep(): void {
+    if (_state.muted || !_state.canUseAudio || !_ctx) return
+    try {
+      const t = _ctx.currentTime
+      for (const [freq, offset] of [[680, 0], [960, 0.1]] as [number, number][]) {
+        const osc  = _ctx.createOscillator()
+        const gain = _ctx.createGain()
+        osc.connect(gain)
+        gain.connect(_ctx.destination)
+        osc.frequency.value = freq
+        osc.type = 'sine'
+        gain.gain.setValueAtTime(0.13, t + offset)
+        gain.gain.exponentialRampToValueAtTime(0.001, t + offset + 0.1)
+        osc.start(t + offset)
+        osc.stop(t + offset + 0.1)
+      }
+    } catch (err) {
+      logger.audio.warn('confirmBeep failed', err)
+    }
+  },
+
+  /** Police siren — wailing sweep 600↔1200 Hz for durationS seconds.
+   *  Works on Tesla browser (no isTeslaBrowser guard — explicit police sound). */
+  siren(durationS = 3): void {
+    if (_state.muted || !_state.canUseAudio || !_ctx) return
+    try {
+      const t   = _ctx.currentTime
+      const osc = _ctx.createOscillator()
+      const gain = _ctx.createGain()
+      osc.connect(gain)
+      gain.connect(_ctx.destination)
+      osc.type = 'sawtooth'
+      gain.gain.setValueAtTime(0.22, t)
+      gain.gain.setValueAtTime(0.001, t + durationS)
+      // Sweep 600↔1200 Hz every 0.5 s
+      const steps = Math.ceil(durationS / 0.5)
+      for (let i = 0; i < steps; i++) {
+        const fromHz = i % 2 === 0 ? 600 : 1200
+        const toHz   = i % 2 === 0 ? 1200 : 600
+        osc.frequency.setValueAtTime(fromHz, t + i * 0.5)
+        osc.frequency.linearRampToValueAtTime(toHz, t + (i + 1) * 0.5)
+      }
+      osc.start(t)
+      osc.stop(t + durationS)
+    } catch (err) {
+      logger.audio.warn('siren failed', err)
+    }
+  },
+
   /** Short attention beep before speech. Freq in Hz, duration in ms. */
   beep(freq = 880, durationMs = 120): void {
     if (_state.muted || !_state.canUseAudio || !_ctx) return

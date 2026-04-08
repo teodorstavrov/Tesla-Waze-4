@@ -1,7 +1,8 @@
 // ─── Top-left branding card ────────────────────────────────────────────
 import { useSyncExternalStore } from 'react'
-import { APP_NAME } from '@/lib/constants'
 import { routeStore } from '@/features/route/routeStore'
+import { openRatingModal } from '@/components/RatingModal'
+import { isTeslaBrowser } from '@/lib/browser'
 
 export function FloatingTitleCard() {
   const routeActive = useSyncExternalStore(
@@ -15,13 +16,11 @@ export function FloatingTitleCard() {
 
   return (
     <div
-      className="glass"
       style={{
         position: 'absolute',
         top: 12,
         left: 12,
         zIndex: 400,
-        padding: '9px 16px',
         display: 'flex',
         alignItems: 'center',
         gap: 8,
@@ -29,19 +28,35 @@ export function FloatingTitleCard() {
         WebkitUserSelect: 'none',
       }}
     >
-      {/* Tesla-red lightning bolt */}
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z"
-          fill="#e31937" stroke="#e31937" strokeWidth="0.5" strokeLinejoin="round" />
-      </svg>
-      <div>
-        <div style={{ fontSize: 14, fontWeight: 700, letterSpacing: '0.04em', color: 'var(--text-primary)', lineHeight: 1.2 }}>
-          {APP_NAME}
-        </div>
-        <div style={{ fontSize: 9, color: 'var(--text-secondary)', letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 1 }}>
-          Bulgaria
-        </div>
-      </div>
+      <img
+        src="/Logo-medium.png"
+        alt="Tesla RADAR"
+        style={{ height: 54, width: 'auto', display: 'block', borderRadius: 12 }}
+      />
+      <button
+        onClick={openRatingModal}
+        title="Оцени приложението"
+        aria-label="Оцени приложението"
+        style={{
+          width: 42, height: 42,
+          borderRadius: 10,
+          background: isTeslaBrowser ? 'rgba(13,13,19,0.97)' : 'rgba(18,18,26,0.82)',
+          border: '1px solid rgba(255,255,255,0.14)',
+          backdropFilter: isTeslaBrowser ? undefined : 'blur(10px)',
+          WebkitBackdropFilter: isTeslaBrowser ? undefined : 'blur(10px)',
+          color: '#fbbf24',
+          fontSize: 20,
+          lineHeight: 1,
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          touchAction: 'manipulation',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+        }}
+      >
+        ★
+      </button>
     </div>
   )
 }

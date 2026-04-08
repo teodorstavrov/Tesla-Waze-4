@@ -15,7 +15,10 @@ import { evStore } from '@/features/ev/evStore'
 import { routeStore } from '@/features/route/routeStore'
 import { searchNominatim } from '@/features/search/nominatim'
 import { searchStations } from '@/features/search/stationSearch'
-import { loadHistory, saveToHistory } from '@/features/search/searchHistory'
+import {
+  loadHistory, saveToHistory, removeFromHistory,
+  loadFavorites, isFavorite, toggleFavorite,
+} from '@/features/search/searchHistory'
 import type { GeoResult } from '@/features/search/nominatim'
 import type { StationResult } from '@/features/search/stationSearch'
 import type { HistoryEntry } from '@/features/search/searchHistory'
@@ -36,6 +39,9 @@ export function SearchBar() {
   const [busy, setBusy]         = useState(false)
   const [focused, setFocused]   = useState(-1)
   const [history, setHistory]   = useState<HistoryEntry[]>([])
+  const [favorites, setFavorites] = useState<HistoryEntry[]>([])
+  // Used to force re-render after star toggle without closing the panel
+  const [, setFavTick] = useState(0)
 
   const inputRef     = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -48,6 +54,7 @@ export function SearchBar() {
     setResults([])
     setFocused(-1)
     setHistory(loadHistory())
+    setFavorites(loadFavorites())
     setTimeout(() => inputRef.current?.focus(), 50)
   }
 
@@ -59,6 +66,7 @@ export function SearchBar() {
     setBusy(false)
     setFocused(-1)
     setHistory([])
+    setFavorites([])
   }, [])
 
   // ── Close on click outside ───────────────────────────────────────
@@ -130,7 +138,9 @@ export function SearchBar() {
       evStore.selectStation(s)
       map.setView([s.lat, s.lng], Math.max(map.getZoom(), 15), { animate: true })
     } else {
-      map.setView([result.lat, result.lng], 15, { animate: true })
+      // Do NOT call map.setView here — RouteLayer.fitBounds will center the
+      // full route once loaded. Calling setView first causes follow-mode to
+      // override fitBounds before the route arrives.
       void routeStore.navigateTo({ lat: result.lat, lng: result.lng, name: result.shortName })
       // Save to history
       saveToHistory({
@@ -144,20 +154,36 @@ export function SearchBar() {
     closeSearch()
   }
 
-  // ── Select history entry ─────────────────────────────────────────
+  // ── Select history/favorite entry ───────────────────────────────
   function selectHistory(entry: HistoryEntry) {
     const map = getMap()
     if (!map) return
-    map.setView([entry.lat, entry.lng], 15, { animate: true })
     void routeStore.navigateTo({ lat: entry.lat, lng: entry.lng, name: entry.shortName })
-    // Bump to top of history
     saveToHistory({ shortName: entry.shortName, displayName: entry.displayName, lat: entry.lat, lng: entry.lng })
     closeSearch()
   }
 
+  // ── Star toggle — keeps dropdown open ───────────────────────────
+  function handleStarToggle(e: React.MouseEvent, entry: HistoryEntry) {
+    e.stopPropagation()
+    toggleFavorite({ shortName: entry.shortName, displayName: entry.displayName, lat: entry.lat, lng: entry.lng })
+    setFavorites(loadFavorites())
+    setHistory(loadHistory())
+    setFavTick((t) => t + 1)
+  }
+
+  // ── Remove from history ──────────────────────────────────────────
+  function handleRemoveHistory(e: React.MouseEvent, entry: HistoryEntry) {
+    e.stopPropagation()
+    removeFromHistory(entry.lat, entry.lng)
+    setHistory(loadHistory())
+  }
+
   // ── Render ───────────────────────────────────────────────────────
-  const showHistory = open && !query.trim() && history.length > 0
-  const showResults = results.length > 0
+  const showHistory  = open && !query.trim() && (history.length > 0 || favorites.length > 0)
+  const showResults  = results.length > 0
+  // History entries that are NOT also favorites (to avoid duplication)
+  const historyOnly  = history.filter((h) => !isFavorite(h.lat, h.lng))
 
   return (
     <div
@@ -209,33 +235,70 @@ export function SearchBar() {
                 onMouseDown={(e) => { e.preventDefault(); closeSearch() }}
                 aria-label="Затвори търсачката"
                 style={{
-                  background: 'none', border: 'none', color: 'var(--text-secondary)',
-                  cursor: 'pointer', padding: 4, lineHeight: 1, flexShrink: 0, fontSize: 16,
+                  background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)',
+                  color: 'var(--text-secondary)', cursor: 'pointer',
+                  padding: 0, borderRadius: 8, lineHeight: 1, flexShrink: 0,
+                  width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}
               >
-                ✕
+                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"
+                  stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+                  <line x1="3" y1="3" x2="13" y2="13" />
+                  <line x1="13" y1="3" x2="3" y2="13" />
+                </svg>
               </button>
             </div>
 
-            {/* History dropdown */}
+            {/* History + Favorites dropdown */}
             {showHistory && (
               <div
                 className="glass"
                 style={{
-                  marginTop: 6, maxHeight: 280, overflowY: 'auto',
+                  marginTop: 6, maxHeight: 320, overflowY: 'auto',
                   borderRadius: 12, padding: '4px 0',
                 }}
               >
-                <SectionLabel label="Скорошни" />
-                {history.map((entry) => (
-                  <ResultRow
-                    key={`${entry.lat},${entry.lng}`}
-                    focused={false}
-                    onClick={() => selectHistory(entry)}
-                  >
-                    <HistoryResultContent entry={entry} />
-                  </ResultRow>
-                ))}
+                {/* Favorites section */}
+                {favorites.length > 0 && (
+                  <>
+                    <SectionLabel label="Любими" />
+                    {favorites.map((entry) => (
+                      <ResultRow
+                        key={`fav-${entry.lat},${entry.lng}`}
+                        focused={false}
+                        onClick={() => selectHistory(entry)}
+                      >
+                        <HistoryResultContent
+                          entry={entry}
+                          starred={true}
+                          onStar={(e) => handleStarToggle(e, entry)}
+                          onRemove={undefined}
+                        />
+                      </ResultRow>
+                    ))}
+                  </>
+                )}
+
+                {/* Recent (non-favorites) section */}
+                {historyOnly.length > 0 && (
+                  <>
+                    <SectionLabel label="Скорошни" />
+                    {historyOnly.map((entry) => (
+                      <ResultRow
+                        key={`hist-${entry.lat},${entry.lng}`}
+                        focused={false}
+                        onClick={() => selectHistory(entry)}
+                      >
+                        <HistoryResultContent
+                          entry={entry}
+                          starred={false}
+                          onStar={(e) => handleStarToggle(e, entry)}
+                          onRemove={(e) => handleRemoveHistory(e, entry)}
+                        />
+                      </ResultRow>
+                    ))}
+                  </>
+                )}
               </div>
             )}
 
@@ -357,18 +420,29 @@ function ResultRow({
   )
 }
 
-function HistoryResultContent({ entry }: { entry: HistoryEntry }) {
+function HistoryResultContent({
+  entry, starred, onStar, onRemove,
+}: {
+  entry:    HistoryEntry
+  starred:  boolean
+  onStar:   (e: React.MouseEvent) => void
+  onRemove: ((e: React.MouseEvent) => void) | undefined
+}) {
   const subtitle = entry.displayName.split(',').slice(1, 3).join(',').trim()
   return (
     <>
+      {/* Icon */}
       <div style={{
         width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-        background: 'rgba(255,255,255,0.06)', border: '1.5px solid rgba(255,255,255,0.15)',
+        background: starred ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.06)',
+        border: `1.5px solid ${starred ? 'rgba(251,191,36,0.5)' : 'rgba(255,255,255,0.15)'}`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
-        <HistoryIcon />
+        {starred ? <StarFilledIcon /> : <HistoryIcon />}
       </div>
-      <div style={{ minWidth: 0 }}>
+
+      {/* Text */}
+      <div style={{ minWidth: 0, flex: 1 }}>
         <div style={{
           fontSize: 13, fontWeight: 600, color: 'var(--text-primary)',
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
@@ -382,6 +456,47 @@ function HistoryResultContent({ entry }: { entry: HistoryEntry }) {
           }}>
             {subtitle}
           </div>
+        )}
+      </div>
+
+      {/* Action buttons */}
+      <div style={{ display: 'flex', gap: 4, flexShrink: 0, alignItems: 'center' }}>
+        {/* Star / unstar */}
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={onStar}
+          aria-label={starred ? 'Премахни от любими' : 'Добави в любими'}
+          title={starred ? 'Премахни от любими' : 'Добави в любими'}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            padding: 4, borderRadius: 6, lineHeight: 1,
+            color: starred ? '#fbbf24' : 'rgba(255,255,255,0.25)',
+            display: 'flex', alignItems: 'center',
+          }}
+        >
+          {starred ? <StarFilledIcon size={14} /> : <StarOutlineIcon size={14} />}
+        </button>
+
+        {/* Remove from history (only for non-favorites) */}
+        {onRemove && (
+          <button
+            onMouseDown={(e) => e.preventDefault()}
+            onClick={onRemove}
+            aria-label="Премахни от историята"
+            title="Премахни"
+            style={{
+              background: 'none', border: 'none', cursor: 'pointer',
+              padding: 4, borderRadius: 6, lineHeight: 1,
+              color: 'rgba(255,255,255,0.2)',
+              display: 'flex', alignItems: 'center',
+            }}
+          >
+            <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true"
+              stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+              <line x1="3" y1="3" x2="13" y2="13" />
+              <line x1="13" y1="3" x2="3" y2="13" />
+            </svg>
+          </button>
         )}
       </div>
     </>
@@ -453,7 +568,7 @@ function GeoResultContent({ result }: { result: GeoResult & { _city?: string } }
 
 function SearchIcon({ style }: { style?: React.CSSProperties }) {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
       stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
       style={style} aria-hidden="true">
       <circle cx="11" cy="11" r="8" />
@@ -469,6 +584,26 @@ function HistoryIcon() {
       aria-hidden="true">
       <circle cx="12" cy="12" r="10" />
       <polyline points="12 6 12 12 16 14" />
+    </svg>
+  )
+}
+
+function StarFilledIcon({ size = 13 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="#fbbf24"
+      stroke="#fbbf24" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"
+      aria-hidden="true">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
+  )
+}
+
+function StarOutlineIcon({ size = 13 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+      aria-hidden="true">
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
     </svg>
   )
 }

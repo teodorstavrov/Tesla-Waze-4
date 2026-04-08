@@ -1,6 +1,15 @@
 // ─── Nominatim geocoding (OSM) ────────────────────────────────────────
-// Free, no key. Bulgaria-scoped. Rate-limit: max 1 req/s — enforced by
-// 400ms debounce in SearchBar. Attribution already present via tile layer.
+// Free, no key. Country-scoped via countryStore. Rate-limit: max 1 req/s —
+// enforced by 400ms debounce in SearchBar. Attribution present via tile layer.
+//
+// CLIENT CACHE: results are cached per (country, query) for 10 minutes so
+// repeated searches hit zero network. Cache key includes country code so
+// switching country always produces fresh results for the new scope.
+
+import { countryStore } from '@/lib/countryStore'
+
+const _searchCache = new Map<string, { results: GeoResult[]; expiresAt: number }>()
+const SEARCH_CACHE_TTL_MS = 10 * 60 * 1000  // 10 minutes
 
 export interface GeoResult {
   type: 'geo'
@@ -33,18 +42,26 @@ export async function searchNominatim(
   signal?:  AbortSignal,
   viewbox?: string,   // 'minLng,maxLat,maxLng,minLat' — prioritises visible map area
 ): Promise<GeoResult[]> {
+  const country = countryStore.getCountryOrDefault()
+
+  // Cache key includes country code — switching country always yields fresh results
+  const cacheKey = `${country.code}:${query.trim().toLowerCase()}`
+  const hit = _searchCache.get(cacheKey)
+  if (hit && Date.now() < hit.expiresAt) return hit.results
+
   const params = new URLSearchParams({
-    q:                query,
-    format:           'json',
-    countrycodes:     'bg',
-    limit:            '5',
-    addressdetails:   '1',
-    'accept-language': 'bg,en',
+    q:                 query,
+    format:            'json',
+    countrycodes:      country.searchCode,
+    limit:             '5',
+    addressdetails:    '1',
+    'accept-language': country.searchLang,
   })
 
-  // Bias results toward the currently visible map extent (bounded=0 → still
-  // returns results outside the box, just ranked lower)
-  if (viewbox) params.set('viewbox', viewbox)
+  // Intentionally NOT using viewbox bias — it caused wrong results when
+  // the visible map area was far from the searched city.
+  // countrycodes scoping is sufficient for single-country mode.
+  void viewbox
 
   const res = await fetch(
     `https://nominatim.openstreetmap.org/search?${params.toString()}`,
@@ -58,7 +75,7 @@ export async function searchNominatim(
 
   const data = (await res.json()) as NominatimItem[]
 
-  return data.map((r): GeoResult => {
+  const results = data.map((r): GeoResult => {
     const addr = r.address ?? {}
     const city = addr.city ?? addr.town ?? addr.village ?? addr.suburb ?? ''
     const shortName =
@@ -73,8 +90,15 @@ export async function searchNominatim(
       category:    r.addresstype ?? r.category ?? 'place',
       lat: parseFloat(r.lat),
       lng: parseFloat(r.lon),
-      // smuggle city for subtitle display
       ...(city ? { _city: city } : {}),
     } as GeoResult & { _city?: string }
   })
+
+  // Store in client cache — evict oldest if over 100 entries
+  if (_searchCache.size >= 100) {
+    _searchCache.delete(_searchCache.keys().next().value!)
+  }
+  _searchCache.set(cacheKey, { results, expiresAt: Date.now() + SEARCH_CACHE_TTL_MS })
+
+  return results
 }

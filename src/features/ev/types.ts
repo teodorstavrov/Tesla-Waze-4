@@ -34,6 +34,8 @@ export interface NormalizedStation {
   connectors: Connector[]
   status: StationStatus
   isFree: boolean | null
+  pricePerKwh: number | null
+  priceCurrency: string | null
   lastUpdated: string | null
 }
 

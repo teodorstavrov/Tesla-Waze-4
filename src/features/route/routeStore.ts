@@ -62,6 +62,7 @@ let _state: RouteState = {
   activeRouteIndex: 0,
   route:            null,
   status:           'idle',
+  mode:             'preview',
   error:            null,
   deviated:         false,
   remainingM:       null,
@@ -74,6 +75,8 @@ type Listener = () => void
 const _listeners = new Set<Listener>()
 let _abort: AbortController | null = null
 let _unsubGps: (() => void) | null = null
+let _lastRerouteAt = 0
+const REROUTE_COOLDOWN_MS = 20000  // 20s cooldown — prevents OSRM hammering on GPS jitter
 
 // Per-route announcement tracking (step index → announced)
 const _announced300 = new Set<number>()
@@ -92,7 +95,7 @@ function _emit(): void { _listeners.forEach((fn) => fn()) }
 
 function _onGpsUpdate(): void {
   const route = _state.routes[_state.activeRouteIndex]
-  if (!route || _state.status !== 'ok') return
+  if (!route || _state.status !== 'ok' || _state.mode !== 'navigating') return
 
   const gps = gpsStore.getPosition()
   if (!gps) return
@@ -101,7 +104,7 @@ function _onGpsUpdate(): void {
   const [closestLat, closestLng] = route.polyline[idx]!
   const distFromRoute = haversineM(gps.lat, gps.lng, closestLat, closestLng)
 
-  const deviated  = distFromRoute > 200
+  const deviated  = distFromRoute > 100
   const remaining = remainingDistanceM(idx, route.polyline)
 
   // ── Arrival detection ───────────────────────────────────────────
@@ -165,8 +168,10 @@ function _onGpsUpdate(): void {
     distDelta > 20   // update HUD counter every ~20m
 
   if (changed) {
+    const justDeviated = !_state.deviated && deviated
     _state = { ..._state, deviated, remainingM: remaining, currentStepIndex: newStep, distToNextStepM }
     _emit()
+    if (justDeviated) void routeStore.reroute()
   }
 }
 
@@ -198,7 +203,7 @@ export const routeStore = {
   async navigateTo(dest: RouteDestination): Promise<void> {
     const gps = gpsStore.getPosition()
     if (!gps) {
-      _state = { ..._state, destination: dest, status: 'error', error: 'GPS позицията не е налична', routes: [], route: null, activeRouteIndex: 0, deviated: false, remainingM: null, currentStepIndex: 1, distToNextStepM: null, arrived: false }
+      _state = { ..._state, destination: dest, status: 'error', mode: 'preview', error: 'GPS позицията не е налична', routes: [], route: null, activeRouteIndex: 0, deviated: false, remainingM: null, currentStepIndex: 1, distToNextStepM: null, arrived: false }
       _emit()
       return
     }
@@ -208,7 +213,7 @@ export const routeStore = {
     _stopGpsTracking()
     _resetAnnouncements()
 
-    _state = { destination: dest, routes: [], activeRouteIndex: 0, route: null, status: 'loading', error: null, deviated: false, remainingM: null, currentStepIndex: 1, distToNextStepM: null, arrived: false }
+    _state = { destination: dest, routes: [], activeRouteIndex: 0, route: null, status: 'loading', mode: 'preview', error: null, deviated: false, remainingM: null, currentStepIndex: 1, distToNextStepM: null, arrived: false }
     _emit()
 
     try {
@@ -224,22 +229,16 @@ export const routeStore = {
         activeRouteIndex: 0,
         route:            primary,
         status:           'ok',
+        mode:             'preview',
         error:            null,
         remainingM:       primary.distanceM,
-        currentStepIndex: 1,  // skip 'depart' step
+        currentStepIndex: 1,
         distToNextStepM:  null,
         arrived:          false,
       }
       logger.route.info('Route found', { routes: routes.length, distanceM: primary.distanceM, durationS: primary.durationS, steps: primary.steps.length })
       _emit()
-      _startGpsTracking()
-
-      // Announce departure
-      const firstStep = primary.steps[1]
-      if (firstStep) {
-        const roundedM = roundDistM(firstStep.distanceM)
-        speak(`Маршрутът е зареден. ${roundedM > 0 ? `След ${roundedM} метра, ` : ''}${maneuverVoiceText(firstStep)}`)
-      }
+      // GPS tracking and voice start only when user explicitly presses Старт
     } catch (err) {
       if ((err as Error).name === 'AbortError') return
       const isOffline = !navigator.onLine || (err as Error).message.toLowerCase().includes('fetch')
@@ -252,6 +251,25 @@ export const routeStore = {
     }
   },
 
+  /** Called when the user explicitly presses "Старт" in the route preview panel. */
+  startNavigation(): void {
+    if (_state.status !== 'ok' || _state.mode === 'navigating') return
+    _resetAnnouncements()
+    _state = { ..._state, mode: 'navigating' }
+    _emit()
+    _startGpsTracking()
+
+    // Announce departure
+    const route = _state.routes[_state.activeRouteIndex]
+    if (route) {
+      const firstStep = route.steps[1]
+      if (firstStep) {
+        const roundedM = roundDistM(firstStep.distanceM)
+        speak(`Маршрутът е зареден. ${roundedM > 0 ? `След ${roundedM} метра, ` : ''}${maneuverVoiceText(firstStep)}`)
+      }
+    }
+  },
+
   /** Switch to an alternative route by index. */
   selectRoute(index: number): void {
     const route = _state.routes[index]
@@ -261,17 +279,70 @@ export const routeStore = {
     _emit()
   },
 
-  /** Recalculate route from current GPS position. */
+  /** Recalculate route from current GPS position.
+   *  Fetches a single best route (no alternatives), stays in navigating mode. */
   async reroute(): Promise<void> {
     if (!_state.destination) return
-    await routeStore.navigateTo(_state.destination)
+    const now = Date.now()
+    if (now - _lastRerouteAt < REROUTE_COOLDOWN_MS) return
+    _lastRerouteAt = now
+
+    const gps = gpsStore.getPosition()
+    if (!gps) return
+
+    _abort?.abort()
+    _abort = new AbortController()
+    _stopGpsTracking()
+    _resetAnnouncements()
+
+    const dest = _state.destination
+    _state = { ..._state, status: 'loading', deviated: false, remainingM: null, currentStepIndex: 1, distToNextStepM: null }
+    _emit()
+
+    try {
+      // Single route — no alternatives popup on reroute
+      const routes = await fetchOSRMRoute(
+        [gps.lat, gps.lng],
+        [dest.lat, dest.lng],
+        _abort.signal,
+        0,
+      )
+      const primary = routes[0]!
+      _state = {
+        ..._state,
+        routes,
+        activeRouteIndex: 0,
+        route:            primary,
+        status:           'ok',
+        mode:             'navigating',
+        error:            null,
+        remainingM:       primary.distanceM,
+        currentStepIndex: 1,
+        distToNextStepM:  null,
+        arrived:          false,
+        deviated:         false,
+      }
+      _emit()
+      _startGpsTracking()
+
+      const firstStep = primary.steps[1]
+      if (firstStep) {
+        const roundedM = roundDistM(firstStep.distanceM)
+        speak(`Преизчислен маршрут. ${roundedM > 0 ? `След ${roundedM} метра, ` : ''}${maneuverVoiceText(firstStep)}`)
+      }
+    } catch (err) {
+      if ((err as Error).name === 'AbortError') return
+      _state = { ..._state, status: 'error', error: (err as Error).message }
+      logger.route.warn('Reroute failed', { err: String(err) })
+      _emit()
+    }
   },
 
   clear(): void {
     _abort?.abort()
     _stopGpsTracking()
     _resetAnnouncements()
-    _state = { destination: null, routes: [], activeRouteIndex: 0, route: null, status: 'idle', error: null, deviated: false, remainingM: null, currentStepIndex: 1, distToNextStepM: null, arrived: false }
+    _state = { destination: null, routes: [], activeRouteIndex: 0, route: null, status: 'idle', mode: 'preview', error: null, deviated: false, remainingM: null, currentStepIndex: 1, distToNextStepM: null, arrived: false }
     _emit()
   },
 }

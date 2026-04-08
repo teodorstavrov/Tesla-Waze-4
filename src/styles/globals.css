@@ -48,10 +48,32 @@ body,
   position: absolute;
   inset: 0;
   z-index: 0;
-  /* GPU layer — critical for Tesla browser scroll smoothness */
-  transform: translateZ(0);
+  /* will-change promotes to GPU layer; JS manages the actual transform value
+     (translateZ(0) at rest, rotate+scale during course-up navigation).
+     transition interpolates between GPS ticks (~1Hz) so rotation looks
+     fluid at 60fps with zero extra JS cost. */
   will-change: transform;
+  transition: transform 0.5s linear;
   background: #1a1a2e;
+}
+
+/* ─── Nav popup (long-press) ─────────────────────────────────────────── */
+.nav-popup .leaflet-popup-content-wrapper {
+  background: rgba(14, 14, 22, 0.98) !important;
+  border: 1px solid rgba(255,255,255,0.12) !important;
+  border-radius: 14px !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.7) !important;
+  color: #fff;
+  padding: 12px 16px !important;
+}
+.nav-popup .leaflet-popup-tip-container {
+  display: none;
+}
+.nav-popup .leaflet-popup-close-button {
+  color: rgba(255,255,255,0.4) !important;
+  font-size: 18px !important;
+  top: 8px !important;
+  right: 10px !important;
 }
 
 /* ─── Leaflet overrides ──────────────────────────────────────────────── */
@@ -232,16 +254,242 @@ body,
   transition: opacity 0.45s ease;
 }
 
+/* ─── Tesla browser: suppress all expensive animations ──────────────── */
+/* data-tesla is set on <html> by main.tsx when isTeslaBrowser is true.  */
+/* Each rule targets a specific known paint/composite bottleneck.        */
+[data-tesla] .gps-avatar-halo {
+  /* GPS pulse expands/contracts continuously — forces composite on every frame */
+  animation: none;
+  opacity: 0.18;
+}
+
+[data-tesla] .leaflet-layer {
+  /* Tile crossfade opacity transition triggers repaint during map moves */
+  transition: none;
+}
+
+[data-tesla] .icon-btn {
+  /* background + transform transitions on every button press add up */
+  transition: none;
+}
+
+[data-tesla] .leaflet-zoom-animated {
+  /* Leaflet zoom animation uses CSS transform — causes jitter with markers */
+  transition: none !important;
+}
+
+[data-tesla] .leaflet-fade-anim .leaflet-popup {
+  transition: none;
+}
+
+[data-tesla] * {
+  /* Nuclear option: kill all CSS transitions on Tesla.
+     Animations defined by @keyframes (spinner, pulse) are handled individually above.
+     This targets only transition: properties which are the main jitter source. */
+  transition-duration: 0s !important;
+  transition-delay: 0s !important;
+}
+
+/* ─── Map rotation smoothing — Tesla override ────────────────────────── */
+/* The nuclear rule above kills #map transition too, but course-up rotation
+   runs on the GPU compositor thread (translateZ + will-change) — it does NOT
+   trigger layout or paint. Restoring only this transition is safe on Tesla
+   and eliminates the jarring 1Hz jump between GPS ticks. */
+[data-tesla] #map {
+  transition: transform 0.25s linear !important;
+}
+
+/* ─── Tesla: strip backdrop-filter — the #1 overlay jitter source ────── */
+/*
+   backdrop-filter forces the browser to:
+     1. Promote the element to its own GPU compositing layer
+     2. Run a blur pass over all pixels behind the element
+     3. Re-composite the entire layer tree
+   When any .glass panel or .icon-btn mounts / unmounts on Tesla's software
+   compositor, the compositor tree rebuilds → the map underneath is redrawn
+   → visible "shake". Removing backdrop-filter eliminates this entirely.
+   Compensate with a near-opaque solid background for readability.
+*/
+[data-tesla] .glass {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: rgba(13, 13, 19, 0.97) !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.65) !important;
+}
+
+[data-tesla][data-theme="light"] .glass {
+  background: rgba(248, 248, 252, 0.98) !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.18) !important;
+}
+
+[data-tesla] .icon-btn {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+[data-tesla] .left-controls-xl .icon-btn {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+/* ─── Tesla: contain overlay panels — isolate from map repaint ───────── */
+/*
+   paint containment: browser skips repainting pixels outside the panel's
+   bounds when it mounts, unmounts, or updates. The map stays untouched.
+   layout containment: mounting the panel does not re-layout siblings.
+   Together these ensure a panel appearing never triggers a map repaint.
+*/
+[data-tesla] [role="dialog"] {
+  contain: layout style paint;
+}
+
+/* ─── Tesla: suppress expensive box-shadows on overlays ─────────────── */
+/* Large coloured box-shadows require an extra GPU compositing pass.
+   On Tesla this is synchronous and blocks frame delivery.              */
+[data-tesla] [role="alert"] {
+  box-shadow: none !important;
+}
+
+/* ─── Tesla flat overlay mode ────────────────────────────────────────── */
+/*
+   The fundamental cause of remaining jitter: compositing layer churn.
+   When React mounts/unmounts an overlay (return null → DOM element), the
+   browser's compositor must:
+     1. Allocate a new GPU layer for the element
+     2. Paint it
+     3. Rebuild the compositor layer tree
+     4. Re-composite everything (including the map)
+   Step 4 is what produces the visible shake.
+
+   Fix: keep overlay containers ALWAYS in the DOM on Tesla.
+   They are hidden via visibility:hidden (not display:none).
+   The GPU layer is pre-allocated at startup. Toggling visibility is a
+   single compositor op that does NOT touch the map layer at all.
+
+   .tesla-overlay-host  — outer always-present positioning container
+   .tesla-overlay-inner — inner card that receives the flat visual style
+*/
+
+.tesla-overlay-host {
+  /* Always in DOM on Tesla — visibility toggled instead of mount/unmount */
+  position: absolute;  /* stays out of document flow */
+}
+
+[data-tesla] .tesla-overlay-host {
+  contain: layout style paint;
+  /* Pre-promote to own compositor layer so it's always ready.
+     translateZ(0) forces GPU layer creation at load time, not at first
+     appearance — eliminates the "new layer = compositor rebuild" event. */
+  transform: translateZ(0);
+}
+
+[data-tesla] .tesla-overlay-host[aria-hidden="true"] {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+[data-tesla] .tesla-overlay-host[aria-hidden="false"] {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Flat inner card — no blur, no glow, no shadow depth, no animation */
+[data-tesla] .tesla-overlay-inner {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: rgba(11, 11, 16, 0.99) !important;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.10) !important;
+  border-color: rgba(255, 255, 255, 0.10) !important;
+}
+
+[data-tesla][data-theme="light"] .tesla-overlay-inner {
+  background: rgba(246, 246, 250, 0.99) !important;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.10) !important;
+  border-color: rgba(0, 0, 0, 0.10) !important;
+}
+
+/* Alert banner: on Tesla use visibility toggle, not transform slide */
+[data-tesla] .tesla-alert-banner {
+  contain: layout style paint;
+  transform: translateZ(0);
+  transition: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
+}
+
+[data-tesla] .tesla-alert-banner[aria-hidden="true"] {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+[data-tesla] .tesla-alert-banner[aria-hidden="false"] {
+  visibility: visible;
+  pointer-events: auto;
+}
+
 /* ─── XL icon buttons — left control strip ──────────────────────────── */
 .left-controls-xl .icon-btn {
   width: 88px !important;
   height: 88px !important;
   border-radius: 16px !important;
+  background: rgba(255, 255, 255, 0.5) !important;
+  border-color: rgba(255, 255, 255, 0.3) !important;
+  color: #111 !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.18) !important;
+}
+
+.left-controls-xl .icon-btn:active {
+  background: rgba(255, 255, 255, 0.9) !important;
+  transform: scale(0.93) !important;
+}
+
+.left-controls-xl .icon-btn.active {
+  background: rgba(227, 25, 55, 0.75) !important;
+  border-color: #e31937 !important;
+  color: #fff !important;
 }
 
 .left-controls-xl .icon-btn svg {
   width: 32px !important;
   height: 32px !important;
+}
+
+/* ─── Right controls — 20% larger than standard icon-btn (44 → 53px) ── */
+.right-controls .icon-btn {
+  width: 53px !important;
+  height: 53px !important;
+  border-radius: 12px !important;
+}
+
+/* ─── Mobile responsiveness (≤480px phones) ─────────────────────────── */
+@media (max-width: 480px) {
+  /* Left controls — shrink from 88px to 56px */
+  .left-controls-xl .icon-btn {
+    width: 56px !important;
+    height: 56px !important;
+    border-radius: 12px !important;
+  }
+  .left-controls-xl .icon-btn svg {
+    width: 20px !important;
+    height: 20px !important;
+  }
+
+  /* Right controls — shrink from 53px to 44px */
+  .right-controls .icon-btn {
+    width: 44px !important;
+    height: 44px !important;
+    border-radius: 10px !important;
+  }
+
+  /* EV filter bar — allow horizontal scroll on narrow screens */
+  .ev-filter-bar {
+    flex-wrap: nowrap !important;
+    overflow-x: auto !important;
+    padding-bottom: 4px !important;
+  }
 }
 
 /* ─── Scrollbar ──────────────────────────────────────────────────────── */

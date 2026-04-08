@@ -53,17 +53,14 @@ export function formatExpiresIn(expiresAt: string): string {
 }
 
 /**
- * Full "Докладвано преди X мин · изтича след Y ч" line.
- * Separator is · (middle dot).
- * Permanent (admin) events skip the expiry part.
+ * "Докладвано преди X мин" line.
+ * Permanent (admin) events return empty string (no time shown at all).
  */
 export function reportedLine(reportedAt: string, expiresAt: string, permanent?: boolean): string {
+  if (permanent) return ''
   const lang    = getLang()
   const ago     = formatTimeAgo(reportedAt)
-  const reported = lang === 'bg' ? `Докладвано ${ago}` : `Reported ${ago}`
-  if (permanent) return ''
-  const expires = formatExpiresIn(expiresAt)
-  return expires ? `${reported} · ${expires}` : reported
+  return lang === 'bg' ? `Докладвано ${ago}` : `Reported ${ago}`
 }
 
 /**

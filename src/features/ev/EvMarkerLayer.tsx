@@ -39,7 +39,7 @@ function stationColor(s: NormalizedStation): string {
   if (s.source === 'tesla')                              return '#e31937'
   if (s.maxPowerKw != null && s.maxPowerKw >= 150)       return '#F59E0B'
   if (s.maxPowerKw != null && s.maxPowerKw >= 50)        return '#22c55e'
-  return '#2B7FFF'
+  return '#FACC15'
 }
 
 function makeStationIcon(s: NormalizedStation, nearRoute = false): L.DivIcon {
@@ -119,7 +119,7 @@ function clusterRadius(count: number): number {
 function clusterColor(maxPower: number | null): string {
   if (maxPower != null && maxPower >= 150) return '#F59E0B'
   if (maxPower != null && maxPower >= 50)  return '#22c55e'
-  return '#2B7FFF'
+  return '#FACC15'
 }
 
 function makeClusterIcon(count: number, maxPower: number | null): L.DivIcon {

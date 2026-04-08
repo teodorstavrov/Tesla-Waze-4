@@ -6,6 +6,8 @@ import { useEffect, useRef } from 'react'
 import { L } from '@/lib/leaflet'
 import { getMap } from '@/components/MapShell'
 import { routeStore } from './routeStore.js'
+import { followStore } from '@/features/follow/followStore'
+import { isTeslaBrowser } from '@/lib/browser'
 
 export function RouteLayer() {
   const primaryRef    = useRef<L.Polyline | null>(null)
@@ -72,10 +74,21 @@ export function RouteLayer() {
           zIndexOffset: 200,
         }).addTo(map)
 
-        // Fit bounds only on first route load, not on alternative switch
-        if (prevIndexRef.current === -1) {
+        // Fit bounds:
+        //  - Always on first load (preview mode: show full route before Старт)
+        //  - On alternative switch only in preview mode
+        //    (in navigating mode, keep following GPS instead of zooming out)
+        const isFirstLoad  = prevIndexRef.current === -1
+        const routeChanged = prevIndexRef.current !== activeRouteIndex
+        const { mode } = routeStore.getState()
+        if (isFirstLoad || (routeChanged && mode === 'preview')) {
+          followStore.setFollowing(false)
           const bounds = L.latLngBounds(active.polyline)
-          map.fitBounds(bounds, { padding: [60, 60], maxZoom: 16, animate: true })
+          map.fitBounds(bounds, {
+            padding: [80, 80],
+            maxZoom: 15,
+            animate: !isTeslaBrowser,
+          })
         }
         prevIndexRef.current = activeRouteIndex
       }

@@ -8,8 +8,12 @@ import { evStore } from './evStore.js'
 import { filterStore } from './filterStore.js'
 import { routeStore } from '@/features/route/routeStore'
 import type { ConnectorFilter, PowerFilter } from './filterStore.js'
+import { t, langStore } from '@/lib/locale'
 
 export function FilterBar() {
+  // Subscribe to lang changes so labels re-render on country switch
+  useSyncExternalStore(langStore.subscribe, langStore.getLang, langStore.getLang)
+
   const markersVisible = useSyncExternalStore(
     evStore.subscribe.bind(evStore),
     () => evStore.getState().markersVisible,
@@ -36,7 +40,7 @@ export function FilterBar() {
     <div
       style={{
         position: 'absolute',
-        bottom: 90,
+        bottom: 144,
         left: '50%',
         transform: 'translateX(-50%)',
         zIndex: 400,
@@ -50,7 +54,7 @@ export function FilterBar() {
         paddingBottom: 2,
       }}
       role="group"
-      aria-label="Филтри за зарядни станции"
+      aria-label={t('filter.filterLabel')}
     >
       {/* Connector chips */}
       <Chip
@@ -95,7 +99,7 @@ export function FilterBar() {
 
       {/* Availability */}
       <Chip
-        label="Свободни"
+        label={t('filter.available')}
         active={onlyAvailable}
         onClick={() => filterStore.toggleAvailable()}
       />
@@ -103,7 +107,7 @@ export function FilterBar() {
       {/* Reset */}
       {filterStore.isActive() && (
         <Chip
-          label="✕ Изчисти"
+          label={t('filter.clear')}
           active={false}
           muted
           onClick={() => filterStore.reset()}

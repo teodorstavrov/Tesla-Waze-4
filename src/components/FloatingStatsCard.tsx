@@ -1,13 +1,31 @@
 // ─── Top-right status card ─────────────────────────────────────────────
 // Phase 4+5: live station count (filtered/total), GPS accuracy.
 
-import { useSyncExternalStore } from 'react'
+import { useSyncExternalStore, useState, useEffect } from 'react'
 import { evStore } from '@/features/ev/evStore'
 import { filterStore } from '@/features/ev/filterStore'
 import { gpsStore } from '@/features/gps/gpsStore'
 import { eventStore } from '@/features/events/eventStore'
+import { audioManager } from '@/features/audio/audioManager'
+import { batteryStore } from '@/features/planning/batteryStore'
+import { t, langStore } from '@/lib/locale'
 
 export function FloatingStatsCard() {
+  // Subscribe to lang changes so labels re-render when country is switched
+  useSyncExternalStore(langStore.subscribe, langStore.getLang, langStore.getLang)
+
+  const { muted } = useSyncExternalStore(
+    audioManager.subscribe.bind(audioManager),
+    () => audioManager.getState(),
+    () => audioManager.getState(),
+  )
+
+  const [batteryState, setBatteryState] = useState(() => batteryStore.getState())
+  useEffect(() => batteryStore.subscribe(() => setBatteryState(batteryStore.getState())), [])
+
+  const batteryLevel      = batteryState?.currentBatteryPercent ?? null
+  const batteryIsEstimate = batteryState?.source === 'estimated'
+
   const evState = useSyncExternalStore(
     evStore.subscribe.bind(evStore),
     () => evStore.getState(),
@@ -65,23 +83,61 @@ export function FloatingStatsCard() {
         top: 12,
         right: 12,
         zIndex: 400,
-        padding: '8px 16px',
+        padding: '8px clamp(10px, 3vw, 16px)',
         display: 'flex',
         alignItems: 'center',
-        gap: 18,
+        gap: 'clamp(10px, 3vw, 18px)',
         userSelect: 'none',
         WebkitUserSelect: 'none',
       }}
     >
+      <button
+        onClick={() => audioManager.toggleMute()}
+        aria-label={muted ? t('stats.muteOn') : t('stats.muteOff')}
+        title={muted ? t('stats.muteOn') : t('stats.muteOff')}
+        style={{
+          background: 'none',
+          border: 'none',
+          padding: 4,
+          cursor: 'pointer',
+          color: muted ? '#ef4444' : 'var(--text-secondary)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          touchAction: 'manipulation',
+          borderRadius: 6,
+          marginRight: 2,
+        }}
+      >
+        {muted
+          ? <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+          : <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+        }
+      </button>
       <Stat
-        label="Станции"
+        label={t('stats.stations')}
         value={stationValue}
         accent={evState.status === 'error' ? '#ef4444' : filtersActive ? '#e31937' : undefined}
         title={evState.error ?? undefined}
       />
-      <Stat label="Събития" value={eventCount > 0 ? String(eventCount) : '—'} />
-      <Stat label="GPS" value={gpsValue} accent={gpsAccent} />
+      <Stat label={t('stats.events')} value={eventCount > 0 ? String(eventCount) : '—'} />
+      <Stat label={t('stats.gps')} value={gpsValue} accent={gpsAccent} />
     </div>
+  )
+}
+
+function BatteryIcon({ level, color }: { level: number; color: string }) {
+  // fill width: 0–100% mapped to 0–10px inner bar
+  const fillW = Math.round((level / 100) * 10)
+  return (
+    <svg width="16" height="9" viewBox="0 0 16 9" fill="none" aria-hidden="true">
+      {/* body */}
+      <rect x="0.5" y="0.5" width="13" height="8" rx="1.5" stroke={color} strokeWidth="1" />
+      {/* tip */}
+      <rect x="14" y="3" width="1.5" height="3" rx="0.5" fill={color} />
+      {/* fill */}
+      <rect x="2" y="2" width={fillW} height="5" rx="0.5" fill={color} />
+    </svg>
   )
 }
 

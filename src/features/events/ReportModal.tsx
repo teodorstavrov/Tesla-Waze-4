@@ -2,18 +2,24 @@
 // One-tap event reporting. User selects type → submits immediately.
 // Uses GPS position from gpsStore. If no GPS, uses map center.
 
-import { useSyncExternalStore, useState } from 'react'
+import { useSyncExternalStore, useState, useEffect } from 'react'
 import { eventStore } from './eventStore.js'
 import { gpsStore } from '@/features/gps/gpsStore'
+import { audioManager } from '@/features/audio/audioManager'
 import { getMap } from '@/components/MapShell'
-import { EVENT_EMOJI, EVENT_LABELS, EVENT_COLORS } from './types.js'
+import { EVENT_EMOJI, EVENT_COLORS } from './types.js'
 import type { EventType } from './types.js'
+import { isTeslaBrowser } from '@/lib/browser'
+import { t, langStore } from '@/lib/locale'
 
 const EVENT_TYPES: EventType[] = [
-  'police', 'accident', 'hazard', 'traffic', 'closure', 'construction',
+  'police', 'accident', 'hazard', 'camera',
 ]
 
 export function ReportModal() {
+  // Re-render on language change so labels update immediately
+  useSyncExternalStore(langStore.subscribe, langStore.getLang, langStore.getLang)
+
   const open = useSyncExternalStore(
     eventStore.subscribe.bind(eventStore),
     () => eventStore.getState().reportModalOpen,
@@ -21,6 +27,16 @@ export function ReportModal() {
   )
 
   const [submitting, setSubmitting] = useState(false)
+  const [shown, setShown] = useState(false)
+
+  useEffect(() => {
+    if (open) {
+      if (isTeslaBrowser) { setShown(true) }
+      else { requestAnimationFrame(() => requestAnimationFrame(() => setShown(true))) }
+    } else {
+      setShown(false)
+    }
+  }, [open])
 
   if (!open) return null
 
@@ -48,21 +64,23 @@ export function ReportModal() {
     }
 
     await eventStore.report(type, lat, lng)
+    audioManager.confirmBeep()
     setSubmitting(false)
     eventStore.closeReportModal()
   }
 
   return (
     <>
-      {/* Backdrop */}
+      {/* Backdrop — no blur on Tesla: full-screen blur forces a compositing pass
+           over the entire viewport, causing the map to visibly redraw on mount. */}
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
       <div
         onClick={() => eventStore.closeReportModal()}
         style={{
           position: 'fixed', inset: 0, zIndex: 600,
-          background: 'rgba(0,0,0,0.65)',
-          backdropFilter: 'blur(4px)',
-          WebkitBackdropFilter: 'blur(4px)',
+          background: isTeslaBrowser ? 'rgba(0,0,0,0.80)' : 'rgba(0,0,0,0.65)',
+          backdropFilter: isTeslaBrowser ? undefined : 'blur(4px)',
+          WebkitBackdropFilter: isTeslaBrowser ? undefined : 'blur(4px)',
         }}
       />
 
@@ -70,14 +88,16 @@ export function ReportModal() {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Докладвай събитие"
+        aria-label={t('events.reportTitle')}
         style={{
           position: 'fixed',
           top: '50%', left: '50%',
-          transform: 'translate(-50%, -50%)',
+          transform: shown ? 'translate(-50%, -50%) scale(1)' : 'translate(-50%, -50%) scale(0.96)',
           zIndex: 601,
-          width: 'min(380px, calc(100vw - 32px))',
+          width: 'min(420px, calc(100vw - 32px))',
           padding: '24px 20px 20px',
+          opacity: shown ? 1 : 0,
+          transition: isTeslaBrowser ? undefined : 'opacity 0.2s ease-out, transform 0.2s ease-out',
         }}
         className="glass"
       >
@@ -87,13 +107,13 @@ export function ReportModal() {
           marginBottom: 20,
           textAlign: 'center',
         }}>
-          Какво докладвате?
+          {t('events.reportWhat')}
         </div>
 
         {/* 3 × 2 type grid */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
+          gridTemplateColumns: 'repeat(2, 1fr)',
           gap: 10,
           marginBottom: 16,
         }}>
@@ -121,7 +141,7 @@ export function ReportModal() {
             touchAction: 'manipulation',
           }}
         >
-          Отказ
+          {t('common.cancel')}
         </button>
       </div>
     </>
@@ -137,7 +157,7 @@ function TypeButton({
 }) {
   const color = EVENT_COLORS[type]
   const emoji = EVENT_EMOJI[type]
-  const label = EVENT_LABELS[type]
+  const label = t(`events.${type}`)
 
   return (
     <button
@@ -148,9 +168,9 @@ function TypeButton({
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'center',
-        gap: 6,
-        padding: '14px 8px',
-        borderRadius: 12,
+        gap: 9,
+        padding: '21px 12px',
+        borderRadius: 18,
         background: `${color}18`,
         border: `1.5px solid ${color}55`,
         color: 'var(--text-primary)',
@@ -169,8 +189,8 @@ function TypeButton({
         (e.currentTarget as HTMLElement).style.background = `${color}18`
       }}
     >
-      <span style={{ fontSize: 26 }}>{emoji}</span>
-      <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.02em', color }}>{label}</span>
+      <span style={{ fontSize: 39 }}>{emoji}</span>
+      <span style={{ fontSize: 16, fontWeight: 600, letterSpacing: '0.02em', color }}>{label}</span>
     </button>
   )
 }

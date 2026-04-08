@@ -12,22 +12,27 @@
 
 import type { NormalizedStation, StationsApiResponse } from './types'
 import { logger } from '@/lib/logger'
+import { countryStore } from '@/lib/countryStore'
 
-const STALE_MS = 10 * 60 * 1000           // 10 minutes — mirrors server cache TTL
-const LS_KEY   = 'ev-stations-cache'
-const LS_TTL   = 24 * 60 * 60 * 1000     // 24 hours — offline fallback max age
+const STALE_MS  = 30 * 60 * 1000  // 30 min — station data is stable; matches 20min server cache + margin
+const LS_PREFIX = 'ev-stations-cache'
+const LS_TTL    = 24 * 60 * 60 * 1000     // 24 hours — offline fallback max age
 
-// ── localStorage persistence ──────────────────────────────────────
+// ── localStorage persistence (country-keyed) ─────────────────────
 
-function _saveToLocalStorage(stations: NormalizedStation[]): void {
+function _lsKey(country: string): string {
+  return `${LS_PREFIX}:${country}`
+}
+
+function _saveToLocalStorage(country: string, stations: NormalizedStation[]): void {
   try {
-    localStorage.setItem(LS_KEY, JSON.stringify({ stations, savedAt: Date.now() }))
+    localStorage.setItem(_lsKey(country), JSON.stringify({ stations, savedAt: Date.now() }))
   } catch { /* quota exceeded — non-fatal */ }
 }
 
-function _loadFromLocalStorage(): NormalizedStation[] {
+function _loadFromLocalStorage(country: string): NormalizedStation[] {
   try {
-    const raw = localStorage.getItem(LS_KEY)
+    const raw = localStorage.getItem(_lsKey(country))
     if (!raw) return []
     const { stations, savedAt } = JSON.parse(raw) as { stations: NormalizedStation[], savedAt: number }
     if (!Array.isArray(stations) || stations.length === 0) return []
@@ -53,9 +58,10 @@ interface EvState {
 
 // ── Module-level state ────────────────────────────────────────────
 
-// Eagerly hydrate from localStorage so the map shows stations on first
-// render even before the first network request completes (or when offline).
-const _cached = _loadFromLocalStorage()
+// Eagerly hydrate from localStorage (country-aware) so the map shows
+// stations on first render even before the first network request completes.
+const _initCountry = countryStore.getCode() ?? 'BG'
+const _cached      = _loadFromLocalStorage(_initCountry)
 
 let _state: EvState = {
   stations:        _cached,
@@ -117,7 +123,48 @@ export const evStore = {
     _emit()
   },
 
+  /** Force a fresh Redis read, bypassing server in-memory cache. */
+  async forceRefresh(bbox: { minLat: number; minLng: number; maxLat: number; maxLng: number }): Promise<void> {
+    _abortController?.abort()
+    _abortController = new AbortController()
+    const version = ++_fetchVersion
+
+    _state = { ..._state, status: 'loading', error: null }
+    _emit()
+
+    const url = `/api/ev/stations?bbox=${bbox.minLat},${bbox.minLng},${bbox.maxLat},${bbox.maxLng}&bust=1`
+    logger.ev.info('Force-refreshing stations (bust cache)', { url })
+
+    try {
+      const res = await fetch(url, { signal: _abortController.signal })
+      if (version !== _fetchVersion) return
+      if (!res.ok) throw new Error(`HTTP ${res.status}`)
+      const data = (await res.json()) as StationsApiResponse
+      if (version !== _fetchVersion) return
+
+      _state = {
+        ..._state,
+        stations: data.stations,
+        status: 'ok',
+        error: null,
+        fetchedAt: Date.now(),
+        meta: data.meta,
+      }
+      _saveToLocalStorage(countryStore.getCode() ?? 'BG', data.stations)
+      logger.ev.info('Force-refresh complete', { count: data.stations.length })
+      _emit()
+    } catch (err) {
+      if (version !== _fetchVersion) return
+      if ((err as Error).name === 'AbortError') return
+      _state = { ..._state, status: _state.stations.length > 0 ? 'ok' : 'error', error: String(err) }
+      _emit()
+    }
+  },
+
   async fetch(bbox: { minLat: number; minLng: number; maxLat: number; maxLng: number }): Promise<void> {
+    // Skip fetch when tab/app is hidden — saves provider calls and Vercel invocations
+    if (typeof document !== 'undefined' && document.hidden) return
+
     const key = _bboxKey(bbox)
 
     // Same bbox, data is fresh → skip
@@ -175,7 +222,7 @@ export const evStore = {
         meta: data.meta,
       }
 
-      _saveToLocalStorage(data.stations)
+      _saveToLocalStorage(countryStore.getCode() ?? 'BG', data.stations)
 
       logger.ev.info('Stations loaded', {
         count: data.stations.length,

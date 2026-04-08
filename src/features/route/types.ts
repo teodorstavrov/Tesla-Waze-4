@@ -29,6 +29,7 @@ export interface RouteState {
   activeRouteIndex: number
   route:            Route | null      // = routes[activeRouteIndex]
   status:           'idle' | 'loading' | 'ok' | 'error'
+  mode:             'preview' | 'navigating'  // preview = full route visible, Старт not yet pressed
   error:            string | null
   deviated:         boolean           // GPS > 200m from route
   remainingM:       number | null     // live remaining distance
