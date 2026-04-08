@@ -26,12 +26,16 @@
       "schedule": "20 4 * * 0"
     },
     {
-      "path": "/api/cron/sync-cameras?country=NO-M",
+      "path": "/api/cron/sync-cameras?country=NO-S3",
       "schedule": "30 4 * * 0"
     },
     {
-      "path": "/api/cron/sync-cameras?country=NO-N",
+      "path": "/api/cron/sync-cameras?country=NO-M",
       "schedule": "40 4 * * 0"
+    },
+    {
+      "path": "/api/cron/sync-cameras?country=NO-N",
+      "schedule": "50 4 * * 0"
     }
   ],
   "rewrites": [
