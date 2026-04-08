@@ -5,7 +5,7 @@ export type EventType =
   | 'accident'
   | 'hazard'
   | 'traffic'
-  | 'closure'
+  | 'camera'
   | 'construction'
 
 export interface RoadEvent {
@@ -18,16 +18,17 @@ export interface RoadEvent {
   expiresAt: string
   confirms: number
   denies:   number
+  permanent?: boolean  // admin-added — never expires, immune to deny-votes
 }
 
-export const DENY_THRESHOLD = 3
+export const DENY_THRESHOLD = 1
 
 export const EVENT_LABELS: Record<EventType, string> = {
   police:       'Полиция',
   accident:     'Катастрофа',
   hazard:       'Опасност',
   traffic:      'Задръстване',
-  closure:      'Затворен път',
+  camera:      'Камера',
   construction: 'Строеж',
 }
 
@@ -36,7 +37,7 @@ export const EVENT_COLORS: Record<EventType, string> = {
   accident:     '#ef4444',
   hazard:       '#f59e0b',
   traffic:      '#8b5cf6',
-  closure:      '#dc2626',
+  camera:      '#f97316',
   construction: '#f97316',
 }
 
@@ -45,6 +46,6 @@ export const EVENT_EMOJI: Record<EventType, string> = {
   accident:     '🚨',
   hazard:       '⚠️',
   traffic:      '🚗',
-  closure:      '🚫',
+  camera:      '📷',
   construction: '🚧',
 }

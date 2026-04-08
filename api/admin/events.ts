@@ -53,9 +53,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       lng,
       description: description?.replace(/<[^>]*>/g, '').trim().slice(0, 200) ?? null,
       reportedAt:  now.toISOString(),
-      expiresAt:   new Date(now.getTime() + ttlMs(type)).toISOString(),
+      expiresAt:   '9999-12-31T23:59:59.000Z',  // permanent — never expires
       confirms:    0,
       denies:      0,
+      permanent:   true,
     }
 
     if (useRedis) { await eventRedisStore.add(event) }

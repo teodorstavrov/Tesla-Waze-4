@@ -34,6 +34,7 @@ export interface RoadEvent {
   expiresAt: string    // ISO 8601
   confirms: number
   denies: number       // vote count for "no longer there"; auto-deletes at DENY_THRESHOLD
+  permanent?: boolean  // admin-added — never expires, immune to deny-votes
 }
 
 export const DENY_THRESHOLD = 1

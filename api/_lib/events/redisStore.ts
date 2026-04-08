@@ -25,7 +25,7 @@ async function _readAll(): Promise<RoadEvent[]> {
 
 function _pruneExpired(events: RoadEvent[]): RoadEvent[] {
   const now = Date.now()
-  return events.filter((e) => new Date(e.expiresAt).getTime() > now)
+  return events.filter((e) => e.permanent || new Date(e.expiresAt).getTime() > now)
 }
 
 async function _write(events: RoadEvent[]): Promise<void> {
@@ -95,6 +95,8 @@ export const eventRedisStore = {
     const all = _pruneExpired(await _readAll())
     const idx = all.findIndex((e) => e.id === id)
     if (idx === -1) return null
+    // Permanent (admin) events are immune to deny-votes
+    if (all[idx]!.permanent) return all[idx]!
     const denies = (all[idx]!.denies ?? 0) + 1
     if (denies >= DENY_THRESHOLD) {
       all.splice(idx, 1)

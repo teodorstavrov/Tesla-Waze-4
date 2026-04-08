@@ -8,6 +8,7 @@
 // Redis in a hardening phase if persistence across cold starts is needed.
 
 import type { RoadEvent } from './types.js'
+import { DENY_THRESHOLD } from './types.js'
 
 const MAX_EVENTS = 500
 
@@ -16,7 +17,7 @@ const _events = new Map<string, RoadEvent>()
 function _prune(): void {
   const now = Date.now()
   for (const [id, ev] of _events) {
-    if (new Date(ev.expiresAt).getTime() < now) _events.delete(id)
+    if (!ev.permanent && new Date(ev.expiresAt).getTime() < now) _events.delete(id)
   }
 }
 
@@ -52,8 +53,9 @@ export const eventMemStore = {
   deny(id: string): RoadEvent | null | 'deleted' {
     const ev = _events.get(id)
     if (!ev) return null
+    if (ev.permanent) return ev
     const denies = (ev.denies ?? 0) + 1
-    if (denies >= 3) {
+    if (denies >= DENY_THRESHOLD) {
       _events.delete(id)
       return 'deleted'
     }

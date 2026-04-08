@@ -39,7 +39,7 @@ export function EventPanel() {
   // Live-updating "Докладвано преди X · изтича след Y" label.
   // Initialized from reportedAt so existing markers show correct elapsed time immediately.
   const [timeLine, setTimeLine] = useState(() =>
-    event ? reportedLine(event.reportedAt, event.expiresAt) : ''
+    event ? reportedLine(event.reportedAt, event.expiresAt, event.permanent) : ''
   )
 
   useEffect(() => {
@@ -47,7 +47,7 @@ export function EventPanel() {
     setConfirming(false)
     setDenying(false)
     setCountdown(20)
-    setTimeLine(event ? reportedLine(event.reportedAt, event.expiresAt) : '')
+    setTimeLine(event ? reportedLine(event.reportedAt, event.expiresAt, event.permanent) : '')
 
     if (!event) return
 
@@ -57,7 +57,7 @@ export function EventPanel() {
 
     // Refresh the time line every 30 s — fine-grained enough for a panel
     const timeRefresh = setInterval(() => {
-      setTimeLine(reportedLine(event.reportedAt, event.expiresAt))
+      setTimeLine(reportedLine(event.reportedAt, event.expiresAt, event.permanent))
     }, 30_000)
 
     const close = setTimeout(() => eventStore.selectEvent(null), 20000)
