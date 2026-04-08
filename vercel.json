@@ -4,14 +4,22 @@
   "framework": "vite",
   "functions": {
     "api/**/*.ts": {
-      "memory": 256,
+      "memory": 128,
       "maxDuration": 60
+    },
+    "api/cron/sync-cameras.ts": {
+      "memory": 128,
+      "maxDuration": 300
     }
   },
   "crons": [
     {
       "path": "/api/cron/sync-stations",
       "schedule": "0 3 * * 0"
+    },
+    {
+      "path": "/api/cron/sync-cameras",
+      "schedule": "0 4 * * 0"
     }
   ],
   "rewrites": [
@@ -21,10 +29,12 @@
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options",    "value": "nosniff" },
-        { "key": "X-Frame-Options",           "value": "DENY" },
-        { "key": "Referrer-Policy",           "value": "strict-origin-when-cross-origin" },
-        { "key": "Permissions-Policy",        "value": "camera=(), microphone=(), payment=()" }
+        { "key": "X-Content-Type-Options",       "value": "nosniff" },
+        { "key": "X-Frame-Options",              "value": "DENY" },
+        { "key": "Referrer-Policy",              "value": "strict-origin-when-cross-origin" },
+        { "key": "Permissions-Policy",           "value": "camera=(), microphone=(), payment=()" },
+        { "key": "Strict-Transport-Security",    "value": "max-age=31536000; includeSubDomains" },
+        { "key": "Content-Security-Policy",      "value": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https:; font-src 'self' data:; worker-src blob:;" }
       ]
     },
     {

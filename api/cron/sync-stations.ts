@@ -22,7 +22,6 @@ import { BULGARIA_BBOX, NORWAY_BBOX } from '../_lib/utils/bbox.js'
 import { fetchTeslaStations } from '../_lib/providers/tesla.js'
 import { fetchOCMStations } from '../_lib/providers/ocm.js'
 import { fetchOverpassStations } from '../_lib/providers/overpass.js'
-import { fetchCamerasFromOverpass } from '../_lib/providers/cameras.js'
 import { mergeStations } from '../_lib/merge/stations.js'
 import { stationDb } from '../_lib/db/stationDb.js'
 import { isRedisConfigured } from '../_lib/db/redis.js'
@@ -133,18 +132,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     await stationDb.save(stations, syncMeta)
   }
 
-  // ── Sync cameras for both countries (sequential — Overpass rate limits) ─
-  const cameraResults: Record<string, number> = {}
-  for (const [country, bbox] of [['BG', BULGARIA_BBOX], ['NO', NORWAY_BBOX]] as const) {
-    try {
-      const cams = await fetchCamerasFromOverpass(bbox, country)
-      cameraResults[country] = cams.length
-    } catch (err) {
-      cameraResults[country] = -1
-      console.error(`[cron] Camera sync failed for ${country}:`, err)
-    }
-  }
-
   const elapsed = Date.now() - t0
 
   res.status(200).json({
@@ -161,7 +148,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       ocm:   combinedMeta(bgOcmResult,   noOcmResult),
       osm:   combinedMeta(bgOsmResult,   noOsmResult),
     },
-    cameras: cameraResults,
     elapsedMs: elapsed,
     syncedAt:  new Date().toISOString(),
   })
