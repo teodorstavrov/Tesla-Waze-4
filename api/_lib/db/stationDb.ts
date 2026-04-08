@@ -3,7 +3,7 @@
 // Wraps Redis with a typed interface for the station store.
 //
 // Key schema:
-//   stations:v1          — full merged + deduped station list for Bulgaria
+//   stations:v1          — full merged + deduped station list (all countries)
 //   stations:v1:meta     — sync metadata (last sync time, counts, etc.)
 //
 // The station list is fetched from Overpass/OCM once per week by the

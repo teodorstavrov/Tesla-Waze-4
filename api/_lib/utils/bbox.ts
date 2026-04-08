@@ -15,6 +15,14 @@ export const BULGARIA_BBOX: BBox = {
   maxLng: 28.609,
 }
 
+/** Bbox covering all of Norway (mainland + islands) */
+export const NORWAY_BBOX: BBox = {
+  minLat: 57.959,
+  minLng:  4.479,
+  maxLat: 71.182,
+  maxLng: 31.293,
+}
+
 /**
  * Parse a comma-separated bbox string: "minLat,minLng,maxLat,maxLng".
  * Returns null if invalid.
