@@ -22,48 +22,60 @@
       "schedule": "5 4 * * 0"
     },
     {
-      "path": "/api/cron/sync-cameras?country=NO-1B",
+      "path": "/api/cron/sync-cameras?country=NO-1B1",
       "schedule": "10 4 * * 0"
     },
     {
-      "path": "/api/cron/sync-cameras?country=NO-2",
+      "path": "/api/cron/sync-cameras?country=NO-1B2",
       "schedule": "15 4 * * 0"
     },
     {
-      "path": "/api/cron/sync-cameras?country=NO-3",
+      "path": "/api/cron/sync-cameras?country=NO-2",
       "schedule": "20 4 * * 0"
     },
     {
-      "path": "/api/cron/sync-cameras?country=NO-4A",
+      "path": "/api/cron/sync-cameras?country=NO-3",
       "schedule": "25 4 * * 0"
     },
     {
-      "path": "/api/cron/sync-cameras?country=NO-4B",
+      "path": "/api/cron/sync-cameras?country=NO-4A1",
       "schedule": "30 4 * * 0"
     },
     {
-      "path": "/api/cron/sync-cameras?country=NO-5A",
+      "path": "/api/cron/sync-cameras?country=NO-4A2",
       "schedule": "35 4 * * 0"
     },
     {
-      "path": "/api/cron/sync-cameras?country=NO-5B",
+      "path": "/api/cron/sync-cameras?country=NO-4B",
       "schedule": "40 4 * * 0"
     },
     {
-      "path": "/api/cron/sync-cameras?country=NO-6A",
+      "path": "/api/cron/sync-cameras?country=NO-5A",
       "schedule": "45 4 * * 0"
     },
     {
-      "path": "/api/cron/sync-cameras?country=NO-6B",
+      "path": "/api/cron/sync-cameras?country=NO-5B1",
       "schedule": "50 4 * * 0"
     },
     {
-      "path": "/api/cron/sync-cameras?country=NO-7",
+      "path": "/api/cron/sync-cameras?country=NO-5B2",
       "schedule": "55 4 * * 0"
     },
     {
-      "path": "/api/cron/sync-cameras?country=NO-8",
+      "path": "/api/cron/sync-cameras?country=NO-6A",
       "schedule": "0 5 * * 0"
+    },
+    {
+      "path": "/api/cron/sync-cameras?country=NO-6B",
+      "schedule": "5 5 * * 0"
+    },
+    {
+      "path": "/api/cron/sync-cameras?country=NO-7",
+      "schedule": "10 5 * * 0"
+    },
+    {
+      "path": "/api/cron/sync-cameras?country=NO-8",
+      "schedule": "15 5 * * 0"
     }
   ],
   "rewrites": [
