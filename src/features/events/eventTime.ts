@@ -61,7 +61,7 @@ export function reportedLine(reportedAt: string, expiresAt: string, permanent?: 
   const lang    = getLang()
   const ago     = formatTimeAgo(reportedAt)
   const reported = lang === 'bg' ? `Докладвано ${ago}` : `Reported ${ago}`
-  if (permanent) return reported
+  if (permanent) return ''
   const expires = formatExpiresIn(expiresAt)
   return expires ? `${reported} · ${expires}` : reported
 }
