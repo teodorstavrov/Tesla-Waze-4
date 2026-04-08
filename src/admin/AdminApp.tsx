@@ -376,8 +376,19 @@ function EventStats({ events }: { events: RoadEvent[] }) {
 
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: '14px 18px' }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10 }}>
-        Статистика ({events.length} маркера)
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          Статистика ({events.length})
+        </div>
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 5,
+          background: 'rgba(227,25,55,0.15)', border: '1px solid rgba(227,25,55,0.4)',
+          borderRadius: 20, padding: '2px 10px',
+        }}>
+          <span style={{ fontSize: 12 }}>📍</span>
+          <span style={{ fontSize: 12, fontWeight: 700, color: '#e31937' }}>{permanentCount}</span>
+          <span style={{ fontSize: 10, color: '#aaa' }}>служебни</span>
+        </div>
       </div>
 
       {/* Permanent vs user */}
@@ -530,13 +541,21 @@ function AdminMap({ events, addMode, onMapClick, onDelete }: AdminMapProps) {
 
         const icon = L.divIcon({
           className: '',
-          html: `<div style="
-            font-size:24px;line-height:1;
-            filter:drop-shadow(0 1px 3px rgba(0,0,0,0.8));
-            cursor:pointer;
-          ">${eventEmoji(ev.type)}</div>`,
-          iconSize:   [28, 28],
-          iconAnchor: [14, 14],
+          html: ev.permanent
+            ? `<div style="
+                width:34px;height:34px;border-radius:50%;
+                background:rgba(227,25,55,0.18);border:2.5px solid #e31937;
+                display:flex;align-items:center;justify-content:center;
+                font-size:17px;line-height:1;cursor:pointer;
+                box-shadow:0 2px 8px rgba(227,25,55,0.5);
+              ">${eventEmoji(ev.type)}</div>`
+            : `<div style="
+                font-size:24px;line-height:1;
+                filter:drop-shadow(0 1px 3px rgba(0,0,0,0.8));
+                cursor:pointer;
+              ">${eventEmoji(ev.type)}</div>`,
+          iconSize:   [34, 34],
+          iconAnchor: [17, 17],
         })
 
         const marker = L.marker([ev.lat, ev.lng], { icon }).addTo(map)
@@ -561,7 +580,7 @@ function AdminMap({ events, addMode, onMapClick, onDelete }: AdminMapProps) {
 function eventEmoji(type: string): string {
   const map: Record<string, string> = {
     police: '🚔', accident: '💥', hazard: '⚠️',
-    traffic: '🚗', camera: '🚧', construction: '🏗️',
+    traffic: '🚗', camera: '📷', construction: '🏗️',
   }
   return map[type] ?? '📍'
 }
