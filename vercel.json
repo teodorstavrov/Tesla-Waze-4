@@ -18,16 +18,20 @@
       "schedule": "0 4 * * 0"
     },
     {
-      "path": "/api/cron/sync-cameras?country=NO-S",
+      "path": "/api/cron/sync-cameras?country=NO-S1",
       "schedule": "10 4 * * 0"
     },
     {
-      "path": "/api/cron/sync-cameras?country=NO-M",
+      "path": "/api/cron/sync-cameras?country=NO-S2",
       "schedule": "20 4 * * 0"
     },
     {
-      "path": "/api/cron/sync-cameras?country=NO-N",
+      "path": "/api/cron/sync-cameras?country=NO-M",
       "schedule": "30 4 * * 0"
+    },
+    {
+      "path": "/api/cron/sync-cameras?country=NO-N",
+      "schedule": "40 4 * * 0"
     }
   ],
   "rewrites": [

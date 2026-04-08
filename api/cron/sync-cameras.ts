@@ -22,10 +22,11 @@ import { redis, isRedisConfigured } from '../_lib/db/redis.js'
 import type { SpeedCamera } from '../_lib/providers/cameras.js'
 
 const REGIONS: Record<string, { bbox: BBox; redisCountry: string }> = {
-  BG:   { bbox: BULGARIA_BBOX,                                         redisCountry: 'BG' },
-  'NO-S': { bbox: { minLat: 57.959, minLng: 4.479, maxLat: 63.0,   maxLng: 31.293 }, redisCountry: 'NO' },
-  'NO-M': { bbox: { minLat: 63.0,   minLng: 4.479, maxLat: 67.5,   maxLng: 31.293 }, redisCountry: 'NO' },
-  'NO-N': { bbox: { minLat: 67.5,   minLng: 4.479, maxLat: 71.182, maxLng: 31.293 }, redisCountry: 'NO' },
+  BG:     { bbox: BULGARIA_BBOX,                                                     redisCountry: 'BG' },
+  'NO-S1': { bbox: { minLat: 57.959, minLng: 4.479,  maxLat: 60.5,   maxLng: 31.293 }, redisCountry: 'NO' },
+  'NO-S2': { bbox: { minLat: 60.5,   minLng: 4.479,  maxLat: 63.0,   maxLng: 31.293 }, redisCountry: 'NO' },
+  'NO-M':  { bbox: { minLat: 63.0,   minLng: 4.479,  maxLat: 67.5,   maxLng: 31.293 }, redisCountry: 'NO' },
+  'NO-N':  { bbox: { minLat: 67.5,   minLng: 4.479,  maxLat: 71.182, maxLng: 31.293 }, redisCountry: 'NO' },
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
