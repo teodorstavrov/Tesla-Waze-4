@@ -23,11 +23,14 @@ import type { SpeedCamera } from '../_lib/providers/cameras.js'
 
 const REGIONS: Record<string, { bbox: BBox; redisCountry: string }> = {
   BG:     { bbox: BULGARIA_BBOX,                                                     redisCountry: 'BG' },
-  'NO-S1': { bbox: { minLat: 57.959, minLng: 4.479,  maxLat: 59.5,   maxLng: 31.293 }, redisCountry: 'NO' },
-  'NO-S2': { bbox: { minLat: 59.5,   minLng: 4.479,  maxLat: 61.0,   maxLng: 31.293 }, redisCountry: 'NO' },
-  'NO-S3': { bbox: { minLat: 61.0,   minLng: 4.479,  maxLat: 63.0,   maxLng: 31.293 }, redisCountry: 'NO' },
-  'NO-M':  { bbox: { minLat: 63.0,   minLng: 4.479,  maxLat: 67.5,   maxLng: 31.293 }, redisCountry: 'NO' },
-  'NO-N':  { bbox: { minLat: 67.5,   minLng: 4.479,  maxLat: 71.182, maxLng: 31.293 }, redisCountry: 'NO' },
+  'NO-1':  { bbox: { minLat: 57.959, minLng: 4.479,  maxLat: 58.8,   maxLng: 31.293 }, redisCountry: 'NO' },
+  'NO-2':  { bbox: { minLat: 58.8,   minLng: 4.479,  maxLat: 59.5,   maxLng: 31.293 }, redisCountry: 'NO' },
+  'NO-3':  { bbox: { minLat: 59.5,   minLng: 4.479,  maxLat: 60.0,   maxLng: 31.293 }, redisCountry: 'NO' },
+  'NO-4':  { bbox: { minLat: 60.0,   minLng: 4.479,  maxLat: 60.6,   maxLng: 31.293 }, redisCountry: 'NO' },
+  'NO-5':  { bbox: { minLat: 60.6,   minLng: 4.479,  maxLat: 61.3,   maxLng: 31.293 }, redisCountry: 'NO' },
+  'NO-6':  { bbox: { minLat: 61.3,   minLng: 4.479,  maxLat: 63.0,   maxLng: 31.293 }, redisCountry: 'NO' },
+  'NO-7':  { bbox: { minLat: 63.0,   minLng: 4.479,  maxLat: 67.5,   maxLng: 31.293 }, redisCountry: 'NO' },
+  'NO-8':  { bbox: { minLat: 67.5,   minLng: 4.479,  maxLat: 71.182, maxLng: 31.293 }, redisCountry: 'NO' },
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
