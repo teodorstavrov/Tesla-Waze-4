@@ -5,16 +5,19 @@ export type EventType =
   | 'accident'
   | 'hazard'
   | 'traffic'
-  | 'closure'
+  | 'camera'
   | 'construction'
 
+const TWO_HOURS_MS  = 2 * 60 * 60 * 1000
+const FIVE_DAYS_MS  = 5 * 24 * 60 * 60 * 1000
+
 const EVENT_TTL_MS: Record<EventType, number> = {
-  police:       2  * 60 * 60 * 1000,       // 2 h
-  accident:     3  * 60 * 60 * 1000,       // 3 h
-  hazard:       4  * 60 * 60 * 1000,       // 4 h
-  traffic:      1  * 60 * 60 * 1000,       // 1 h
-  closure:      24 * 60 * 60 * 1000,       // 24 h
-  construction: 7  * 24 * 60 * 60 * 1000,  // 7 d
+  police:       TWO_HOURS_MS,
+  accident:     FIVE_DAYS_MS,
+  hazard:       FIVE_DAYS_MS,
+  traffic:      FIVE_DAYS_MS,
+  camera:       FIVE_DAYS_MS,
+  construction: FIVE_DAYS_MS,
 }
 
 export function ttlMs(type: EventType): number {
@@ -33,4 +36,4 @@ export interface RoadEvent {
   denies: number       // vote count for "no longer there"; auto-deletes at DENY_THRESHOLD
 }
 
-export const DENY_THRESHOLD = 3
+export const DENY_THRESHOLD = 1

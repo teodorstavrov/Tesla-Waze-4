@@ -10,14 +10,17 @@
 // useFollowing) or when the first GPS position arrives (useState).
 // GPS ticks do NOT cause rerenders here.
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useSyncExternalStore } from 'react'
 import { useFollowing, followStore } from '@/features/follow/followStore'
 import { gpsStore } from '@/features/gps/gpsStore'
 import { getMap } from '@/components/MapShell'
+import { langStore, t } from '@/lib/locale'
 
 export function LocationButton() {
   const following = useFollowing()
   const [hasGps, setHasGps] = useState(false)
+  // Re-render when language changes
+  useSyncExternalStore(langStore.subscribe.bind(langStore), langStore.getLang, langStore.getLang)
 
   // Update hasGps only once — when first position arrives
   useEffect(() => {
@@ -39,17 +42,17 @@ export function LocationButton() {
     const pos = gpsStore.getPosition()
     if (pos) {
       followStore.beginProgrammaticMove()
-      map.setView([pos.lat, pos.lng], Math.max(map.getZoom(), 15), { animate: true })
+      map.setView([pos.lat, pos.lng], 15, { animate: true })
       followStore.endProgrammaticMove()
     }
     followStore.setFollowing(true)
   }
 
-  const label = following ? 'Following your location' : hasGps ? 'Center on my location' : 'Waiting for GPS'
+  const label = following ? t('map.following') : hasGps ? t('map.recenter') : t('map.waitingGps')
 
   return (
     <button
-      className={`icon-btn${following ? ' active' : ''}`}
+      className="icon-btn"
       onClick={handleClick}
       title={label}
       aria-label={label}
