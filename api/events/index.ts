@@ -1,28 +1,40 @@
 // ─── GET /api/events   — list events in bbox ──────────────────────────
 // ─── POST /api/events  — report new event ─────────────────────────────
 //
-// GET params:  bbox=minLat,minLng,maxLat,maxLng  (defaults to Bulgaria)
-// POST body:   { type, lat, lng, description? }
-//
-// Response shape: { events: RoadEvent[] }
+// COST ARCHITECTURE:
+// GET always fetches ALL Bulgaria events directly from Redis — no in-memory cache.
+// Events are dynamic (admin delete/add must reflect immediately).
+// In-memory caching across multiple serverless instances caused stale markers
+// after admin deletes (each instance has its own memory — cacheDel on instance A
+// does not affect instance B).
+// Redis holds ~2-3 kB for <50 events — the read cost is negligible.
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { parseBBox, BULGARIA_BBOX } from '../_lib/utils/bbox.js'
+import { BULGARIA_BBOX } from '../_lib/utils/bbox.js'
 import { eventMemStore } from '../_lib/events/store.js'
 import { eventRedisStore } from '../_lib/events/redisStore.js'
 import { isRedisConfigured } from '../_lib/db/redis.js'
 import { ttlMs } from '../_lib/events/types.js'
 import type { EventType, RoadEvent } from '../_lib/events/types.js'
 import { setCacheHeaders } from '../_lib/cache/headers.js'
-import { errorMessage } from '../_lib/utils/request.js'
 import { rateLimit } from '../_lib/utils/rateLimit.js'
+import { captureApiError } from '../_lib/utils/sentryApi.js'
 
 const VALID_TYPES = new Set<EventType>([
-  'police', 'accident', 'hazard', 'traffic', 'closure', 'construction',
+  'police', 'accident', 'hazard', 'traffic', 'camera', 'construction',
 ])
 
+// In-memory GET rate limiter — no Redis cost
+const _getIpHits = new Map<string, { count: number; resetAt: number }>()
+function _checkGetRL(ip: string): boolean {
+  const now = Date.now()
+  const e = _getIpHits.get(ip)
+  if (!e || now > e.resetAt) { _getIpHits.set(ip, { count: 1, resetAt: now + 60_000 }); return true }
+  e.count++
+  return e.count <= 60
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
-  // CORS
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type')
@@ -33,15 +45,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   // ── GET ──────────────────────────────────────────────────────────
   if (req.method === 'GET') {
+    const ip = (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() ?? 'unknown'
+    if (!_checkGetRL(ip)) { res.status(429).json({ error: 'Too many requests' }); return }
+
     try {
-      const bbox = parseBBox(req.query['bbox'] as string | undefined) ?? BULGARIA_BBOX
+      // Always read from Redis — no in-memory cache so admin deletes are instant
       const events = useRedis
-        ? await eventRedisStore.getInBBox(bbox)
-        : eventMemStore.getInBBox(bbox)
-      setCacheHeaders(res, 0)  // events should not be CDN-cached
+        ? await eventRedisStore.getInBBox(BULGARIA_BBOX)
+        : eventMemStore.getInBBox(BULGARIA_BBOX)
+
+      setCacheHeaders(res, 0)
       res.status(200).json({ events })
     } catch (err) {
-      res.status(500).json({ error: errorMessage(err) })
+      await captureApiError(err, 'events GET')
+      res.status(500).json({ error: 'Internal server error' })
     }
     return
   }
@@ -49,13 +66,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   // ── POST ─────────────────────────────────────────────────────────
   if (req.method === 'POST') {
     try {
-      // Rate limit: 5 event reports per IP per 10 minutes
       const ip = (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() ?? 'unknown'
-      const allowed = await rateLimit(ip, 'events', 5, 600)
+      const allowed = await rateLimit(ip, 'events', 20, 600)
       if (!allowed) { res.status(429).json({ error: 'Too many reports. Please wait a few minutes.' }); return }
 
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body
-
       const type: EventType = body?.type
       const lat  = Number(body?.lat)
       const lng  = Number(body?.lng)
@@ -63,30 +78,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
       if (!VALID_TYPES.has(type))           { res.status(400).json({ error: `Invalid type: ${String(type)}` }); return }
       if (!isFinite(lat) || !isFinite(lng)) { res.status(400).json({ error: 'Invalid coordinates' }); return }
+      if (lat < 41.0 || lat > 44.5 || lng < 22.0 || lng > 28.7) {
+        res.status(400).json({ error: 'Coordinates outside supported region' }); return
+      }
 
       const now = new Date()
-      const expiresAt = new Date(now.getTime() + ttlMs(type))
-
       const event: RoadEvent = {
         id:          crypto.randomUUID(),
         type,
         lat,
         lng,
-        description: description?.slice(0, 200) ?? null,
+        description: description?.replace(/<[^>]*>/g, '').trim().slice(0, 200) ?? null,
         reportedAt:  now.toISOString(),
-        expiresAt:   expiresAt.toISOString(),
+        expiresAt:   new Date(now.getTime() + ttlMs(type)).toISOString(),
         confirms:    0,
         denies:      0,
       }
 
-      if (useRedis) {
-        await eventRedisStore.add(event)
-      } else {
-        eventMemStore.add(event)
-      }
+      if (useRedis) { await eventRedisStore.add(event) }
+      else          { eventMemStore.add(event) }
+
       res.status(201).json({ event })
     } catch (err) {
-      res.status(500).json({ error: errorMessage(err) })
+      await captureApiError(err, 'events POST')
+      res.status(500).json({ error: 'Internal server error' })
     }
     return
   }

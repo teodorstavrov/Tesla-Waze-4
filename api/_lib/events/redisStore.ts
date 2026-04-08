@@ -13,6 +13,7 @@
 
 import { redis } from '../db/redis.js'
 import type { RoadEvent } from './types.js'
+import { DENY_THRESHOLD } from './types.js'
 
 const KEY = 'teslaradar:events:v1'
 const MAX_EVENTS = 500
@@ -76,13 +77,26 @@ export const eventRedisStore = {
     return all[idx]!
   },
 
-  /** Returns null if not found, 'deleted' if auto-removed after 3 denies. */
+  /** Returns null if not found, 'deleted' if auto-removed after DENY_THRESHOLD denies. */
+  /** Reset confirms/denies to 0 for every event. Returns count of events reset. */
+  async resetAllCounters(): Promise<number> {
+    const all = _pruneExpired(await _readAll())
+    const reset = all.map((e) => ({ ...e, confirms: 0, denies: 0 }))
+    await _write(reset)
+    return reset.length
+  },
+
+  /** Delete every event unconditionally. */
+  async clearAll(): Promise<void> {
+    await _write([])
+  },
+
   async deny(id: string): Promise<RoadEvent | null | 'deleted'> {
     const all = _pruneExpired(await _readAll())
     const idx = all.findIndex((e) => e.id === id)
     if (idx === -1) return null
     const denies = (all[idx]!.denies ?? 0) + 1
-    if (denies >= 3) {
+    if (denies >= DENY_THRESHOLD) {
       all.splice(idx, 1)
       await _write(all)
       return 'deleted'
