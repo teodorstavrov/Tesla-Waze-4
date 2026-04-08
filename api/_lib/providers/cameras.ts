@@ -1,11 +1,15 @@
 // ─── Speed Camera provider (OpenStreetMap / Overpass) ─────────────────
 //
-// Queries OSM for highway=speed_camera nodes within any bbox.
-// Speed cameras change rarely — cached 24 hours server-side per country.
+// Two-tier storage: Redis (persistent, written by cron) → in-memory cache.
+// The /api/cameras endpoint reads from Redis — no live Overpass calls on
+// user requests (Norway's bbox is too large for a per-request query).
+//
+// The cron job calls fetchCamerasFromOverpass() to refresh Redis.
 // Fallback to mirror endpoint on Overpass primary failure.
 
-import { fetchWithTimeout, errorMessage } from '../utils/request.js'
+import { fetchWithTimeout } from '../utils/request.js'
 import { cacheGet, cacheSet } from '../cache/memory.js'
+import { redis, isRedisConfigured } from '../db/redis.js'
 import type { BBox } from '../utils/bbox.js'
 import { toOverpassBBox } from '../utils/bbox.js'
 
@@ -17,14 +21,18 @@ export interface SpeedCamera {
   direction: number | null  // camera facing direction in degrees (0=N, 90=E)
 }
 
-const CACHE_TTL_MS    = 24 * 60 * 60 * 1000  // 24 hours — cameras rarely change
-const FETCH_TIMEOUT   = 20_000
-const OVERPASS_URL    = 'https://overpass-api.de/api/interpreter'
-const OVERPASS_MIRROR = 'https://overpass.kumi.systems/api/interpreter'
+const MEM_CACHE_TTL_MS = 24 * 60 * 60 * 1000  // 24h in-memory cache
+const FETCH_TIMEOUT    = 55_000                 // 55s — cron only, large bbox
+const OVERPASS_URL     = 'https://overpass-api.de/api/interpreter'
+const OVERPASS_MIRROR  = 'https://overpass.kumi.systems/api/interpreter'
+
+export function redisKeyForCountry(country: string): string {
+  return `teslaradar:cameras:${country.toLowerCase()}`
+}
 
 function buildQuery(bboxStr: string): string {
   return [
-    '[out:json][timeout:25];',
+    '[out:json][timeout:50];',
     '(',
     `  node["highway"="speed_camera"](${bboxStr});`,
     `  node["enforcement"="maxspeed"](${bboxStr});`,
@@ -44,7 +52,7 @@ interface OverpassResponse {
   elements: OverpassNode[]
 }
 
-async function query(q: string, url: string): Promise<OverpassResponse> {
+async function _overpassQuery(q: string, url: string): Promise<OverpassResponse> {
   const res = await fetchWithTimeout(
     url,
     {
@@ -58,16 +66,13 @@ async function query(q: string, url: string): Promise<OverpassResponse> {
   return res.json() as Promise<OverpassResponse>
 }
 
-function normalize(el: OverpassNode): SpeedCamera | null {
+function _normalize(el: OverpassNode): SpeedCamera | null {
   if (!isFinite(el.lat) || !isFinite(el.lon)) return null
   const tags = el.tags ?? {}
-
   const rawSpeed = tags['maxspeed:enforcement'] ?? tags['maxspeed']
   const maxspeed = rawSpeed ? parseInt(rawSpeed, 10) : null
-
-  const rawDir = tags['direction']
+  const rawDir   = tags['direction']
   const direction = rawDir ? parseFloat(rawDir) : null
-
   return {
     id:        `cam:${el.id}`,
     lat:       el.lat,
@@ -77,26 +82,54 @@ function normalize(el: OverpassNode): SpeedCamera | null {
   }
 }
 
-export async function fetchCameras(bbox: BBox, cacheKey: string): Promise<SpeedCamera[]> {
-  const cached = cacheGet<SpeedCamera[]>(cacheKey)
-  if (cached) return cached
-
+/**
+ * Called by cron: fetches cameras from Overpass and stores in Redis.
+ * Returns the fetched cameras.
+ */
+export async function fetchCamerasFromOverpass(bbox: BBox, country: string): Promise<SpeedCamera[]> {
   const bboxStr = toOverpassBBox(bbox)
   const q = buildQuery(bboxStr)
 
   let data: OverpassResponse
   try {
-    data = await query(q, OVERPASS_URL)
+    data = await _overpassQuery(q, OVERPASS_URL)
   } catch {
-    data = await query(q, OVERPASS_MIRROR)
+    data = await _overpassQuery(q, OVERPASS_MIRROR)
   }
 
   const cameras: SpeedCamera[] = []
   for (const el of data.elements) {
-    const cam = normalize(el)
+    const cam = _normalize(el)
     if (cam) cameras.push(cam)
   }
 
-  cacheSet(cacheKey, cameras, CACHE_TTL_MS)
+  if (isRedisConfigured()) {
+    await redis.set(redisKeyForCountry(country), cameras)
+  }
+
+  const memKey = redisKeyForCountry(country)
+  cacheSet(memKey, cameras, MEM_CACHE_TTL_MS)
+
   return cameras
+}
+
+/**
+ * Called by /api/cameras: reads from in-memory → Redis.
+ * Never calls Overpass directly (too slow for large bboxes).
+ */
+export async function getCamerasFromCache(country: string): Promise<SpeedCamera[]> {
+  const memKey = redisKeyForCountry(country)
+
+  const memCached = cacheGet<SpeedCamera[]>(memKey)
+  if (memCached) return memCached
+
+  if (isRedisConfigured()) {
+    const redisCached = await redis.get<SpeedCamera[]>(memKey)
+    if (redisCached && redisCached.length > 0) {
+      cacheSet(memKey, redisCached, MEM_CACHE_TTL_MS)
+      return redisCached
+    }
+  }
+
+  return []
 }
