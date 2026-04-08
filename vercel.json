@@ -46,6 +46,10 @@
       "schedule": "35 4 * * 0"
     },
     {
+      "path": "/api/cron/sync-cameras?country=NO-4A3",
+      "schedule": "37 4 * * 0"
+    },
+    {
       "path": "/api/cron/sync-cameras?country=NO-4B",
       "schedule": "40 4 * * 0"
     },
