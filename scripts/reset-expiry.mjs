@@ -1,5 +1,5 @@
 // Update expiresAt for all existing events to match new TTL policy:
-//   police  → now + 2 days
+//   police  → now + 2 hours
 //   others  → now + 5 days
 // Usage: node scripts/reset-expiry.mjs
 
@@ -7,7 +7,7 @@ const url   = process.env.UPSTASH_REDIS_REST_URL
 const token = process.env.UPSTASH_REDIS_REST_TOKEN
 const KEY   = 'teslaradar:events:v1'
 
-const TWO_DAYS_MS  = 2 * 24 * 60 * 60 * 1000
+const TWO_HOURS_MS = 2 * 60 * 60 * 1000
 const FIVE_DAYS_MS = 5 * 24 * 60 * 60 * 1000
 
 if (!url || !token) {
@@ -37,7 +37,7 @@ const events = JSON.parse(raw)
 const now = Date.now()
 
 const updated = events.map(e => {
-  const ttl = e.type === 'police' ? TWO_DAYS_MS : FIVE_DAYS_MS
+  const ttl = e.type === 'police' ? TWO_HOURS_MS : FIVE_DAYS_MS
   return { ...e, expiresAt: new Date(now + ttl).toISOString() }
 })
 
@@ -49,5 +49,5 @@ const counts = updated.reduce((acc, e) => {
 }, {})
 
 console.log(`Updated ${updated.length} events:`, counts)
-console.log('Police expire:', new Date(now + TWO_DAYS_MS).toISOString())
+console.log('Police expire:', new Date(now + TWO_HOURS_MS).toISOString())
 console.log('Others expire:', new Date(now + FIVE_DAYS_MS).toISOString())

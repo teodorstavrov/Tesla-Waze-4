@@ -8,11 +8,11 @@ export type EventType =
   | 'camera'
   | 'construction'
 
-const TWO_DAYS_MS   = 2 * 24 * 60 * 60 * 1000
+const TWO_HOURS_MS  = 2 * 60 * 60 * 1000
 const FIVE_DAYS_MS  = 5 * 24 * 60 * 60 * 1000
 
 const EVENT_TTL_MS: Record<EventType, number> = {
-  police:       TWO_DAYS_MS,
+  police:       TWO_HOURS_MS,
   accident:     FIVE_DAYS_MS,
   hazard:       FIVE_DAYS_MS,
   traffic:      FIVE_DAYS_MS,
