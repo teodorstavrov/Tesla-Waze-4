@@ -5,7 +5,9 @@
 import type { RoadEvent, EventType } from './types.js'
 import { logger } from '@/lib/logger'
 
-const STALE_MS = 60 * 1000  // 60 seconds — events are time-sensitive
+const STALE_MS = 3 * 60 * 1000  // 3 min — cost reduction; events rarely change second-by-second
+
+const LS_HIDE_PERMANENT = 'teslaradar:hidePermanent'
 
 interface EventState {
   events: RoadEvent[]
@@ -13,10 +15,16 @@ interface EventState {
   error: string | null
   fetchedAt: number | null
   bboxKey: string | null
-  selectedEvent: RoadEvent | null
+  selectedEvent:   RoadEvent | null
+  showVoting:      boolean           // true only when opened by proximity engine
   reportModalOpen: boolean
   /** Pre-set location for the report modal (e.g. station coords). null = use GPS/map center. */
   reportLocation: { lat: number; lng: number } | null
+  hidePermanent: boolean
+}
+
+function _loadHidePermanent(): boolean {
+  try { return localStorage.getItem(LS_HIDE_PERMANENT) === '1' } catch { return false }
 }
 
 let _state: EventState = {
@@ -26,8 +34,10 @@ let _state: EventState = {
   fetchedAt:       null,
   bboxKey:         null,
   selectedEvent:   null,
+  showVoting:      false,
   reportModalOpen: false,
   reportLocation:  null,
+  hidePermanent:   _loadHidePermanent(),
 }
 
 type Listener = () => void
@@ -50,9 +60,9 @@ export const eventStore = {
     return () => { _listeners.delete(listener) }
   },
 
-  selectEvent(event: RoadEvent | null): void {
-    if (_state.selectedEvent?.id === event?.id) return
-    _state = { ..._state, selectedEvent: event }
+  selectEvent(event: RoadEvent | null, showVoting = false): void {
+    if (_state.selectedEvent?.id === event?.id && _state.showVoting === showVoting) return
+    _state = { ..._state, selectedEvent: event, showVoting }
     _emit()
   },
 
@@ -82,6 +92,14 @@ export const eventStore = {
     _emit()
   },
 
+  /** Toggle visibility of permanent (admin) markers. Persisted in localStorage. */
+  toggleHidePermanent(): void {
+    const next = !_state.hidePermanent
+    _state = { ..._state, hidePermanent: next }
+    try { localStorage.setItem(LS_HIDE_PERMANENT, next ? '1' : '0') } catch { /* ignore */ }
+    _emit()
+  },
+
   /** Remove event after it was auto-deleted by deny votes */
   removeEvent(id: string): void {
     _state = {
@@ -93,6 +111,9 @@ export const eventStore = {
   },
 
   async fetch(bbox: { minLat: number; minLng: number; maxLat: number; maxLng: number }): Promise<void> {
+    // Skip fetch when tab/app is hidden — saves backend calls when not actively driving
+    if (typeof document !== 'undefined' && document.hidden) return
+
     const key = _bboxKey(bbox)
     const isStale = _state.fetchedAt == null || Date.now() - _state.fetchedAt >= STALE_MS
 

@@ -143,6 +143,40 @@ function Dashboard({ secret }: { secret: string }) {
     }
   }
 
+  function exportPermanent() {
+    const permanent = events.filter((e) => e.permanent)
+    const blob = new Blob([JSON.stringify(permanent, null, 2)], { type: 'application/json' })
+    const url  = URL.createObjectURL(blob)
+    const a    = document.createElement('a')
+    a.href     = url
+    a.download = `permanent-markers-${new Date().toISOString().slice(0, 10)}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+  }
+
+  async function importPermanent(file: File) {
+    try {
+      const text = await file.text()
+      const parsed = JSON.parse(text) as RoadEvent[]
+      if (!Array.isArray(parsed)) { alert('Invalid file format'); return }
+
+      let imported = 0
+      for (const ev of parsed) {
+        if (!ev.type || !isFinite(ev.lat) || !isFinite(ev.lng)) continue
+        const r = await fetch('/api/admin/events', {
+          method: 'POST',
+          headers: { ...headers, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type: ev.type, lat: ev.lat, lng: ev.lng, description: ev.description }),
+        })
+        if (r.ok) imported++
+      }
+      alert(`Импортирани: ${imported} маркера`)
+      await loadAll()
+    } catch (e) {
+      alert(`Грешка: ${String(e)}`)
+    }
+  }
+
   function fmt(iso: string) {
     return new Date(iso).toLocaleString('bg-BG', { dateStyle: 'short', timeStyle: 'short' })
   }
@@ -191,6 +225,22 @@ function Dashboard({ secret }: { secret: string }) {
             {syncMsg && <div style={{ fontSize: 12, color: '#888', marginTop: 8 }}>{syncMsg}</div>}
           </div>
         )}
+
+        {/* Export / Import permanent markers */}
+        <div style={{ padding: '10px 18px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', gap: 8 }}>
+          <button
+            style={{ ...S.btn, flex: 1, background: 'rgba(255,255,255,0.06)', color: '#ccc', fontSize: 12 }}
+            onClick={exportPermanent}
+            title="Изтегли JSON с всички служебни маркери">
+            ⬇ Експорт
+          </button>
+          <label style={{ ...S.btn, flex: 1, background: 'rgba(255,255,255,0.06)', color: '#ccc', fontSize: 12, cursor: 'pointer', textAlign: 'center' }}
+            title="Зареди JSON с маркери">
+            ⬆ Импорт
+            <input type="file" accept=".json" style={{ display: 'none' }}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) void importPermanent(f); e.target.value = '' }} />
+          </label>
+        </div>
 
         {/* Add marker controls */}
         <div style={{ padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
