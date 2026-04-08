@@ -18,36 +18,52 @@
       "schedule": "0 4 * * 0"
     },
     {
-      "path": "/api/cron/sync-cameras?country=NO-1",
+      "path": "/api/cron/sync-cameras?country=NO-1a",
       "schedule": "5 4 * * 0"
     },
     {
-      "path": "/api/cron/sync-cameras?country=NO-2",
+      "path": "/api/cron/sync-cameras?country=NO-1b",
       "schedule": "10 4 * * 0"
     },
     {
-      "path": "/api/cron/sync-cameras?country=NO-3",
+      "path": "/api/cron/sync-cameras?country=NO-2",
       "schedule": "15 4 * * 0"
     },
     {
-      "path": "/api/cron/sync-cameras?country=NO-4",
+      "path": "/api/cron/sync-cameras?country=NO-3",
       "schedule": "20 4 * * 0"
     },
     {
-      "path": "/api/cron/sync-cameras?country=NO-5",
+      "path": "/api/cron/sync-cameras?country=NO-4a",
       "schedule": "25 4 * * 0"
     },
     {
-      "path": "/api/cron/sync-cameras?country=NO-6",
+      "path": "/api/cron/sync-cameras?country=NO-4b",
       "schedule": "30 4 * * 0"
     },
     {
-      "path": "/api/cron/sync-cameras?country=NO-7",
+      "path": "/api/cron/sync-cameras?country=NO-5a",
       "schedule": "35 4 * * 0"
     },
     {
-      "path": "/api/cron/sync-cameras?country=NO-8",
+      "path": "/api/cron/sync-cameras?country=NO-5b",
       "schedule": "40 4 * * 0"
+    },
+    {
+      "path": "/api/cron/sync-cameras?country=NO-6a",
+      "schedule": "45 4 * * 0"
+    },
+    {
+      "path": "/api/cron/sync-cameras?country=NO-6b",
+      "schedule": "50 4 * * 0"
+    },
+    {
+      "path": "/api/cron/sync-cameras?country=NO-7",
+      "schedule": "55 4 * * 0"
+    },
+    {
+      "path": "/api/cron/sync-cameras?country=NO-8",
+      "schedule": "0 5 * * 0"
     }
   ],
   "rewrites": [
