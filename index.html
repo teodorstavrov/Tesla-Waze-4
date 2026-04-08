@@ -1,8 +1,9 @@
 <!doctype html>
-<html lang="en" data-theme="dark">
+<html lang="bg" data-theme="dark">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" href="/favicon_256_transp.png" sizes="256x256" />
     <link rel="manifest" href="/manifest.json" />
     <!--
       Tesla browser: disable user-scale to prevent accidental pinch-zoom while driving.
@@ -13,7 +14,64 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="theme-color" content="#0a0a0f" />
-    <title>Tesla EV Nav</title>
+
+    <!-- Primary SEO -->
+    <title>Tesla Radar — Зарядни станции и пътни събития в България</title>
+    <meta name="description" content="Tesla Radar е интерактивна карта на зарядни станции за електромобили и пътни събития в България. Намери свободни зарядни точки, полиция, катастрофи и задръствания в реално време." />
+    <meta name="keywords" content="зарядни станции България, Tesla Supercharger, EV charging Bulgaria, електромобил зареждане, пътни събития, полиция карта, OCM OpenChargeMap" />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://teslaradar.tech/" />
+
+    <!-- Open Graph (Facebook, LinkedIn, Viber, etc.) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://teslaradar.tech/" />
+    <meta property="og:title" content="Tesla Radar — Зарядни станции и пътни събития в България" />
+    <meta property="og:description" content="Интерактивна карта на зарядни станции за електромобили и пътни събития в България в реално време." />
+    <meta property="og:image" content="https://teslaradar.tech/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="bg_BG" />
+    <meta property="og:site_name" content="Tesla Radar" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Tesla Radar — Зарядни станции в България" />
+    <meta name="twitter:description" content="Интерактивна карта на зарядни станции за електромобили и пътни събития в България." />
+    <meta name="twitter:image" content="https://teslaradar.tech/og-image.png" />
+
+    <!-- Structured data — WebApplication -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebApplication",
+      "name": "Tesla Radar",
+      "url": "https://teslaradar.tech/",
+      "description": "Интерактивна карта на зарядни станции за електромобили и пътни събития в България в реално време.",
+      "applicationCategory": "NavigationApplication",
+      "operatingSystem": "Web, iOS, Android",
+      "inLanguage": "bg",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "BGN"
+      },
+      "areaServed": {
+        "@type": "Country",
+        "name": "България"
+      }
+    }
+    </script>
+
+    <!-- Preconnect to external tile/data providers to reduce first-request latency -->
+    <link rel="preconnect" href="https://a.basemaps.cartocdn.com" />
+    <link rel="preconnect" href="https://router.project-osrm.org" />
+    <link rel="preconnect" href="https://overpass-api.de" />
+    <link rel="preconnect" href="https://api.openchargemap.io" />
+    <link rel="dns-prefetch" href="https://a.basemaps.cartocdn.com" />
+    <link rel="dns-prefetch" href="https://router.project-osrm.org" />
+    <link rel="dns-prefetch" href="https://overpass-api.de" />
+    <link rel="dns-prefetch" href="https://api.openchargemap.io" />
+
     <style>
       /* Prevent flash of unstyled content before CSS loads */
       html, body { background: #0a0a0f; margin: 0; padding: 0; overflow: hidden; }

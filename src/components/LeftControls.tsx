@@ -5,7 +5,6 @@ import { LocationButton } from '@/components/LocationButton'
 import { getMap } from '@/components/MapShell'
 import { openSupportModal } from '@/components/SupportModal'
 import { openVehicleProfileModal } from '@/components/VehicleProfileModal'
-import { openCountryPicker } from '@/components/CountryPicker'
 import { openPricingModal } from '@/components/PricingModal'
 import { settingsStore } from '@/features/settings/settingsStore'
 import { countryStore } from '@/lib/countryStore'
@@ -22,15 +21,6 @@ export function LeftControls() {
     settingsStore.subscribe.bind(settingsStore),
     () => settingsStore.get().headingMode,
     () => 'north-up' as const,
-  )
-
-  // Re-render when country changes so the flag badge and labels update.
-  // langStore already subscribes to countryStore internally, so one
-  // subscription covers both country and language changes.
-  const countryFlag = useSyncExternalStore(
-    langStore.subscribe.bind(langStore),
-    () => countryStore.getCountryOrDefault().flag,
-    () => countryStore.getCountryOrDefault().flag,
   )
 
   const isCourseUp    = headingMode === 'course-up'
@@ -117,15 +107,6 @@ export function LeftControls() {
         title={countryStore.getCountryOrDefault().locale === 'bg' ? 'Профил на автомобила' : 'Vehicle setup'}
         aria-label={countryStore.getCountryOrDefault().locale === 'bg' ? 'Профил на автомобила' : 'Vehicle setup'}>
         <CarBatteryIcon />
-      </button>
-      <button
-        className="icon-btn"
-        onClick={openCountryPicker}
-        title="Switch country"
-        aria-label="Switch country"
-        style={{ fontSize: 20, lineHeight: 1 }}
-      >
-        {countryFlag}
       </button>
       {isPremiumEnabled() && (
         <button

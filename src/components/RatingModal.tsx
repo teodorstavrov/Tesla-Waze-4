@@ -130,29 +130,37 @@ export function RatingModal() {
           <>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 18, fontWeight: 700, color: '#f2f2f2', marginBottom: 4 }}>
-                Оцени Tesla RADAR
+                Oceni TesRadar
               </div>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
                 Твоята оценка ни помага да подобряваме приложението
               </div>
 
-              {/* Aggregate stats */}
-              {stats && stats.count > 0 && (
+              {/* Aggregate stats — always shown once loaded */}
+              {stats !== null && (
                 <div style={{
                   display: 'inline-flex', alignItems: 'center', gap: 6,
                   marginTop: 10, padding: '5px 14px', borderRadius: 20,
                   background: 'rgba(251,191,36,0.1)',
                   border: '1px solid rgba(251,191,36,0.25)',
                 }}>
-                  <span style={{ fontSize: 15, color: '#fbbf24', letterSpacing: 1 }}>
-                    {'★'.repeat(Math.round(stats.avg ?? 0))}{'☆'.repeat(5 - Math.round(stats.avg ?? 0))}
-                  </span>
-                  <span style={{ fontSize: 13, fontWeight: 700, color: '#fbbf24' }}>
-                    {stats.avg?.toFixed(1)}
-                  </span>
-                  <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>
-                    ({stats.count} {stats.count === 1 ? 'глас' : stats.count < 5 ? 'гласа' : 'гласа'})
-                  </span>
+                  {stats.count > 0 ? (
+                    <>
+                      <span style={{ fontSize: 15, color: '#fbbf24', letterSpacing: 1 }}>
+                        {'★'.repeat(Math.round(stats.avg ?? 0))}{'☆'.repeat(5 - Math.round(stats.avg ?? 0))}
+                      </span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: '#fbbf24' }}>
+                        {stats.avg?.toFixed(1)}
+                      </span>
+                      <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>
+                        ({stats.count} {stats.count === 1 ? 'глас' : 'гласа'})
+                      </span>
+                    </>
+                  ) : (
+                    <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>
+                      Все още няма оценки
+                    </span>
+                  )}
                 </div>
               )}
             </div>
