@@ -130,7 +130,7 @@ export function RatingModal() {
           <>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 18, fontWeight: 700, color: '#f2f2f2', marginBottom: 4 }}>
-                Oceni TesRadar
+                Оцени TesRadar
               </div>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
                 Твоята оценка ни помага да подобряваме приложението

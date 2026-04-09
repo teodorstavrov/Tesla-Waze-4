@@ -124,7 +124,19 @@ export const DICTIONARY = {
     },
 
     support: {
-      subtitle: 'Tesla RADAR е навигационен асистент за Tesla шофьори — безплатно и без реклами.\nАко ти е полезно, помогни за поддръжката му ! Благодарим !',
+      title:            'Подкрепи проекта',
+      subtitle:         'Tesla RADAR е навигационен асистент за Tesla шофьори — безплатно и без реклами.\nАко ти е полезно, помогни за поддръжката му ! Благодарим !',
+      scanQr:           'Сканирай с камерата на телефона си',
+      contactBtn:       'Свържете се с нас',
+      contactTitle:     'Свържете се с нас',
+      emailPlaceholder: 'Твоят имейл',
+      msgPlaceholder:   'Съобщение...',
+      sending:          'Изпращане...',
+      sent:             'Съобщението е изпратено!',
+      sentDesc:         'Ще ти отговорим на',
+      back:             '← Назад',
+      errSend:          'Грешка при изпращане',
+      errNoConn:        'Няма връзка. Опитайте отново.',
     },
   },
 
@@ -233,7 +245,19 @@ export const DICTIONARY = {
     },
 
     support: {
-      subtitle: 'Tesla RADAR is a free navigation assistant for Tesla drivers — no ads, no tracking.\nIf you find it useful, please consider supporting the project!',
+      title:            'Support the Project',
+      subtitle:         'Tesla RADAR is a free navigation assistant for Tesla drivers — no ads, no tracking.\nIf you find it useful, please consider supporting the project!',
+      scanQr:           'Scan with your phone camera',
+      contactBtn:       'Contact us',
+      contactTitle:     'Contact us',
+      emailPlaceholder: 'Your email',
+      msgPlaceholder:   'Message...',
+      sending:          'Sending...',
+      sent:             'Message sent!',
+      sentDesc:         "We'll reply to",
+      back:             '← Back',
+      errSend:          'Failed to send',
+      errNoConn:        'No connection. Try again.',
     },
   },
 } as const satisfies Record<string, Record<string, Record<string, string>>>

@@ -1,30 +1,24 @@
 // ─── Support / Donation Modal ─────────────────────────────────────────
 //
 // Self-contained: renders the trigger ♥ (via openSupportModal()) + the modal.
-// Configured via props in App.tsx — no hardcoded values.
+// Language-aware: uses langStore so all text switches BG↔EN with country.
 //
 // ANIMATION: fade + scale-up on open, reverse on close.
-// Uses a two-phase state (open=mounted, visible=CSS transition active)
-// so the modal fades in/out cleanly without abrupt unmounting.
-//
-// TOUCH: all targets ≥ 44px. Active state via pointer events.
-// ESC: keyboard fallback for desktop/debug.
-// SCROLL LOCK: body overflow hidden while open.
+// TOUCH: all targets ≥ 44px. ESC: keyboard fallback.
 
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { isTeslaBrowser } from '@/lib/browser'
+import { t, getLang, langStore } from '@/lib/locale'
 
 // ── Types ──────────────────────────────────────────────────────────────
 
 export interface SupportModalProps {
   qrImageUrl: string
-  title?:     string
-  subtitle?:  string
 }
 
-// ── Module-level opener (called by ♥ button in LeftControls) ──────────
-// Pattern matches evStore / eventStore — imperative, zero React overhead.
+// ── Module-level opener ────────────────────────────────────────────────
 
 let _open: (() => void) | null = null
 
@@ -35,39 +29,28 @@ export function openSupportModal(): void {
 
 // ── Component ──────────────────────────────────────────────────────────
 
-export function SupportModal({
-  qrImageUrl,
-  title    = 'Подкрепи проекта',
-  subtitle = 'Tesla RADAR е първото подобно WEB приложение в България, специализирано и оптимизирано за браузърите на Tesla автомобили. То е безплатно и без реклами.\nАко ти е полезно, помогни за поддръжката му ! Благодарим !',
-}: SupportModalProps) {
-  // open  = modal is mounted in the DOM
-  // shown = CSS transition target (opacity/scale)
+export function SupportModal({ qrImageUrl }: SupportModalProps) {
   const [open,  setOpen]  = useState(false)
   const [shown, setShown] = useState(false)
   const [view,  setView]  = useState<'donation' | 'contact'>('donation')
 
-  // Register imperative opener
+  // Re-render on country/language change
+  useSyncExternalStore(langStore.subscribe.bind(langStore), getLang, getLang)
+
   _open = () => {
     setOpen(true)
     if (isTeslaBrowser) {
-      // Tesla: mount straight at final state — no animation frames.
-      // The double-RAF approach causes 2 render frames at opacity:0/scale:0.94
-      // which still require compositing work even when transition-duration is 0s.
       setShown(true)
     } else {
-      // Double-RAF: ensures the element is painted at opacity:0 before
-      // we flip shown=true so the CSS transition fires correctly.
       requestAnimationFrame(() => requestAnimationFrame(() => setShown(true)))
     }
   }
 
   const close = useCallback(() => {
     setShown(false)
-    // Tesla: transitions are already 0s — no need to wait 220ms before unmounting
     setTimeout(() => { setOpen(false); setView('donation') }, isTeslaBrowser ? 0 : 220)
   }, [])
 
-  // ESC key
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') close() }
@@ -75,11 +58,11 @@ export function SupportModal({
     return () => window.removeEventListener('keydown', onKey)
   }, [open, close])
 
-  // No scroll lock needed — html/body/root already have overflow:hidden (globals.css)
-
   if (!open) return null
 
-  const hasQr = Boolean(qrImageUrl)
+  const title    = t('support.title')
+  const subtitle = t('support.subtitle')
+  const hasQr    = Boolean(qrImageUrl)
 
   return createPortal(
     <div
@@ -90,7 +73,6 @@ export function SupportModal({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        // Animate the whole layer (backdrop + card together)
         opacity:    shown ? 1 : 0,
         transition: 'opacity 0.22s ease',
       }}
@@ -112,7 +94,7 @@ export function SupportModal({
         aria-modal="true"
         aria-label={title}
         style={{
-          position:  'relative',   // above backdrop
+          position:  'relative',
           zIndex:    1,
           width:     'min(460px, calc(100vw - 40px))',
           padding:   '28px 24px 24px',
@@ -137,7 +119,7 @@ export function SupportModal({
               lineHeight: 1.2,
               letterSpacing: '-0.01em',
             }}>
-              {view === 'contact' ? 'Свържете се с нас' : title}
+              {view === 'contact' ? t('support.contactTitle') : title}
             </div>
             <div style={{
               fontSize: 13,
@@ -169,7 +151,7 @@ export function SupportModal({
               {hasQr ? (
                 <img
                   src={qrImageUrl}
-                  alt="Stripe QR код за плащане"
+                  alt="QR"
                   width={192}
                   height={192}
                   style={{
@@ -188,7 +170,7 @@ export function SupportModal({
                 textAlign: 'center',
                 letterSpacing: '0.03em',
               }}>
-                Сканирай с камерата на телефона си
+                {t('support.scanQr')}
               </div>
             </div>
 
@@ -214,15 +196,15 @@ export function SupportModal({
               onPointerUp={(e)   => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.07)' }}
               onPointerLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.07)' }}
             >
-              Свържете се с нас
+              {t('support.contactBtn')}
             </button>
 
             {/* Logo */}
             <div style={{ display: 'flex', justifyContent: 'center' }}>
               <img
-                src="/Logo-medium-transp.png"
+                src="/new-medium.jpg"
                 alt="Tesla RADAR"
-                style={{ height: 70, width: 'auto', display: 'block' }}
+                style={{ height: 70, width: 'auto', display: 'block', borderRadius: 10 }}
               />
             </div>
 
@@ -246,7 +228,7 @@ function CloseButton({ onClose }: { onClose: () => void }) {
   return (
     <button
       onClick={onClose}
-      aria-label="Затвори"
+      aria-label={t('common.close')}
       style={{
         flexShrink: 0,
         width: 36, height: 36,
@@ -290,11 +272,11 @@ function ContactForm({ onBack }: { onBack: () => void }) {
         body:    JSON.stringify({ email: email.trim(), message: message.trim() }),
       })
       const data = await res.json() as { ok?: boolean; error?: string }
-      if (!res.ok) { setState('error'); setErrMsg(data.error ?? 'Грешка при изпращане'); return }
+      if (!res.ok) { setState('error'); setErrMsg(data.error ?? t('support.errSend')); return }
       setState('sent')
     } catch {
       setState('error')
-      setErrMsg('Няма връзка. Опитайте отново.')
+      setErrMsg(t('support.errNoConn'))
     }
   }
 
@@ -316,17 +298,17 @@ function ContactForm({ onBack }: { onBack: () => void }) {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 16, alignItems: 'center', padding: '12px 0' }}>
         <div style={{ fontSize: 40 }}>✅</div>
         <div style={{ fontSize: 15, color: '#f2f2f2', textAlign: 'center', fontWeight: 600 }}>
-          Съобщението е изпратено!
+          {t('support.sent')}
         </div>
         <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', textAlign: 'center' }}>
-          Ще ти отговорим на {email}
+          {t('support.sentDesc')} {email}
         </div>
         <button onClick={onBack} style={{
           marginTop: 8, padding: '12px 28px', borderRadius: 12,
           background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.14)',
           color: '#f2f2f2', fontSize: 14, fontWeight: 600, cursor: 'pointer', touchAction: 'manipulation',
         }}>
-          ← Назад
+          {t('support.back')}
         </button>
       </div>
     )
@@ -336,7 +318,7 @@ function ContactForm({ onBack }: { onBack: () => void }) {
     <form onSubmit={(e) => { void handleSubmit(e) }} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
       <input
         type="email"
-        placeholder="Твоят имейл"
+        placeholder={t('support.emailPlaceholder')}
         value={email}
         onChange={(e) => setEmail(e.target.value)}
         required
@@ -345,7 +327,7 @@ function ContactForm({ onBack }: { onBack: () => void }) {
       />
       <textarea
         ref={msgRef}
-        placeholder="Съобщение..."
+        placeholder={t('support.msgPlaceholder')}
         value={message}
         onChange={(e) => setMessage(e.target.value)}
         required
@@ -375,7 +357,7 @@ function ContactForm({ onBack }: { onBack: () => void }) {
             touchAction: 'manipulation',
           }}
         >
-          ← Назад
+          {t('support.back')}
         </button>
         <button
           type="submit"
@@ -395,7 +377,7 @@ function ContactForm({ onBack }: { onBack: () => void }) {
             transition: 'background 0.15s ease',
           }}
         >
-          {state === 'sending' ? 'Изпращане...' : 'Изпрати'}
+          {state === 'sending' ? t('support.sending') : t('common.send')}
         </button>
       </div>
     </form>
@@ -441,7 +423,7 @@ function QrPlaceholder() {
         letterSpacing: '0.1em',
         textTransform: 'uppercase',
       }}>
-        QR код скоро
+        QR
       </div>
     </div>
   )

@@ -44,7 +44,6 @@ import { PricingModal } from '@/components/PricingModal'
 import { alertEngine } from '@/features/audio/alertEngine'
 import { batteryTracker } from '@/features/planning/batteryTracker'
 import { useThemeStore } from '@/features/theme/store'
-import { t } from '@/lib/locale'
 
 export function App() {
   // Start GPS watching (feeds gpsStore; no rerenders from GPS ticks)
@@ -144,11 +143,7 @@ export function App() {
         // stripeLink="https://buy.stripe.com/…"   ← same link as UpgradeModal
       />
 
-      <SupportModal
-        qrImageUrl="/stripe-qr.png"
-        title="Подкрепи проекта"
-        subtitle={t('support.subtitle')}
-      />
+      <SupportModal qrImageUrl="/stripe-qr.png" />
     </div>
   )
 }
