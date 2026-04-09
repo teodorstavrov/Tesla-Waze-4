@@ -202,7 +202,7 @@ export function SupportModal({ qrImageUrl }: SupportModalProps) {
             {/* Logo */}
             <div style={{ display: 'flex', justifyContent: 'center' }}>
               <img
-                src="/new-medium.jpg"
+                src="/new-medium_tran.png"
                 alt="Tesla RADAR"
                 style={{ height: 70, width: 'auto', display: 'block', borderRadius: 10 }}
               />
