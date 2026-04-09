@@ -15,6 +15,9 @@ import type { SpeedCamera } from './types'
 
 const MIN_ZOOM = 10   // don't show cameras at country-level zoom
 
+// Margin beyond viewport to pre-render (degrees)
+const VIEWPORT_PAD = 0.05
+
 function makeCameraIcon(cam: SpeedCamera): L.DivIcon {
   const speed = cam.maxspeed
   const label = speed != null ? `${speed}` : '📷'
@@ -43,8 +46,9 @@ function makeCameraIcon(cam: SpeedCamera): L.DivIcon {
 }
 
 export function CameraMarkerLayer() {
-  const registryRef = useRef<Map<string, L.Marker>>(new Map())
-  const zoomRef     = useRef<number>(16)
+  const registryRef  = useRef<Map<string, L.Marker>>(new Map())
+  const zoomRef      = useRef<number>(16)
+  const moveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -58,6 +62,16 @@ export function CameraMarkerLayer() {
         registry.clear()
       }
 
+      function getBounds() {
+        const b = map.getBounds()
+        return {
+          minLat: b.getSouth() - VIEWPORT_PAD,
+          maxLat: b.getNorth() + VIEWPORT_PAD,
+          minLng: b.getWest()  - VIEWPORT_PAD,
+          maxLng: b.getEast()  + VIEWPORT_PAD,
+        }
+      }
+
       function syncMarkers(): void {
         const { cameras } = cameraStore.getState()
 
@@ -67,20 +81,28 @@ export function CameraMarkerLayer() {
           return
         }
 
-        const incoming = new Set(cameras.map((c) => c.id))
+        const bounds = getBounds()
 
-        // Remove gone cameras
+        // Only render cameras within current viewport + margin
+        const visible = cameras.filter(
+          (c) => c.lat >= bounds.minLat && c.lat <= bounds.maxLat &&
+                 c.lng >= bounds.minLng && c.lng <= bounds.maxLng,
+        )
+
+        const incoming = new Set(visible.map((c) => c.id))
+
+        // Remove cameras outside viewport
         for (const [id, marker] of registry) {
           if (!incoming.has(id)) { marker.remove(); registry.delete(id) }
         }
 
-        // Add new cameras
-        for (const cam of cameras) {
+        // Add cameras inside viewport
+        for (const cam of visible) {
           if (registry.has(cam.id)) continue
           const marker = L.marker([cam.lat, cam.lng], {
             icon:        makeCameraIcon(cam),
             zIndexOffset: 5,
-            interactive: false,   // cameras are informational only — no tap handler
+            interactive: false,
           }).addTo(map)
 
           const tooltip = cam.maxspeed != null
@@ -96,15 +118,23 @@ export function CameraMarkerLayer() {
         syncMarkers()
       }
 
+      function onMoveEnd(): void {
+        if (moveTimerRef.current) clearTimeout(moveTimerRef.current)
+        moveTimerRef.current = setTimeout(syncMarkers, 200)
+      }
+
       const unsubCameras = cameraStore.subscribe(syncMarkers)
       map.on('zoomend', onZoomEnd)
+      map.on('moveend', onMoveEnd)
 
       // Trigger initial fetch + render
       cameraStore.load()
       syncMarkers()
 
       return () => {
+        if (moveTimerRef.current) clearTimeout(moveTimerRef.current)
         map.off('zoomend', onZoomEnd)
+        map.off('moveend', onMoveEnd)
         unsubCameras()
         clearAll()
       }
