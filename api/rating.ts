@@ -34,16 +34,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       if (!isRedisConfigured()) {
         res.status(200).json({ avg: null, count: 0 }); return
       }
-      const [sumRaw, countRaw] = await redis.pipeline([
+
+      // INCR/INCRBYFLOAT store raw strings (not JSON), read directly.
+      const [sumResult, countResult] = await redis.pipeline([
         ['GET', REDIS_SUM_KEY],
         ['GET', REDIS_COUNT_KEY],
-      ]) as [string | null, string | null]
+      ])
 
-      const count = parseInt(countRaw ?? '0', 10) || 0
-      const sum   = parseFloat(sumRaw ?? '0') || 0
+      const count = parseInt(String(countResult ?? '0'), 10) || 0
+      const sum   = parseFloat(String(sumResult   ?? '0')) || 0
       const avg   = count > 0 ? Math.round((sum / count) * 10) / 10 : null
 
-      res.setHeader('Cache-Control', 'public, max-age=60')
+      res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=30')
       res.status(200).json({ avg, count })
     } catch (err) {
       await captureApiError(err, 'rating GET')
