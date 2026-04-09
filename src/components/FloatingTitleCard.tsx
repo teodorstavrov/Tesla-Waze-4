@@ -29,7 +29,7 @@ export function FloatingTitleCard() {
       }}
     >
       <img
-        src="/new-medium.jpg"
+        src="/new-medium_tran_blue.png"
         alt="Tesla RADAR"
         style={{ height: 54, width: 'auto', display: 'block', borderRadius: 12 }}
       />
