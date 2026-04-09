@@ -40,7 +40,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   try {
     const cameras = await getCamerasFromCache(country)
-    setCacheHeaders(res, 3600, 86400)
+    // No CDN caching — server-side memory cache (24h) + client localStorage (24h)
+    // handle performance. CDN stale-while-revalidate caused empty responses to persist
+    // for up to 25h after the cron first populated Redis.
+    res.setHeader('Cache-Control', 'no-store')
+    res.setHeader('Access-Control-Allow-Origin', '*')
     res.status(200).json({ cameras, count: cameras.length })
   } catch (err) {
     await captureApiError(err, `cameras GET ${country}`)
