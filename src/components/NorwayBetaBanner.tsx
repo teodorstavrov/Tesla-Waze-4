@@ -34,9 +34,9 @@ export function NorwayBetaBanner() {
         left:       '50%',
         transform:  'translateX(-50%)',
         zIndex:     490,
-        width:      'min(460px, calc(100vw - 24px))',
-        padding:    '10px 14px',
-        borderRadius: 10,
+        width:      'min(322px, calc(100vw - 24px))',
+        padding:    '7px 10px',
+        borderRadius: 8,
         background: 'rgba(245,158,11,0.15)',
         border:     '1px solid rgba(245,158,11,0.4)',
         display:    'flex',
@@ -46,8 +46,8 @@ export function NorwayBetaBanner() {
         WebkitBackdropFilter: 'blur(8px)',
       }}
     >
-      <span style={{ fontSize: 18, flexShrink: 0 }}>🚧</span>
-      <span style={{ flex: 1, fontSize: 24, color: 'rgba(30,20,0,0.85)', lineHeight: 1.4 }}>
+      <span style={{ fontSize: 13, flexShrink: 0 }}>🚧</span>
+      <span style={{ flex: 1, fontSize: 11, color: 'rgba(30,20,0,0.85)', lineHeight: 1.4 }}>
         Norway support is in early development. Some features may be limited or unavailable.
       </span>
       <button
@@ -59,7 +59,7 @@ export function NorwayBetaBanner() {
           border:     'none',
           color:      'rgba(30,20,0,0.6)',
           cursor:     'pointer',
-          fontSize:   24,
+          fontSize:   17,
           lineHeight: 1,
           padding:    '0 2px',
         }}

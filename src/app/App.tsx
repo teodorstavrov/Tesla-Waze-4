@@ -143,7 +143,10 @@ export function App() {
         // stripeLink="https://buy.stripe.com/…"   ← same link as UpgradeModal
       />
 
-      <SupportModal qrImageUrl="/stripe-qr.png" />
+      <SupportModal
+        qrImageUrl="/stripe-qr.png"
+        donationLink="https://buy.stripe.com/14AaEXfak7HT744daj8g001"
+      />
     </div>
   )
 }

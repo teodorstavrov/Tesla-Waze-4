@@ -27,7 +27,7 @@ function makeCameraIcon(cam: SpeedCamera): L.DivIcon {
     html: `<div style="
       width:44px;height:44px;
       display:flex;align-items:center;justify-content:center;
-      cursor:default;pointer-events:none;
+      cursor:pointer;
     "><div style="
       width:36px;height:36px;border-radius:6px;
       background:#f97316;
@@ -43,6 +43,50 @@ function makeCameraIcon(cam: SpeedCamera): L.DivIcon {
     iconSize:   [44, 44],
     iconAnchor: [22, 22],
   })
+}
+
+function buildCameraPopup(cam: SpeedCamera): string {
+  const directionLabel = cam.direction != null ? compassLabel(cam.direction) : null
+
+  const rows: string[] = []
+
+  if (cam.maxspeed != null) {
+    rows.push(`
+      <div style="display:flex;align-items:center;justify-content:center;
+        width:56px;height:56px;border-radius:50%;
+        border:4px solid #e31937;
+        background:rgba(227,25,55,0.08);
+        margin:0 auto 10px;flex-shrink:0;">
+        <span style="font-size:20px;font-weight:900;color:#fff;line-height:1;">${cam.maxspeed}</span>
+      </div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.45);text-align:center;margin-top:-6px;margin-bottom:8px;letter-spacing:0.05em;">км/ч</div>
+    `)
+  } else {
+    rows.push(`<div style="font-size:28px;text-align:center;margin-bottom:8px;">📷</div>`)
+  }
+
+  rows.push(`<div style="font-size:14px;font-weight:700;color:#f2f2f2;text-align:center;margin-bottom:4px;">Скоростна камера</div>`)
+
+  if (directionLabel) {
+    rows.push(`<div style="font-size:12px;color:rgba(255,255,255,0.5);text-align:center;">Посока: ${directionLabel}</div>`)
+  }
+
+  rows.push(`<div style="font-size:11px;color:rgba(255,255,255,0.28);text-align:center;margin-top:6px;">${cam.lat.toFixed(5)}, ${cam.lng.toFixed(5)}</div>`)
+
+  return `<div style="
+    font-family:system-ui,sans-serif;
+    background:rgba(18,18,26,0.97);
+    border:1px solid rgba(255,255,255,0.12);
+    border-radius:14px;
+    padding:18px 20px 14px;
+    min-width:160px;
+    box-shadow:0 8px 32px rgba(0,0,0,0.6);
+  ">${rows.join('')}</div>`
+}
+
+function compassLabel(deg: number): string {
+  const dirs = ['С', 'СИ', 'И', 'ЮИ', 'Ю', 'ЮЗ', 'З', 'СЗ']
+  return dirs[Math.round(deg / 45) % 8] ?? `${deg}°`
 }
 
 export function CameraMarkerLayer() {
@@ -103,15 +147,18 @@ export function CameraMarkerLayer() {
         for (const cam of visible) {
           if (registry.has(cam.id)) continue
           const marker = L.marker([cam.lat, cam.lng], {
-            icon:        makeCameraIcon(cam),
+            icon:         makeCameraIcon(cam),
             zIndexOffset: 5,
-            interactive: false,
+            interactive:  true,
           }).addTo(map)
 
-          const tooltip = cam.maxspeed != null
-            ? `Скоростна камера — ${cam.maxspeed} км/ч`
-            : 'Скоростна камера'
-          marker.bindTooltip(tooltip, { direction: 'top', offset: L.point(0, -6), sticky: false })
+          marker.bindPopup(buildCameraPopup(cam), {
+            className:   'camera-popup',
+            maxWidth:    220,
+            offset:      L.point(0, -14),
+            closeButton: true,
+          })
+
           registry.set(cam.id, marker)
         }
       }

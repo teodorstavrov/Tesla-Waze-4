@@ -15,7 +15,9 @@ import { t, getLang, langStore } from '@/lib/locale'
 // ── Types ──────────────────────────────────────────────────────────────
 
 export interface SupportModalProps {
-  qrImageUrl: string
+  qrImageUrl:    string
+  /** When set, clicking the QR code opens this URL (e.g. Stripe payment link). */
+  donationLink?: string
 }
 
 // ── Module-level opener ────────────────────────────────────────────────
@@ -29,7 +31,7 @@ export function openSupportModal(): void {
 
 // ── Component ──────────────────────────────────────────────────────────
 
-export function SupportModal({ qrImageUrl }: SupportModalProps) {
+export function SupportModal({ qrImageUrl, donationLink }: SupportModalProps) {
   const [open,  setOpen]  = useState(false)
   const [shown, setShown] = useState(false)
   const [view,  setView]  = useState<'donation' | 'contact'>('donation')
@@ -137,17 +139,27 @@ export function SupportModal({ qrImageUrl }: SupportModalProps) {
 
         {view === 'donation' ? (
           <>
-            {/* QR code block */}
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: 10,
-              padding: '20px 16px',
-              borderRadius: 14,
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.08)',
-            }}>
+            {/* QR code block — clickable if donationLink provided */}
+            <div
+              role={donationLink ? 'button' : undefined}
+              tabIndex={donationLink ? 0 : undefined}
+              onClick={donationLink ? () => window.open(donationLink, '_blank', 'noopener,noreferrer') : undefined}
+              onKeyDown={donationLink ? (e) => { if (e.key === 'Enter') window.open(donationLink, '_blank', 'noopener,noreferrer') } : undefined}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                gap: 10,
+                padding: '20px 16px',
+                borderRadius: 14,
+                background: donationLink ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.04)',
+                border: donationLink ? '1px solid rgba(255,255,255,0.16)' : '1px solid rgba(255,255,255,0.08)',
+                cursor: donationLink ? 'pointer' : 'default',
+                transition: 'background 0.15s ease, border-color 0.15s ease',
+              }}
+              onPointerEnter={donationLink ? (e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.10)' } : undefined}
+              onPointerLeave={donationLink ? (e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.06)' } : undefined}
+            >
               {hasQr ? (
                 <img
                   src={qrImageUrl}
@@ -166,11 +178,12 @@ export function SupportModal({ qrImageUrl }: SupportModalProps) {
               )}
               <div style={{
                 fontSize: 11,
-                color: 'rgba(255,255,255,0.35)',
+                color: donationLink ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.35)',
                 textAlign: 'center',
                 letterSpacing: '0.03em',
               }}>
                 {t('support.scanQr')}
+                {donationLink && <span style={{ marginLeft: 6, opacity: 0.7 }}>↗</span>}
               </div>
             </div>
 

@@ -317,10 +317,18 @@ export function MapShell() {
       }
     })
 
-    // When user switches to north-up, immediately clear rotation
+    // React to heading mode changes immediately:
+    // - north-up → clear rotation right away
+    // - course-up → enable follow so the next GPS tick calls _applyCourseUp.
+    //   Without this, _applyCourseUp is unreachable: in route-preview mode
+    //   inPreview=true blocks auto-follow, so the GPS handler returns early
+    //   and the rotation never fires even though the setting changed.
     const unsubSettings = settingsStore.subscribe(() => {
-      if (settingsStore.get().headingMode === 'north-up' && containerRef.current) {
+      const headingMode = settingsStore.get().headingMode
+      if (headingMode === 'north-up' && containerRef.current) {
         _clearCourseUp(containerRef.current)
+      } else if (headingMode === 'course-up') {
+        followStore.setFollowing(true)
       }
     })
 

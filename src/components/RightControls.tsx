@@ -37,7 +37,7 @@ export function RightControls() {
         onClick={openCountryPicker}
         title="Switch country"
         aria-label="Switch country"
-        style={{ width: 48, height: 48, fontSize: 22, lineHeight: 1 }}
+        style={{ width: 55, height: 55, fontSize: 25, lineHeight: 1 }}
       >
         {countryFlag}
       </button>

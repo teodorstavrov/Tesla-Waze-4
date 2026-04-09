@@ -308,11 +308,16 @@ function countryFromCoords(lat: number, lng: number): string {
   return '🌍 Друго'
 }
 
+const LS_HIDE_PERMANENT = 'teslaradar:hidePermanent'
+
 // ── Event stats panel ────────────────────────────────────────────────────
 
 function EventStats({ events }: { events: RoadEvent[] }) {
   const [cities, setCities] = useState<Record<string, number>>({})
   const [citiesLoading, setCitiesLoading] = useState(false)
+  const [hidden, setHidden] = useState(() => {
+    try { return localStorage.getItem(LS_HIDE_PERMANENT) === '1' } catch { return false }
+  })
 
   // Group by country
   const byCountry: Record<string, number> = {}
@@ -393,10 +398,26 @@ function EventStats({ events }: { events: RoadEvent[] }) {
 
       {/* Permanent vs user */}
       <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-        <div style={{ flex: 1, background: 'rgba(227,25,55,0.12)', border: '1px solid rgba(227,25,55,0.25)', borderRadius: 8, padding: '8px 10px', textAlign: 'center' }}>
-          <div style={{ fontSize: 18, fontWeight: 700, color: '#e31937' }}>{permanentCount}</div>
-          <div style={{ fontSize: 10, color: '#888', marginTop: 2 }}>Служебни</div>
-        </div>
+        <button
+          onClick={() => {
+            const next = !hidden
+            setHidden(next)
+            try { localStorage.setItem(LS_HIDE_PERMANENT, next ? '1' : '0') } catch { /* ignore */ }
+          }}
+          title={hidden ? 'Покажи служебните маркери на публичната карта' : 'Скрий служебните маркери от публичната карта'}
+          style={{
+            flex: 1,
+            background: hidden ? 'rgba(255,255,255,0.06)' : 'rgba(227,25,55,0.12)',
+            border: `1px solid ${hidden ? 'rgba(255,255,255,0.15)' : 'rgba(227,25,55,0.35)'}`,
+            borderRadius: 8, padding: '8px 10px', textAlign: 'center',
+            cursor: 'pointer', transition: 'background 0.15s ease, border-color 0.15s ease',
+          }}
+        >
+          <div style={{ fontSize: 18, fontWeight: 700, color: hidden ? '#666' : '#e31937' }}>{permanentCount}</div>
+          <div style={{ fontSize: 10, color: hidden ? '#555' : '#888', marginTop: 2 }}>
+            {hidden ? '🙈 Служебни' : '👁 Служебни'}
+          </div>
+        </button>
         <div style={{ flex: 1, background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '8px 10px', textAlign: 'center' }}>
           <div style={{ fontSize: 18, fontWeight: 700, color: '#fff' }}>{userCount}</div>
           <div style={{ fontSize: 10, color: '#888', marginTop: 2 }}>Потребителски</div>

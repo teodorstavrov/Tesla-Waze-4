@@ -76,6 +76,28 @@ body,
   right: 10px !important;
 }
 
+/* ─── Camera popup ────────────────────────────────────────────────────── */
+.camera-popup .leaflet-popup-content-wrapper {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  padding: 0 !important;
+}
+.camera-popup .leaflet-popup-content {
+  margin: 0 !important;
+}
+.camera-popup .leaflet-popup-tip-container {
+  display: none;
+}
+.camera-popup .leaflet-popup-close-button {
+  color: rgba(255,255,255,0.45) !important;
+  font-size: 20px !important;
+  top: 10px !important;
+  right: 12px !important;
+  z-index: 1;
+}
+
 /* ─── Leaflet overrides ──────────────────────────────────────────────── */
 .leaflet-container {
   background: #1a1a2e;
@@ -457,11 +479,11 @@ body,
   height: 32px !important;
 }
 
-/* ─── Right controls — 10% larger than standard icon-btn (44 → 48px) ── */
+/* ─── Right controls — 25% larger than standard icon-btn (44 → 55px) ── */
 .right-controls .icon-btn {
-  width: 48px !important;
-  height: 48px !important;
-  border-radius: 11px !important;
+  width: 55px !important;
+  height: 55px !important;
+  border-radius: 13px !important;
 }
 
 /* ─── Mobile responsiveness (≤480px phones) ─────────────────────────── */
@@ -477,11 +499,11 @@ body,
     height: 20px !important;
   }
 
-  /* Right controls — shrink from 48px to 44px */
+  /* Right controls — shrink from 55px to 48px on mobile */
   .right-controls .icon-btn {
-    width: 44px !important;
-    height: 44px !important;
-    border-radius: 10px !important;
+    width: 48px !important;
+    height: 48px !important;
+    border-radius: 11px !important;
   }
 
   /* EV filter bar — allow horizontal scroll on narrow screens */

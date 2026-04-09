@@ -27,6 +27,19 @@ function _loadHidePermanent(): boolean {
   try { return localStorage.getItem(LS_HIDE_PERMANENT) === '1' } catch { return false }
 }
 
+// React to cross-tab localStorage changes (e.g. admin panel toggling from another tab)
+if (typeof window !== 'undefined') {
+  window.addEventListener('storage', (e) => {
+    if (e.key === LS_HIDE_PERMANENT) {
+      const next = e.newValue === '1'
+      if (next !== _state.hidePermanent) {
+        _state = { ..._state, hidePermanent: next }
+        _emit()
+      }
+    }
+  })
+}
+
 let _state: EventState = {
   events:          [],
   status:          'idle',

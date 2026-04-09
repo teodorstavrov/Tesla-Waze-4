@@ -53,6 +53,7 @@ export function FloatingTitleCard() {
           justifyContent: 'center',
           touchAction: 'manipulation',
           boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+          opacity: 0.5,
         }}
       >
         ★
