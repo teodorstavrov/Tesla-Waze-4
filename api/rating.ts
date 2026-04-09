@@ -45,8 +45,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       const sum   = parseFloat(String(sumResult   ?? '0')) || 0
       const avg   = count > 0 ? Math.round((sum / count) * 10) / 10 : null
 
-      res.setHeader('Cache-Control', 'public, max-age=30, s-maxage=30')
-      res.status(200).json({ avg, count })
+      res.setHeader('Cache-Control', 'no-store')
+      res.status(200).json({ avg, count, _debug: { sumResult, countResult } })
     } catch (err) {
       await captureApiError(err, 'rating GET')
       res.status(200).json({ avg: null, count: 0 })   // graceful fallback
