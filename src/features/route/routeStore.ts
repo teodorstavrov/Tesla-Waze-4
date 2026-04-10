@@ -9,6 +9,7 @@ import { maneuverVoiceText } from './maneuver.js'
 import { gpsStore } from '@/features/gps/gpsStore'
 import { audioManager } from '@/features/audio/audioManager'
 import { logger } from '@/lib/logger'
+import { getLang } from '@/lib/locale'
 import type { RouteState, RouteDestination, RouteStep } from './types.js'
 
 // ── Geometry helpers ──────────────────────────────────────────────
@@ -113,7 +114,7 @@ function _onGpsUpdate(): void {
     if (distToDest < 50 && !_state.arrived) {
       if (!_arrivedAnnounced) {
         _arrivedAnnounced = true
-        speak('Пристигнахте на вашата дестинация')
+        speak(getLang() === 'bg' ? 'Пристигнахте на вашата дестинация' : 'You have arrived at your destination')
       }
       _state = { ..._state, deviated, remainingM: remaining, arrived: true }
       _emit()
@@ -147,10 +148,13 @@ function _onGpsUpdate(): void {
     const d = haversineM(gps.lat, gps.lng, nextStep.lat, nextStep.lng)
     distToNextStepM = Math.round(d)
 
-    // Far announcement: 150–350m
-    if (d < 350 && d > 80 && !_announced300.has(newStep)) {
+    // Far announcement: 150–350m — skip if we just completed a maneuver this tick
+    // (let the driver finish the current turn before announcing the next one)
+    if (!stepChanged && d < 350 && d > 80 && !_announced300.has(newStep)) {
       _announced300.add(newStep)
-      speak(`След ${roundDistM(d)} метра, ${maneuverVoiceText(nextStep)}`)
+      speak(getLang() === 'bg'
+        ? `След ${roundDistM(d)} метра, ${maneuverVoiceText(nextStep)}`
+        : `In ${roundDistM(d)} meters, ${maneuverVoiceText(nextStep)}`)
     }
 
     // Imminent announcement: 20–80m
@@ -203,7 +207,7 @@ export const routeStore = {
   async navigateTo(dest: RouteDestination): Promise<void> {
     const gps = gpsStore.getPosition()
     if (!gps) {
-      _state = { ..._state, destination: dest, status: 'error', mode: 'preview', error: 'GPS позицията не е налична', routes: [], route: null, activeRouteIndex: 0, deviated: false, remainingM: null, currentStepIndex: 1, distToNextStepM: null, arrived: false }
+      _state = { ..._state, destination: dest, status: 'error', mode: 'preview', error: getLang() === 'bg' ? 'GPS позицията не е налична' : 'GPS position unavailable', routes: [], route: null, activeRouteIndex: 0, deviated: false, remainingM: null, currentStepIndex: 1, distToNextStepM: null, arrived: false }
       _emit()
       return
     }
@@ -243,7 +247,7 @@ export const routeStore = {
       if ((err as Error).name === 'AbortError') return
       const isOffline = !navigator.onLine || (err as Error).message.toLowerCase().includes('fetch')
       const errorMsg = isOffline
-        ? 'Без интернет — маршрутът не може да се изчисли'
+        ? (getLang() === 'bg' ? 'Без интернет — маршрутът не може да се изчисли' : 'No internet — route cannot be calculated')
         : (err as Error).message
       _state = { ..._state, status: 'error', error: errorMsg }
       logger.route.warn('Route failed', { err: String(err), offline: isOffline })
@@ -265,7 +269,9 @@ export const routeStore = {
       const firstStep = route.steps[1]
       if (firstStep) {
         const roundedM = roundDistM(firstStep.distanceM)
-        speak(`Маршрутът е зареден. ${roundedM > 0 ? `След ${roundedM} метра, ` : ''}${maneuverVoiceText(firstStep)}`)
+        speak(getLang() === 'bg'
+          ? `Маршрутът е зареден. ${roundedM > 0 ? `След ${roundedM} метра, ` : ''}${maneuverVoiceText(firstStep)}`
+          : `Route loaded. ${roundedM > 0 ? `In ${roundedM} meters, ` : ''}${maneuverVoiceText(firstStep)}`)
       }
     }
   },
@@ -328,7 +334,9 @@ export const routeStore = {
       const firstStep = primary.steps[1]
       if (firstStep) {
         const roundedM = roundDistM(firstStep.distanceM)
-        speak(`Преизчислен маршрут. ${roundedM > 0 ? `След ${roundedM} метра, ` : ''}${maneuverVoiceText(firstStep)}`)
+        speak(getLang() === 'bg'
+          ? `Преизчислен маршрут. ${roundedM > 0 ? `След ${roundedM} метра, ` : ''}${maneuverVoiceText(firstStep)}`
+          : `Route recalculated. ${roundedM > 0 ? `In ${roundedM} meters, ` : ''}${maneuverVoiceText(firstStep)}`)
       }
     } catch (err) {
       if ((err as Error).name === 'AbortError') return

@@ -11,6 +11,7 @@ export interface RouteStep {
   lng:       number
   type:      string    // 'depart' | 'turn' | 'arrive' | 'roundabout' | …
   modifier?: string    // 'right' | 'left' | 'straight' | 'slight right' | …
+  exit?:     number    // roundabout exit number (1-based), present for roundabout/rotary steps
   name:      string    // street name after this maneuver
   distanceM: number    // length of this step's segment
   durationS: number

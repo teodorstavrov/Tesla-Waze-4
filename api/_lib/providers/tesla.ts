@@ -137,6 +137,8 @@ function normalize(el: OverpassElement): NormalizedStation | null {
     connectors,
     status: 'available',
     isFree: false,
+    pricePerKwh: null,   // Tesla prices are dynamic — not available from OSM
+    priceCurrency: null,
     lastUpdated: null,
   }
 }

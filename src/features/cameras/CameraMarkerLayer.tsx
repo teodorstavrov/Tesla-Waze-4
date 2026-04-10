@@ -11,6 +11,7 @@ import { useEffect, useRef } from 'react'
 import { L } from '@/lib/leaflet'
 import { getMap } from '@/components/MapShell'
 import { cameraStore } from './cameraStore'
+import { getLang, t } from '@/lib/locale'
 import type { SpeedCamera } from './types'
 
 const MIN_ZOOM = 10   // don't show cameras at country-level zoom
@@ -59,16 +60,16 @@ function buildCameraPopup(cam: SpeedCamera): string {
         margin:0 auto 10px;flex-shrink:0;">
         <span style="font-size:20px;font-weight:900;color:#fff;line-height:1;">${cam.maxspeed}</span>
       </div>
-      <div style="font-size:11px;color:rgba(255,255,255,0.45);text-align:center;margin-top:-6px;margin-bottom:8px;letter-spacing:0.05em;">км/ч</div>
+      <div style="font-size:11px;color:rgba(255,255,255,0.45);text-align:center;margin-top:-6px;margin-bottom:8px;letter-spacing:0.05em;">${t('sections.kmh')}</div>
     `)
   } else {
     rows.push(`<div style="font-size:28px;text-align:center;margin-bottom:8px;">📷</div>`)
   }
 
-  rows.push(`<div style="font-size:14px;font-weight:700;color:#f2f2f2;text-align:center;margin-bottom:4px;">Скоростна камера</div>`)
+  rows.push(`<div style="font-size:14px;font-weight:700;color:#f2f2f2;text-align:center;margin-bottom:4px;">${getLang() === 'bg' ? 'Скоростна камера' : 'Speed camera'}</div>`)
 
   if (directionLabel) {
-    rows.push(`<div style="font-size:12px;color:rgba(255,255,255,0.5);text-align:center;">Посока: ${directionLabel}</div>`)
+    rows.push(`<div style="font-size:12px;color:rgba(255,255,255,0.5);text-align:center;">${getLang() === 'bg' ? 'Посока' : 'Direction'}: ${directionLabel}</div>`)
   }
 
   rows.push(`<div style="font-size:11px;color:rgba(255,255,255,0.28);text-align:center;margin-top:6px;">${cam.lat.toFixed(5)}, ${cam.lng.toFixed(5)}</div>`)
@@ -85,7 +86,9 @@ function buildCameraPopup(cam: SpeedCamera): string {
 }
 
 function compassLabel(deg: number): string {
-  const dirs = ['С', 'СИ', 'И', 'ЮИ', 'Ю', 'ЮЗ', 'З', 'СЗ']
+  const bg = ['С', 'СИ', 'И', 'ЮИ', 'Ю', 'ЮЗ', 'З', 'СЗ']
+  const en = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW']
+  const dirs = getLang() === 'bg' ? bg : en
   return dirs[Math.round(deg / 45) % 8] ?? `${deg}°`
 }
 

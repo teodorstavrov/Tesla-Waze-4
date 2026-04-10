@@ -3,8 +3,10 @@ import { useSyncExternalStore } from 'react'
 import { routeStore } from '@/features/route/routeStore'
 import { openRatingModal } from '@/components/RatingModal'
 import { isTeslaBrowser } from '@/lib/browser'
+import { t, getLang, langStore } from '@/lib/locale'
 
 export function FloatingTitleCard() {
+  useSyncExternalStore(langStore.subscribe.bind(langStore), getLang, getLang)
   const routeActive = useSyncExternalStore(
     routeStore.subscribe.bind(routeStore),
     () => routeStore.getState().status === 'ok',
@@ -35,8 +37,8 @@ export function FloatingTitleCard() {
       />
       <button
         onClick={openRatingModal}
-        title="Оцени приложението"
-        aria-label="Оцени приложението"
+        title={t('controls.rateApp')}
+        aria-label={t('controls.rateApp')}
         style={{
           width: 42, height: 42,
           borderRadius: 10,

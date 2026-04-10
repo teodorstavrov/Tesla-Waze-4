@@ -157,10 +157,10 @@ function ActiveView({ session }: { session: SectionSession }) {
           marginTop: 5,
         }}>
           <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>
-            {(displayDistM / 1000).toFixed(1)} км
+            {(displayDistM / 1000).toFixed(1)} {t('routePanel.km')}
           </div>
           <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.75)' }}>
-            {remainingKm} км →
+            {remainingKm} {t('routePanel.km')} →
           </div>
         </div>
       </div>
@@ -182,7 +182,7 @@ function ActiveView({ session }: { session: SectionSession }) {
           <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)' }}>{t('sections.limit')}</span>
         </div>
         <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
-          {mins > 0 ? `${mins}м ` : ''}{secs}с
+          {mins > 0 ? `${mins}${t('routePanel.minAbbr')} ` : ''}{secs}{t('routePanel.secAbbr')}
         </div>
       </div>
 
@@ -209,8 +209,8 @@ function PreWarnView({ preWarn }: { preWarn: { section: SpeedSection; distM: num
   // Round to nearest 100m to avoid jitter from small GPS fluctuations
   const displayM = Math.round(distM / 100) * 100
   const distKm = displayM >= 1000
-    ? `${(displayM / 1000).toFixed(1)} км`
-    : `${displayM} м`
+    ? `${(displayM / 1000).toFixed(1)} ${t('routePanel.km')}`
+    : `${displayM} ${t('routePanel.m')}`
 
   return (
     <div

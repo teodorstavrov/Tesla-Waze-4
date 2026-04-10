@@ -52,4 +52,31 @@ export const redis = {
   async del(key: string): Promise<void> {
     await _cmd(['DEL', key])
   },
+
+  /** Atomic increment. Returns the value after increment. */
+  async incr(key: string): Promise<number> {
+    return (await _cmd(['INCR', key])) as number
+  },
+
+  /** Set TTL on an existing key (seconds). */
+  async expire(key: string, ttlSeconds: number): Promise<void> {
+    await _cmd(['EXPIRE', key, ttlSeconds])
+  },
+
+  /** Send multiple commands in one HTTP request (Upstash pipeline).
+   *  Returns results in the same order as commands. */
+  async pipeline(commands: (string | number)[][]): Promise<unknown[]> {
+    if (!_url || !_token) throw new Error('Redis not configured')
+    const res = await fetch(`${_url}/pipeline`, {
+      method:  'POST',
+      headers: { Authorization: `Bearer ${_token}`, 'Content-Type': 'application/json' },
+      body:    JSON.stringify(commands),
+    })
+    if (!res.ok) throw new Error(`Redis pipeline HTTP ${res.status}`)
+    const data = await res.json() as { result: unknown; error?: string }[]
+    return data.map((d) => {
+      if (d.error) throw new Error(`Redis pipeline: ${d.error}`)
+      return d.result
+    })
+  },
 }

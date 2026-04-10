@@ -100,6 +100,23 @@ function extractConnectors(tags: OverpassTags): Connector[] {
   return connectors
 }
 
+function parseOSMCharge(raw: string | undefined): { pricePerKwh: number | null; priceCurrency: string | null } {
+  if (!raw) return { pricePerKwh: null, priceCurrency: null }
+  const s = raw.trim()
+  const numMatch = s.match(/(\d+[.,]\d+|\d+)/)
+  if (!numMatch) return { pricePerKwh: null, priceCurrency: null }
+  const price = parseFloat(numMatch[1]!.replace(',', '.'))
+  if (!isFinite(price) || price < 0) return { pricePerKwh: null, priceCurrency: null }
+
+  let currency: string | null = null
+  if (/BGN|bgn|лв/i.test(s))        currency = 'BGN'
+  else if (/EUR|eur|€/i.test(s))    currency = 'EUR'
+  else if (/GBP|gbp|£/i.test(s))    currency = 'GBP'
+  else if (/USD|usd|\$/i.test(s))   currency = 'USD'
+
+  return { pricePerKwh: price, priceCurrency: currency }
+}
+
 function normalizeStatus(tags: OverpassTags): NormalizedStation['status'] {
   const disused = tags['disused:amenity'] ?? tags['disused']
   if (disused) return 'offline'
@@ -132,6 +149,9 @@ function normalize(el: OverpassElement): NormalizedStation | null {
   const totalPorts = connectors.reduce((s, c) => s + c.count, 0)
   const isFree = tags['fee'] === 'no' ? true : tags['fee'] === 'yes' ? false : null
 
+  // OSM "charge" tag examples: "0.30 EUR/kWh", "BGN 0.35/kWh", "0.49€/kWh"
+  const { pricePerKwh, priceCurrency } = parseOSMCharge(tags['charge'])
+
   return {
     id: `osm:${el.id}`,
     source: 'osm',
@@ -149,6 +169,8 @@ function normalize(el: OverpassElement): NormalizedStation | null {
     connectors,
     status: normalizeStatus(tags),
     isFree,
+    pricePerKwh,
+    priceCurrency,
     lastUpdated: null,
   }
 }

@@ -1,5 +1,6 @@
 // ─── Night mode toggle: dark standard map ↔ voyager day ───────────────
 import { useThemeStore } from '@/features/theme/store'
+import { t } from '@/lib/locale'
 
 export function ThemeToggle() {
   const { theme, mapMode, toggleNight } = useThemeStore()
@@ -9,8 +10,8 @@ export function ThemeToggle() {
     <button
       className={`icon-btn${isNight ? ' active' : ''}`}
       onClick={toggleNight}
-      title={isNight ? 'Дневен режим' : 'Нощен режим'}
-      aria-label={isNight ? 'Превключи към дневен режим' : 'Превключи към нощен режим'}
+      title={isNight ? t('map.toDayMode') : t('map.toNightMode')}
+      aria-label={isNight ? t('map.toDayMode') : t('map.toNightMode')}
       aria-pressed={isNight}
     >
       {isNight ? <SunIcon /> : <MoonIcon />}

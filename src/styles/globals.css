@@ -479,11 +479,11 @@ body,
   height: 32px !important;
 }
 
-/* ─── Right controls — 25% larger than standard icon-btn (44 → 55px) ── */
+/* ─── Right controls — 44% larger than standard icon-btn (44 → 63px) ── */
 .right-controls .icon-btn {
-  width: 55px !important;
-  height: 55px !important;
-  border-radius: 13px !important;
+  width: 63px !important;
+  height: 63px !important;
+  border-radius: 15px !important;
 }
 
 /* ─── Mobile responsiveness (≤480px phones) ─────────────────────────── */
@@ -499,11 +499,11 @@ body,
     height: 20px !important;
   }
 
-  /* Right controls — shrink from 55px to 48px on mobile */
+  /* Right controls — shrink from 63px to 55px on mobile */
   .right-controls .icon-btn {
-    width: 48px !important;
-    height: 48px !important;
-    border-radius: 11px !important;
+    width: 55px !important;
+    height: 55px !important;
+    border-radius: 13px !important;
   }
 
   /* EV filter bar — allow horizontal scroll on narrow screens */

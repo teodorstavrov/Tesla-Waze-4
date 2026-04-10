@@ -7,12 +7,14 @@ import { useEffect, useRef } from 'react'
 import { useSyncExternalStore } from 'react'
 import { gpsStore } from '@/features/gps/gpsStore'
 import { audioManager } from '@/features/audio/audioManager'
+import { t, getLang, langStore } from '@/lib/locale'
 
 const WARN_KMH          = 90    // amber — potential non-motorway limit
 const ALERT_KMH         = 130   // red   — over any Bulgarian limit
 const VOICE_COOLDOWN_MS = 2 * 60 * 1000
 
 export function Speedometer() {
+  useSyncExternalStore(langStore.subscribe.bind(langStore), getLang, getLang)
   const pos = useSyncExternalStore(
     gpsStore.onPosition.bind(gpsStore),
     () => gpsStore.getPosition(),
@@ -30,7 +32,7 @@ export function Speedometer() {
     if (now - lastAlertRef.current < VOICE_COOLDOWN_MS) return
     lastAlertRef.current = now
     audioManager.beep(1200, 150)
-    setTimeout(() => audioManager.speak('Намалете скоростта'), 220)
+    setTimeout(() => audioManager.speak(t('speedo.slowDown')), 220)
   }, [speed])
 
   // ── Colors ───────────────────────────────────────────────────────
@@ -54,7 +56,7 @@ export function Speedometer() {
 
   return (
     <div
-      aria-label={speed !== null ? `${speed} км/ч` : 'Скоростта не е налична'}
+      aria-label={speed !== null ? `${speed} ${t('speedo.kmh')}` : t('speedo.noSignal')}
       style={{
         position:       'absolute',
         bottom:         90,
@@ -101,7 +103,7 @@ export function Speedometer() {
         textTransform: 'uppercase',
         transition:    'color 0.3s',
       }}>
-        км/ч
+        {t('speedo.kmh')}
       </span>
     </div>
   )

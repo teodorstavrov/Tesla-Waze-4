@@ -6,13 +6,15 @@
 import { useSyncExternalStore } from 'react'
 import { routeStore } from './routeStore.js'
 import { maneuverDisplayText, maneuverArrowRotation } from './maneuver.js'
+import { t, getLang, langStore } from '@/lib/locale'
 
 function formatDistM(m: number): string {
-  if (m >= 1000) return `${(m / 1000).toFixed(1)} км`
-  return `${Math.round(m / 10) * 10} м`
+  if (m >= 1000) return `${(m / 1000).toFixed(1)} ${t('routePanel.km')}`
+  return `${Math.round(m / 10) * 10} ${t('routePanel.m')}`
 }
 
 export function TurnInstruction() {
+  useSyncExternalStore(langStore.subscribe.bind(langStore), getLang, getLang)
   const { status, route, currentStepIndex, distToNextStepM, arrived, destination } =
     useSyncExternalStore(
       routeStore.subscribe.bind(routeStore),
@@ -43,7 +45,7 @@ export function TurnInstruction() {
         </div>
         <div>
           <div style={{ fontSize: 15, fontWeight: 700, color: '#22c55e' }}>
-            Пристигнахте!
+            {t('route.arrived')}
           </div>
           <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
             {destination?.name}
@@ -88,7 +90,7 @@ export function TurnInstruction() {
         </div>
         {distToNextStepM !== null && distToNextStepM > 15 && (
           <div style={{ fontSize: 12, color: '#e31937', fontWeight: 600, marginTop: 2 }}>
-            след {formatDistM(distToNextStepM)}
+            {t('route.inDist')} {formatDistM(distToNextStepM)}
           </div>
         )}
         {streetName && (

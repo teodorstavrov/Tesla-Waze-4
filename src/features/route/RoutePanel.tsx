@@ -13,6 +13,7 @@ import { followStore } from '@/features/follow/followStore'
 import { gpsStore } from '@/features/gps/gpsStore'
 import { getMap } from '@/components/MapShell'
 import { isTeslaBrowser } from '@/lib/browser'
+import { t, getLang, langStore } from '@/lib/locale'
 import { findStationsAlongRoute, stationDotColor } from './routeStations.js'
 import type { NormalizedStation } from '@/features/ev/types'
 import { vehicleProfileStore } from '@/features/planning/store'
@@ -21,6 +22,9 @@ import { estimateArrivalBattery } from '@/features/planning/estimator'
 import { PremiumBadge } from '@/components/PremiumBadge'
 
 export function RoutePanel() {
+  // Re-render on country/language change
+  useSyncExternalStore(langStore.subscribe.bind(langStore), getLang, getLang)
+
   const { route, routes, activeRouteIndex, destination, status, mode, error, deviated, remainingM } =
     useSyncExternalStore(
       routeStore.subscribe.bind(routeStore),
@@ -89,7 +93,7 @@ export function RoutePanel() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <Spinner />
           <span style={{ fontSize: 13, color: 'var(--text-secondary)' }}>
-            Изчисляване на маршрут до{' '}
+            {t('routePanel.calculating')}{' '}
             <b style={{ color: 'var(--text-primary)' }}>{destination?.name}</b>...
           </span>
         </div>
@@ -112,7 +116,7 @@ export function RoutePanel() {
               background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.4)',
               borderRadius: 8, padding: '6px 10px',
             }}>
-              <span style={{ fontSize: 12, color: '#f87171' }}>Отклонение от маршрута</span>
+              <span style={{ fontSize: 12, color: '#f87171' }}>{t('route.deviated')}</span>
               <button
                 onClick={() => { void routeStore.reroute() }}
                 style={{
@@ -122,7 +126,7 @@ export function RoutePanel() {
                   cursor: 'pointer', touchAction: 'manipulation',
                 }}
               >
-                Пренасочи
+                {t('route.reroute')}
               </button>
             </div>
           )}
@@ -130,13 +134,13 @@ export function RoutePanel() {
           {/* Stats + destination + cancel */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <div style={{ display: 'flex', gap: 18, flex: 1 }}>
-              <Stat label="Остава"      value={formatDist(remainingM ?? route.distanceM)} />
-              <Stat label="Времетраене" value={formatDur(remainingDurationS)} />
-              <Stat label="Пристигане"  value={formatArrival(remainingDurationS)} />
+              <Stat label={t('route.remaining')} value={formatDist(remainingM ?? route.distanceM)} />
+              <Stat label={t('route.duration')}  value={formatDur(remainingDurationS)} />
+              <Stat label={t('route.arrival')}   value={formatArrival(remainingDurationS)} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ fontSize: 13, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-                До
+                {t('route.to')}
               </div>
               <div style={{
                 fontSize: 16, fontWeight: 600, color: 'var(--text-primary)',
@@ -151,7 +155,7 @@ export function RoutePanel() {
           {/* Route pills — always shown so user can see/switch alternatives */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: -2 }}>
             <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-              Маршрути
+              {t('routePanel.routes')}
             </span>
             <PremiumBadge feature="advanced_route_intelligence" />
           </div>
@@ -173,7 +177,7 @@ export function RoutePanel() {
                   cursor: 'pointer', touchAction: 'manipulation', textAlign: 'center' as const,
                 }}
               >
-                {i === 0 ? 'Основен' : `Алт ${i}`}
+                {i === 0 ? t('route.primary') : `${t('route.alt')} ${i}`}
                 <div style={{ fontSize: 13, marginTop: 2, opacity: 0.8 }}>{formatDist(r.distanceM)}</div>
               </button>
             ))}
@@ -211,7 +215,7 @@ export function RoutePanel() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
                     <span style={{ fontSize: 11, color: 'var(--text-secondary)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                      Текущ заряд {isEstimate ? '(оценка)' : ''}
+                      {t('routePanel.currentCharge')} {isEstimate ? t('routePanel.estimate') : ''}
                     </span>
                     <PremiumBadge feature="smart_arrival_battery" />
                   </div>
@@ -223,7 +227,7 @@ export function RoutePanel() {
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div>
                     <div style={{ fontSize: 11, color: 'var(--text-secondary)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                      При пристигане
+                      {t('routePanel.atArrival')}
                     </div>
                     <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 2, opacity: 0.7 }}>
                       {est.note}
@@ -237,11 +241,11 @@ export function RoutePanel() {
             )
           })()}
 
-          {/* Старт button — only in preview mode */}
+          {/* Start button — only in preview mode */}
           {mode === 'preview' && (
             <button
               onClick={handleStart}
-              aria-label="Старт навигация"
+              aria-label={t('route.start')}
               style={{
                 width: '100%',
                 height: 58,
@@ -262,7 +266,7 @@ export function RoutePanel() {
               }}
             >
               <StartIcon />
-              Старт
+              {t('route.start')}
             </button>
           )}
 
@@ -284,7 +288,7 @@ export function RoutePanel() {
                 >
                   <span style={{ fontSize: 15, fontWeight: 600, color: '#e31937', display: 'flex', alignItems: 'center', gap: 5 }}>
                     <span style={{ fontSize: 18 }}>⚡</span>
-                    Зареди по пътя
+                    {t('routePanel.chargeEnRoute')}
                     <span style={{
                       background: 'rgba(227,25,55,0.18)', border: '1px solid rgba(227,25,55,0.4)',
                       borderRadius: 8, padding: '0 6px', fontSize: 13, fontWeight: 700,
@@ -315,7 +319,7 @@ export function RoutePanel() {
             {!showStations && (
               <button
                 onClick={() => setDismissed(true)}
-                aria-label="Скрий панела"
+                aria-label={t('routePanel.hidePanel')}
                 style={{
                   marginLeft: stationsOnRoute.length > 0 ? 0 : 'auto',
                   marginTop: stationsOnRoute.length > 0 ? 8 : 0,
@@ -329,7 +333,7 @@ export function RoutePanel() {
                   cursor: 'pointer', touchAction: 'manipulation',
                 }}
               >
-                СКРИИ
+                {t('routePanel.hidePanel')}
               </button>
             )}
           </div>
@@ -397,8 +401,8 @@ function StationRow({ station, distFromRouteM }: { station: NormalizedStation; d
       {/* Distance from route */}
       <div style={{ fontSize: 10, color: 'var(--text-secondary)', flexShrink: 0, textAlign: 'right' as const }}>
         ±{distFromRouteM < 1000
-          ? `${distFromRouteM} м`
-          : `${(distFromRouteM / 1000).toFixed(1)} км`}
+          ? `${distFromRouteM} ${t('routePanel.m')}`
+          : `${(distFromRouteM / 1000).toFixed(1)} ${t('routePanel.km')}`}
       </div>
     </div>
   )
@@ -442,7 +446,7 @@ function CancelButton() {
   return (
     <button
       onClick={() => routeStore.clear()}
-      aria-label="Откажи маршрут"
+      aria-label={t('route.cancel')}
       style={{
         flexShrink: 0, width: 36, height: 36, borderRadius: 8,
         background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.16)',
@@ -471,19 +475,24 @@ function Spinner() {
 }
 
 function formatDist(metres: number): string {
-  if (metres < 1000) return `${Math.round(metres)} м`
-  return `${(metres / 1000).toFixed(1)} км`
+  const m  = t('routePanel.m')
+  const km = t('routePanel.km')
+  if (metres < 1000) return `${Math.round(metres)} ${m}`
+  return `${(metres / 1000).toFixed(1)} ${km}`
 }
 
 function formatDur(seconds: number): string {
   const min = Math.round(seconds / 60)
-  if (min < 60) return `${min} мин`
-  const h = Math.floor(min / 60)
-  const m = min % 60
-  return m > 0 ? `${h}ч ${m}м` : `${h}ч`
+  const mins = t('routePanel.mins')
+  const h    = t('routePanel.hours')
+  if (min < 60) return `${min} ${mins}`
+  const hh = Math.floor(min / 60)
+  const mm = min % 60
+  return mm > 0 ? `${hh}${h} ${mm}${mins}` : `${hh}${h}`
 }
 
 function formatArrival(seconds: number): string {
   const arrival = new Date(Date.now() + seconds * 1000)
-  return arrival.toLocaleTimeString('bg-BG', { hour: '2-digit', minute: '2-digit' })
+  const locale  = getLang() === 'bg' ? 'bg-BG' : 'en-GB'
+  return arrival.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })
 }

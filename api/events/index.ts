@@ -10,7 +10,7 @@
 // Redis holds ~2-3 kB for <50 events — the read cost is negligible.
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { BULGARIA_BBOX } from '../_lib/utils/bbox.js'
+import { BULGARIA_BBOX, NORWAY_BBOX, parseBBox } from '../_lib/utils/bbox.js'
 import { eventMemStore } from '../_lib/events/store.js'
 import { eventRedisStore } from '../_lib/events/redisStore.js'
 import { isRedisConfigured } from '../_lib/db/redis.js'
@@ -49,10 +49,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     if (!_checkGetRL(ip)) { res.status(429).json({ error: 'Too many requests' }); return }
 
     try {
+      // Use client-supplied bbox (supports BG + NO). Fall back to Bulgaria if missing/invalid.
+      const clientBBox = parseBBox(req.query['bbox'] as string | undefined)
+      const bbox = clientBBox ?? BULGARIA_BBOX
+
+      // Clamp to supported regions so we never query unbounded world data
+      const BG = BULGARIA_BBOX
+      const NO = NORWAY_BBOX
+      const inBg = bbox.minLat <= BG.maxLat && bbox.maxLat >= BG.minLat
+      const inNo = bbox.minLat <= NO.maxLat && bbox.maxLat >= NO.minLat
+      const queryBBox = (!inBg && inNo) ? NO : (!inNo && inBg) ? BG : bbox
+
       // Always read from Redis — no in-memory cache so admin deletes are instant
       const events = useRedis
-        ? await eventRedisStore.getInBBox(BULGARIA_BBOX)
-        : eventMemStore.getInBBox(BULGARIA_BBOX)
+        ? await eventRedisStore.getInBBox(queryBBox)
+        : eventMemStore.getInBBox(queryBBox)
 
       setCacheHeaders(res, 0)
       res.status(200).json({ events })
@@ -78,7 +89,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
       if (!VALID_TYPES.has(type))           { res.status(400).json({ error: `Invalid type: ${String(type)}` }); return }
       if (!isFinite(lat) || !isFinite(lng)) { res.status(400).json({ error: 'Invalid coordinates' }); return }
-      if (lat < 41.0 || lat > 44.5 || lng < 22.0 || lng > 28.7) {
+      // Accept coordinates in Bulgaria or Norway
+      const inBulgaria = lat >= 41.0 && lat <= 44.5 && lng >= 22.0 && lng <= 28.7
+      const inNorway   = lat >= 57.9 && lat <= 71.2 && lng >= 4.4  && lng <= 31.3
+      if (!inBulgaria && !inNorway) {
         res.status(400).json({ error: 'Coordinates outside supported region' }); return
       }
 

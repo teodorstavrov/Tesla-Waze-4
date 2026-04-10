@@ -260,6 +260,12 @@ export function Onboarding() {
       <div style={{ marginTop: 14, fontSize: 12, color: 'rgba(255,255,255,0.22)' }}>
         {tapHint}
       </div>
+
+      <div style={{ marginTop: 10, fontSize: 10, color: 'rgba(255,255,255,0.15)', maxWidth: 340, lineHeight: 1.4 }}>
+        {isBg
+          ? 'Независим проект — не е свързан с Tesla, Inc.'
+          : 'This is an independent project not affiliated with Tesla.'}
+      </div>
     </div>
   )
 }

@@ -10,6 +10,8 @@
 //   • Click outside / Escape / ✕ → collapse
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useSyncExternalStore } from 'react'
+import { t, getLang, langStore } from '@/lib/locale'
 import { getMap } from '@/components/MapShell'
 import { evStore } from '@/features/ev/evStore'
 import { routeStore } from '@/features/route/routeStore'
@@ -33,6 +35,7 @@ const SOURCE_COLOR: Record<string, string> = {
 // ─────────────────────────────────────────────────────────────────
 
 export function SearchBar() {
+  useSyncExternalStore(langStore.subscribe.bind(langStore), getLang, getLang)
   const [open, setOpen]         = useState(false)
   const [query, setQuery]       = useState('')
   const [results, setResults]   = useState<SearchResult[]>([])
@@ -203,8 +206,8 @@ export function SearchBar() {
           <button
             className="icon-btn"
             onClick={openSearch}
-            aria-label="Отвори търсачката"
-            title="Търси"
+            aria-label={t('search.open')}
+            title={t('search.searchTitle')}
           >
             <SearchIcon />
           </button>
@@ -225,7 +228,7 @@ export function SearchBar() {
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Търси места или зарядни станции…"
+                placeholder={t('search.placeholder')}
                 style={{
                   flex: 1, background: 'transparent', border: 'none', outline: 'none',
                   color: 'var(--text-primary)', fontSize: 14, padding: '2px 0', minWidth: 0,
@@ -233,7 +236,7 @@ export function SearchBar() {
               />
               <button
                 onMouseDown={(e) => { e.preventDefault(); closeSearch() }}
-                aria-label="Затвори търсачката"
+                aria-label={t('search.close')}
                 style={{
                   background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)',
                   color: 'var(--text-secondary)', cursor: 'pointer',
@@ -261,7 +264,7 @@ export function SearchBar() {
                 {/* Favorites section */}
                 {favorites.length > 0 && (
                   <>
-                    <SectionLabel label="Любими" />
+                    <SectionLabel label={t('search.favorites')} />
                     {favorites.map((entry) => (
                       <ResultRow
                         key={`fav-${entry.lat},${entry.lng}`}
@@ -282,7 +285,7 @@ export function SearchBar() {
                 {/* Recent (non-favorites) section */}
                 {historyOnly.length > 0 && (
                   <>
-                    <SectionLabel label="Скорошни" />
+                    <SectionLabel label={t('search.recent')} />
                     {historyOnly.map((entry) => (
                       <ResultRow
                         key={`hist-${entry.lat},${entry.lng}`}
@@ -314,7 +317,7 @@ export function SearchBar() {
                 {/* Station results */}
                 {results.filter((r) => r.type === 'station').length > 0 && (
                   <>
-                    <SectionLabel label="Зарядни станции" />
+                    <SectionLabel label={t('search.stations')} />
                     {results
                       .filter((r): r is StationResult => r.type === 'station')
                       .map((r, i) => (
@@ -333,7 +336,7 @@ export function SearchBar() {
                 {/* Geo results */}
                 {results.filter((r) => r.type === 'geo').length > 0 && (
                   <>
-                    <SectionLabel label="Места" />
+                    <SectionLabel label={t('search.places')} />
                     {results
                       .filter((r): r is GeoResult & { _city?: string } => r.type === 'geo')
                       .map((r, i) => {
@@ -364,7 +367,7 @@ export function SearchBar() {
                   textAlign: 'center',
                 }}
               >
-                Няма резултати за &ldquo;{query}&rdquo;
+                {t('search.noResults')} &ldquo;{query}&rdquo;
               </div>
             )}
           </div>
@@ -465,8 +468,8 @@ function HistoryResultContent({
         <button
           onMouseDown={(e) => e.preventDefault()}
           onClick={onStar}
-          aria-label={starred ? 'Премахни от любими' : 'Добави в любими'}
-          title={starred ? 'Премахни от любими' : 'Добави в любими'}
+          aria-label={starred ? t('search.removeFav') : t('search.addFav')}
+          title={starred ? t('search.removeFav') : t('search.addFav')}
           style={{
             background: 'none', border: 'none', cursor: 'pointer',
             padding: 4, borderRadius: 6, lineHeight: 1,
@@ -482,8 +485,8 @@ function HistoryResultContent({
           <button
             onMouseDown={(e) => e.preventDefault()}
             onClick={onRemove}
-            aria-label="Премахни от историята"
-            title="Премахни"
+            aria-label={t('search.removeHist')}
+            title={t('search.remove')}
             style={{
               background: 'none', border: 'none', cursor: 'pointer',
               padding: 4, borderRadius: 6, lineHeight: 1,

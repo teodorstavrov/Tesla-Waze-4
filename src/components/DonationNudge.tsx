@@ -11,8 +11,10 @@
 // TESLA MODE: no backdrop-filter, no animations.
 
 import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
 import { isTeslaBrowser } from '@/lib/browser'
 import { openSupportModal } from '@/components/SupportModal'
+import { t, getLang, langStore } from '@/lib/locale'
 
 const LS_VISITS  = 'tr-visits'
 const EVERY_N    = 10
@@ -38,6 +40,7 @@ function alreadySeen(visit: number): boolean {
 // ── Component ─────────────────────────────────────────────────────────────
 
 export function DonationNudge({ qrImageUrl }: { qrImageUrl: string }) {
+  useSyncExternalStore(langStore.subscribe.bind(langStore), getLang, getLang)
   const [visible, setVisible] = useState(false)
   const [shown,   setShown]   = useState(false)   // CSS transition target
   const [visit,   setVisit]   = useState(0)
@@ -92,7 +95,7 @@ export function DonationNudge({ qrImageUrl }: { qrImageUrl: string }) {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Подкрепи проекта"
+        aria-label={t('nudge.dialogLabel')}
         style={{
           pointerEvents: 'auto',
           width:   'min(380px, calc(100vw - 32px))',
@@ -115,15 +118,15 @@ export function DonationNudge({ qrImageUrl }: { qrImageUrl: string }) {
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
           <div>
             <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', lineHeight: 1.2 }}>
-              ❤️ Хареса ли ти Tesla RADAR?
+              {t('nudge.title')}
             </div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 5, lineHeight: 1.55 }}>
-              Приложението е безплатно и без реклами. Ако ти помага на пътя — поднеси кафе на разработчика. 😊
+              {t('nudge.subtitle')}
             </div>
           </div>
           <button
             onClick={dismiss}
-            aria-label="Затвори"
+            aria-label={t('nudge.closeLabel')}
             style={{
               flexShrink: 0,
               background: 'rgba(255,255,255,0.06)',
@@ -155,7 +158,7 @@ export function DonationNudge({ qrImageUrl }: { qrImageUrl: string }) {
           }}>
             <img
               src={qrImageUrl}
-              alt="QR код за дарение"
+              alt={t('nudge.qrAlt')}
               width={82}
               height={82}
               style={{ width: 82, height: 82, display: 'block', borderRadius: 6 }}
@@ -165,7 +168,7 @@ export function DonationNudge({ qrImageUrl }: { qrImageUrl: string }) {
           {/* Text side */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>
-              Сканирай QR кода с телефона или натисни „Подкрепи" за повече начини.
+              {t('nudge.scanHint')}
             </div>
             <button
               onClick={() => {
@@ -185,7 +188,7 @@ export function DonationNudge({ qrImageUrl }: { qrImageUrl: string }) {
                 boxShadow: '0 3px 12px rgba(227,25,55,0.35)',
               }}
             >
-              ❤️ Подкрепи проекта
+              {t('nudge.support')}
             </button>
             <button
               onClick={dismiss}
@@ -200,7 +203,7 @@ export function DonationNudge({ qrImageUrl }: { qrImageUrl: string }) {
                 touchAction: 'manipulation',
               }}
             >
-              Може би по-късно
+              {t('nudge.later')}
             </button>
           </div>
         </div>

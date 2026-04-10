@@ -8,15 +8,11 @@ import { openVehicleProfileModal } from '@/components/VehicleProfileModal'
 import { openPricingModal } from '@/components/PricingModal'
 import { settingsStore } from '@/features/settings/settingsStore'
 import { countryStore } from '@/lib/countryStore'
-import { langStore, t } from '@/lib/locale'
+import { langStore, t, getLang } from '@/lib/locale'
 import { isPremiumEnabled } from '@/lib/featureFlags'
-import { eventStore } from '@/features/events/eventStore'
-
-function isAdminSession(): boolean {
-  try { return !!sessionStorage.getItem('admin_secret') } catch { return false }
-}
 
 export function LeftControls() {
+  useSyncExternalStore(langStore.subscribe.bind(langStore), getLang, getLang)
   const headingMode = useSyncExternalStore(
     settingsStore.subscribe.bind(settingsStore),
     () => settingsStore.get().headingMode,
@@ -24,13 +20,6 @@ export function LeftControls() {
   )
 
   const isCourseUp    = headingMode === 'course-up'
-  const hidePermanent = useSyncExternalStore(
-    eventStore.subscribe.bind(eventStore),
-    () => eventStore.getState().hidePermanent,
-    () => false,
-  )
-  const isAdmin = isAdminSession()
-
   const [modeHint, setModeHint] = useState<string | null>(null)
   const modeHintTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -84,8 +73,8 @@ export function LeftControls() {
         <button
           className="icon-btn"
           onClick={handleHeadingToggle}
-          title={isCourseUp ? 'Режим: картата се върти (смени на аватар се върти)' : 'Режим: аватарът се върти (смени на картата се върти)'}
-          aria-label="Смени режим на ориентация"
+          title={isCourseUp ? t('controls.courseUpHint') : t('controls.northUpHint')}
+          aria-label={t('controls.orientLabel')}
           aria-pressed={isCourseUp}
           style={{ opacity: 1 }}
         >
@@ -104,8 +93,8 @@ export function LeftControls() {
       </button>
       <div style={{ height: 1, background: 'var(--glass-border)', margin: '4px 0' }} />
       <button className="icon-btn" onClick={openVehicleProfileModal}
-        title={countryStore.getCountryOrDefault().locale === 'bg' ? 'Профил на автомобила' : 'Vehicle setup'}
-        aria-label={countryStore.getCountryOrDefault().locale === 'bg' ? 'Профил на автомобила' : 'Vehicle setup'}>
+        title={t('controls.vehicleProfile')}
+        aria-label={t('controls.vehicleProfile')}>
         <CarBatteryIcon />
       </button>
       {isPremiumEnabled() && (
@@ -119,20 +108,8 @@ export function LeftControls() {
           👑
         </button>
       )}
-      {isAdmin && (
-        <button
-          className="icon-btn"
-          onClick={() => eventStore.toggleHidePermanent()}
-          title={hidePermanent ? 'Покажи служебните маркери' : 'Скрий служебните маркери'}
-          aria-label={hidePermanent ? 'Покажи служебните маркери' : 'Скрий служебните маркери'}
-          aria-pressed={hidePermanent}
-          style={{ opacity: hidePermanent ? 0.4 : 1 }}
-        >
-          <PinIcon />
-        </button>
-      )}
       <button className="icon-btn" onClick={openSupportModal}
-        title="Подкрепи проекта" aria-label="Подкрепи проекта">
+        title={t('controls.support')} aria-label={t('controls.support')}>
         <HeartIcon />
       </button>
     </div>
@@ -194,16 +171,6 @@ function CarBatteryIcon() {
       <path d="M22 11v2" />
       <line x1="6" y1="11" x2="6" y2="13" />
       <line x1="10" y1="11" x2="10" y2="13" />
-    </svg>
-  )
-}
-
-function PinIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z" />
-      <circle cx="12" cy="9" r="2.5" />
     </svg>
   )
 }

@@ -38,6 +38,10 @@ export interface NormalizedStation {
   connectors: Connector[]
   status: StationStatus
   isFree: boolean | null
+  /** Price per kWh in local currency, e.g. 0.35 */
+  pricePerKwh: number | null
+  /** ISO 4217 currency code, e.g. "BGN", "EUR" */
+  priceCurrency: string | null
   lastUpdated: string | null
 }
 

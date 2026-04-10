@@ -1,16 +1,62 @@
 // ─── Rating Modal ──────────────────────────────────────────────────────
 // Quick 1–5 star rating popup. Opened via openRatingModal().
+// Language-aware: switches BG↔EN with country/langStore.
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { isTeslaBrowser } from '@/lib/browser'
+import { getLang, langStore } from '@/lib/locale'
 
 let _open: (() => void) | null = null
 export function openRatingModal(): void { _open?.() }
 
 interface RatingStats { avg: number | null; count: number }
 
+const STRINGS = {
+  bg: {
+    title:        'Оцени TesRadar',
+    subtitle:     'Твоята оценка ни помага да подобряваме приложението',
+    noRatings:    'Все още няма оценки',
+    vote:         (n: number) => n === 1 ? 'глас' : 'гласа',
+    namePlaceholder:    'Име (незадължително)',
+    emailPlaceholder:   'Имейл (незадължително)',
+    countryPlaceholder: 'Държава',
+    cityPlaceholder:    'Град',
+    commentPlaceholder: 'Коментар (незадължително)...',
+    sending:      'Изпращане...',
+    submitActive: (n: number) => `Изпрати оценката — ${'⭐'.repeat(n)}`,
+    submitIdle:   'Избери оценка',
+    thankYou:     'Благодарим за оценката!',
+    close:        'Затвори',
+    starLabel:    (n: number) => `${n} звезди`,
+    errNoConn:    'Няма връзка. Опитайте отново.',
+    errDefault:   'Грешка',
+  },
+  en: {
+    title:        'Rate TesRadar',
+    subtitle:     'Your rating helps us improve the app',
+    noRatings:    'No ratings yet',
+    vote:         (n: number) => n === 1 ? 'vote' : 'votes',
+    namePlaceholder:    'Name (optional)',
+    emailPlaceholder:   'Email (optional)',
+    countryPlaceholder: 'Country',
+    cityPlaceholder:    'City',
+    commentPlaceholder: 'Comment (optional)...',
+    sending:      'Sending...',
+    submitActive: (n: number) => `Submit rating — ${'⭐'.repeat(n)}`,
+    submitIdle:   'Select a rating',
+    thankYou:     'Thanks for your rating!',
+    close:        'Close',
+    starLabel:    (n: number) => `${n} stars`,
+    errNoConn:    'No connection. Please try again.',
+    errDefault:   'Error',
+  },
+}
+
 export function RatingModal() {
+  const lang = useSyncExternalStore(langStore.subscribe.bind(langStore), getLang, getLang)
+  const s = STRINGS[lang]
+
   const [open,    setOpen]    = useState(false)
   const [shown,   setShown]   = useState(false)
   const [hovered, setHovered] = useState(0)
@@ -71,10 +117,10 @@ export function RatingModal() {
         }),
       })
       const data = await res.json() as { ok?: boolean; error?: string }
-      if (!res.ok) { setState('error'); setErrMsg(data.error ?? 'Грешка'); return }
+      if (!res.ok) { setState('error'); setErrMsg(data.error ?? s.errDefault); return }
       setState('sent')
     } catch {
-      setState('error'); setErrMsg('Няма връзка. Опитайте отново.')
+      setState('error'); setErrMsg(s.errNoConn)
     }
   }
 
@@ -108,7 +154,7 @@ export function RatingModal() {
         transition: 'opacity 0.22s ease-out, transform 0.22s ease-out',
       }}>
         {/* Close */}
-        <button onClick={close} aria-label="Затвори" style={{
+        <button onClick={close} aria-label={s.close} style={{
           position: 'absolute', top: 14, right: 14,
           width: 34, height: 34, borderRadius: 10,
           background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)',
@@ -120,7 +166,7 @@ export function RatingModal() {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: '12px 0' }}>
             <div style={{ fontSize: 48 }}>🙏</div>
             <div style={{ fontSize: 17, fontWeight: 700, color: '#f2f2f2', textAlign: 'center' }}>
-              Благодарим за оценката!
+              {s.thankYou}
             </div>
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', textAlign: 'center' }}>
               {'⭐'.repeat(selected)} {selected}/5
@@ -130,13 +176,13 @@ export function RatingModal() {
           <>
             <div style={{ textAlign: 'center' }}>
               <div style={{ fontSize: 18, fontWeight: 700, color: '#f2f2f2', marginBottom: 4 }}>
-                Оцени TesRadar
+                {s.title}
               </div>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
-                Твоята оценка ни помага да подобряваме приложението
+                {s.subtitle}
               </div>
 
-              {/* Aggregate stats — always shown once loaded */}
+              {/* Aggregate stats */}
               {stats !== null && (
                 <div style={{
                   display: 'inline-flex', alignItems: 'center', gap: 6,
@@ -153,12 +199,12 @@ export function RatingModal() {
                         {stats.avg?.toFixed(1)}
                       </span>
                       <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>
-                        ({stats.count} {stats.count === 1 ? 'глас' : 'гласа'})
+                        ({stats.count} {s.vote(stats.count)})
                       </span>
                     </>
                   ) : (
                     <span style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>
-                      Все още няма оценки
+                      {s.noRatings}
                     </span>
                   )}
                 </div>
@@ -167,22 +213,22 @@ export function RatingModal() {
 
             {/* Stars */}
             <div style={{ display: 'flex', justifyContent: 'center', gap: 10 }}>
-              {[1,2,3,4,5].map((s) => (
+              {[1,2,3,4,5].map((n) => (
                 <button
-                  key={s}
-                  onClick={() => setSelected(s)}
-                  onPointerEnter={() => setHovered(s)}
+                  key={n}
+                  onClick={() => setSelected(n)}
+                  onPointerEnter={() => setHovered(n)}
                   onPointerLeave={() => setHovered(0)}
-                  aria-label={`${s} звезди`}
+                  aria-label={s.starLabel(n)}
                   style={{
                     background: 'none', border: 'none', cursor: 'pointer',
                     fontSize: 44, lineHeight: 1, padding: '4px 2px',
-                    filter: s <= display
+                    filter: n <= display
                       ? 'drop-shadow(0 0 8px rgba(251,191,36,0.7))'
                       : 'none',
-                    transform: s <= display ? 'scale(1.15)' : 'scale(1)',
+                    transform: n <= display ? 'scale(1.15)' : 'scale(1)',
                     transition: 'transform 0.12s ease, filter 0.12s ease',
-                    color: s <= display ? '#fbbf24' : 'rgba(255,255,255,0.15)',
+                    color: n <= display ? '#fbbf24' : 'rgba(255,255,255,0.15)',
                   }}
                 >
                   ★
@@ -201,13 +247,13 @@ export function RatingModal() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                   <div style={{ display: 'flex', gap: 10 }}>
                     <input
-                      placeholder="Име (незадължително)"
+                      placeholder={s.namePlaceholder}
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       style={{ ...inputStyle, flex: 1 }}
                     />
                     <input
-                      placeholder="Имейл (незадължително)"
+                      placeholder={s.emailPlaceholder}
                       type="email"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
@@ -216,20 +262,20 @@ export function RatingModal() {
                   </div>
                   <div style={{ display: 'flex', gap: 10 }}>
                     <input
-                      placeholder="Държава"
+                      placeholder={s.countryPlaceholder}
                       value={country}
                       onChange={(e) => setCountry(e.target.value)}
                       style={{ ...inputStyle, flex: 1 }}
                     />
                     <input
-                      placeholder="Град"
+                      placeholder={s.cityPlaceholder}
                       value={city}
                       onChange={(e) => setCity(e.target.value)}
                       style={{ ...inputStyle, flex: 1 }}
                     />
                   </div>
                   <textarea
-                    placeholder="Коментар (незадължително)..."
+                    placeholder={s.commentPlaceholder}
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
                     rows={3}
@@ -255,7 +301,7 @@ export function RatingModal() {
                 opacity: state === 'sending' ? 0.6 : 1,
               }}
             >
-              {state === 'sending' ? 'Изпращане...' : selected ? `Изпрати оценката — ${'⭐'.repeat(selected)}` : 'Избери оценка'}
+              {state === 'sending' ? s.sending : selected ? s.submitActive(selected) : s.submitIdle}
             </button>
           </>
         )}

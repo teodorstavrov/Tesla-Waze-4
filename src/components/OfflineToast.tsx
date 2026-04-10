@@ -4,9 +4,12 @@
 // Auto-hides 3s after connectivity is restored.
 
 import { useEffect, useState, useRef } from 'react'
+import { useSyncExternalStore } from 'react'
 import { audioManager } from '@/features/audio/audioManager'
+import { t, getLang, langStore } from '@/lib/locale'
 
 export function OfflineToast() {
+  useSyncExternalStore(langStore.subscribe.bind(langStore), getLang, getLang)
   const [offline, setOffline] = useState(!navigator.onLine)
   const [visible, setVisible] = useState(!navigator.onLine)
   const hideTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -61,7 +64,7 @@ export function OfflineToast() {
       aria-live="polite"
     >
       <span style={{ fontSize: 10 }}>{offline ? '⬤' : '⬤'}</span>
-      {offline ? 'Офлайн — картата и станциите са кеширани' : 'Връзката е възстановена'}
+      {offline ? t('offline.offline') : t('offline.online')}
     </div>
   )
 }

@@ -1,7 +1,11 @@
 // ─── Rate limiter ───────────────────────────────────────────────────────
 //
-// Redis-backed sliding window counter so all Vercel instances share state.
+// Redis-backed atomic sliding window counter — all Vercel instances share state.
 // Falls back to in-memory if Redis is not configured (dev / cold-start).
+//
+// Redis path uses INCR + EXPIRE (atomic) instead of GET + SET.
+// This closes a race window where two concurrent requests could both
+// pass the limit check before either incremented the counter.
 //
 // Usage:
 //   const ok = await rateLimit(ip, 'events', 5, 600)  // 5 req per 10 min
@@ -21,16 +25,14 @@ export async function rateLimit(
   const key = `teslaradar:rl:${action}:${ip}`
 
   if (isRedisConfigured()) {
-    // Atomic increment + set expiry on first hit
-    const count = (await redis.get<number>(key)) ?? 0
-    if (count >= limit) return false
-    if (count === 0) {
-      await redis.setWithExpiry(key, 1, windowSecs)
-    } else {
-      // INCR via SET (simple — acceptable for this scale)
-      await redis.setWithExpiry(key, count + 1, windowSecs)
-    }
-    return true
+    // Pipeline INCR + EXPIRE in one HTTP request instead of two.
+    // EXPIRE on every call is harmless (resets TTL to same value) and lets us
+    // avoid the extra round-trip that the count===1 branch previously required.
+    const [count] = await redis.pipeline([
+      ['INCR', key],
+      ['EXPIRE', key, windowSecs],
+    ])
+    return (count as number) <= limit
   }
 
   // In-memory fallback

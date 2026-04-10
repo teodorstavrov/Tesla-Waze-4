@@ -7,8 +7,6 @@ import { logger } from '@/lib/logger'
 
 const STALE_MS = 3 * 60 * 1000  // 3 min — cost reduction; events rarely change second-by-second
 
-const LS_HIDE_PERMANENT = 'teslaradar:hidePermanent'
-
 interface EventState {
   events: RoadEvent[]
   status: 'idle' | 'loading' | 'ok' | 'error'
@@ -20,24 +18,6 @@ interface EventState {
   reportModalOpen: boolean
   /** Pre-set location for the report modal (e.g. station coords). null = use GPS/map center. */
   reportLocation: { lat: number; lng: number } | null
-  hidePermanent: boolean
-}
-
-function _loadHidePermanent(): boolean {
-  try { return localStorage.getItem(LS_HIDE_PERMANENT) === '1' } catch { return false }
-}
-
-// React to cross-tab localStorage changes (e.g. admin panel toggling from another tab)
-if (typeof window !== 'undefined') {
-  window.addEventListener('storage', (e) => {
-    if (e.key === LS_HIDE_PERMANENT) {
-      const next = e.newValue === '1'
-      if (next !== _state.hidePermanent) {
-        _state = { ..._state, hidePermanent: next }
-        _emit()
-      }
-    }
-  })
 }
 
 let _state: EventState = {
@@ -50,13 +30,23 @@ let _state: EventState = {
   showVoting:      false,
   reportModalOpen: false,
   reportLocation:  null,
-  hidePermanent:   _loadHidePermanent(),
 }
 
 type Listener = () => void
 const _listeners = new Set<Listener>()
 let _abortController: AbortController | null = null
 let _fetchVersion = 0
+
+// Suppress voting panel for events the user just reported themselves (90s window)
+const _selfReportedIds = new Map<string, number>()  // id → expiresAt
+const SELF_REPORT_SUPPRESS_MS = 90_000
+
+function _isSelfReported(id: string): boolean {
+  const exp = _selfReportedIds.get(id)
+  if (!exp) return false
+  if (Date.now() > exp) { _selfReportedIds.delete(id); return false }
+  return true
+}
 
 function _emit(): void { _listeners.forEach((fn) => fn()) }
 
@@ -74,6 +64,8 @@ export const eventStore = {
   },
 
   selectEvent(event: RoadEvent | null, showVoting = false): void {
+    // Don't open the voting panel for events the user just reported themselves
+    if (showVoting && event && _isSelfReported(event.id)) return
     if (_state.selectedEvent?.id === event?.id && _state.showVoting === showVoting) return
     _state = { ..._state, selectedEvent: event, showVoting }
     _emit()
@@ -102,14 +94,6 @@ export const eventStore = {
       events: _state.events.map((e) => e.id === updated.id ? updated : e),
       selectedEvent: _state.selectedEvent?.id === updated.id ? updated : _state.selectedEvent,
     }
-    _emit()
-  },
-
-  /** Toggle visibility of permanent (admin) markers. Persisted in localStorage. */
-  toggleHidePermanent(): void {
-    const next = !_state.hidePermanent
-    _state = { ..._state, hidePermanent: next }
-    try { localStorage.setItem(LS_HIDE_PERMANENT, next ? '1' : '0') } catch { /* ignore */ }
     _emit()
   },
 
@@ -176,6 +160,8 @@ export const eventStore = {
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = (await res.json()) as { event: RoadEvent }
+      // Mark as self-reported to suppress the proximity voting popup for 90s
+      _selfReportedIds.set(data.event.id, Date.now() + SELF_REPORT_SUPPRESS_MS)
       eventStore.addEvent(data.event)
       logger.events.info('Event reported', { type, lat, lng })
       return data.event

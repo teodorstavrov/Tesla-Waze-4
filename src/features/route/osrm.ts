@@ -27,6 +27,7 @@ const OSRM_BASE = 'https://router.project-osrm.org/route/v1/driving'
 interface OSRMManeuver {
   type:      string
   modifier?: string
+  exit?:     number            // roundabout exit number (1-based)
   location:  [number, number]  // [lng, lat]
 }
 
@@ -57,6 +58,7 @@ function parseSteps(leg: OSRMLeg): RouteStep[] {
     lng:       s.maneuver.location[0],
     type:      s.maneuver.type,
     modifier:  s.maneuver.modifier,
+    exit:      s.maneuver.exit,
     name:      s.name,
     distanceM: s.distance,
     durationS: s.duration,

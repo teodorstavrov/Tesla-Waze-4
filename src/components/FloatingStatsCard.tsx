@@ -66,7 +66,7 @@ export function FloatingStatsCard() {
     :                                                   String(totalCount)
 
   const gpsValue =
-    gpsPos == null ? '—' : `${Math.round(gpsPos.accuracy)}м`
+    gpsPos == null ? '—' : `${Math.round(gpsPos.accuracy)}${t('routePanel.m')}`
 
   const gpsAccent =
     gpsPos == null          ? undefined

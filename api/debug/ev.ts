@@ -1,14 +1,23 @@
 // ─── GET /api/debug/ev ─────────────────────────────────────────────────
 // Diagnostic: shows Redis contents + live provider status.
-// NOT protected — read-only, no sensitive data exposed.
+// Protected by ADMIN_SECRET — pass as ?secret= query param or
+// Authorization: Bearer <ADMIN_SECRET> header.
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { redis, isRedisConfigured } from '../_lib/db/redis.js'
+import { isAuthorized, unauthorized } from '../_lib/admin/auth.js'
 import type { NormalizedStation } from '../_lib/normalize/types.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   res.setHeader('Access-Control-Allow-Origin', '*')
   if (req.method !== 'GET') { res.status(405).json({ error: 'Method not allowed' }); return }
+
+  // Require ADMIN_SECRET (header or query param)
+  const querySecret = String(req.query['secret'] ?? '')
+  const adminSecret = process.env['ADMIN_SECRET'] ?? ''
+  const passedQuery  = adminSecret && querySecret === adminSecret
+  const passedHeader = isAuthorized(req)
+  if (!passedQuery && !passedHeader) { unauthorized(res); return }
 
   const configured = isRedisConfigured()
 

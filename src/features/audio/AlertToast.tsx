@@ -11,10 +11,12 @@
 
 import { useSyncExternalStore } from 'react'
 import { toastStore } from './alertEngine'
-import { EVENT_COLORS, EVENT_EMOJI, EVENT_LABELS } from '@/features/events/types'
+import { EVENT_COLORS, EVENT_EMOJI } from '@/features/events/types'
 import { isTeslaBrowser } from '@/lib/browser'
+import { t, getLang, langStore } from '@/lib/locale'
 
 export function AlertToast() {
+  useSyncExternalStore(langStore.subscribe.bind(langStore), getLang, getLang)
   const { type, text, distM, visible } = useSyncExternalStore(
     toastStore.subscribe.bind(toastStore),
     () => toastStore.getState(),
@@ -23,7 +25,7 @@ export function AlertToast() {
 
   const color = type ? EVENT_COLORS[type] : '#e31937'
   const emoji = type ? EVENT_EMOJI[type]  : '⚠️'
-  const label = type ? EVENT_LABELS[type] : ''
+  const label = type ? t(`events.${type}`) : ''
 
   if (isTeslaBrowser) {
     // ── Tesla: flat banner, visibility-toggled, always in DOM ────────────
@@ -55,7 +57,7 @@ export function AlertToast() {
           {label}{label && text ? ' — ' : ''}{text}
           {distM != null && (
             <span style={{ fontWeight: 400, opacity: 0.85, marginLeft: 8 }}>
-              ({distM < 1000 ? `${distM} м` : `${(distM / 1000).toFixed(1)} км`})
+              ({distM < 1000 ? `${distM} ${t('routePanel.m')}` : `${(distM / 1000).toFixed(1)} ${t('routePanel.km')}`})
             </span>
           )}
         </div>
@@ -94,7 +96,7 @@ export function AlertToast() {
         {label}{label && text ? ' — ' : ''}{text}
         {distM != null && (
           <span style={{ fontWeight: 400, opacity: 0.85, marginLeft: 8 }}>
-            ({distM < 1000 ? `${distM} м` : `${(distM / 1000).toFixed(1)} км`})
+            ({distM < 1000 ? `${distM} ${t('routePanel.m')}` : `${(distM / 1000).toFixed(1)} ${t('routePanel.km')}`})
           </span>
         )}
       </div>

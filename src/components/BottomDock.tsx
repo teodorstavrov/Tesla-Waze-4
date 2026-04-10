@@ -134,8 +134,8 @@ export function BottomDock() {
             color: routeActive ? '#fff' : '#111',
             boxShadow: routeActive ? '0 0 0 3px rgba(43,127,255,0.3)' : '0 2px 12px rgba(0,0,0,0.18)',
           }}
-          title={routeActive ? 'Откажи маршрут' : 'Маршрут'}
-          aria-label={routeActive ? 'Откажи маршрут' : 'Маршрут'}
+          title={routeActive ? t('route.cancel') : t('dock.route')}
+          aria-label={routeActive ? t('route.cancel') : t('dock.route')}
           onClick={handleRouteClick}
         >
           <RouteIcon />

@@ -10,9 +10,13 @@ import { audioManager } from '@/features/audio/audioManager'
 import { routeStore } from '@/features/route/routeStore'
 import { getMap } from '@/components/MapShell'
 import { isTeslaBrowser } from '@/lib/browser'
+import { t, getLang, langStore } from '@/lib/locale'
 import type { NormalizedStation, Connector } from './types'
 
 export function StationPanel() {
+  // Re-render on country/language change
+  useSyncExternalStore(langStore.subscribe.bind(langStore), getLang, getLang)
+
   const station = useSyncExternalStore(
     evStore.subscribe.bind(evStore),
     () => evStore.getState().selectedStation,
@@ -59,8 +63,6 @@ export function StationPanel() {
       aria-hidden={isTeslaBrowser ? !isVisible : undefined}
       style={{
         position:  'absolute',
-        // On narrow phones the panel needs to sit above the bottom dock.
-        // Formula: 375px→99px · 480px→79px · 768px→24px · 900px+→24px
         bottom:    'max(24px, calc(170px - 19vw))',
         left:      '50%',
         transform: 'translateX(-50%)',
@@ -108,7 +110,7 @@ export function StationPanel() {
                 <StatusBadge status={station.status} />
                 <button
                   onClick={() => evStore.selectStation(null)}
-                  aria-label="Затвори"
+                  aria-label={t('common.close')}
                   style={{
                     background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)',
                     color: 'var(--text-secondary)', cursor: 'pointer',
@@ -128,32 +130,32 @@ export function StationPanel() {
             {/* Info row */}
             <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
               {station.network && (
-                <InfoItem label="Мрежа" value={station.network} />
+                <InfoItem label={t('station.network')} value={station.network} />
               )}
               {station.totalPorts > 0 && (
                 <InfoItem
-                  label="Порта"
+                  label={t('station.ports')}
                   value={
                     station.availablePorts != null
-                      ? `${station.availablePorts}/${station.totalPorts} свободни`
+                      ? `${station.availablePorts}/${station.totalPorts} ${t('filter.available').toLowerCase()}`
                       : String(station.totalPorts)
                   }
                 />
               )}
               {station.maxPowerKw != null && (
-                <InfoItem label="Макс. мощност" value={`${station.maxPowerKw} kW`} />
+                <InfoItem label={t('station.maxPower')} value={`${station.maxPowerKw} kW`} />
               )}
               {station.pricePerKwh != null ? (
                 <InfoItem
-                  label="Цена"
+                  label={t('station.price')}
                   value={
                     station.pricePerKwh === 0
-                      ? 'Безплатно'
+                      ? t('station.free')
                       : `${station.pricePerKwh.toFixed(2)} ${station.priceCurrency ?? ''}/kWh`.trim()
                   }
                 />
               ) : station.isFree != null ? (
-                <InfoItem label="Цена" value={station.isFree ? 'Безплатно' : 'Платено'} />
+                <InfoItem label={t('station.price')} value={station.isFree ? t('station.free') : t('station.paid')} />
               ) : null}
             </div>
 
@@ -167,14 +169,14 @@ export function StationPanel() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
                   {refreshedAt
-                    ? 'Обновено преди малко ✓'
-                    : `Обновено ${formatAge(station.lastUpdated)}`}
+                    ? t('station.justUpdated')
+                    : `${t('station.updatedPrefix')} ${formatAge(station.lastUpdated)}`}
                 </div>
                 <button
                   onClick={() => void handleRefresh()}
                   disabled={refreshing}
-                  title="Обнови данните"
-                  aria-label="Обнови данните"
+                  title={t('station.refreshTitle')}
+                  aria-label={t('station.refreshTitle')}
                   style={{
                     background: 'rgba(255,255,255,0.06)',
                     border: '1px solid rgba(255,255,255,0.12)',
@@ -185,7 +187,7 @@ export function StationPanel() {
                   }}
                 >
                   <RefreshIcon spinning={refreshing} />
-                  {refreshing ? 'Зарежда...' : 'Обнови'}
+                  {refreshing ? t('station.refreshing') : t('station.refresh')}
                 </button>
               </div>
             )}
@@ -214,7 +216,7 @@ export function StationPanel() {
                   gap: 6,
                 }}
               >
-                ↗ Навигирай
+                {t('station.navigate')}
               </button>
             </div>
           </>
@@ -277,12 +279,13 @@ function ConnectorList({ connectors }: { connectors: Connector[] }) {
 }
 
 function formatAge(iso: string): string {
+  const lang = getLang()
   const ms   = Date.now() - new Date(iso).getTime()
   const days = Math.floor(ms / 86_400_000)
-  if (days > 0) return `преди ${days}д`
+  if (days > 0) return lang === 'bg' ? `преди ${days}д` : `${days}d ago`
   const hr = Math.floor(ms / 3_600_000)
-  if (hr > 0)   return `преди ${hr}ч`
-  return 'току-що'
+  if (hr > 0)   return lang === 'bg' ? `преди ${hr}ч` : `${hr}h ago`
+  return lang === 'bg' ? 'току-що' : 'just now'
 }
 
 function SourceBadge({ source }: { source: NormalizedStation['source'] }) {
@@ -323,14 +326,21 @@ function RefreshIcon({ spinning }: { spinning: boolean }) {
 }
 
 function StatusBadge({ status }: { status: NormalizedStation['status'] }) {
-  const cfg: Record<string, { label: string; color: string }> = {
-    available: { label: 'Свободна',  color: '#22c55e' },
-    busy:      { label: 'Заета',     color: '#f59e0b' },
-    offline:   { label: 'Офлайн',   color: '#ef4444' },
-    planned:   { label: 'Планирана', color: '#8b8b8b' },
-    unknown:   { label: '?',         color: '#8b8b8b' },
+  const key: Record<string, string> = {
+    available: 'station.statusAvailable',
+    busy:      'station.statusBusy',
+    offline:   'station.statusOffline',
+    planned:   'station.statusPlanned',
   }
-  const { label, color } = cfg[status] ?? cfg['unknown']!
+  const colors: Record<string, string> = {
+    available: '#22c55e',
+    busy:      '#f59e0b',
+    offline:   '#ef4444',
+    planned:   '#8b8b8b',
+    unknown:   '#8b8b8b',
+  }
+  const color = colors[status] ?? colors['unknown']!
+  const label = key[status] ? t(key[status]!) : '?'
   return (
     <span style={{
       fontSize: 10, fontWeight: 700,

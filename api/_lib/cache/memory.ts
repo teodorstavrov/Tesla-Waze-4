@@ -44,6 +44,12 @@ export function cacheDel(key: string): void {
   store.delete(key)
 }
 
+export function cacheClearByPrefix(prefix: string): void {
+  for (const key of store.keys()) {
+    if (key.startsWith(prefix)) store.delete(key)
+  }
+}
+
 export function cacheStats(): { size: number; maxEntries: number } {
   return { size: store.size, maxEntries: MAX_ENTRIES }
 }

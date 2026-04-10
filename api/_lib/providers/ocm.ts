@@ -84,6 +84,41 @@ function normalizeConnectors(raw: OCMConnection[] | null | undefined): Connector
     }))
 }
 
+/**
+ * Parse OCM UsageCost free-text field into a numeric price and currency.
+ * Examples seen in the wild:
+ *   "0.35 BGN/kWh"  "0,35 лв/kWh"  "0.49 EUR/kWh"
+ *   "£0.33/kWh"     "0.49€/kWh"    "Free"  ""  null
+ */
+function parseUsageCost(raw: string | null | undefined): { pricePerKwh: number | null; priceCurrency: string | null } {
+  if (raw == null || raw.trim() === '') return { pricePerKwh: null, priceCurrency: null }
+
+  const s = raw.trim().toLowerCase()
+
+  // Explicitly free
+  if (s === 'free' || s === 'безплатно' || s === '0' || s === '0.00') {
+    return { pricePerKwh: 0, priceCurrency: null }
+  }
+
+  // Only proceed if it looks like a per-kWh price
+  if (!s.includes('kwh') && !s.includes('кwh')) return { pricePerKwh: null, priceCurrency: null }
+
+  // Extract numeric value — handle both "0.35" and "0,35"
+  const numMatch = s.match(/(\d+[.,]\d+|\d+)/)
+  if (!numMatch) return { pricePerKwh: null, priceCurrency: null }
+  const price = parseFloat(numMatch[1]!.replace(',', '.'))
+  if (!isFinite(price) || price <= 0) return { pricePerKwh: null, priceCurrency: null }
+
+  // Detect currency
+  let currency: string | null = null
+  if (raw.includes('BGN') || raw.includes('bgn') || raw.includes('лв')) currency = 'BGN'
+  else if (raw.includes('EUR') || raw.includes('eur') || raw.includes('€'))  currency = 'EUR'
+  else if (raw.includes('GBP') || raw.includes('gbp') || raw.includes('£'))  currency = 'GBP'
+  else if (raw.includes('USD') || raw.includes('usd') || raw.includes('$'))  currency = 'USD'
+
+  return { pricePerKwh: price, priceCurrency: currency }
+}
+
 function normalizeStatus(raw: OCMStatusType | null | undefined): NormalizedStation['status'] {
   if (raw == null) return 'unknown'
   if (raw.IsOperational === false) return 'offline'
@@ -115,6 +150,8 @@ function normalize(raw: OCMStation): NormalizedStation | null {
                : raw.UsageCost == null ? null
                : false
 
+  const { pricePerKwh, priceCurrency } = parseUsageCost(raw.UsageCost)
+
   return {
     id: `ocm:${externalId}`,
     source: 'ocm',
@@ -132,6 +169,8 @@ function normalize(raw: OCMStation): NormalizedStation | null {
     connectors,
     status: normalizeStatus(raw.StatusType),
     isFree,
+    pricePerKwh,
+    priceCurrency,
     lastUpdated: raw.DateLastStatusUpdate ?? null,
   }
 }

@@ -23,6 +23,7 @@ import { evStore } from './evStore.js'
 import { filterStore } from './filterStore.js'
 import { routeStore } from '@/features/route/routeStore'
 import { logger } from '@/lib/logger'
+import { getLang } from '@/lib/locale'
 import type { NormalizedStation } from './types.js'
 
 // ── Constants ─────────────────────────────────────────────────────
@@ -73,7 +74,7 @@ function makeStationIcon(s: NormalizedStation, nearRoute = false): L.DivIcon {
 function tooltipContent(s: NormalizedStation): string {
   const parts = [s.name]
   if (s.maxPowerKw) parts.push(`${s.maxPowerKw} kW`)
-  if (s.totalPorts > 1) parts.push(`${s.totalPorts} порта`)
+  if (s.totalPorts > 1) parts.push(`${s.totalPorts} ${getLang() === 'bg' ? 'порта' : 'ports'}`)
   return parts.join(' · ')
 }
 

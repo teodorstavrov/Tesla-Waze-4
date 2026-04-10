@@ -7,7 +7,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { eventMemStore } from '../_lib/events/store.js'
 import { eventRedisStore } from '../_lib/events/redisStore.js'
 import { isRedisConfigured } from '../_lib/db/redis.js'
-import { errorMessage } from '../_lib/utils/request.js'
+import { rateLimit } from '../_lib/utils/rateLimit.js'
+import { captureApiError } from '../_lib/utils/sentryApi.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -22,6 +23,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     const id = String(body?.id ?? '')
     if (!id) { res.status(400).json({ error: 'Missing id' }); return }
 
+    // Rate limit: 3 votes per IP per event per hour (prevents vote spam)
+    const ip = (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() ?? 'unknown'
+    const allowed = await rateLimit(ip, `vote:${id}`, 3, 3600)
+    if (!allowed) { res.status(429).json({ error: 'Too many votes on this event' }); return }
+
     const result = isRedisConfigured()
       ? await eventRedisStore.deny(id)
       : eventMemStore.deny(id)
@@ -31,6 +37,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
     res.status(200).json({ event: result })
   } catch (err) {
-    res.status(500).json({ error: errorMessage(err) })
+    await captureApiError(err, 'events/deny')
+    res.status(500).json({ error: 'Internal server error' })
   }
 }

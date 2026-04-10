@@ -7,11 +7,12 @@ import { L } from '@/lib/leaflet'
 import { getMap } from '@/components/MapShell'
 import { savedPlacesStore } from './savedPlacesStore'
 import { routeStore } from '@/features/route/routeStore'
+import { t } from '@/lib/locale'
 import type { PlaceType, SavedPlace } from './savedPlacesStore'
 
-const PLACE_CONFIG: Record<PlaceType, { emoji: string; color: string; label: string }> = {
-  home: { emoji: '🏠', color: '#22c55e', label: 'Дом' },
-  work: { emoji: '💼', color: '#3b82f6', label: 'Работа' },
+const PLACE_CONFIG: Record<PlaceType, { emoji: string; color: string; labelKey: string }> = {
+  home: { emoji: '🏠', color: '#22c55e', labelKey: 'map.home' },
+  work: { emoji: '💼', color: '#3b82f6', labelKey: 'map.work' },
 }
 
 function makeIcon(type: PlaceType): L.DivIcon {
@@ -33,21 +34,22 @@ function makeIcon(type: PlaceType): L.DivIcon {
 }
 
 function buildPopup(place: SavedPlace, map: L.Map): HTMLElement {
-  const { label, color } = PLACE_CONFIG[place.type]
+  const { emoji, color, labelKey } = PLACE_CONFIG[place.type]
+  const label = t(labelKey)
 
   const wrap = document.createElement('div')
   wrap.style.cssText = 'display:flex;flex-direction:column;gap:10px;padding:4px 2px;min-width:220px'
 
   const title = document.createElement('div')
   title.style.cssText = `font-size:15px;font-weight:700;color:${color};text-align:center`
-  title.textContent = `${PLACE_CONFIG[place.type].emoji} ${label}`
+  title.textContent = `${emoji} ${label}`
 
   const addr = document.createElement('div')
   addr.style.cssText = 'font-size:12px;color:rgba(255,255,255,0.55);text-align:center;line-height:1.4'
   addr.textContent = place.name
 
   const navBtn = document.createElement('button')
-  navBtn.textContent = '⚡ НАВИГИРАЙ'
+  navBtn.textContent = `⚡ ${t('map.navigate').replace('⚡ ', '')}`
   navBtn.style.cssText = [
     'background:#e31937', 'color:#fff', 'border:none',
     'border-radius:10px', 'padding:12px 0',
@@ -56,7 +58,7 @@ function buildPopup(place: SavedPlace, map: L.Map): HTMLElement {
   ].join(';')
 
   const clearBtn = document.createElement('button')
-  clearBtn.textContent = '🗑 Изчисти'
+  clearBtn.textContent = `🗑 ${t('common.cancel')}`
   clearBtn.style.cssText = [
     'background:rgba(255,255,255,0.07)', 'color:rgba(255,255,255,0.6)',
     'border:1px solid rgba(255,255,255,0.15)',

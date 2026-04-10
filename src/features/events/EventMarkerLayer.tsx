@@ -54,8 +54,8 @@ export function EventMarkerLayer() {
       const registry = registryRef.current
 
       function syncMarkers(): void {
-        const { events, hidePermanent } = eventStore.getState()
-        const visible  = hidePermanent ? events.filter((e) => !e.permanent) : events
+        const { events } = eventStore.getState()
+        const visible  = events
         const incoming = new Set(visible.map((e) => e.id))
 
         // Remove gone events

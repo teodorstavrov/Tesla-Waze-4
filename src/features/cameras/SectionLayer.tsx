@@ -17,6 +17,7 @@ import { getMap } from '@/components/MapShell'
 import { sectionStore } from './sectionEngine'
 import { SPEED_SECTIONS } from './sections'
 import { isTeslaBrowser } from '@/lib/browser'
+import { t } from '@/lib/locale'
 import type { SpeedSection } from './sectionTypes'
 
 const COLOR_IDLE    = 'rgba(249,115,22,0.55)'   // orange, dimmed
@@ -90,7 +91,7 @@ export function SectionLayer() {
 
         if (!isTeslaBrowser) {
           line.bindTooltip(
-            `${section.road} · ${section.name} — ${section.limitKmh} км/ч (${Math.round(section.lengthM / 1000)} км)`,
+            `${section.road} · ${section.name} — ${section.limitKmh} ${t('sections.kmh')} (${Math.round(section.lengthM / 1000)} ${t('routePanel.km')})`,
             { sticky: true, direction: 'top' },
           )
         }
