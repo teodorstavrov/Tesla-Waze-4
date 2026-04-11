@@ -14,7 +14,7 @@ import { captureApiError } from './_lib/utils/sentryApi.js'
 
 const RESEND_API_KEY = process.env['RESEND_API_KEY']
 const TO_EMAIL       = 'teodorstavrov@gmail.com'
-const FROM_EMAIL     = 'Tesla RADAR <noreply@teslaradar.tech>'
+const FROM_EMAIL     = 'Tesla RADAR <noreply@tesradar.tech>'
 
 const STARS = ['', '⭐', '⭐⭐', '⭐⭐⭐', '⭐⭐⭐⭐', '⭐⭐⭐⭐⭐']
 

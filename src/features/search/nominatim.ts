@@ -67,7 +67,7 @@ export async function searchNominatim(
     `https://nominatim.openstreetmap.org/search?${params.toString()}`,
     {
       signal,
-      headers: { 'User-Agent': 'TeslaEVNav/1.0 (https://teslaradar.tech)' },
+      headers: { 'User-Agent': 'TeslaEVNav/1.0 (https://tesradar.tech)' },
     },
   )
 

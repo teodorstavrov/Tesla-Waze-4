@@ -5,17 +5,17 @@
 
   <!-- ── Bulgarian version (default / BG market) ── -->
   <url>
-    <loc>https://teslaradar.tech/</loc>
+    <loc>https://tesradar.tech/</loc>
     <lastmod>2026-04-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
-    <xhtml:link rel="alternate" hreflang="bg"        href="https://teslaradar.tech/" />
-    <xhtml:link rel="alternate" hreflang="en-NO"     href="https://teslaradar.tech/" />
-    <xhtml:link rel="alternate" hreflang="en-SE"     href="https://teslaradar.tech/" />
-    <xhtml:link rel="alternate" hreflang="en-DK"     href="https://teslaradar.tech/" />
-    <xhtml:link rel="alternate" hreflang="en-FI"     href="https://teslaradar.tech/" />
-    <xhtml:link rel="alternate" hreflang="en"        href="https://teslaradar.tech/" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://teslaradar.tech/" />
+    <xhtml:link rel="alternate" hreflang="bg"        href="https://tesradar.tech/" />
+    <xhtml:link rel="alternate" hreflang="en-NO"     href="https://tesradar.tech/" />
+    <xhtml:link rel="alternate" hreflang="en-SE"     href="https://tesradar.tech/" />
+    <xhtml:link rel="alternate" hreflang="en-DK"     href="https://tesradar.tech/" />
+    <xhtml:link rel="alternate" hreflang="en-FI"     href="https://tesradar.tech/" />
+    <xhtml:link rel="alternate" hreflang="en"        href="https://tesradar.tech/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tesradar.tech/" />
   </url>
 
 </urlset>

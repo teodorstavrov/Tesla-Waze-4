@@ -1,7 +1,7 @@
 // ─── POST /api/contact ────────────────────────────────────────────────
 // Sends a contact message to the admin email via Resend REST API.
 // Required env var: RESEND_API_KEY
-// Sender domain: teslaradar.tech (must be verified in Resend dashboard)
+// Sender domain: tesradar.tech (must be verified in Resend dashboard)
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { rateLimit } from './_lib/utils/rateLimit.js'
@@ -9,7 +9,7 @@ import { captureApiError } from './_lib/utils/sentryApi.js'
 
 const RESEND_API_KEY = process.env['RESEND_API_KEY']
 const TO_EMAIL       = 'teodorstavrov@gmail.com'
-const FROM_EMAIL     = 'Tesla RADAR <noreply@teslaradar.tech>'
+const FROM_EMAIL     = 'Tesla RADAR <noreply@tesradar.tech>'
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   res.setHeader('Access-Control-Allow-Origin', '*')
