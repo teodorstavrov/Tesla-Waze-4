@@ -1,9 +1,21 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset
+  xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+  xmlns:xhtml="http://www.w3.org/1999/xhtml">
+
+  <!-- ── Bulgarian version (default / BG market) ── -->
   <url>
     <loc>https://teslaradar.tech/</loc>
-    <lastmod>2026-04-05</lastmod>
+    <lastmod>2026-04-11</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="bg"        href="https://teslaradar.tech/" />
+    <xhtml:link rel="alternate" hreflang="en-NO"     href="https://teslaradar.tech/" />
+    <xhtml:link rel="alternate" hreflang="en-SE"     href="https://teslaradar.tech/" />
+    <xhtml:link rel="alternate" hreflang="en-DK"     href="https://teslaradar.tech/" />
+    <xhtml:link rel="alternate" hreflang="en-FI"     href="https://teslaradar.tech/" />
+    <xhtml:link rel="alternate" hreflang="en"        href="https://teslaradar.tech/" />
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://teslaradar.tech/" />
   </url>
+
 </urlset>

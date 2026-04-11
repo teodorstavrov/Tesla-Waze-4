@@ -19,7 +19,7 @@ import { setCacheHeaders } from '../_lib/cache/headers.js'
 import { rateLimit } from '../_lib/utils/rateLimit.js'
 import { captureApiError } from '../_lib/utils/sentryApi.js'
 
-const SUPPORTED = new Set(['BG', 'NO'])
+const SUPPORTED = new Set(['BG', 'NO', 'SE', 'FI'])
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -30,7 +30,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   const country = String(req.query['country'] ?? 'BG').toUpperCase()
   if (!SUPPORTED.has(country)) {
-    res.status(400).json({ error: `Unknown country: ${country}. Supported: BG, NO` })
+    res.status(400).json({ error: `Unknown country: ${country}. Supported: BG, NO, SE, FI` })
     return
   }
 

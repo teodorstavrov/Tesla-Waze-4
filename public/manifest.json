@@ -1,13 +1,14 @@
 {
-  "name": "Tesla Radar",
-  "short_name": "TeslaRadar",
-  "description": "EV charging stations and road events for Bulgaria",
+  "name": "Tesla Radar — EV Map & Road Events",
+  "short_name": "Tesla Radar",
+  "description": "Real-time EV charging stations map and road events for Tesla drivers. Norway, Sweden, Denmark, Finland and Bulgaria. Free, no ads.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0a0f",
   "theme_color": "#0a0a0f",
   "orientation": "landscape",
-  "lang": "bg",
+  "lang": "en",
+  "categories": ["navigation", "maps", "utilities"],
   "icons": [
     {
       "src": "/favicon_256_transp.png",

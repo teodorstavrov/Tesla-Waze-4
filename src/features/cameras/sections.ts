@@ -1,4 +1,4 @@
-// ─── Verified speed section database ──────────────────────────────────
+// ─── Verified speed section database — Bulgaria ────────────────────────
 //
 // Average-speed enforcement zones in Bulgaria.
 // Sources: КАТ, road signs, verified driver reports, community database.
@@ -12,8 +12,14 @@
 //
 // To add a section: place start/end at the physical camera sign location,
 // set lengthM = road distance (NOT straight-line haversine).
+//
+// For other countries see: sections_no.ts, sections_se.ts, sections_fi.ts
+// Dispatcher:              getSectionsForCountry(code)  ← bottom of this file
 
 import type { SpeedSection } from './sectionTypes'
+import { SPEED_SECTIONS_NO } from './sections_no'
+import { SPEED_SECTIONS_SE } from './sections_se'
+import { SPEED_SECTIONS_FI } from './sections_fi'
 
 export const SPEED_SECTIONS: SpeedSection[] = [
 
@@ -579,3 +585,16 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     limitKmh:  90,
   },
 ]
+
+// ── Country dispatcher ────────────────────────────────────────────────────
+// Returns the correct sections array for a given country code.
+// Called on every GPS tick — returns a pre-built array reference (no allocation).
+
+export function getSectionsForCountry(code: string): SpeedSection[] {
+  switch (code) {
+    case 'NO': return SPEED_SECTIONS_NO
+    case 'SE': return SPEED_SECTIONS_SE
+    case 'FI': return SPEED_SECTIONS_FI
+    default:   return SPEED_SECTIONS    // BG and unknown → Bulgarian sections
+  }
+}

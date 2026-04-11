@@ -23,6 +23,22 @@ export const NORWAY_BBOX: BBox = {
   maxLng: 31.293,
 }
 
+/** Bbox covering all of Sweden */
+export const SWEDEN_BBOX: BBox = {
+  minLat: 55.337,
+  minLng: 11.120,
+  maxLat: 69.060,
+  maxLng: 24.166,
+}
+
+/** Bbox covering all of Finland */
+export const FINLAND_BBOX: BBox = {
+  minLat: 59.808,
+  minLng: 20.550,
+  maxLat: 70.093,
+  maxLng: 31.587,
+}
+
 /**
  * Parse a comma-separated bbox string: "minLat,minLng,maxLat,maxLng".
  * Returns null if invalid.

@@ -10,7 +10,7 @@
 //   3. Add to COUNTRY_LIST so the picker shows it.
 //   That's it — no other files need touching for basic support.
 
-export type CountryCode = 'BG' | 'NO'
+export type CountryCode = 'BG' | 'NO' | 'SE' | 'FI'
 
 export interface CountryFeatures {
   /** Whether this country has average-speed camera section data. */
@@ -63,10 +63,49 @@ export const COUNTRIES: Record<CountryCode, CountryConfig> = {
     bounds:     [[57.959, 4.479], [71.182, 31.293]],
     locale:     'en',
     features: {
-      speedSections: false,  // no Norwegian sections in dataset yet
+      speedSections: true,   // Norwegian ATK average-speed sections
+    },
+  },
+
+  SE: {
+    code:       'SE',
+    name:       'Sweden',
+    nativeName: 'Sverige',
+    flag:       '🇸🇪',
+    center:     [59.3293, 18.0686],    // Stockholm
+    zoom:       15,
+    minZoom:    5,
+    searchCode: 'se',
+    searchLang: 'en,sv',
+    bounds:     [[55.337, 11.120], [69.060, 24.166]],
+    locale:     'en',
+    features: {
+      speedSections: true,   // Swedish sträckmätning (average-speed sections)
+    },
+  },
+
+  FI: {
+    code:       'FI',
+    name:       'Finland',
+    nativeName: 'Suomi',
+    flag:       '🇫🇮',
+    center:     [60.1699, 24.9384],    // Helsinki
+    zoom:       15,
+    minZoom:    5,
+    searchCode: 'fi',
+    searchLang: 'en,fi',
+    bounds:     [[59.808, 20.550], [70.093, 31.587]],
+    locale:     'en',
+    features: {
+      speedSections: true,   // Finnish jaksonopeudenvalvonta sections
     },
   },
 }
 
 // Ordered list used by the country picker UI
-export const COUNTRY_LIST: CountryConfig[] = [COUNTRIES.BG, COUNTRIES.NO]
+export const COUNTRY_LIST: CountryConfig[] = [
+  COUNTRIES.BG,
+  COUNTRIES.NO,
+  COUNTRIES.SE,
+  COUNTRIES.FI,
+]

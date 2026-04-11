@@ -15,7 +15,8 @@ import { gpsStore } from '@/features/gps/gpsStore'
 import { haversineMeters } from '@/lib/geo'
 import { isTeslaBrowser } from '@/lib/browser'
 import { audioManager } from '@/features/audio/audioManager'
-import { SPEED_SECTIONS } from './sections'
+import { getSectionsForCountry } from './sections'
+import { countryStore } from '@/lib/countryStore'
 import type { SpeedSection, SectionSession } from './sectionTypes'
 import type { GpsPosition } from '@/features/gps/types'
 
@@ -187,6 +188,7 @@ function _onPosition(pos: GpsPosition): void {
   const latDelta = NEARBY_KM * LAT_DEG_PER_KM
   const lngDelta = NEARBY_KM * LNG_DEG_PER_KM
 
+  const SPEED_SECTIONS = getSectionsForCountry(countryStore.getCode() ?? 'BG')
   const nearby = SPEED_SECTIONS.filter(
     (s) =>
       Math.abs(s.startLat - pos.lat) < latDelta &&

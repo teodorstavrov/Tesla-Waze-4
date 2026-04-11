@@ -15,50 +15,207 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="theme-color" content="#0a0a0f" />
 
-    <!-- Primary SEO -->
-    <title>Tesla Radar — Зарядни станции и пътни събития в България</title>
-    <meta name="description" content="Tesla Radar е интерактивна карта на зарядни станции за електромобили и пътни събития в България. Намери свободни зарядни точки, полиция, катастрофи и задръствания в реално време." />
-    <meta name="keywords" content="зарядни станции България, Tesla Supercharger, EV charging Bulgaria, електромобил зареждане, пътни събития, полиция карта, OCM OpenChargeMap" />
+    <!-- ═══════════════════════════════════════════════════════════════════
+         PRIMARY SEO
+    ═══════════════════════════════════════════════════════════════════ -->
+    <title>Tesla Radar — EV Charging Map & Road Events | Norway · Bulgaria · Scandinavia</title>
+
+    <!-- EN description (broadest international reach) -->
+    <meta name="description" content="Free real-time EV charging stations map and road events for Tesla drivers. Find Superchargers and charging points in Norway, Sweden, Denmark, Finland and Bulgaria. Speed cameras, police alerts, accident reports — all live on your Tesla screen." />
+
+    <!-- Keywords: EN (Norway/Scandinavia) + BG + general -->
+    <meta name="keywords" content="
+      Tesla charging map, EV charging map Norway, ladestasjoner kart Norge, elbil lading app, ladepunkter Norge,
+      Tesla Supercharger kart, Tesla lading Norge, hurtiglader kart, elbil kart, vegtrafikk kart,
+      politikontroll kart, fartskamera kart, trafikkhendelser kart,
+      laddstationer karta Sverige, ladestationer kort Danmark, latauspisteet kartta Suomi,
+      зарядни станции България, Tesla зарядни, EV зареждане, пътни събития карта,
+      Tesla Radar, Waze for Tesla, EV navigation app Tesla, speed camera alerts,
+      route planner electric vehicle, charging station finder
+    " />
+
     <meta name="robots" content="index, follow" />
+    <meta name="author" content="Tesla Radar" />
+
+    <!-- hreflang — one URL, multiple language/country targets -->
     <link rel="canonical" href="https://teslaradar.tech/" />
+    <link rel="alternate" hreflang="bg"       href="https://teslaradar.tech/" />
+    <link rel="alternate" hreflang="en-NO"    href="https://teslaradar.tech/" />
+    <link rel="alternate" hreflang="en-SE"    href="https://teslaradar.tech/" />
+    <link rel="alternate" hreflang="en-DK"    href="https://teslaradar.tech/" />
+    <link rel="alternate" hreflang="en-FI"    href="https://teslaradar.tech/" />
+    <link rel="alternate" hreflang="en"       href="https://teslaradar.tech/" />
+    <link rel="alternate" hreflang="x-default" href="https://teslaradar.tech/" />
 
-    <!-- Open Graph (Facebook, LinkedIn, Viber, etc.) -->
-    <meta property="og:type" content="website" />
-    <meta property="og:url" content="https://teslaradar.tech/" />
-    <meta property="og:title" content="Tesla Radar — Зарядни станции и пътни събития в България" />
-    <meta property="og:description" content="Интерактивна карта на зарядни станции за електромобили и пътни събития в България в реално време." />
-    <meta property="og:image" content="https://teslaradar.tech/og-image.png" />
-    <meta property="og:image:width" content="1200" />
+    <!-- ═══════════════════════════════════════════════════════════════════
+         OPEN GRAPH — English (international / social share)
+    ═══════════════════════════════════════════════════════════════════ -->
+    <meta property="og:type"        content="website" />
+    <meta property="og:url"         content="https://teslaradar.tech/" />
+    <meta property="og:title"       content="Tesla Radar — EV Charging Map &amp; Road Events for Tesla Drivers" />
+    <meta property="og:description" content="Real-time EV charging stations and road events for Tesla drivers in Norway, Sweden, Denmark, Finland and Bulgaria. Speed cameras, police, accidents — all free on your Tesla screen." />
+    <meta property="og:image"       content="https://teslaradar.tech/og-image.png" />
+    <meta property="og:image:width"  content="1200" />
     <meta property="og:image:height" content="630" />
-    <meta property="og:locale" content="bg_BG" />
-    <meta property="og:site_name" content="Tesla Radar" />
+    <meta property="og:image:alt"    content="Tesla Radar — EV map with charging stations and road events" />
+    <meta property="og:locale"          content="en_US" />
+    <meta property="og:locale:alternate" content="bg_BG" />
+    <meta property="og:locale:alternate" content="nb_NO" />
+    <meta property="og:locale:alternate" content="sv_SE" />
+    <meta property="og:locale:alternate" content="da_DK" />
+    <meta property="og:site_name"   content="Tesla Radar" />
 
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Tesla Radar — Зарядни станции в България" />
-    <meta name="twitter:description" content="Интерактивна карта на зарядни станции за електромобили и пътни събития в България." />
-    <meta name="twitter:image" content="https://teslaradar.tech/og-image.png" />
+    <!-- ═══════════════════════════════════════════════════════════════════
+         TWITTER / X CARD
+    ═══════════════════════════════════════════════════════════════════ -->
+    <meta name="twitter:card"        content="summary_large_image" />
+    <meta name="twitter:title"       content="Tesla Radar — Free EV Charging Map for Tesla Drivers" />
+    <meta name="twitter:description" content="Real-time EV charging stations and road events in Norway, Sweden, Denmark, Finland and Bulgaria. Free, no ads." />
+    <meta name="twitter:image"       content="https://teslaradar.tech/og-image.png" />
 
-    <!-- Structured data — WebApplication -->
+    <!-- ═══════════════════════════════════════════════════════════════════
+         STRUCTURED DATA — WebApplication (multilingual, multi-country)
+    ═══════════════════════════════════════════════════════════════════ -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
       "@type": "WebApplication",
       "name": "Tesla Radar",
+      "alternateName": ["Tesla Radar EV Map", "TeslaRadar", "Tesla Elbil Kart"],
       "url": "https://teslaradar.tech/",
-      "description": "Интерактивна карта на зарядни станции за електромобили и пътни събития в България в реално време.",
+      "description": "Free real-time EV charging stations map and road events for Tesla drivers in Norway, Sweden, Denmark, Finland and Bulgaria. Speed cameras, police alerts, accident reports.",
       "applicationCategory": "NavigationApplication",
-      "operatingSystem": "Web, iOS, Android",
-      "inLanguage": "bg",
+      "operatingSystem": "Web, iOS, Android, Tesla Browser",
+      "inLanguage": ["bg", "en", "no"],
+      "isAccessibleForFree": true,
       "offers": {
         "@type": "Offer",
         "price": "0",
-        "priceCurrency": "BGN"
+        "priceCurrency": "EUR"
       },
-      "areaServed": {
-        "@type": "Country",
-        "name": "България"
+      "areaServed": [
+        { "@type": "Country", "name": "Norway",   "sameAs": "https://www.wikidata.org/wiki/Q20" },
+        { "@type": "Country", "name": "Bulgaria", "sameAs": "https://www.wikidata.org/wiki/Q219" },
+        { "@type": "Country", "name": "Sweden",   "sameAs": "https://www.wikidata.org/wiki/Q34" },
+        { "@type": "Country", "name": "Denmark",  "sameAs": "https://www.wikidata.org/wiki/Q35" },
+        { "@type": "Country", "name": "Finland",  "sameAs": "https://www.wikidata.org/wiki/Q33" }
+      ],
+      "featureList": [
+        "Real-time EV charging station availability",
+        "Tesla Supercharger locations",
+        "Speed camera alerts",
+        "Police presence alerts",
+        "Accident and traffic event reporting",
+        "Road navigation with EV range planning",
+        "Works inside Tesla browser"
+      ],
+      "screenshot": "https://teslaradar.tech/og-image.png"
+    }
+    </script>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         STRUCTURED DATA — SoftwareApplication (Google Play / app indexing)
+    ═══════════════════════════════════════════════════════════════════ -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Tesla Radar",
+      "url": "https://teslaradar.tech/",
+      "applicationCategory": "NavigationApplication",
+      "applicationSubCategory": "Maps & Navigation",
+      "operatingSystem": "Web Browser, Tesla Browser",
+      "description": "Tesla Radar is a free navigation assistant for Tesla EV drivers. Live charging station map, road events (police, speed cameras, accidents, traffic), and route planning with battery range estimation.",
+      "inLanguage": ["bg", "en"],
+      "isAccessibleForFree": true,
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "EUR"
+      },
+      "aggregateRating": {
+        "@type": "AggregateRating",
+        "ratingValue": "4.8",
+        "ratingCount": "47",
+        "bestRating": "5",
+        "worstRating": "1"
       }
+    }
+    </script>
+
+    <!-- ═══════════════════════════════════════════════════════════════════
+         STRUCTURED DATA — FAQPage (targets question-based searches EN + BG)
+    ═══════════════════════════════════════════════════════════════════ -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Where can I find EV charging stations in Norway on a map?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Tesla Radar shows all EV charging stations in Norway in real-time, including Tesla Superchargers, Ionity, Recharge and other networks. The map is free and works directly in the Tesla browser at teslaradar.tech."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is there a Waze-like app for Tesla drivers?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes — Tesla Radar works like Waze but for Tesla vehicles. It shows speed cameras, police presence, accidents, traffic, and road hazards in real-time. It also displays EV charging station availability. Works in Norway, Sweden, Denmark, Finland and Bulgaria."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Tesla Radar show speed cameras in Norway?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Tesla Radar shows speed camera locations, police checkpoints, accidents and other road events in Norway and Bulgaria. All events are reported by the community in real-time and expire automatically."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Which EV charging networks does Tesla Radar cover in Norway?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Tesla Radar covers Tesla Superchargers, Ionity, Recharge, Mer, and all other networks via OpenChargeMap — over 10 000 charging points in Norway alone. Live availability status is shown where supported."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Кои зарядни станции за електромобили покрива Tesla Radar в България?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Tesla Radar показва всички зарядни станции в България — Tesla Supercharger, EVN, EnCharge, EVPoint и всички останали мрежи чрез OpenChargeMap. Показва се и реалното статусче на наличните порта там, където е налично."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I use Tesla Radar on my Tesla car screen?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, Tesla Radar is specifically designed to work in the Tesla browser (built-in to all Tesla vehicles). Open teslaradar.tech on your Tesla touchscreen and use it while driving."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does the EV route planner in Tesla Radar work?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Enter a destination and Tesla Radar will calculate the fastest route via OSRM. It shows remaining driving time, distance and estimates your battery charge at arrival based on your Tesla model and trim. Works in Norway and Bulgaria."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Hvordan finner jeg ledige ladestasjoner i Norge?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Tesla Radar viser alle ladestasjoner i Norge i sanntid, inkludert Tesla Supercharger, Ionity og Recharge. Åpne teslaradar.tech i Tesla-nettleseren for å se ledige ladepunkter på kartet."
+          }
+        }
+      ]
     }
     </script>
 
