@@ -57,12 +57,15 @@ export function formatExpiresIn(expiresAt: string): string {
  * Permanent (admin) events show when added; user events also show expiry.
  */
 export function reportedLine(reportedAt: string, expiresAt: string, permanent?: boolean): string {
-  const lang = getLang()
-  const ago  = formatTimeAgo(reportedAt)
+  const lang    = getLang()
+  const ago     = formatTimeAgo(reportedAt)
   if (permanent) {
     return lang === 'bg' ? `Добавено ${ago}` : `Added ${ago}`
   }
-  return lang === 'bg' ? `Докладвано ${ago}` : `Reported ${ago}`
+  const expires = formatExpiresIn(expiresAt)
+  return lang === 'bg'
+    ? `Докладвано ${ago} · ${expires}`
+    : `Reported ${ago} · ${expires}`
 }
 
 /**
