@@ -404,7 +404,7 @@ export const DICTIONARY = {
 
     support: {
       title:            'Support the Project',
-      subtitle:         'Tesla RADAR is a free navigation assistant for Tesla drivers — no ads, no tracking.\nIf you find it useful, please consider supporting the project!',
+      subtitle:         'Tesla RADAR is a free navigation assistant for Tesla drivers — no ads, no tracking.\nBuilt by an independent developer. If you find it useful, please consider supporting the project!',
       scanQr:           'Scan with your phone camera',
       contactBtn:       'Contact us',
       contactTitle:     'Contact us',
