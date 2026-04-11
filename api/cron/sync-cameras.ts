@@ -32,7 +32,8 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { BULGARIA_BBOX } from '../_lib/utils/bbox.js'
 import type { BBox } from '../_lib/utils/bbox.js'
-import { fetchCamerasFromOverpass, getCamerasFromCache, redisKeyForCountry } from '../_lib/providers/cameras.js'
+import { fetchCamerasFromOverpass, redisKeyForCountry } from '../_lib/providers/cameras.js'
+import { cacheSet } from '../_lib/cache/memory.js'
 import { redis, isRedisConfigured } from '../_lib/db/redis.js'
 import type { SpeedCamera } from '../_lib/providers/cameras.js'
 
@@ -99,14 +100,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     const newCams = await fetchCamerasFromOverpass(config.bbox, `${config.redisCountry}-tmp`)
 
     if (MULTI_REGION_COUNTRIES.has(config.redisCountry)) {
-      // Merge with existing cameras from other lat bands (same Redis key)
-      const existing = await getCamerasFromCache(config.redisCountry)
+      // Read existing cameras DIRECTLY from Redis (bypass in-memory cache).
+      // The memory cache can be stale when Vercel reuses function instances
+      // across multiple sequential cron calls — always get fresh data here.
+      const redisKey = redisKeyForCountry(config.redisCountry)
+      const existing: SpeedCamera[] =
+        (await redis.get<SpeedCamera[]>(redisKey)) ?? []
+
       const { minLat, maxLat } = config.bbox
       // Remove old cameras from this lat band, keep cameras from other bands
       const otherBands = existing.filter((c: SpeedCamera) => c.lat < minLat || c.lat > maxLat)
       const merged = [...otherBands, ...newCams]
       // Write merged back to Redis under the country key
-      await redis.set(redisKeyForCountry(config.redisCountry), merged)
+      await redis.set(redisKey, merged)
+      // Also update the in-memory cache so subsequent reads in this same
+      // function instance see the fresh merged data, not the old value.
+      cacheSet(redisKey, merged, 24 * 60 * 60 * 1000)
       // Clear tmp key
       await redis.del(redisKeyForCountry(`${config.redisCountry}-tmp`))
       res.status(200).json({
