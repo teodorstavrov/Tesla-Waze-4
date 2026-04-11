@@ -47,9 +47,23 @@ export const VEHICLE_CONFIGS: ModelConfig[] = [
     model: 'Model S',
     yearRange: [2012, 2025],
     trims: [
-      { id: 'LR',      label: 'Long Range',            usableKwh: 95,   efficiencyWhKm: 175, yearRange: [2012, 2020] },
-      { id: 'LR_AWD',  label: 'Long Range AWD',        usableKwh: 95,   efficiencyWhKm: 178, yearRange: [2019, 2025] },
-      { id: 'PLAID',   label: 'Plaid',                 usableKwh: 95,   efficiencyWhKm: 195, yearRange: [2021, 2025] },
+      // ── 85 kWh era (2012–2016) ──────────────────────────────────
+      { id: 'S60',     label: '60',                    usableKwh: 58,   efficiencyWhKm: 195, yearRange: [2012, 2016] },
+      { id: 'S85',     label: '85',                    usableKwh: 74,   efficiencyWhKm: 178, yearRange: [2012, 2016] },
+      { id: 'S85D',    label: '85D',                   usableKwh: 74,   efficiencyWhKm: 172, yearRange: [2014, 2016] },
+      { id: 'P85',     label: 'P85',                   usableKwh: 74,   efficiencyWhKm: 188, yearRange: [2012, 2015] },
+      { id: 'P85D',    label: 'P85D',                  usableKwh: 74,   efficiencyWhKm: 185, yearRange: [2014, 2016] },
+      // ── 90 kWh era (2015–2017) ──────────────────────────────────
+      { id: 'S70D',    label: '70D',                   usableKwh: 65,   efficiencyWhKm: 175, yearRange: [2015, 2016] },
+      { id: 'S90D',    label: '90D',                   usableKwh: 81,   efficiencyWhKm: 170, yearRange: [2015, 2017] },
+      { id: 'P90D',    label: 'P90D',                  usableKwh: 81,   efficiencyWhKm: 185, yearRange: [2015, 2017] },
+      // ── 100 kWh era (2017–2019) ─────────────────────────────────
+      { id: 'S100D',   label: '100D',                  usableKwh: 93,   efficiencyWhKm: 168, yearRange: [2017, 2019] },
+      { id: 'P100D',   label: 'P100D',                 usableKwh: 93,   efficiencyWhKm: 182, yearRange: [2017, 2019] },
+      // ── Long Range refresh (2019–2025) ──────────────────────────
+      { id: 'LR',      label: 'Long Range',            usableKwh: 95,   efficiencyWhKm: 172, yearRange: [2019, 2020] },
+      { id: 'LR_AWD',  label: 'Long Range AWD',        usableKwh: 95,   efficiencyWhKm: 175, yearRange: [2019, 2025] },
+      { id: 'PLAID',   label: 'Plaid',                 usableKwh: 95,   efficiencyWhKm: 192, yearRange: [2021, 2025] },
     ],
   },
   {
