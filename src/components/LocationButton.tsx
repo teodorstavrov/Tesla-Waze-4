@@ -15,6 +15,7 @@ import { useFollowing, followStore } from '@/features/follow/followStore'
 import { gpsStore } from '@/features/gps/gpsStore'
 import { getMap } from '@/components/MapShell'
 import { langStore, t } from '@/lib/locale'
+import { isTeslaBrowser } from '@/lib/browser'
 
 export function LocationButton() {
   const following = useFollowing()
@@ -42,8 +43,8 @@ export function LocationButton() {
     const pos = gpsStore.getPosition()
     if (pos) {
       followStore.beginProgrammaticMove()
-      map.setView([pos.lat, pos.lng], 15, { animate: true })
-      followStore.endProgrammaticMove()
+      map.once('moveend', () => followStore.endProgrammaticMove())
+      map.panTo([pos.lat, pos.lng], { animate: !isTeslaBrowser, duration: 0.4 })
     }
     followStore.setFollowing(true)
   }

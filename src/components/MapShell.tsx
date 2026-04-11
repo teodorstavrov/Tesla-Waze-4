@@ -283,13 +283,8 @@ export function MapShell() {
     })
 
     // GPS → map pan when follow mode is active (pure imperative, no React)
-    // Auto re-enable follow whenever GPS detects movement (speed > 2 km/h or heading present)
+    // Follow is only re-enabled explicitly via the recenter button or startNavigation().
     const unsubGps = gpsStore.onPosition((pos) => {
-      const inPreview = routeStore.getState().mode === 'preview' && routeStore.getState().status === 'ok'
-      const isMoving = (pos.speedKmh != null && pos.speedKmh > 2) || pos.heading != null
-      if (isMoving && !followStore.isFollowing() && !inPreview) {
-        followStore.setFollowing(true)
-      }
       if (!followStore.isFollowing()) return
       // Tesla: instant repositioning eliminates the 500ms animation window
       // that causes jitter when panel renders or tile loads overlap the pan.
