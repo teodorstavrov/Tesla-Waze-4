@@ -14,7 +14,7 @@ const FIVE_DAYS_MS   = 5 * 24 * 60 * 60 * 1000
 
 const EVENT_TTL_MS: Record<EventType, number> = {
   police:       TWO_HOURS_MS,
-  accident:     FIVE_DAYS_MS,
+  accident:     THREE_HOURS_MS,
   hazard:       FIVE_DAYS_MS,
   traffic:      FIVE_DAYS_MS,
   camera:       THREE_HOURS_MS,
