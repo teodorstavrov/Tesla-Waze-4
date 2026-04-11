@@ -1,8 +1,10 @@
 // ─── Night mode toggle: dark standard map ↔ voyager day ───────────────
+import { useSyncExternalStore } from 'react'
 import { useThemeStore } from '@/features/theme/store'
-import { t } from '@/lib/locale'
+import { t, getLang, langStore } from '@/lib/locale'
 
 export function ThemeToggle() {
+  useSyncExternalStore(langStore.subscribe.bind(langStore), getLang, getLang)
   const { theme, mapMode, toggleNight } = useThemeStore()
   const isNight = theme === 'dark' && mapMode === 'normal'
 

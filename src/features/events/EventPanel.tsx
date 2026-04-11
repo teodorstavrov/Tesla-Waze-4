@@ -10,7 +10,7 @@
 
 import { useSyncExternalStore, useState, useEffect } from 'react'
 import { eventStore } from './eventStore.js'
-import { EVENT_EMOJI, EVENT_LABELS, EVENT_COLORS, DENY_THRESHOLD } from './types.js'
+import { EVENT_EMOJI, EVENT_COLORS, DENY_THRESHOLD } from './types.js'
 import { reportedLine } from './eventTime.js'
 import { audioManager } from '@/features/audio/audioManager'
 import { isTeslaBrowser } from '@/lib/browser'
@@ -89,7 +89,7 @@ export function EventPanel() {
 
   const color = event ? (EVENT_COLORS[event.type] ?? '#888') : '#888'
   const emoji = event ? (EVENT_EMOJI[event.type]  ?? '📍') : '📍'
-  const label = event ? t(`events.${event.type}`) || (EVENT_LABELS[event.type] ?? event.type) : ''
+  const label = event ? t(`events.${event.type}`) : ''
   const denies       = event?.denies  ?? 0
   const deniesLeft   = DENY_THRESHOLD - denies
   const denyProgress = Math.min(denies / DENY_THRESHOLD, 1)

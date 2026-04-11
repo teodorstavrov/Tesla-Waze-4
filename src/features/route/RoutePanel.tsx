@@ -69,7 +69,48 @@ export function RoutePanel() {
     routeStore.startNavigation()
   }
 
-  if (status === 'idle' || dismissed) return null
+  if (status === 'idle') return null
+
+  // When panel is hidden — show a small "ПОКАЖИ" pill at bottom
+  if (dismissed) {
+    return (
+      <button
+        onClick={() => setDismissed(false)}
+        aria-label={t('routePanel.showPanel')}
+        style={{
+          position:       'absolute',
+          bottom:         24,
+          left:           'calc(25% - 40px)',
+          transform:      'translateX(-50%)',
+          zIndex:         500,
+          padding:        '10px 28px',
+          borderRadius:   24,
+          background:     'rgba(18,18,26,0.92)',
+          border:         '1px solid rgba(255,255,255,0.18)',
+          backdropFilter: 'blur(12px)',
+          WebkitBackdropFilter: 'blur(12px)',
+          color:          'rgba(255,255,255,0.85)',
+          fontSize:       15,
+          fontWeight:     700,
+          letterSpacing:  '0.06em',
+          cursor:         'pointer',
+          touchAction:    'manipulation',
+          boxShadow:      '0 4px 20px rgba(0,0,0,0.45)',
+          display:        'flex',
+          alignItems:     'center',
+          gap:            8,
+          whiteSpace:     'nowrap',
+        }}
+      >
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+          aria-hidden="true">
+          <polyline points="6 9 12 15 18 9" />
+        </svg>
+        {t('routePanel.showPanel')}
+      </button>
+    )
+  }
 
   const remainingDurationS =
     route && remainingM != null
@@ -324,13 +365,14 @@ export function RoutePanel() {
                   marginLeft: stationsOnRoute.length > 0 ? 0 : 'auto',
                   marginTop: stationsOnRoute.length > 0 ? 8 : 0,
                   flexShrink: 0,
-                  padding: '5px 14px',
-                  borderRadius: 8,
-                  background: 'rgba(255,255,255,0.08)',
-                  border: '1px solid rgba(255,255,255,0.16)',
+                  padding: '9px 22px',
+                  borderRadius: 10,
+                  background: 'rgba(255,255,255,0.10)',
+                  border: '1px solid rgba(255,255,255,0.20)',
                   color: 'var(--text-secondary)',
-                  fontSize: 13, fontWeight: 600,
+                  fontSize: 15, fontWeight: 700,
                   cursor: 'pointer', touchAction: 'manipulation',
+                  letterSpacing: '0.04em',
                 }}
               >
                 {t('routePanel.hidePanel')}
