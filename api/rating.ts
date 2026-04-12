@@ -14,7 +14,7 @@ import { captureApiError } from './_lib/utils/sentryApi.js'
 
 const RESEND_API_KEY = process.env['RESEND_API_KEY']
 const TO_EMAIL       = 'teodorstavrov@gmail.com'
-const FROM_EMAIL     = 'Tesla RADAR <noreply@tesradar.tech>'
+const FROM_EMAIL     = 'TesRadar <noreply@tesradar.tech>'
 
 const STARS = ['', '⭐', '⭐⭐', '⭐⭐⭐', '⭐⭐⭐⭐', '⭐⭐⭐⭐⭐']
 
@@ -93,7 +93,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     }
 
     const stars   = STARS[rating] ?? ''
-    const subject = `Tesla RADAR — Оценка ${rating}/5 ${stars}${name ? ` от ${name}` : ''}`
+    const subject = `TesRadar — Оценка ${rating}/5 ${stars}${name ? ` от ${name}` : ''}`
 
     const metaLines = [
       name    && `Име: ${name}`,

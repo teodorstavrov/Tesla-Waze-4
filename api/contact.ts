@@ -9,7 +9,7 @@ import { captureApiError } from './_lib/utils/sentryApi.js'
 
 const RESEND_API_KEY = process.env['RESEND_API_KEY']
 const TO_EMAIL       = 'teodorstavrov@gmail.com'
-const FROM_EMAIL     = 'Tesla RADAR <noreply@tesradar.tech>'
+const FROM_EMAIL     = 'TesRadar <noreply@tesradar.tech>'
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -52,7 +52,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         from:    FROM_EMAIL,
         to:      [TO_EMAIL],
         reply_to: email,
-        subject: `Tesla RADAR — съобщение от ${email}`,
+        subject: `TesRadar — съобщение от ${email}`,
         text:    `От: ${email}\n\n${message}`,
         html:    `<p><b>От:</b> ${email}</p><br><p>${message.replace(/\n/g, '<br>')}</p>`,
       }),

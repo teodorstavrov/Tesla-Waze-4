@@ -1,4 +1,4 @@
-// ─── Tesla Radar Admin Panel ────────────────────────────────────────────
+// ─── TesRadar Admin Panel ────────────────────────────────────────────
 // Left: stats + event list. Right: Leaflet map — click to add markers,
 // click marker popup → delete.
 
@@ -72,7 +72,7 @@ function LoginScreen({ onLogin }: { onLogin: (secret: string) => void }) {
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
       <div style={{ background: '#161622', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '28px 32px', width: 340, textAlign: 'center' }}>
-        <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 24 }}>🔐 Tesla Radar Admin</div>
+        <div style={{ fontSize: 22, fontWeight: 700, marginBottom: 24 }}>🔐 TesRadar Admin</div>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           <input
             type="password" placeholder="Admin secret" value={secret}

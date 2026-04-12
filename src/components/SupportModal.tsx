@@ -216,7 +216,7 @@ export function SupportModal({ qrImageUrl, donationLink }: SupportModalProps) {
             <div style={{ display: 'flex', justifyContent: 'center' }}>
               <img
                 src="/new-medium_tran.png"
-                alt="Tesla RADAR"
+                alt="TesRadar"
                 style={{ height: 70, width: 'auto', display: 'block', borderRadius: 10 }}
               />
             </div>

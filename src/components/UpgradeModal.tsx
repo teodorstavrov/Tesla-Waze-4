@@ -193,7 +193,7 @@ export function UpgradeModal({ stripeLink, qrImageUrl, price = 'PRO Plan' }: Upg
             <span style={{ fontSize: 26, lineHeight: 1 }}>👑</span>
             <div>
               <div style={{ fontSize: 18, fontWeight: 800, color: '#fff', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
-                Tesla RADAR PRO
+                TesRadar PRO
               </div>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.75)', marginTop: 2, fontWeight: 500 }}>
                 {price}

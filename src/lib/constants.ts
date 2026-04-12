@@ -24,7 +24,7 @@ export const TILE_SATELLITE_ATTRIBUTION =
   'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP'
 
 // ─── App ──────────────────────────────────────────────────────────────
-export const APP_NAME = 'Tesla RADAR'
+export const APP_NAME = 'TesRadar'
 export const APP_VERSION = '2.0.0'
 
 // ─── Bulgaria bounding box ────────────────────────────────────────────

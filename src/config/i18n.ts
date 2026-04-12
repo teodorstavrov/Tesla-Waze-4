@@ -195,7 +195,7 @@ export const DICTIONARY = {
 
     support: {
       title:            'Подкрепи проекта',
-      subtitle:         'Tesla RADAR е навигационен асистент за Tesla шофьори — безплатно и без реклами.\nАко ти е полезно, помогни за поддръжката му ! Благодарим !',
+      subtitle:         'TesRadar е навигационен асистент за Tesla шофьори — безплатно и без реклами.\nАко ти е полезно, помогни за поддръжката му ! Благодарим !',
       scanQr:           'Сканирай с камерата на телефона си',
       contactBtn:       'Свържете се с нас',
       contactTitle:     'Свържете се с нас',
@@ -217,7 +217,7 @@ export const DICTIONARY = {
     },
 
     nudge: {
-      title:       '❤️ Хареса ли ти Tesla RADAR?',
+      title:       '❤️ Хареса ли ти TesRadar?',
       subtitle:    'Приложението е безплатно и без реклами. Ако ти помага на пътя — поднеси кафе на разработчика. 😊',
       scanHint:    'Сканирай QR кода с телефона или натисни „Подкрепи" за повече начини.',
       support:     '❤️ Подкрепи проекта',
@@ -404,7 +404,7 @@ export const DICTIONARY = {
 
     support: {
       title:            'Support the Project',
-      subtitle:         'Tesla RADAR is a free navigation assistant for Tesla drivers — no ads, no tracking.\nBuilt by an independent developer. If you find it useful, please consider supporting the project!',
+      subtitle:         'TesRadar is a free navigation assistant for Tesla drivers — no ads, no tracking.\nBuilt by an independent developer. If you find it useful, please consider supporting the project!',
       scanQr:           'Scan with your phone camera',
       contactBtn:       'Contact us',
       contactTitle:     'Contact us',
@@ -426,7 +426,7 @@ export const DICTIONARY = {
     },
 
     nudge: {
-      title:       '❤️ Enjoying Tesla RADAR?',
+      title:       '❤️ Enjoying TesRadar?',
       subtitle:    "The app is free and ad-free. If it helps you on the road — buy the developer a coffee. 😊",
       scanHint:    'Scan the QR code with your phone or tap "Support" for more options.',
       support:     '❤️ Support the project',

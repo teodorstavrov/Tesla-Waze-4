@@ -1,6 +1,6 @@
 {
-  "name": "Tesla Radar — EV Map & Road Events",
-  "short_name": "Tesla Radar",
+  "name": "TesRadar — EV Map & Road Events",
+  "short_name": "TesRadar",
   "description": "Real-time EV charging stations map and road events for Tesla drivers. Norway, Sweden, Denmark, Finland and Bulgaria. Free, no ads.",
   "start_url": "/",
   "display": "standalone",

@@ -261,7 +261,7 @@ export function MapShell() {
       // Reverse geocode — update address label when response arrives
       const revLang = countryStore.getCountryOrDefault().searchLang
       fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=jsonv2&accept-language=${encodeURIComponent(revLang)}`, {
-        headers: { 'User-Agent': 'TeslaRadar/1.0' },
+        headers: { 'User-Agent': 'TesRadar/1.0' },
       })
         .then((r) => r.json())
         .then((data: { display_name?: string; address?: { road?: string; suburb?: string; city?: string; town?: string; village?: string } }) => {

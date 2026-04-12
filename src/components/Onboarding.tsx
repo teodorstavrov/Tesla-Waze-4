@@ -38,12 +38,12 @@ function getSteps(country: CountryConfig): Step[] {
 
   const step1: Step = isBg ? {
     icon:  '⚡',
-    title: 'Добре дошли в TeslaRadar',
+    title: 'Добре дошли в TesRadar',
     body:  'Навигационен асистент за шофьори — EV зарядни станции, камери за средна скорост и пътни инциденти в реално време.',
     hint:  null,
   } : {
     icon:    '⚡',
-    title:   'Tesla RADAR',
+    title:   'TesRadar',
     body:    'Smarter driving for Tesla owners.',
     bullets: [
       '⚡  EV charging stations — find available chargers',

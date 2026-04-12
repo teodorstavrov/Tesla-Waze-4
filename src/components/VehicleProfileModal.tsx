@@ -449,7 +449,7 @@ export function VehicleProfileModal() {
           {/* Header */}
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#e31937', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>
-              Tesla RADAR
+              TesRadar
             </div>
             <div style={{ fontSize: 22, fontWeight: 700, color: '#f2f2f2', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
               {labels.title}

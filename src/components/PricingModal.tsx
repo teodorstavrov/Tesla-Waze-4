@@ -104,7 +104,7 @@ export function PricingModal({ stripeLink, price = '€4.99 / month' }: PricingM
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Tesla RADAR Plans"
+        aria-label="TesRadar Plans"
         style={{
           position:      'relative',
           zIndex:        1,
@@ -133,7 +133,7 @@ export function PricingModal({ stripeLink, price = '€4.99 / month' }: PricingM
         }}>
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#e31937', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 4 }}>
-              Tesla RADAR
+              TesRadar
             </div>
             <div style={{ fontSize: 20, fontWeight: 800, color: '#f2f2f2', letterSpacing: '-0.02em' }}>
               Choose your plan
@@ -312,7 +312,7 @@ export function PricingModal({ stripeLink, price = '€4.99 / month' }: PricingM
             lineHeight:  1.5,
             maxWidth:    420,
           }}>
-            Tesla RADAR is free to use. PRO features are in development — pricing is a placeholder until launch.
+            TesRadar is free to use. PRO features are in development — pricing is a placeholder until launch.
           </div>
 
           {/* Stripe trust */}

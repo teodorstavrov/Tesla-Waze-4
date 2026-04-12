@@ -1,4 +1,4 @@
-// ─── Tesla Radar Service Worker ─────────────────────────────────────────
+// ─── TesRadar Service Worker ─────────────────────────────────────────
 // Cache strategies:
 //   • Vite assets (/assets/*)            → Cache-first (content-hashed = immutable)
 //   • Map tiles (CARTO, ArcGIS)          → Cache-first, 30-day TTL, max 1500 tiles

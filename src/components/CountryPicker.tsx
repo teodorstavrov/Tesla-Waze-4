@@ -129,7 +129,7 @@ export function CountryPicker() {
         {/* Logo */}
         <img
           src="/new-medium_tran.png"
-          alt="Tesla RADAR"
+          alt="TesRadar"
           style={{ height: 68, width: 'auto', borderRadius: 14 }}
         />
 
@@ -139,7 +139,7 @@ export function CountryPicker() {
             Select your country
           </div>
           <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.45)', lineHeight: 1.5, maxWidth: 300 }}>
-            Tesla RADAR will use this to set your map, search, and language defaults.
+            TesRadar will use this to set your map, search, and language defaults.
           </div>
         </div>
 
