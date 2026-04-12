@@ -128,7 +128,7 @@ export function CountryPicker() {
       }}>
         {/* Logo */}
         <img
-          src="/Logo-medium.png"
+          src="/new-medium_tran.png"
           alt="Tesla RADAR"
           style={{ height: 68, width: 'auto', borderRadius: 14 }}
         />

@@ -12,6 +12,58 @@ import type { TeslaModel } from '@/features/planning/types'
 import { isTeslaBrowser } from '@/lib/browser'
 import { countryStore } from '@/lib/countryStore'
 
+// ── Model S 3-step configurator constants ─────────────────────────────
+const MS_YEAR_GROUPS = ['2012–2016', '2016–2019', '2019–2021', '2021+'] as const
+type MSYearGroup = typeof MS_YEAR_GROUPS[number]
+
+// year group → { battery kWh → drive options }
+const MS_OPTIONS: Record<MSYearGroup, Record<number, string[]>> = {
+  '2012–2016': { 60: ['RWD'], 70: ['AWD'], 85: ['RWD', 'AWD'] },
+  '2016–2019': { 75: ['RWD', 'AWD'], 90: ['AWD'], 100: ['AWD'] },
+  '2019–2021': { 100: ['AWD'] },
+  '2021+':     { 100: ['AWD', 'Plaid'] },
+}
+
+// (group_battery_drive) → vehicleConfig trim ID
+const MS_TRIM_IDS: Record<string, string> = {
+  '2012–2016_60_RWD':   'S60',
+  '2012–2016_70_AWD':   'S70D',
+  '2012–2016_85_RWD':   'S85',
+  '2012–2016_85_AWD':   'S85D',
+  '2016–2019_75_RWD':   'S75',
+  '2016–2019_75_AWD':   'S75D',
+  '2016–2019_90_AWD':   'S90D',
+  '2016–2019_100_AWD':  'S100D',
+  '2019–2021_100_AWD':  'LR_AWD_19',
+  '2021+_100_AWD':      'LR_AWD',
+  '2021+_100_Plaid':    'PLAID',
+}
+
+// Representative year saved per group (used by getTrimConfig)
+const MS_GROUP_YEAR: Record<MSYearGroup, number> = {
+  '2012–2016': 2014, '2016–2019': 2017, '2019–2021': 2020, '2021+': 2022,
+}
+
+// Reverse map: existing trim ID → [group, battery, drive]
+const MS_REVERSE: Record<string, [MSYearGroup, number, string]> = {
+  'S60':       ['2012–2016', 60,  'RWD'],
+  'S70D':      ['2012–2016', 70,  'AWD'],
+  'S85':       ['2012–2016', 85,  'RWD'],
+  'S85D':      ['2012–2016', 85,  'AWD'],
+  'P85':       ['2012–2016', 85,  'AWD'],
+  'P85D':      ['2012–2016', 85,  'AWD'],
+  'S75':       ['2016–2019', 75,  'RWD'],
+  'S75D':      ['2016–2019', 75,  'AWD'],
+  'S90D':      ['2016–2019', 90,  'AWD'],
+  'P90D':      ['2016–2019', 90,  'AWD'],
+  'S100D':     ['2016–2019', 100, 'AWD'],
+  'P100D':     ['2016–2019', 100, 'AWD'],
+  'LR':        ['2019–2021', 100, 'AWD'],
+  'LR_AWD_19': ['2019–2021', 100, 'AWD'],
+  'LR_AWD':    ['2021+',     100, 'AWD'],
+  'PLAID':     ['2021+',     100, 'Plaid'],
+}
+
 // ── Locale-aware label map ─────────────────────────────────────────────
 // Computed once per modal open — no live reactivity needed.
 function getLabels() {
@@ -216,16 +268,31 @@ export function VehicleProfileModal() {
     existing?.degradationPercent != null ? String(existing.degradationPercent) : ''
   )
 
+  // ── Model S 3-step state ──────────────────────────────────────────────
+  const [msGroup, setMsGroup] = useState<MSYearGroup | null>(null)
+  const [msBat,   setMsBat]   = useState<number | null>(null)
+  const [msDrv,   setMsDrv]   = useState<string | null>(null)
+  const isMS = model === 'Model S'
+
+  // Derived trim ID for Model S — null if selection incomplete
+  const msTrimId = (isMS && msGroup && msBat && msDrv)
+    ? (MS_TRIM_IDS[`${msGroup}_${msBat}_${msDrv}`] ?? null)
+    : null
+
   const years = getYearsForModel(model)
   const trims = getTrimsForYear(model, year)
 
   function handleModelChange(m: TeslaModel) {
     setModel(m)
-    const ys = getYearsForModel(m)
-    const ny = ys[0] ?? new Date().getFullYear()
-    setYear(ny)
-    const ts = getTrimsForYear(m, ny)
-    setTrim(ts[0]?.id ?? '')
+    if (m === 'Model S') {
+      setMsGroup('2021+'); setMsBat(100); setMsDrv('AWD')
+    } else {
+      const ys = getYearsForModel(m)
+      const ny = ys[0] ?? new Date().getFullYear()
+      setYear(ny)
+      const ts = getTrimsForYear(m, ny)
+      setTrim(ts[0]?.id ?? '')
+    }
   }
 
   function handleYearChange(y: number) {
@@ -242,12 +309,20 @@ export function VehicleProfileModal() {
       setModel(p.model); setYear(p.year); setTrim(p.trim)
       setBattery(p.currentBatteryPercent)
       setDegrad(p.degradationPercent != null ? String(p.degradationPercent) : '')
+      if (p.model === 'Model S') {
+        const rev = MS_REVERSE[p.trim]
+        if (rev) { setMsGroup(rev[0]); setMsBat(rev[1]); setMsDrv(rev[2]) }
+        else      { setMsGroup('2021+'); setMsBat(100); setMsDrv('AWD') }
+      } else {
+        setMsGroup(null); setMsBat(null); setMsDrv(null)
+      }
     } else {
       const dm: TeslaModel = 'Model 3'
       const dy = new Date().getFullYear() - 1
       setModel(dm); setYear(dy)
       setTrim(getTrimsForYear(dm, dy)[0]?.id ?? '')
       setBattery(80); setDegrad('')
+      setMsGroup(null); setMsBat(null); setMsDrv(null)
     }
     setOpen(true)
     if (isTeslaBrowser) {
@@ -279,23 +354,29 @@ export function VehicleProfileModal() {
 
   function handleSave() {
     const dv = degrad.trim() === '' ? null : Math.max(0, Math.min(30, Number(degrad)))
+    const degradVal = isNaN(dv as number) ? null : dv
+
+    const savedYear = (isMS && msGroup) ? MS_GROUP_YEAR[msGroup] : year
+    const savedTrim = (isMS && msTrimId) ? msTrimId : (trim || (trims[0]?.id ?? ''))
+
     const savedProfile = {
-      model, year,
-      trim: trim || (trims[0]?.id ?? ''),
+      model,
+      year: savedYear,
+      trim: savedTrim,
       currentBatteryPercent: Math.round(battery),
-      degradationPercent: isNaN(dv as number) ? null : dv,
+      degradationPercent: degradVal,
     }
     vehicleProfileStore.save(savedProfile)
-    // Re-anchor the live battery session to the user's freshly entered values.
-    // This marks the source as 'user_entered' and resets the energy calculation.
     batteryStore.resetFromProfile({ ...savedProfile, updatedAt: Date.now() })
     close()
   }
 
   if (!open) return null
 
-  const col    = batteryColor(battery)
-  const canSave = Boolean(model && year && (trim || trims.length === 0))
+  const col     = batteryColor(battery)
+  const canSave = isMS
+    ? Boolean(msTrimId)
+    : Boolean(model && year && (trim || trims.length === 0))
 
   const SELECT_STYLE: React.CSSProperties = {
     width: '100%',
@@ -403,39 +484,51 @@ export function VehicleProfileModal() {
             </div>
           </div>
 
-          {/* Trim — version selection */}
-          {trims.length > 0 && (
-            <div>
-              <div style={SECTION_LABEL}>{labels.trim}</div>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                {trims.map((t) => {
-                  const sel = trim === t.id
-                  return (
-                    <button
-                      key={t.id}
-                      onClick={() => setTrim(t.id)}
-                      style={{
-                        padding: '11px 14px',
-                        borderRadius: 10,
-                        border: `1px solid ${sel ? 'rgba(227,25,55,0.6)' : 'rgba(255,255,255,0.10)'}`,
-                        background: sel ? 'rgba(227,25,55,0.12)' : 'rgba(255,255,255,0.03)',
-                        color: sel ? '#fff' : 'rgba(255,255,255,0.55)',
-                        fontSize: 15,
-                        fontWeight: sel ? 600 : 400,
-                        cursor: 'pointer', touchAction: 'manipulation',
-                        textAlign: 'left',
-                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      }}
-                    >
-                      <span>{t.label}</span>
-                      <span style={{ fontSize: 13, color: sel ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.4)', fontWeight: 400 }}>
-                        {t.usableKwh} kWh
-                      </span>
-                    </button>
-                  )
-                })}
+          {/* Trim / Model S 3-step selector */}
+          {isMS ? (
+            <ModelSConfigurator
+              msGroup={msGroup}
+              msBat={msBat}
+              msDrv={msDrv}
+              onGroup={(g) => { setMsGroup(g); setMsBat(null); setMsDrv(null) }}
+              onBat={(b)   => { setMsBat(b);   setMsDrv(null) }}
+              onDrv={setMsDrv}
+              sectionLabel={SECTION_LABEL}
+            />
+          ) : (
+            trims.length > 0 && (
+              <div>
+                <div style={SECTION_LABEL}>{labels.trim}</div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  {trims.map((t) => {
+                    const sel = trim === t.id
+                    return (
+                      <button
+                        key={t.id}
+                        onClick={() => setTrim(t.id)}
+                        style={{
+                          padding: '11px 14px',
+                          borderRadius: 10,
+                          border: `1px solid ${sel ? 'rgba(227,25,55,0.6)' : 'rgba(255,255,255,0.10)'}`,
+                          background: sel ? 'rgba(227,25,55,0.12)' : 'rgba(255,255,255,0.03)',
+                          color: sel ? '#fff' : 'rgba(255,255,255,0.55)',
+                          fontSize: 15,
+                          fontWeight: sel ? 600 : 400,
+                          cursor: 'pointer', touchAction: 'manipulation',
+                          textAlign: 'left',
+                          display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                        }}
+                      >
+                        <span>{t.label}</span>
+                        <span style={{ fontSize: 13, color: sel ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.4)', fontWeight: 400 }}>
+                          {t.usableKwh} kWh
+                        </span>
+                      </button>
+                    )
+                  })}
+                </div>
               </div>
-            </div>
+            )
           )}
 
           {/* Subtitle note */}
@@ -468,8 +561,8 @@ export function VehicleProfileModal() {
             </button>
           </div>
 
-          {/* Year — custom button grid (Tesla browser ignores native <select> onChange) */}
-          <div>
+          {/* Year — hidden for Model S (year is derived from year group) */}
+          {!isMS && <div>
             <div style={SECTION_LABEL}>{labels.year}</div>
             <div style={{
               display: 'flex',
@@ -502,7 +595,7 @@ export function VehicleProfileModal() {
                 )
               })}
             </div>
-          </div>
+          </div>}
 
           {/* Battery — slider + fine controls */}
           <div>
@@ -670,6 +763,83 @@ function ModelPill({
     >
       {label}
     </button>
+  )
+}
+
+// ── Model S 3-step configurator component ────────────────────────────
+function ModelSConfigurator({
+  msGroup, msBat, msDrv,
+  onGroup, onBat, onDrv,
+  sectionLabel,
+}: {
+  msGroup: MSYearGroup | null
+  msBat:   number | null
+  msDrv:   string | null
+  onGroup: (g: MSYearGroup) => void
+  onBat:   (b: number) => void
+  onDrv:   (d: string) => void
+  sectionLabel: React.CSSProperties
+}) {
+  const CHIP = (sel: boolean): React.CSSProperties => ({
+    padding: '9px 14px',
+    borderRadius: 10,
+    border: `1px solid ${sel ? 'rgba(227,25,55,0.65)' : 'rgba(255,255,255,0.10)'}`,
+    background: sel ? 'rgba(227,25,55,0.14)' : 'rgba(255,255,255,0.04)',
+    color: sel ? '#fff' : 'rgba(255,255,255,0.55)',
+    fontSize: 14,
+    fontWeight: sel ? 700 : 400,
+    cursor: 'pointer',
+    touchAction: 'manipulation',
+    whiteSpace: 'nowrap' as const,
+    flex: 1,
+    textAlign: 'center' as const,
+  })
+
+  const batteries = msGroup ? Object.keys(MS_OPTIONS[msGroup]).map(Number) : []
+  const drives    = (msGroup && msBat) ? (MS_OPTIONS[msGroup][msBat] ?? []) : []
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      {/* Step 1 — Year group */}
+      <div>
+        <div style={sectionLabel}>Generation</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {MS_YEAR_GROUPS.map((g) => (
+            <button key={g} onClick={() => onGroup(g)} style={CHIP(msGroup === g)}>
+              Model S {g}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Step 2 — Battery */}
+      {msGroup && (
+        <div>
+          <div style={sectionLabel}>Battery</div>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+            {batteries.map((b) => (
+              <button key={b} onClick={() => onBat(b)} style={{ ...CHIP(msBat === b), flex: 'none', minWidth: 52 }}>
+                {b} kWh
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Step 3 — Drive */}
+      {msGroup && msBat && (
+        <div>
+          <div style={sectionLabel}>Drive</div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            {drives.map((d) => (
+              <button key={d} onClick={() => onDrv(d)} style={CHIP(msDrv === d)}>
+                {d}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
   )
 }
 

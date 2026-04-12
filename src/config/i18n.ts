@@ -179,7 +179,7 @@ export const DICTIONARY = {
     routePanel: {
       calculating:   'Изчисляване на маршрут до',
       routes:        'Маршрути',
-      currentCharge: 'Текущ заряд',
+      currentCharge: 'Начален заряд',
       estimate:      '(оценка)',
       atArrival:     'При пристигане',
       chargeEnRoute: 'Зареди по пътя',
@@ -388,7 +388,7 @@ export const DICTIONARY = {
     routePanel: {
       calculating:   'Calculating route to',
       routes:        'Routes',
-      currentCharge: 'Current charge',
+      currentCharge: 'Starting charge',
       estimate:      '(estimate)',
       atArrival:     'At arrival',
       chargeEnRoute: 'Charge en route',

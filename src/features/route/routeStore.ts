@@ -105,7 +105,7 @@ function _onGpsUpdate(): void {
   const [closestLat, closestLng] = route.polyline[idx]!
   const distFromRoute = haversineM(gps.lat, gps.lng, closestLat, closestLng)
 
-  const deviated  = distFromRoute > 100
+  const deviated  = distFromRoute > 200
   const remaining = remainingDistanceM(idx, route.polyline)
 
   // ── Arrival detection ───────────────────────────────────────────

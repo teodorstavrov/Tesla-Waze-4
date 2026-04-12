@@ -166,11 +166,14 @@ function MinusIcon() {
 function CarBatteryIcon() {
   return (
     <svg width="24" height="24" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <rect x="2" y="7" width="16" height="10" rx="2" />
-      <path d="M22 11v2" />
-      <line x1="6" y1="11" x2="6" y2="13" />
-      <line x1="10" y1="11" x2="10" y2="13" />
+      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {/* Car body */}
+      <path d="M2 13 C2 13 3 9 5 8 C7 7 9 7 12 7 C15 7 17 7 19 8 C21 9 22 11 22 13 L22 15 C22 15.55 21.55 16 21 16 L20 16 C20 17.1 19.1 18 18 18 C16.9 18 16 17.1 16 16 L8 16 C8 17.1 7.1 18 6 18 C4.9 18 4 17.1 4 16 L3 16 C2.45 16 2 15.55 2 15 Z" />
+      {/* Cabin */}
+      <path d="M6 8 C7 6 9 5 12 5 C15 5 17 6 18 8" />
+      {/* Wheels */}
+      <circle cx="6"  cy="17" r="1.5" fill="currentColor" stroke="none" />
+      <circle cx="18" cy="17" r="1.5" fill="currentColor" stroke="none" />
     </svg>
   )
 }

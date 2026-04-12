@@ -115,7 +115,8 @@ function _onPosition(): void {
     // ── Advance warning toast (zone-entry for ALL types) ─────────────────
     // Fires exactly once when crossing inward. Auto-resets when driver
     // moves back beyond the threshold — no time-based cooldown needed.
-    if (prevDist > threshold && distM <= threshold) {
+    // Skip for events the user just reported themselves (90s window).
+    if (prevDist > threshold && distM <= threshold && !eventStore.isSelfReported(event.id)) {
       const text = _alertText(event.type)
       logger.audio.info('Proximity alert (zone entry)', { type: event.type, distM: Math.round(distM) })
       audioManager.beep(880, event.type === 'police' ? 150 : 100)

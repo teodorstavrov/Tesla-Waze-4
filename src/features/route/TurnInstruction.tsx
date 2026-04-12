@@ -1,11 +1,12 @@
 // ─── Turn-by-turn instruction HUD ──────────────────────────────────────
-// Shown at top-left during active navigation (replaces FloatingTitleCard).
+// Shown below the top-left logo during active navigation.
+// Minimal design: arrow + distance only, no background panel.
 // Subscribes ONLY to routeStore — distToNextStepM is computed there from
 // GPS updates, avoiding the dual-subscription race that caused React #310.
 
 import { useSyncExternalStore } from 'react'
 import { routeStore } from './routeStore.js'
-import { maneuverDisplayText, maneuverArrowRotation } from './maneuver.js'
+import { maneuverArrowRotation } from './maneuver.js'
 import { t, getLang, langStore } from '@/lib/locale'
 
 function formatDistM(m: number): string {
@@ -24,33 +25,30 @@ export function TurnInstruction() {
 
   if (status !== 'ok' || !route) return null
 
-  // ── Arrived ──────────────────────────────────────────────────────
+  // Logo is 54px tall, starts at top:12 → bottom at 66px; 10px gap → top:76
+  const TOP = 76
+
+  // ── Arrived ──────────────────────────────────────────────────────────
   if (arrived) {
     return (
       <div
-        className="glass"
         style={{
-          position: 'absolute', top: 12, left: 12, zIndex: 500,
-          padding: '10px 16px', display: 'flex', alignItems: 'center', gap: 10,
-          minWidth: 200,
+          position: 'absolute', top: TOP, left: 12, zIndex: 500,
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+          userSelect: 'none', WebkitUserSelect: 'none',
         }}
       >
-        <div style={{
-          width: 36, height: 36, borderRadius: '50%', flexShrink: 0,
-          background: 'rgba(34,197,94,0.18)', border: '2px solid #22c55e',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: 18,
+        <span style={{
+          fontSize: 36,
+          filter: 'drop-shadow(0 1px 4px rgba(0,0,0,0.7))',
+        }}>✅</span>
+        <span style={{
+          fontSize: 12, fontWeight: 800, color: '#22c55e',
+          textShadow: '0 1px 4px rgba(0,0,0,0.9)',
+          whiteSpace: 'nowrap',
         }}>
-          ✓
-        </div>
-        <div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: '#22c55e' }}>
-            {t('route.arrived')}
-          </div>
-          <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
-            {destination?.name}
-          </div>
-        </div>
+          {destination?.name ?? t('route.arrived')}
+        </span>
       </div>
     )
   }
@@ -58,50 +56,34 @@ export function TurnInstruction() {
   const step = route.steps[currentStepIndex]
   if (!step) return null
 
-  const rotation    = maneuverArrowRotation(step)
-  const displayText = maneuverDisplayText(step)
-  const streetName  = step.name
+  const rotation = maneuverArrowRotation(step)
 
   return (
     <div
-      className="glass"
       style={{
-        position: 'absolute', top: 12, left: 12, zIndex: 500,
-        padding: '10px 14px', display: 'flex', alignItems: 'center', gap: 10,
-        minWidth: 200, maxWidth: 260,
+        position: 'absolute', top: TOP, left: 12, zIndex: 500,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+        userSelect: 'none', WebkitUserSelect: 'none',
       }}
     >
-      {/* Arrow */}
-      <div style={{
-        width: 40, height: 40, borderRadius: 10, flexShrink: 0,
-        background: 'rgba(227,25,55,0.15)', border: '1.5px solid #e31937',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-      }}>
-        <TurnArrow rotation={rotation} />
-      </div>
+      {/* Arrow — white with dark drop-shadow for readability on any map */}
+      <TurnArrow rotation={rotation} />
 
-      {/* Text */}
-      <div style={{ minWidth: 0, flex: 1 }}>
+      {/* Distance */}
+      {distToNextStepM !== null && distToNextStepM > 15 && (
         <div style={{
-          fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2,
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          fontSize: 14,
+          fontWeight: 900,
+          color: '#fff',
+          textShadow: '0 1px 5px rgba(0,0,0,0.95), 0 0 2px rgba(0,0,0,0.8)',
+          letterSpacing: '-0.3px',
+          lineHeight: 1,
+          fontVariantNumeric: 'tabular-nums',
+          fontFamily: 'system-ui, sans-serif',
         }}>
-          {displayText}
+          {formatDistM(distToNextStepM)}
         </div>
-        {distToNextStepM !== null && distToNextStepM > 15 && (
-          <div style={{ fontSize: 12, color: '#e31937', fontWeight: 600, marginTop: 2 }}>
-            {t('route.inDist')} {formatDistM(distToNextStepM)}
-          </div>
-        )}
-        {streetName && (
-          <div style={{
-            fontSize: 10, color: 'var(--text-secondary)', marginTop: 2,
-            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-          }}>
-            {streetName}
-          </div>
-        )}
-      </div>
+      )}
     </div>
   )
 }
@@ -109,14 +91,18 @@ export function TurnInstruction() {
 function TurnArrow({ rotation }: { rotation: number }) {
   return (
     <svg
-      width="22" height="22" viewBox="0 0 24 24"
-      fill="none" stroke="#e31937" strokeWidth="2.5"
+      width="46" height="46" viewBox="0 0 24 24"
+      fill="none"
       strokeLinecap="round" strokeLinejoin="round"
       style={{ transform: `rotate(${rotation}deg)`, transition: 'transform 0.3s ease' }}
       aria-hidden="true"
     >
-      <line x1="12" y1="19" x2="12" y2="5" />
-      <polyline points="5 12 12 5 19 12" />
+      {/* Shadow layer */}
+      <line x1="12" y1="19" x2="12" y2="5" stroke="rgba(0,0,0,0.7)" strokeWidth="4.5" />
+      <polyline points="5 12 12 5 19 12" stroke="rgba(0,0,0,0.7)" strokeWidth="4.5" />
+      {/* White arrow */}
+      <line x1="12" y1="19" x2="12" y2="5" stroke="#ffffff" strokeWidth="2.8" />
+      <polyline points="5 12 12 5 19 12" stroke="#ffffff" strokeWidth="2.8" />
     </svg>
   )
 }

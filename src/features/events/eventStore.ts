@@ -81,6 +81,9 @@ export const eventStore = {
     _emit()
   },
 
+  /** True while the 90s self-report suppression window is active for this id */
+  isSelfReported(id: string): boolean { return _isSelfReported(id) },
+
   /** Optimistically add a just-reported event without waiting for re-fetch */
   addEvent(event: RoadEvent): void {
     _state = { ..._state, events: [event, ..._state.events] }

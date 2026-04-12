@@ -45,10 +45,12 @@ export function RoutePanel() {
   const [batterySession, setBatterySession] = useState(() => batteryStore.getState())
   useEffect(() => batteryStore.subscribe(() => setBatterySession(batteryStore.getState())), [])
 
-  // Reset dismissed when a new route loads
+  // Reset dismissed only when the destination changes (new route by the user).
+  // Do NOT reset on status changes — rerouting (which also changes status) should
+  // NOT reopen the panel if the user has explicitly hidden it.
   useEffect(() => {
-    if (status === 'loading' || status === 'ok') setDismissed(false)
-  }, [destination?.name, status])
+    setDismissed(false)
+  }, [destination?.name])
 
   // useMemo must be declared before any early returns (Rules of Hooks)
   const stationsOnRoute = useMemo(() => {
