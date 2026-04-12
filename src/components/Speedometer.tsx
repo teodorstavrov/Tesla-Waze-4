@@ -120,39 +120,6 @@ export function Speedometer() {
         </span>
       </div>
 
-      {/* ── Speed limit badge (road-sign style) ──────────────────────── */}
-      {limit !== null && (
-        <div
-          aria-label={`Speed limit ${limit} km/h`}
-          style={{
-            position:       'absolute',
-            bottom:         -2,
-            right:          -2,
-            width:          28,
-            height:         28,
-            borderRadius:   '50%',
-            background:     '#fff',
-            border:         `3px solid #e00`,
-            display:        'flex',
-            alignItems:     'center',
-            justifyContent: 'center',
-            boxShadow:      '0 2px 6px rgba(0,0,0,0.5)',
-            userSelect:     'none',
-            WebkitUserSelect: 'none',
-          }}
-        >
-          <span style={{
-            fontSize:           limit >= 100 ? 8 : 10,
-            fontWeight:         800,
-            color:              '#111',
-            letterSpacing:      '-0.5px',
-            fontVariantNumeric: 'tabular-nums',
-            lineHeight:         1,
-          }}>
-            {limit}
-          </span>
-        </div>
-      )}
     </div>
   )
 }
