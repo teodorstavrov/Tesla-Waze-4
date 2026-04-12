@@ -79,13 +79,9 @@ export function CountryPicker() {
       const pos = gpsStore.getPosition()
       const country = COUNTRIES[selected]
       if (map) {
-        // Only use GPS position if it's actually inside the selected country's bounds.
-        // If the user is in BG but selects NO, GPS would keep the map in BG — wrong.
-        const [[swLat, swLng], [neLat, neLng]] = country.bounds
-        const gpsInCountry = pos != null &&
-          pos.lat >= swLat && pos.lat <= neLat &&
-          pos.lng >= swLng && pos.lng <= neLng
-        if (gpsInCountry && pos) {
+        // Always center on the user's GPS position if available.
+        // Fall back to the country capital only when there is no GPS fix yet.
+        if (pos) {
           map.setView([pos.lat, pos.lng], 15, { animate: false })
         } else {
           map.setView(country.center, country.zoom, { animate: !isTeslaBrowser })
