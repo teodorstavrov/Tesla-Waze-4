@@ -36,6 +36,7 @@ interface NominatimItem {
     village?: string
     suburb?: string
     road?: string
+    house_number?: string
     country?: string
   }
 }
@@ -81,10 +82,17 @@ export async function searchNominatim(
   const rawResults = data.map((r): GeoResult & { _class: string } => {
     const addr = r.address ?? {}
     const city = addr.city ?? addr.town ?? addr.village ?? addr.suburb ?? ''
+
+    // Build a human-friendly short name that includes house number for addresses.
+    // Priority: explicit name tag → road + house_number → road → first display segment
+    const road      = addr.road
+    const houseNum  = addr.house_number
     const shortName =
       r.name ??
-      r.display_name.split(',')[0]?.trim() ??
-      r.display_name
+      (road && houseNum ? `${road} ${houseNum}` :
+       road              ? road                  :
+       r.display_name.split(',')[0]?.trim()      ??
+       r.display_name)
 
     return {
       type:        'geo',

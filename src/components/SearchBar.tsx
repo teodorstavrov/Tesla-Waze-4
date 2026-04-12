@@ -21,10 +21,12 @@ import {
   loadHistory, saveToHistory, removeFromHistory,
   loadFavorites, isFavorite, toggleFavorite,
 } from '@/features/search/searchHistory'
+import { savedPlacesStore } from '@/features/places/savedPlacesStore'
 import type { GeoResult } from '@/features/search/nominatim'
 import type { StationResult } from '@/features/search/stationSearch'
 import type { HistoryEntry } from '@/features/search/searchHistory'
 import type { NormalizedStation } from '@/features/ev/types'
+import type { PlaceType } from '@/features/places/savedPlacesStore'
 
 type SearchResult = (GeoResult & { _city?: string }) | StationResult
 
@@ -43,12 +45,16 @@ export function SearchBar() {
   const [focused, setFocused]   = useState(-1)
   const [history, setHistory]   = useState<HistoryEntry[]>([])
   const [favorites, setFavorites] = useState<HistoryEntry[]>([])
+  const [savedPlaces, setSavedPlaces] = useState(() => savedPlacesStore.getAll())
   // Used to force re-render after star toggle without closing the panel
   const [, setFavTick] = useState(0)
 
   const inputRef     = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const abortRef     = useRef<AbortController | null>(null)
+
+  // Keep savedPlaces in sync (Home/Work can be set from map long-press)
+  useEffect(() => savedPlacesStore.subscribe(() => setSavedPlaces(savedPlacesStore.getAll())), [])
 
   // ── Open/close helpers ───────────────────────────────────────────
   function openSearch() {
@@ -182,8 +188,32 @@ export function SearchBar() {
     setHistory(loadHistory())
   }
 
+  // ── Navigate to saved place (Home / Work) ────────────────────────
+  function selectSavedPlace(type: PlaceType) {
+    const place = savedPlacesStore.get(type)
+    if (!place) return
+    void routeStore.navigateTo({ lat: place.lat, lng: place.lng, name: place.name })
+    closeSearch()
+  }
+
+  // ── Star toggle directly from search results ─────────────────────
+  function handleResultStarToggle(e: React.MouseEvent, result: GeoResult) {
+    e.stopPropagation()
+    toggleFavorite({
+      shortName:   result.shortName,
+      displayName: result.displayName,
+      lat:         result.lat,
+      lng:         result.lng,
+    })
+    setFavorites(loadFavorites())
+    setFavTick((n) => n + 1)
+  }
+
   // ── Render ───────────────────────────────────────────────────────
-  const showHistory  = open && !query.trim() && (history.length > 0 || favorites.length > 0)
+  const showHistory  = open && !query.trim() && (
+    history.length > 0 || favorites.length > 0 ||
+    Boolean(savedPlaces.home) || Boolean(savedPlaces.work)
+  )
   const showResults  = results.length > 0
   // History entries that are NOT also favorites (to avoid duplication)
   const historyOnly  = history.filter((h) => !isFavorite(h.lat, h.lng))
@@ -252,15 +282,32 @@ export function SearchBar() {
               </button>
             </div>
 
-            {/* History + Favorites dropdown */}
+            {/* History + Favorites + Home/Work dropdown */}
             {showHistory && (
               <div
                 className="glass"
                 style={{
-                  marginTop: 6, maxHeight: 320, overflowY: 'auto',
+                  marginTop: 6, maxHeight: 360, overflowY: 'auto',
                   borderRadius: 12, padding: '4px 0',
                 }}
               >
+                {/* Home & Work quick navigation */}
+                {(savedPlaces.home || savedPlaces.work) && (
+                  <>
+                    <SectionLabel label={`${t('map.home')} & ${t('map.work')}`} />
+                    {savedPlaces.home && (
+                      <ResultRow focused={false} onClick={() => selectSavedPlace('home')}>
+                        <SavedPlaceContent type="home" name={savedPlaces.home.name} />
+                      </ResultRow>
+                    )}
+                    {savedPlaces.work && (
+                      <ResultRow focused={false} onClick={() => selectSavedPlace('work')}>
+                        <SavedPlaceContent type="work" name={savedPlaces.work.name} />
+                      </ResultRow>
+                    )}
+                  </>
+                )}
+
                 {/* Favorites section */}
                 {favorites.length > 0 && (
                   <>
@@ -341,13 +388,18 @@ export function SearchBar() {
                       .filter((r): r is GeoResult & { _city?: string } => r.type === 'geo')
                       .map((r, i) => {
                         const idx = results.filter((x) => x.type === 'station').length + i
+                        const starred = isFavorite(r.lat, r.lng)
                         return (
                           <ResultRow
                             key={`${r.lat},${r.lng}`}
                             focused={focused === idx}
                             onClick={() => selectResult(r)}
                           >
-                            <GeoResultContent result={r} />
+                            <GeoResultContent
+                              result={r}
+                              starred={starred}
+                              onStar={(e) => handleResultStarToggle(e, r)}
+                            />
                           </ResultRow>
                         )
                       })
@@ -534,10 +586,55 @@ function StationResultContent({ result }: { result: StationResult }) {
   )
 }
 
-function GeoResultContent({ result }: { result: GeoResult & { _city?: string } }) {
+function SavedPlaceContent({ type, name }: { type: PlaceType; name: string }) {
+  const isHome = type === 'home'
+  const color  = isHome ? '#22c55e' : '#3b82f6'
+  const emoji  = isHome ? '🏠' : '💼'
+  const label  = isHome ? t('map.home') : t('map.work')
+  return (
+    <>
+      <div style={{
+        width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
+        background: `${color}20`, border: `1.5px solid ${color}`,
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontSize: 14,
+      }}>
+        {emoji}
+      </div>
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div style={{
+          fontSize: 13, fontWeight: 700, color: 'var(--text-primary)',
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>
+          {label}
+        </div>
+        <div style={{
+          fontSize: 11, color: 'var(--text-secondary)', marginTop: 1,
+          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+        }}>
+          {name}
+        </div>
+      </div>
+      <div style={{ fontSize: 11, color: color, fontWeight: 600, flexShrink: 0 }}>
+        ↗
+      </div>
+    </>
+  )
+}
+
+function GeoResultContent({
+  result, starred, onStar,
+}: {
+  result:   GeoResult & { _city?: string }
+  starred?: boolean
+  onStar?:  (e: React.MouseEvent) => void
+}) {
   const subtitle = result._city && result._city !== result.shortName
     ? result._city
     : result.displayName.split(',').slice(1, 3).join(',').trim()
+
+  // Use road icon for highway/road results
+  const isStreet = result.category === 'highway' || result.category === 'road'
 
   return (
     <>
@@ -547,9 +644,9 @@ function GeoResultContent({ result }: { result: GeoResult & { _city?: string } }
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: 13,
       }}>
-        📍
+        {isStreet ? '🛣️' : '📍'}
       </div>
-      <div style={{ minWidth: 0 }}>
+      <div style={{ minWidth: 0, flex: 1 }}>
         <div style={{
           fontSize: 13, fontWeight: 600, color: 'var(--text-primary)',
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
@@ -565,6 +662,25 @@ function GeoResultContent({ result }: { result: GeoResult & { _city?: string } }
           </div>
         )}
       </div>
+
+      {/* Star — save to favourites directly from search results */}
+      {onStar && (
+        <button
+          onMouseDown={(e) => e.preventDefault()}
+          onClick={onStar}
+          aria-label={starred ? t('search.removeFav') : t('search.addFav')}
+          title={starred ? t('search.removeFav') : t('search.addFav')}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            padding: 4, borderRadius: 6, lineHeight: 1, flexShrink: 0,
+            color: starred ? '#fbbf24' : 'rgba(255,255,255,0.25)',
+            display: 'flex', alignItems: 'center',
+            touchAction: 'manipulation',
+          }}
+        >
+          {starred ? <StarFilledIcon size={14} /> : <StarOutlineIcon size={14} />}
+        </button>
+      )}
     </>
   )
 }
