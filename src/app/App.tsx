@@ -39,6 +39,7 @@ import { RatingModal } from '@/components/RatingModal'
 import { VehicleProfileModal } from '@/components/VehicleProfileModal'
 import { CountryPicker } from '@/components/CountryPicker'
 import { NorwayBetaBanner } from '@/components/NorwayBetaBanner'
+import { OnlineCounter } from '@/components/OnlineCounter'
 import { UpgradeModal } from '@/components/UpgradeModal'
 import { PricingModal } from '@/components/PricingModal'
 import { alertEngine } from '@/features/audio/alertEngine'
@@ -101,6 +102,7 @@ export function App() {
       <LeftControls />
       <RightControls />
       <BottomDock />
+      <OnlineCounter />
 
       {/* Layer 2: panels + filter bar (above dock) */}
       <SectionCard />
