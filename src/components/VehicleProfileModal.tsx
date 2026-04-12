@@ -411,7 +411,7 @@ export function VehicleProfileModal() {
       position: 'fixed', inset: 0, zIndex: 900,
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       opacity: shown ? 1 : 0,
-      transition: 'opacity 0.2s ease',
+      transition: isTeslaBrowser ? undefined : 'opacity 0.2s ease',
     }}>
       {/* Backdrop */}
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
@@ -431,8 +431,8 @@ export function VehicleProfileModal() {
           display: 'flex',
           overflow: 'hidden',
           opacity: shown ? 1 : 0,
-          transform: shown ? 'scale(1)' : 'scale(0.96)',
-          transition: 'opacity 0.2s ease-out, transform 0.2s ease-out',
+          transform: isTeslaBrowser ? undefined : (shown ? 'scale(1)' : 'scale(0.96)'),
+          transition: isTeslaBrowser ? undefined : 'opacity 0.2s ease-out, transform 0.2s ease-out',
         }}
       >
         {/* ── LEFT PANEL ─────────────────────────────────────────────── */}
@@ -756,7 +756,7 @@ function ModelPill({
         fontWeight: selected ? 700 : 400,
         cursor: 'pointer', touchAction: 'manipulation',
         letterSpacing: selected ? '-0.01em' : undefined,
-        transition: 'border-color 0.1s, background 0.1s, color 0.1s',
+        transition: isTeslaBrowser ? undefined : 'border-color 0.1s, background 0.1s, color 0.1s',
         textAlign: 'center',
         lineHeight: 1.3,
       }}

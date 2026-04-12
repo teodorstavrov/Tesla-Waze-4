@@ -10,6 +10,7 @@ import { settingsStore } from '@/features/settings/settingsStore'
 import { countryStore } from '@/lib/countryStore'
 import { langStore, t, getLang } from '@/lib/locale'
 import { isPremiumEnabled } from '@/lib/featureFlags'
+import { isTeslaBrowser } from '@/lib/browser'
 
 export function LeftControls() {
   useSyncExternalStore(langStore.subscribe.bind(langStore), getLang, getLang)
@@ -55,8 +56,8 @@ export function LeftControls() {
             transform: 'translateY(-50%)',
             background: 'rgba(18,18,26,0.92)',
             border: '1px solid rgba(255,255,255,0.14)',
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)',
+            backdropFilter: isTeslaBrowser ? undefined : 'blur(10px)',
+            WebkitBackdropFilter: isTeslaBrowser ? undefined : 'blur(10px)',
             color: '#fff',
             fontSize: 13,
             fontWeight: 600,

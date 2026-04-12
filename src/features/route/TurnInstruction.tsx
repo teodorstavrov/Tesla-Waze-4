@@ -8,6 +8,7 @@ import { useSyncExternalStore } from 'react'
 import { routeStore } from './routeStore.js'
 import { maneuverArrowRotation } from './maneuver.js'
 import { t, getLang, langStore } from '@/lib/locale'
+import { isTeslaBrowser } from '@/lib/browser'
 
 function formatDistM(m: number): string {
   if (m >= 1000) return `${(m / 1000).toFixed(1)} ${t('routePanel.km')}`
@@ -94,7 +95,7 @@ function TurnArrow({ rotation }: { rotation: number }) {
       width="46" height="46" viewBox="0 0 24 24"
       fill="none"
       strokeLinecap="round" strokeLinejoin="round"
-      style={{ transform: `rotate(${rotation}deg)`, transition: 'transform 0.3s ease' }}
+      style={{ transform: `rotate(${rotation}deg)`, transition: isTeslaBrowser ? undefined : 'transform 0.3s ease' }}
       aria-hidden="true"
     >
       {/* Shadow layer */}

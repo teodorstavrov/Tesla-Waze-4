@@ -23,7 +23,7 @@ function SpeedLimitBadge({ limit }: { limit: number | null }) {
         flexDirection:  'column',
         alignItems:     'center',
         justifyContent: 'center',
-        transition:     'opacity 0.3s',
+        transition:     isTeslaBrowser ? undefined : 'opacity 0.3s',
         opacity:        limit != null ? 1 : 0.25,
         flexShrink:     0,
       }}
