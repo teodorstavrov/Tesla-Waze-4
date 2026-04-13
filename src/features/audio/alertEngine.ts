@@ -133,7 +133,8 @@ function _onPosition(): void {
     // ── Police siren at 200m — zone-entry only ────────────────────
     // Fires exactly once when crossing into 200m zone. Resets automatically
     // when driver moves back beyond 200m (prevDist will be > POLICE_CLOSE_M again).
-    if (event.type === 'police' && prevDist > POLICE_CLOSE_M && distM <= POLICE_CLOSE_M) {
+    // Skip for events the user just reported themselves.
+    if (event.type === 'police' && prevDist > POLICE_CLOSE_M && distM <= POLICE_CLOSE_M && !eventStore.isSelfReported(event.id)) {
       const text = t('alerts.policeClose')
       logger.audio.info('Police close warning (zone entry)', { distM: Math.round(distM) })
       audioManager.siren(3)

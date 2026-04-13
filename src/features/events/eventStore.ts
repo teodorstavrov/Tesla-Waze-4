@@ -37,9 +37,9 @@ const _listeners = new Set<Listener>()
 let _abortController: AbortController | null = null
 let _fetchVersion = 0
 
-// Suppress voting panel for events the user just reported themselves (90s window)
-const _selfReportedIds = new Map<string, number>()  // id → expiresAt
-const SELF_REPORT_SUPPRESS_MS = 90_000
+// Suppress alerts/voting panel for events the user just reported themselves.
+// Window = full event TTL so they never get notified about their own marker.
+const _selfReportedIds = new Map<string, number>()  // id → expiresAt timestamp
 
 function _isSelfReported(id: string): boolean {
   const exp = _selfReportedIds.get(id)
@@ -163,8 +163,9 @@ export const eventStore = {
       })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = (await res.json()) as { event: RoadEvent }
-      // Mark as self-reported to suppress the proximity voting popup for 90s
-      _selfReportedIds.set(data.event.id, Date.now() + SELF_REPORT_SUPPRESS_MS)
+      // Mark as self-reported — suppress all alerts until the event itself expires
+      const suppressUntil = new Date(data.event.expiresAt).getTime()
+      _selfReportedIds.set(data.event.id, suppressUntil)
       eventStore.addEvent(data.event)
       logger.events.info('Event reported', { type, lat, lng })
       return data.event
