@@ -210,10 +210,9 @@ export function SearchBar() {
   }
 
   // ── Render ───────────────────────────────────────────────────────
-  const showHistory  = open && !query.trim() && (
-    history.length > 0 || favorites.length > 0 ||
-    Boolean(savedPlaces.home) || Boolean(savedPlaces.work)
-  )
+  // Show empty-query dropdown always — even with no history, so Home/Work
+  // placeholders are visible and discoverable on first use.
+  const showHistory  = open && !query.trim()
   const showResults  = results.length > 0
   // History entries that are NOT also favorites (to avoid duplication)
   const historyOnly  = history.filter((h) => !isFavorite(h.lat, h.lng))
@@ -291,22 +290,20 @@ export function SearchBar() {
                   borderRadius: 12, padding: '4px 0',
                 }}
               >
-                {/* Home & Work quick navigation */}
-                {(savedPlaces.home || savedPlaces.work) && (
-                  <>
-                    <SectionLabel label={`${t('map.home')} & ${t('map.work')}`} />
-                    {savedPlaces.home && (
-                      <ResultRow focused={false} onClick={() => selectSavedPlace('home')}>
-                        <SavedPlaceContent type="home" name={savedPlaces.home.name} />
-                      </ResultRow>
-                    )}
-                    {savedPlaces.work && (
-                      <ResultRow focused={false} onClick={() => selectSavedPlace('work')}>
-                        <SavedPlaceContent type="work" name={savedPlaces.work.name} />
-                      </ResultRow>
-                    )}
-                  </>
-                )}
+                {/* Home & Work quick navigation — always visible */}
+                <SectionLabel label={`${t('map.home')} & ${t('map.work')}`} />
+                <ResultRow focused={false} onClick={() => savedPlaces.home ? selectSavedPlace('home') : undefined}>
+                  <SavedPlaceContent
+                    type="home"
+                    name={savedPlaces.home ? savedPlaces.home.name : null}
+                  />
+                </ResultRow>
+                <ResultRow focused={false} onClick={() => savedPlaces.work ? selectSavedPlace('work') : undefined}>
+                  <SavedPlaceContent
+                    type="work"
+                    name={savedPlaces.work ? savedPlaces.work.name : null}
+                  />
+                </ResultRow>
 
                 {/* Favorites section */}
                 {favorites.length > 0 && (
@@ -586,38 +583,45 @@ function StationResultContent({ result }: { result: StationResult }) {
   )
 }
 
-function SavedPlaceContent({ type, name }: { type: PlaceType; name: string }) {
-  const isHome = type === 'home'
-  const color  = isHome ? '#22c55e' : '#3b82f6'
-  const emoji  = isHome ? '🏠' : '💼'
-  const label  = isHome ? t('map.home') : t('map.work')
+function SavedPlaceContent({ type, name }: { type: PlaceType; name: string | null }) {
+  const isHome  = type === 'home'
+  const isSet   = name !== null
+  const color   = isHome ? '#22c55e' : '#3b82f6'
+  const emoji   = isHome ? '🏠' : '💼'
+  const label   = isHome ? t('map.home') : t('map.work')
+  const setLabel = isHome ? t('map.setHome') : t('map.setWork')
   return (
     <>
       <div style={{
         width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
-        background: `${color}20`, border: `1.5px solid ${color}`,
+        background: isSet ? `${color}20` : 'rgba(255,255,255,0.05)',
+        border: `1.5px solid ${isSet ? color : 'rgba(255,255,255,0.15)'}`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 14,
+        fontSize: 14, opacity: isSet ? 1 : 0.5,
       }}>
         {emoji}
       </div>
       <div style={{ minWidth: 0, flex: 1 }}>
         <div style={{
-          fontSize: 13, fontWeight: 700, color: 'var(--text-primary)',
+          fontSize: 13, fontWeight: 700,
+          color: isSet ? 'var(--text-primary)' : 'var(--text-secondary)',
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>
           {label}
         </div>
         <div style={{
-          fontSize: 11, color: 'var(--text-secondary)', marginTop: 1,
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          fontSize: 11, color: isSet ? 'var(--text-secondary)' : 'rgba(255,255,255,0.3)',
+          marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          fontStyle: isSet ? 'normal' : 'italic',
         }}>
-          {name}
+          {isSet ? name : setLabel}
         </div>
       </div>
-      <div style={{ fontSize: 11, color: color, fontWeight: 600, flexShrink: 0 }}>
-        ↗
-      </div>
+      {isSet && (
+        <div style={{ fontSize: 11, color: color, fontWeight: 600, flexShrink: 0 }}>
+          ↗
+        </div>
+      )}
     </>
   )
 }
@@ -671,14 +675,17 @@ function GeoResultContent({
           aria-label={starred ? t('search.removeFav') : t('search.addFav')}
           title={starred ? t('search.removeFav') : t('search.addFav')}
           style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            padding: 4, borderRadius: 6, lineHeight: 1, flexShrink: 0,
-            color: starred ? '#fbbf24' : 'rgba(255,255,255,0.25)',
-            display: 'flex', alignItems: 'center',
+            background: starred ? 'rgba(251,191,36,0.12)' : 'rgba(255,255,255,0.05)',
+            border: `1px solid ${starred ? 'rgba(251,191,36,0.4)' : 'rgba(255,255,255,0.12)'}`,
+            cursor: 'pointer',
+            padding: 0, borderRadius: 8, lineHeight: 1, flexShrink: 0,
+            color: starred ? '#fbbf24' : 'rgba(255,255,255,0.4)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: 36, height: 36,
             touchAction: 'manipulation',
           }}
         >
-          {starred ? <StarFilledIcon size={14} /> : <StarOutlineIcon size={14} />}
+          {starred ? <StarFilledIcon size={16} /> : <StarOutlineIcon size={16} />}
         </button>
       )}
     </>
