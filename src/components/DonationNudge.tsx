@@ -39,7 +39,7 @@ function alreadySeen(visit: number): boolean {
 
 // ── Component ─────────────────────────────────────────────────────────────
 
-export function DonationNudge({ qrImageUrl }: { qrImageUrl: string }) {
+export function DonationNudge({ qrImageUrl, donationLink }: { qrImageUrl: string; donationLink?: string }) {
   useSyncExternalStore(langStore.subscribe.bind(langStore), getLang, getLang)
   const [visible, setVisible] = useState(false)
   const [shown,   setShown]   = useState(false)   // CSS transition target
@@ -146,16 +146,22 @@ export function DonationNudge({ qrImageUrl }: { qrImageUrl: string }) {
 
         {/* QR + CTA row */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-          {/* QR code */}
-          <div style={{
-            flexShrink: 0,
-            width: 90, height: 90,
-            borderRadius: 10,
-            background: '#fff',
-            padding: 4,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 2px 10px rgba(0,0,0,0.4)',
-          }}>
+          {/* QR code — tappable on Tesla browser (can't scan) */}
+          <div
+            role={donationLink ? 'button' : undefined}
+            tabIndex={donationLink ? 0 : undefined}
+            onClick={donationLink ? () => window.open(donationLink, '_blank', 'noopener,noreferrer') : undefined}
+            style={{
+              flexShrink: 0,
+              width: 90, height: 90,
+              borderRadius: 10,
+              background: '#fff',
+              padding: 4,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: '0 2px 10px rgba(0,0,0,0.4)',
+              cursor: donationLink ? 'pointer' : 'default',
+            }}
+          >
             <img
               src={qrImageUrl}
               alt={t('nudge.qrAlt')}

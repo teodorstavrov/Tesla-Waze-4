@@ -127,7 +127,7 @@ export function App() {
       {/* Wire stripeLink + qrImageUrl when Stripe is ready */}
       <RatingModal />
       <VehicleProfileModal />
-      <DonationNudge qrImageUrl="/stripe-qr.png" />
+      <DonationNudge qrImageUrl="/stripe-qr.png" donationLink="https://buy.stripe.com/14AaEXfak7HT744daj8g001" />
 
       {/* Layer 8: country picker — blocks first load; in-app switcher via openCountryPicker() */}
       <CountryPicker />
