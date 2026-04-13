@@ -85,18 +85,20 @@ export function TurnInstruction() {
       <div
         style={{
           position: 'absolute', top: TOP, left: 12, zIndex: 500,
-          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2,
+          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
           userSelect: 'none', WebkitUserSelect: 'none',
+          background: '#22c55e',
+          borderRadius: 12,
+          padding: '8px 10px 9px',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.55)',
+          minWidth: 60,
         }}
       >
+        <span style={{ fontSize: 32, lineHeight: 1 }}>✅</span>
         <span style={{
-          fontSize: 36,
-          filter: 'drop-shadow(0 1px 4px rgba(0,0,0,0.7))',
-        }}>✅</span>
-        <span style={{
-          fontSize: 12, fontWeight: 800, color: '#22c55e',
-          textShadow: '0 1px 4px rgba(0,0,0,0.9)',
+          fontSize: 12, fontWeight: 800, color: '#fff',
           whiteSpace: 'nowrap',
+          maxWidth: 80, overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'center',
         }}>
           {destination?.name ?? t('route.arrived')}
         </span>
@@ -113,11 +115,16 @@ export function TurnInstruction() {
     <div
       style={{
         position: 'absolute', top: TOP, left: 12, zIndex: 500,
-        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 3,
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
         userSelect: 'none', WebkitUserSelect: 'none',
+        background: '#2B7FFF',
+        borderRadius: 12,
+        padding: '8px 10px 9px',
+        boxShadow: '0 2px 12px rgba(0,0,0,0.55)',
+        minWidth: 60,
       }}
     >
-      {/* Arrow — white with dark drop-shadow for readability on any map */}
+      {/* Arrow — white, no extra shadow needed against blue bg */}
       <TurnArrow rotation={rotation} />
 
       {/* Distance */}
@@ -126,7 +133,6 @@ export function TurnInstruction() {
           fontSize: 14,
           fontWeight: 900,
           color: '#fff',
-          textShadow: '0 1px 5px rgba(0,0,0,0.95), 0 0 2px rgba(0,0,0,0.8)',
           letterSpacing: '-0.3px',
           lineHeight: 1,
           fontVariantNumeric: 'tabular-nums',
@@ -148,10 +154,6 @@ function TurnArrow({ rotation }: { rotation: number }) {
       style={{ transform: `rotate(${rotation}deg)`, transition: isTeslaBrowser ? undefined : 'transform 0.3s ease' }}
       aria-hidden="true"
     >
-      {/* Shadow layer */}
-      <line x1="12" y1="19" x2="12" y2="5" stroke="rgba(0,0,0,0.7)" strokeWidth="4.5" />
-      <polyline points="5 12 12 5 19 12" stroke="rgba(0,0,0,0.7)" strokeWidth="4.5" />
-      {/* White arrow */}
       <line x1="12" y1="19" x2="12" y2="5" stroke="#ffffff" strokeWidth="2.8" />
       <polyline points="5 12 12 5 19 12" stroke="#ffffff" strokeWidth="2.8" />
     </svg>
