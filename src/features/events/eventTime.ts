@@ -33,6 +33,8 @@ export function formatTimeAgo(reportedAt: string): string {
 /** How long until an event expires. Empty string if already expired. */
 export function formatExpiresIn(expiresAt: string): string {
   const lang = getLang()
+  // Legacy permanent events have expiresAt = '9999-12-31T...' — show nothing
+  if (expiresAt.startsWith('9999')) return lang === 'bg' ? 'постоянен' : 'permanent'
   const ms   = new Date(expiresAt).getTime() - Date.now()
 
   if (ms <= 0) return lang === 'bg' ? 'Изтекло' : 'Expired'
@@ -53,19 +55,16 @@ export function formatExpiresIn(expiresAt: string): string {
 }
 
 /**
- * "Докладвано преди X мин" line.
- * Permanent (admin) events show when added; user events also show expiry.
+ * "Докладвано преди X мин · изтича след Y" line shown in the event panel.
+ * Always shows both age and remaining lifetime for all events.
  */
-export function reportedLine(reportedAt: string, expiresAt: string, permanent?: boolean): string {
+export function reportedLine(reportedAt: string, expiresAt: string, _permanent?: boolean): string {
   const lang    = getLang()
   const ago     = formatTimeAgo(reportedAt)
-  if (permanent) {
-    return lang === 'bg' ? `Добавено ${ago}` : `Added ${ago}`
-  }
   const expires = formatExpiresIn(expiresAt)
   return lang === 'bg'
-    ? `Докладвано ${ago} · ${expires}`
-    : `Reported ${ago} · ${expires}`
+    ? `Добавено ${ago} · ${expires}`
+    : `Added ${ago} · ${expires}`
 }
 
 /**
