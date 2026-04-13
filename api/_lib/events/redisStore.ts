@@ -25,7 +25,8 @@ async function _readAll(): Promise<RoadEvent[]> {
 
 function _pruneExpired(events: RoadEvent[]): RoadEvent[] {
   const now = Date.now()
-  return events.filter((e) => e.permanent || new Date(e.expiresAt).getTime() > now)
+  // permanent flag = admin marker (red circle, deny-immune), but still expires via expiresAt
+  return events.filter((e) => new Date(e.expiresAt).getTime() > now)
 }
 
 async function _write(events: RoadEvent[]): Promise<void> {

@@ -56,6 +56,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       expiresAt:   new Date(now.getTime() + ttlMs(type)).toISOString(),
       confirms:    0,
       denies:      0,
+      permanent:   true,   // admin marker — red circle in panel; immune to deny-votes; still expires via expiresAt
     }
 
     if (useRedis) { await eventRedisStore.add(event) }
