@@ -303,8 +303,10 @@ function Dashboard({ secret }: { secret: string }) {
 // ── Country bounds (for grouping) ───────────────────────────────────────
 
 function countryFromCoords(lat: number, lng: number): string {
-  if (lat >= 41.235 && lat <= 44.215 && lng >= 22.36 && lng <= 28.609) return '🇧🇬 България'
+  if (lat >= 41.235 && lat <= 44.215 && lng >= 22.36  && lng <= 28.609) return '🇧🇬 България'
   if (lat >= 57.959 && lat <= 71.182 && lng >= 4.479  && lng <= 31.293) return '🇳🇴 Norge'
+  if (lat >= 55.337 && lat <= 69.060 && lng >= 11.109 && lng <= 24.166) return '🇸🇪 Sverige'
+  if (lat >= 59.693 && lat <= 70.093 && lng >= 20.556 && lng <= 31.587) return '🇫🇮 Suomi'
   return '🌍 Друго'
 }
 
@@ -333,7 +335,36 @@ function EventStats({ events }: { events: RoadEvent[] }) {
   }
 
   const permanentCount = events.filter((e) => e.permanent).length
-  const userCount      = events.length - permanentCount
+  const userCount      = events.filter((e) => !e.permanent).length
+
+  // ── Activity stats ───────────────────────────────────────────────────
+  const now   = Date.now()
+  const ago24 = now - 24 * 60 * 60 * 1000
+
+  // Today window: 07:00 – 19:00 local time
+  const todayStart = new Date(); todayStart.setHours(7,  0, 0, 0)
+  const todayEnd   = new Date(); todayEnd.setHours(19, 0, 0, 0)
+
+  const userEvents = events.filter((e) => !e.permanent)
+
+  const last24h  = userEvents.filter((e) => new Date(e.reportedAt).getTime() >= ago24)
+  const todayDay = userEvents.filter((e) => {
+    const t = new Date(e.reportedAt).getTime()
+    return t >= todayStart.getTime() && t <= todayEnd.getTime()
+  })
+
+  // Group by country
+  function groupByCountry(evs: RoadEvent[]): Record<string, number> {
+    const map: Record<string, number> = {}
+    for (const e of evs) {
+      const c = countryFromCoords(e.lat, e.lng)
+      map[c] = (map[c] ?? 0) + 1
+    }
+    return map
+  }
+
+  const today24hByCountry  = groupByCountry(last24h)
+  const todayDayByCountry  = groupByCountry(todayDay)
 
   async function loadCities() {
     if (citiesLoading) return
@@ -394,6 +425,49 @@ function EventStats({ events }: { events: RoadEvent[] }) {
           <span style={{ fontSize: 12, fontWeight: 700, color: '#e31937' }}>{permanentCount}</span>
           <span style={{ fontSize: 10, color: '#aaa' }}>служебни</span>
         </div>
+      </div>
+
+      {/* ── Activity stats — new user events ── */}
+      <div style={{ marginBottom: 14, background: 'rgba(255,255,255,0.03)', borderRadius: 10, padding: '10px 12px', border: '1px solid rgba(255,255,255,0.07)' }}>
+        <div style={{ fontSize: 11, fontWeight: 700, color: '#888', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 8 }}>
+          Нови потребителски маркери
+        </div>
+
+        {/* Row: Днес 7-19ч vs Последните 24ч */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+          <div style={{ flex: 1, background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.25)', borderRadius: 8, padding: '8px 10px', textAlign: 'center' }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: '#4ade80', lineHeight: 1 }}>{todayDay.length}</div>
+            <div style={{ fontSize: 10, color: '#666', marginTop: 3 }}>Днес 7–19ч</div>
+          </div>
+          <div style={{ flex: 1, background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.25)', borderRadius: 8, padding: '8px 10px', textAlign: 'center' }}>
+            <div style={{ fontSize: 22, fontWeight: 800, color: '#60a5fa', lineHeight: 1 }}>{last24h.length}</div>
+            <div style={{ fontSize: 10, color: '#666', marginTop: 3 }}>Последните 24ч</div>
+          </div>
+        </div>
+
+        {/* By country — 24h */}
+        {last24h.length > 0 && (
+          <>
+            <div style={{ fontSize: 10, color: '#555', marginBottom: 4 }}>24ч по държава</div>
+            {Object.entries(today24hByCountry).sort((a, b) => b[1] - a[1]).map(([c, n]) => (
+              <Row key={c} label={c} count={n} total={last24h.length} color="#60a5fa" />
+            ))}
+          </>
+        )}
+
+        {/* By country — today day */}
+        {todayDay.length > 0 && (
+          <>
+            <div style={{ fontSize: 10, color: '#555', marginTop: 8, marginBottom: 4 }}>7–19ч по държава</div>
+            {Object.entries(todayDayByCountry).sort((a, b) => b[1] - a[1]).map(([c, n]) => (
+              <Row key={c} label={c} count={n} total={todayDay.length} color="#4ade80" />
+            ))}
+          </>
+        )}
+
+        {last24h.length === 0 && (
+          <div style={{ fontSize: 12, color: '#555', textAlign: 'center', padding: '4px 0' }}>Няма нови маркери</div>
+        )}
       </div>
 
       {/* Permanent vs user */}
@@ -461,7 +535,7 @@ function EventStats({ events }: { events: RoadEvent[] }) {
   )
 }
 
-function Row({ label, count, total }: { label: string; count: number; total: number }) {
+function Row({ label, count, total, color = '#e31937' }: { label: string; count: number; total: number; color?: string }) {
   const pct = total > 0 ? Math.round((count / total) * 100) : 0
   return (
     <div style={{ marginBottom: 5 }}>
@@ -470,7 +544,7 @@ function Row({ label, count, total }: { label: string; count: number; total: num
         <span style={{ fontSize: 12, color: '#888' }}>{count}</span>
       </div>
       <div style={{ height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.07)' }}>
-        <div style={{ height: '100%', width: `${pct}%`, borderRadius: 2, background: '#e31937', transition: 'width 0.3s ease' }} />
+        <div style={{ height: '100%', width: `${pct}%`, borderRadius: 2, background: color, transition: 'width 0.3s ease' }} />
       </div>
     </div>
   )
