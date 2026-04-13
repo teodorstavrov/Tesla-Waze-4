@@ -258,6 +258,23 @@
     }
     </script>
 
+    <!-- Dynamic aggregateRating — fetches live values from /api/rating and patches JSON-LD -->
+    <script>
+      fetch('/api/rating').then(function(r){ return r.ok ? r.json() : null }).then(function(d){
+        if (!d || !d.count || d.count < 3) return
+        document.querySelectorAll('script[type="application/ld+json"]').forEach(function(el){
+          try {
+            var obj = JSON.parse(el.textContent)
+            if (obj.aggregateRating) {
+              obj.aggregateRating.ratingValue = String(d.avg)
+              obj.aggregateRating.ratingCount = String(d.count)
+              el.textContent = JSON.stringify(obj)
+            }
+          } catch(e){}
+        })
+      }).catch(function(){})
+    </script>
+
     <!-- Preconnect to external tile/data providers to reduce first-request latency -->
     <link rel="preconnect" href="https://a.basemaps.cartocdn.com" />
     <link rel="preconnect" href="https://router.project-osrm.org" />

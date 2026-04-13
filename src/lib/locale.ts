@@ -26,16 +26,18 @@
 import { DICTIONARY } from '@/config/i18n'
 import { countryStore } from '@/lib/countryStore'
 
-export type Lang = 'bg' | 'en'
+export type Lang = 'bg' | 'en' | 'no' | 'sv' | 'fi'
 
 const STORAGE_KEY = 'teslaradar:lang'
 
 // ── Language resolution ──────────────────────────────────────────────
 
+const VALID_LANGS = new Set<Lang>(['bg', 'en', 'no', 'sv', 'fi'])
+
 export function getLang(): Lang {
   try {
     const override = localStorage.getItem(STORAGE_KEY) as Lang | null
-    if (override === 'bg' || override === 'en') return override
+    if (override && VALID_LANGS.has(override)) return override
   } catch { /* localStorage unavailable */ }
   // Derive from stored country; default to 'bg' if nothing chosen yet
   return (countryStore.getCountryOrDefault().locale as Lang) ?? 'bg'

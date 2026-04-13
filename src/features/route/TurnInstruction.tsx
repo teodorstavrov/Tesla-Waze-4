@@ -4,11 +4,16 @@
 // Subscribes ONLY to routeStore — distToNextStepM is computed there from
 // GPS updates, avoiding the dual-subscription race that caused React #310.
 
-import { useSyncExternalStore } from 'react'
+import { useSyncExternalStore, useEffect, useRef } from 'react'
 import { routeStore } from './routeStore.js'
 import { maneuverArrowRotation } from './maneuver.js'
 import { t, getLang, langStore } from '@/lib/locale'
 import { isTeslaBrowser } from '@/lib/browser'
+import { audioManager } from '@/features/audio/audioManager'
+
+const LANG_TO_TTS: Record<string, string> = {
+  bg: 'bg-BG', en: 'en-US', no: 'nb-NO', sv: 'sv-SE', fi: 'fi-FI',
+}
 
 function formatDistM(m: number): string {
   if (m >= 1000) return `${(m / 1000).toFixed(1)} ${t('routePanel.km')}`
@@ -23,6 +28,51 @@ export function TurnInstruction() {
       () => routeStore.getState(),
       () => routeStore.getState(),
     )
+
+  // ── Voice turn announcement — fires on Tesla AND desktop ─────────────
+  // Speaks the next maneuver when step index advances (i.e. driver passed a waypoint).
+  // Only fires for valid, non-first steps so there's no announcement at route start.
+  const prevStepRef = useRef<number>(-1)
+  useEffect(() => {
+    if (status !== 'ok' || !route) { prevStepRef.current = -1; return }
+    if (arrived) {
+      // Speak arrival
+      const ttsLang = LANG_TO_TTS[getLang()] ?? 'en-US'
+      setTimeout(() => audioManager.speak(destination?.name
+        ? (getLang() === 'bg' ? `Пристигнахте в ${destination.name}` : `Arrived at ${destination.name}`)
+        : t('route.arrived'), ttsLang), 300)
+      prevStepRef.current = -1
+      return
+    }
+    const prev = prevStepRef.current
+    prevStepRef.current = currentStepIndex
+    // Don't speak on first render (prev === -1) or same step
+    if (prev === -1 || prev === currentStepIndex) return
+    const step = route.steps[currentStepIndex]
+    if (!step) return
+    // Build a short spoken instruction from the step name / maneuver
+    const streetName = step.name && step.name !== '' ? step.name : null
+    const dist = distToNextStepM != null && distToNextStepM > 15
+      ? `${distToNextStepM >= 1000 ? `${(distToNextStepM / 1000).toFixed(1)} ${t('routePanel.km')}` : `${Math.round(distToNextStepM / 10) * 10} ${t('routePanel.m')}`}`
+      : null
+    const lang = getLang()
+    const ttsLang = LANG_TO_TTS[lang] ?? 'en-US'
+    let text = ''
+    if (dist && streetName) {
+      text = lang === 'bg'  ? `${t('route.inDist')} ${dist} — ${streetName}`
+           : lang === 'no'  ? `Om ${dist} — ${streetName}`
+           : lang === 'sv'  ? `Om ${dist} — ${streetName}`
+           : lang === 'fi'  ? `${dist} päässä — ${streetName}`
+           : `In ${dist} — ${streetName}`
+    } else if (dist) {
+      text = lang === 'bg' ? `Завийте ${t('route.inDist')} ${dist}`
+           : lang === 'no' ? `Sving om ${dist}`
+           : lang === 'sv' ? `Sväng om ${dist}`
+           : lang === 'fi' ? `Käänny ${dist} päässä`
+           : `Turn in ${dist}`
+    }
+    if (text) setTimeout(() => audioManager.speak(text, ttsLang), 200)
+  }, [currentStepIndex, arrived]) // eslint-disable-line react-hooks/exhaustive-deps
 
   if (status !== 'ok' || !route) return null
 

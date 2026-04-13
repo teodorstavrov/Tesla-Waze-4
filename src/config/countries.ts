@@ -28,7 +28,7 @@ export interface CountryConfig {
   searchCode:  string                              // Nominatim countrycodes param
   searchLang:  string                              // Accept-Language for Nominatim + reverse geocode
   bounds:      [[number, number], [number, number]] // [[sw lat,lng], [ne lat,lng]]
-  locale:      'bg' | 'en'                         // default UI locale
+  locale:      'bg' | 'en' | 'no' | 'sv' | 'fi'   // default UI locale
   features:    CountryFeatures                     // which product features are active
 }
 
@@ -61,7 +61,7 @@ export const COUNTRIES: Record<CountryCode, CountryConfig> = {
     searchCode: 'no',
     searchLang: 'en,no',
     bounds:     [[57.959, 4.479], [71.182, 31.293]],
-    locale:     'en',
+    locale:     'no',
     features: {
       speedSections: true,   // Norwegian ATK average-speed sections
     },
@@ -78,7 +78,7 @@ export const COUNTRIES: Record<CountryCode, CountryConfig> = {
     searchCode: 'se',
     searchLang: 'en,sv',
     bounds:     [[55.337, 11.120], [69.060, 24.166]],
-    locale:     'en',
+    locale:     'sv',
     features: {
       speedSections: true,   // Swedish sträckmätning (average-speed sections)
     },
@@ -95,7 +95,7 @@ export const COUNTRIES: Record<CountryCode, CountryConfig> = {
     searchCode: 'fi',
     searchLang: 'en,fi',
     bounds:     [[59.808, 20.550], [70.093, 31.587]],
-    locale:     'en',
+    locale:     'fi',
     features: {
       speedSections: true,   // Finnish jaksonopeudenvalvonta sections
     },

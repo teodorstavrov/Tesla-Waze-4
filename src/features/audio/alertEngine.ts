@@ -15,8 +15,14 @@ import { audioManager } from './audioManager'
 import { haversineMeters } from '@/lib/geo'
 import { logger } from '@/lib/logger'
 import { isTeslaBrowser } from '@/lib/browser'
-import { t } from '@/lib/locale'
+import { t, getLang } from '@/lib/locale'
 import type { EventType } from '@/features/events/types'
+
+// Map lang code → BCP 47 speech synthesis locale
+const LANG_TO_TTS: Record<string, string> = {
+  bg: 'bg-BG', en: 'en-US', no: 'nb-NO', sv: 'sv-SE', fi: 'fi-FI',
+}
+function _ttsLang(): string { return LANG_TO_TTS[getLang()] ?? 'en-US' }
 
 // ── Config ────────────────────────────────────────────────────────
 
@@ -120,7 +126,7 @@ function _onPosition(): void {
       const text = _alertText(event.type)
       logger.audio.info('Proximity alert (zone entry)', { type: event.type, distM: Math.round(distM) })
       audioManager.beep(880, event.type === 'police' ? 150 : 100)
-      if (!isTeslaBrowser) setTimeout(() => audioManager.speak(text), 200)
+      if (!isTeslaBrowser) setTimeout(() => audioManager.speak(text, _ttsLang()), 200)
       _showToast(event.type, event.id, text, Math.round(distM))
     }
 
@@ -131,7 +137,7 @@ function _onPosition(): void {
       const text = t('alerts.policeClose')
       logger.audio.info('Police close warning (zone entry)', { distM: Math.round(distM) })
       audioManager.siren(3)
-      if (!isTeslaBrowser) setTimeout(() => audioManager.speak(text), 600)
+      if (!isTeslaBrowser) setTimeout(() => audioManager.speak(text, _ttsLang()), 600)
       _showToast(event.type, event.id, text, Math.round(distM))
     }
 
