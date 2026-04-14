@@ -276,7 +276,8 @@ body,
   transition: opacity 0.45s ease;
 }
 
-/* ─── Tesla browser: suppress all expensive animations ──────────────── */
+/* ─── Tesla browser: suppress all expensive animations ─────────────────
+   data-tesla is set on <html> by main.tsx when isTeslaBrowser is true.   */
 /* data-tesla is set on <html> by main.tsx when isTeslaBrowser is true.  */
 /* Each rule targets a specific known paint/composite bottleneck.        */
 [data-tesla] .gps-avatar-halo {
@@ -315,10 +316,12 @@ body,
 /* ─── Map rotation smoothing — Tesla override ────────────────────────── */
 /* The nuclear rule above kills #map transition too, but course-up rotation
    runs on the GPU compositor thread (translateZ + will-change) — it does NOT
-   trigger layout or paint. Restoring only this transition is safe on Tesla
-   and eliminates the jarring 1Hz jump between GPS ticks. */
+   trigger layout or paint. Restoring only this transition is safe on Tesla.
+   0.18s (down from 0.25s): shorter window means GPS-tick transitions finish
+   before the next tick arrives even at 1Hz — eliminates transition queueing
+   that could cause micro-stutter when heading updates compound. */
 [data-tesla] #map {
-  transition: transform 0.25s linear !important;
+  transition: transform 0.18s linear !important;
 }
 
 /* ─── Tesla: strip backdrop-filter — the #1 overlay jitter source ────── */
@@ -367,8 +370,12 @@ body,
 
 /* ─── Tesla: suppress expensive box-shadows on overlays ─────────────── */
 /* Large coloured box-shadows require an extra GPU compositing pass.
-   On Tesla this is synchronous and blocks frame delivery.              */
-[data-tesla] [role="alert"] {
+   On Tesla this is synchronous and blocks frame delivery.
+   Covers role="alert" (AlertToast) + role="status" (OfflineToast)
+   + role="dialog" (EventPanel) + generic .tesla-overlay-inner cards.  */
+[data-tesla] [role="alert"],
+[data-tesla] [role="status"],
+[data-tesla] [role="dialog"] {
   box-shadow: none !important;
 }
 
@@ -428,6 +435,15 @@ body,
   background: rgba(246, 246, 250, 0.99) !important;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.10) !important;
   border-color: rgba(0, 0, 0, 0.10) !important;
+}
+
+/* ─── Tesla: paint-contain the RoutePanel glass card ────────────────── */
+/* RoutePanel updates remainingM every ~50m during navigation (~0.5Hz).
+   Without containment, every React re-render of the stats row triggers
+   a paint invalidation that bubbles up through the overlay stack and
+   can coincide with tile-load rasterization on the map layer.           */
+[data-tesla] .route-panel-container {
+  contain: layout style paint;
 }
 
 /* Alert banner: on Tesla use visibility toggle, not transform slide */

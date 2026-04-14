@@ -87,17 +87,19 @@ export function RoutePanel() {
           zIndex:         500,
           padding:        '10px 28px',
           borderRadius:   24,
-          background:     'rgba(18,18,26,0.92)',
+          // Tesla: no inline backdropFilter — inline styles override CSS class
+          // rules ([data-tesla] .glass) and force GPU blur pass on every frame.
+          background:     isTeslaBrowser ? 'rgba(13,13,19,0.98)' : 'rgba(18,18,26,0.92)',
           border:         '1px solid rgba(255,255,255,0.18)',
-          backdropFilter: 'blur(12px)',
-          WebkitBackdropFilter: 'blur(12px)',
+          backdropFilter:       isTeslaBrowser ? undefined : 'blur(12px)',
+          WebkitBackdropFilter: isTeslaBrowser ? undefined : 'blur(12px)',
           color:          'rgba(255,255,255,0.85)',
           fontSize:       15,
           fontWeight:     700,
           letterSpacing:  '0.06em',
           cursor:         'pointer',
           touchAction:    'manipulation',
-          boxShadow:      '0 4px 20px rgba(0,0,0,0.45)',
+          boxShadow:      isTeslaBrowser ? 'none' : '0 4px 20px rgba(0,0,0,0.45)',
           display:        'flex',
           alignItems:     'center',
           gap:            8,
@@ -130,7 +132,7 @@ export function RoutePanel() {
         zIndex:    500,
         padding:   '14px 18px',
       }}
-      className="glass"
+      className="glass route-panel-container"
     >
       {status === 'loading' && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
@@ -301,7 +303,7 @@ export function RoutePanel() {
                 letterSpacing: '0.06em',
                 cursor: 'pointer',
                 touchAction: 'manipulation',
-                boxShadow: '0 4px 20px rgba(34,197,94,0.45)',
+                boxShadow: isTeslaBrowser ? 'none' : '0 4px 20px rgba(34,197,94,0.45)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',

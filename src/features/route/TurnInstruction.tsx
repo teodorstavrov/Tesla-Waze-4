@@ -90,8 +90,9 @@ export function TurnInstruction() {
           background: '#22c55e',
           borderRadius: 12,
           padding: '8px 10px 9px',
-          boxShadow: '0 2px 12px rgba(0,0,0,0.55)',
+          boxShadow: isTeslaBrowser ? 'none' : '0 2px 12px rgba(0,0,0,0.55)',
           minWidth: 60,
+          ...(isTeslaBrowser ? { contain: 'layout style paint' as React.CSSProperties['contain'] } : {}),
         }}
       >
         <span style={{ fontSize: 32, lineHeight: 1 }}>✅</span>
@@ -122,8 +123,12 @@ export function TurnInstruction() {
         background: '#2B7FFF',
         borderRadius: 12,
         padding: '8px 10px 9px',
-        boxShadow: '0 2px 12px rgba(0,0,0,0.55)',
+        boxShadow: isTeslaBrowser ? 'none' : '0 2px 12px rgba(0,0,0,0.55)',
         minWidth: 60,
+        // Tesla: paint containment — re-renders (every 20m of movement) do NOT
+        // invalidate paint regions outside this element. The map tile layer
+        // is unaffected by distance counter updates.
+        ...(isTeslaBrowser ? { contain: 'layout style paint' as React.CSSProperties['contain'] } : {}),
       }}
     >
       {/* Roundabout icon OR regular turn arrow */}

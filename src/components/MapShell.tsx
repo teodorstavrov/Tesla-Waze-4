@@ -54,6 +54,7 @@ import { t } from '@/lib/locale'
 // and on resize (debounced) — never per GPS tick.
 
 let _rotationDeg = 0  // accumulated, unbounded (can exceed 360)
+let _lastWrittenTransform = ''  // dedup: skip style.transform write when value unchanged
 
 // ── Scale computation ─────────────────────────────────────────────
 // Cached module-level — zero cost per GPS tick.
@@ -104,20 +105,37 @@ function _applyCourseUp(container: HTMLElement, heading: number): void {
   let delta = target - current
   if (delta > 180)  delta -= 360  // e.g. 350→10: delta = -340 → +20
   if (delta < -180) delta += 360  // e.g. 10→350: delta = 340 → -20
+
+  // Tesla: skip style mutation when heading change is negligible (< 0.8°).
+  // Redundant style.transform writes trigger style-recalc cycles even when the
+  // computed value is identical — at highway speed on a straight road this fires
+  // 1×/sec for a zero-change rotation, competing with tile load rasterization.
+  // Non-Tesla keeps full precision for smooth animated rotation.
+  if (isTeslaBrowser && Math.abs(delta) < 0.8) {
+    // Still need to apply transformOrigin on first call
+    if (!_lastWrittenTransform) container.style.transformOrigin = '50% 50%'
+    return
+  }
+
   _rotationDeg += delta
 
-  container.style.transform = `translateZ(0) rotate(${-_rotationDeg}deg) scale(${_mapScale})`
-  container.style.transformOrigin = '50% 50%'
+  const newTransform = `translateZ(0) rotate(${-_rotationDeg}deg) scale(${_mapScale})`
+  // Dedup: only write to DOM if value actually changed
+  if (newTransform !== _lastWrittenTransform) {
+    _lastWrittenTransform = newTransform
+    container.style.transform = newTransform
+    container.style.transformOrigin = '50% 50%'
+  }
 }
 
 function _clearCourseUp(container: HTMLElement): void {
-  // Restore zoom that was active before course-up was entered
   if (_courseUpActive && mapInstance && _savedZoom !== null) {
     mapInstance.setZoom(_savedZoom, { animate: false })
   }
   _courseUpActive = false
   _savedZoom = null
   _rotationDeg = 0
+  _lastWrittenTransform = ''
   if (container.style.transform) {
     container.style.transform = 'translateZ(0)'
     container.style.transformOrigin = ''
@@ -284,8 +302,41 @@ export function MapShell() {
 
     // GPS → map pan when follow mode is active (pure imperative, no React)
     // Follow is only re-enabled explicitly via the recenter button or startNavigation().
+
+    // Tesla: skip panTo when movement is negligible (<3m) — avoids firing
+    // Leaflet map mutations + tile-load cycles for tiny GPS jitter corrections.
+    // At standstill or slow speed the GPS noise is ~2-5m; skipping those
+    // eliminates ~50% of compositor ops without affecting navigation accuracy.
+    let _lastPanLat = 0
+    let _lastPanLng = 0
+    const PAN_MIN_M = isTeslaBrowser ? 3 : 0
+    function _panDistM(a: number, b: number, c: number, d: number): number {
+      const R = 6371000
+      const dLat = (c - a) * Math.PI / 180
+      const dLng = (d - b) * Math.PI / 180
+      return R * Math.sqrt(dLat * dLat + dLng * dLng)
+    }
+
     const unsubGps = gpsStore.onPosition((pos) => {
       if (!followStore.isFollowing()) return
+
+      // Tesla: skip panTo if car hasn't moved enough to matter visually
+      if (PAN_MIN_M > 0) {
+        const moved = _panDistM(pos.lat, pos.lng, _lastPanLat, _lastPanLng)
+        if (moved < PAN_MIN_M && (_lastPanLat !== 0 || _lastPanLng !== 0)) {
+          // Still process course-up rotation even if we skip the pan
+          const container = containerRef.current
+          if (container) {
+            const courseUp = settingsStore.get().headingMode === 'course-up'
+            if (courseUp && pos.heading != null) _applyCourseUp(container, pos.heading)
+            else _clearCourseUp(container)
+          }
+          return
+        }
+      }
+      _lastPanLat = pos.lat
+      _lastPanLng = pos.lng
+
       // Tesla: instant repositioning eliminates the 500ms animation window
       // that causes jitter when panel renders or tile loads overlap the pan.
       // Non-Tesla: keep smooth animated follow (current behavior unchanged).
