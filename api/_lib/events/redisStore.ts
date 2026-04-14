@@ -25,8 +25,13 @@ async function _readAll(): Promise<RoadEvent[]> {
 
 function _pruneExpired(events: RoadEvent[]): RoadEvent[] {
   const now = Date.now()
-  // permanent flag = admin marker (red circle, deny-immune), but still expires via expiresAt
-  return events.filter((e) => new Date(e.expiresAt).getTime() > now)
+  return events.filter((e) => {
+    // Legacy admin markers were created with expiresAt='9999-12-31...' before the
+    // TTL fix. They will never expire naturally — evict them immediately so they
+    // disappear from the map without requiring a manual admin clear.
+    if (e.expiresAt.startsWith('9999')) return false
+    return new Date(e.expiresAt).getTime() > now
+  })
 }
 
 async function _write(events: RoadEvent[]): Promise<void> {
