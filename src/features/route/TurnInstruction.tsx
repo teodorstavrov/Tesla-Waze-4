@@ -6,7 +6,7 @@
 
 import { useSyncExternalStore, useEffect, useRef } from 'react'
 import { routeStore } from './routeStore.js'
-import { maneuverArrowRotation } from './maneuver.js'
+import { maneuverArrowRotation, isRoundaboutStep, roundaboutExitLabel } from './maneuver.js'
 import { t, getLang, langStore } from '@/lib/locale'
 import { isTeslaBrowser } from '@/lib/browser'
 import { audioManager } from '@/features/audio/audioManager'
@@ -109,7 +109,9 @@ export function TurnInstruction() {
   const step = route.steps[currentStepIndex]
   if (!step) return null
 
-  const rotation = maneuverArrowRotation(step)
+  const isRab    = isRoundaboutStep(step)
+  const rotation = isRab ? 0 : maneuverArrowRotation(step)
+  const exitLabel = isRab ? roundaboutExitLabel(step) : null
 
   return (
     <div
@@ -124,10 +126,10 @@ export function TurnInstruction() {
         minWidth: 60,
       }}
     >
-      {/* Arrow — white, no extra shadow needed against blue bg */}
-      <TurnArrow rotation={rotation} />
+      {/* Roundabout icon OR regular turn arrow */}
+      {isRab ? <RoundaboutIcon exit={step.exit} /> : <TurnArrow rotation={rotation} />}
 
-      {/* Distance */}
+      {/* Distance to the maneuver point */}
       {distToNextStepM !== null && distToNextStepM > 15 && (
         <div style={{
           fontSize: 14,
@@ -141,7 +143,57 @@ export function TurnInstruction() {
           {formatDistM(distToNextStepM)}
         </div>
       )}
+
+      {/* Exit label — only for roundabouts that have an exit number */}
+      {isRab && exitLabel && (
+        <div style={{
+          fontSize: 11,
+          fontWeight: 700,
+          color: 'rgba(255,255,255,0.92)',
+          letterSpacing: '0.1px',
+          lineHeight: 1,
+          fontFamily: 'system-ui, sans-serif',
+          whiteSpace: 'nowrap',
+        }}>
+          {exitLabel}
+        </div>
+      )}
     </div>
+  )
+}
+
+// ── Roundabout icon ─────────────────────────────────────────────────────
+// Nearly-complete circle (gap at top = entry/exit) with a CCW arrowhead
+// showing the direction of travel. Exit number displayed in the centre.
+// Geometry: circle centre (23,23), r=14. Gap endpoints at ~±60° from top:
+//   right = (35,16), left = (11,16).  Arc: M 35 16 A 14 14 0 1 0 11 16
+// Arrowhead tangent at (35,16) going CCW: direction (0.50, 0.87) → points down-right.
+
+function RoundaboutIcon({ exit }: { exit: number | undefined }) {
+  return (
+    <svg width="46" height="46" viewBox="0 0 46 46" fill="none" aria-hidden="true">
+      {/* Nearly-full CCW arc — gap at top marks entry/exit */}
+      <path
+        d="M 35 16 A 14 14 0 1 0 11 16"
+        stroke="#ffffff" strokeWidth="3" strokeLinecap="round"
+      />
+      {/* Arrowhead at (35,16) indicating counterclockwise direction of travel */}
+      <polyline
+        points="33,11 35,16 31,17"
+        stroke="#ffffff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+      />
+      {/* Exit number in centre — or a loop symbol when no exit data */}
+      <text
+        x="23" y="27"
+        textAnchor="middle" dominantBaseline="middle"
+        fill="#ffffff"
+        fontSize={exit !== undefined ? '15' : '18'}
+        fontWeight="900"
+        fontFamily="system-ui, sans-serif"
+      >
+        {exit !== undefined ? String(exit) : '↻'}
+      </text>
+    </svg>
   )
 }
 

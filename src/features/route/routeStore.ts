@@ -55,6 +55,20 @@ function roundDistM(m: number): number {
   return Math.round(m / 50) * 50
 }
 
+// Format distance for voice announcement in the correct language
+function fmtDistForVoice(m: number, lang: string): string {
+  if (m >= 1000) {
+    const km = (m / 1000).toFixed(1)
+    if (lang === 'bg') return `${km} километра`
+    if (lang === 'fi') return `${km} kilometriä`
+    return `${km} kilometer`   // no/sv/en all use "kilometer"
+  }
+  const r = roundDistM(m)
+  if (lang === 'bg') return `${r} метра`
+  if (lang === 'fi') return `${r} metriä`
+  return `${r} meter`          // no/sv/en all use "meter"
+}
+
 // ── State ─────────────────────────────────────────────────────────
 
 let _state: RouteState = {
@@ -79,6 +93,21 @@ let _unsubGps: (() => void) | null = null
 let _lastRerouteAt = 0
 const REROUTE_COOLDOWN_MS = 20000  // 20s cooldown — prevents OSRM hammering on GPS jitter
 
+// ── Post-turn advance buffer ──────────────────────────────────────
+// The navigator must NOT advance to the next step the moment GPS enters
+// the maneuver radius. Instead it waits until the driver has:
+//   1. entered the maneuver reach zone  (Phase 1)
+//   2. moved >= POST_TURN_BUFFER_M from the reach-zone entry  (Phase 2 → advance)
+// This prevents the "next instruction shown while still in the current turn" bug.
+const TURN_REACH_M      = 20  // enter pending state within this radius of the maneuver point
+const POST_TURN_BUFFER_M = 5  // advance only after moving this many metres from reach entry
+
+interface PendingAdvance {
+  targetStepIdx: number         // which step we're buffering past
+  reachedAt:     [number, number]  // [lat, lng] where we first entered TURN_REACH_M zone
+}
+let _pendingAdvance: PendingAdvance | null = null
+
 // Per-route announcement tracking (step index → announced)
 const _announced300 = new Set<number>()
 const _announced50  = new Set<number>()
@@ -88,6 +117,7 @@ function _resetAnnouncements(): void {
   _announced300.clear()
   _announced50.clear()
   _arrivedAnnounced = false
+  _pendingAdvance = null
 }
 
 function _emit(): void { _listeners.forEach((fn) => fn()) }
@@ -114,7 +144,8 @@ function _onGpsUpdate(): void {
     if (distToDest < 50 && !_state.arrived) {
       if (!_arrivedAnnounced) {
         _arrivedAnnounced = true
-        speak(getLang() === 'bg' ? 'Пристигнахте на вашата дестинация' : 'You have arrived at your destination')
+        const _l = getLang()
+        speak(({ bg: 'Пристигнахте на вашата дестинация', no: 'Du har ankommet din destinasjon', sv: 'Du har nått din destination', fi: 'Olet saapunut määränpäähäsi' } as Record<string,string>)[_l] ?? 'You have arrived at your destination')
       }
       _state = { ..._state, deviated, remainingM: remaining, arrived: true }
       _emit()
@@ -122,43 +153,74 @@ function _onGpsUpdate(): void {
     }
   }
 
-  // ── Step navigation ─────────────────────────────────────────────
+  // ── Step navigation — two-phase post-turn buffer ────────────────
+  // Phase 1: GPS enters TURN_REACH_M radius → record position, do NOT advance.
+  // Phase 2: GPS moves POST_TURN_BUFFER_M from Phase-1 position → advance.
+  // This ensures the next instruction appears only after the turn is truly done.
   const steps = route.steps
   let stepIdx = _state.currentStepIndex
   let stepChanged = false
 
-  // Advance past steps we've already passed (within 25m of their maneuver point)
-  while (stepIdx < steps.length - 1) {  // don't skip 'arrive'
+  if (stepIdx < steps.length - 1) {   // never skip past the final 'arrive' step
     const step: RouteStep = steps[stepIdx]!
     const distToStep = haversineM(gps.lat, gps.lng, step.lat, step.lng)
-    if (distToStep < 25) {
-      stepIdx++
-      stepChanged = true
-    } else {
-      break
+
+    // Clear stale pending if it belongs to a different step index
+    if (_pendingAdvance && _pendingAdvance.targetStepIdx !== stepIdx) {
+      _pendingAdvance = null
+    }
+
+    if (_pendingAdvance) {
+      // Phase 2 — measure how far we've moved from the reach-zone entry point
+      const distFromReach = haversineM(
+        gps.lat, gps.lng,
+        _pendingAdvance.reachedAt[0], _pendingAdvance.reachedAt[1],
+      )
+      if (distFromReach >= POST_TURN_BUFFER_M) {
+        // Buffer satisfied — advance to next step
+        stepIdx++
+        stepChanged = true
+        _pendingAdvance = null
+      } else if (distToStep > TURN_REACH_M * 2) {
+        // User backed significantly away (GPS jump / reverse) — cancel pending
+        _pendingAdvance = null
+      }
+      // Else: still executing the turn; keep current step visible
+    } else if (distToStep < TURN_REACH_M) {
+      // Phase 1 — first time entering reach zone; record position but don't advance
+      _pendingAdvance = { targetStepIdx: stepIdx, reachedAt: [gps.lat, gps.lng] }
     }
   }
 
   // Voice announcement + live distance to next step
-  const newStep = stepChanged ? stepIdx : _state.currentStepIndex
+  const newStep = stepIdx   // stepIdx was potentially incremented above
   const nextStep = steps[newStep]
+  const lang = getLang()
 
   let distToNextStepM: number | null = null
   if (nextStep && nextStep.type !== 'depart' && nextStep.type !== 'arrive') {
     const d = haversineM(gps.lat, gps.lng, nextStep.lat, nextStep.lng)
-    distToNextStepM = Math.round(d)
 
-    // Far announcement: 150–350m — skip if we just completed a maneuver this tick
-    // (let the driver finish the current turn before announcing the next one)
-    if (!stepChanged && d < 350 && d > 80 && !_announced300.has(newStep)) {
+    // While in the post-turn buffer, hide the HUD counter so it doesn't awkwardly
+    // count up from 0 while the driver is still executing the maneuver.
+    distToNextStepM = (_pendingAdvance?.targetStepIdx === newStep) ? null : Math.round(d)
+
+    // Far announcement: 80–350m
+    // Skip if we just advanced this tick (stepChanged) or are mid-turn (pending).
+    if (!stepChanged && !_pendingAdvance && d < 350 && d > 80 && !_announced300.has(newStep)) {
       _announced300.add(newStep)
-      speak(getLang() === 'bg'
-        ? `След ${roundDistM(d)} метра, ${maneuverVoiceText(nextStep)}`
-        : `In ${roundDistM(d)} meters, ${maneuverVoiceText(nextStep)}`)
+      const distVoice = fmtDistForVoice(d, lang)
+      const prefix: Record<string,string> = {
+        bg: `След ${distVoice}, `,
+        no: `Om ${distVoice}, `,
+        sv: `Om ${distVoice}, `,
+        fi: `${distVoice} päässä, `,
+      }
+      speak(`${prefix[lang] ?? `In ${distVoice}, `}${maneuverVoiceText(nextStep)}`)
     }
 
-    // Imminent announcement: 20–80m
-    if (d < 80 && d > 20 && !_announced50.has(newStep)) {
+    // Imminent announcement: 20–80m (skip if mid-turn pending)
+    if (!_pendingAdvance && d < 80 && d > 20 && !_announced50.has(newStep)) {
       _announced50.add(newStep)
       speak(maneuverVoiceText(nextStep))
     }
@@ -269,9 +331,11 @@ export const routeStore = {
       const firstStep = route.steps[1]
       if (firstStep) {
         const roundedM = roundDistM(firstStep.distanceM)
-        speak(getLang() === 'bg'
-          ? `Маршрутът е зареден. ${roundedM > 0 ? `След ${roundedM} метра, ` : ''}${maneuverVoiceText(firstStep)}`
-          : `Route loaded. ${roundedM > 0 ? `In ${roundedM} meters, ` : ''}${maneuverVoiceText(firstStep)}`)
+        const _sl = getLang()
+        const _sd = roundedM > 0 ? fmtDistForVoice(roundedM, _sl) + ', ' : ''
+        const _sv = maneuverVoiceText(firstStep)
+        speak(({ bg: `Маршрутът е зареден. ${_sd}${_sv}`, no: `Rute lastet. ${_sd}${_sv}`, sv: `Rutt laddad. ${_sd}${_sv}`, fi: `Reitti ladattu. ${_sd}${_sv}` } as Record<string,string>)[_sl]
+          ?? `Route loaded. ${_sd}${_sv}`)
       }
     }
   },
@@ -334,9 +398,11 @@ export const routeStore = {
       const firstStep = primary.steps[1]
       if (firstStep) {
         const roundedM = roundDistM(firstStep.distanceM)
-        speak(getLang() === 'bg'
-          ? `Преизчислен маршрут. ${roundedM > 0 ? `След ${roundedM} метра, ` : ''}${maneuverVoiceText(firstStep)}`
-          : `Route recalculated. ${roundedM > 0 ? `In ${roundedM} meters, ` : ''}${maneuverVoiceText(firstStep)}`)
+        const _rl = getLang()
+        const _rd = roundedM > 0 ? fmtDistForVoice(roundedM, _rl) + ', ' : ''
+        const _rv = maneuverVoiceText(firstStep)
+        speak(({ bg: `Преизчислен маршрут. ${_rd}${_rv}`, no: `Rute beregnet på nytt. ${_rd}${_rv}`, sv: `Rutt omberäknad. ${_rd}${_rv}`, fi: `Reitti laskettu uudelleen. ${_rd}${_rv}` } as Record<string,string>)[_rl]
+          ?? `Route recalculated. ${_rd}${_rv}`)
       }
     } catch (err) {
       if ((err as Error).name === 'AbortError') return
