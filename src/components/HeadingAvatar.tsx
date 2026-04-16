@@ -27,7 +27,7 @@
 
 import { useEffect, useRef } from 'react'
 import { L } from '@/lib/leaflet'
-import { getMap } from '@/components/MapShell'
+import { getMap, getCourseUpScale } from '@/components/MapShell'
 import { gpsStore } from '@/features/gps/gpsStore'
 import type { GpsPosition } from '@/features/gps/types'
 
@@ -93,10 +93,17 @@ export function HeadingAvatar() {
         addedRef.current = true
       }
 
-      // Tier 2: mutate arrow rotation directly — no icon recreation
+      // Tier 2: mutate arrow rotation + counter-scale directly — no icon recreation.
+      // In course-up mode the #map container is CSS-scaled by ~1.887 to fill the
+      // screen after rotation. That scale inflates every child including this marker.
+      // We apply scale(1/mapScale) to cancel the enlargement so the avatar always
+      // renders at its default visual size.
       const el = m.getElement()
       const wrap = el?.querySelector<HTMLElement>('.gps-avatar-arrow')
-      if (wrap) wrap.style.transform = `rotate(${Math.round(pos.heading ?? 0)}deg)`
+      if (wrap) {
+        const counterScale = 1 / getCourseUpScale()
+        wrap.style.transform = `rotate(${Math.round(pos.heading ?? 0)}deg) scale(${counterScale})`
+      }
     })
 
     return () => {

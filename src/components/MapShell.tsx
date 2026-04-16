@@ -162,6 +162,13 @@ if (import.meta.hot) {
 
 export function getMap(): L.Map | null { return mapInstance }
 
+/** Returns the CSS scale currently applied to the map container in course-up mode.
+ *  HeadingAvatar uses this to apply a reciprocal scale so the avatar stays at its
+ *  default visual size regardless of the map container's CSS scale transform. */
+export function getCourseUpScale(): number {
+  return _courseUpActive ? _mapScale : 1
+}
+
 // ─────────────────────────────────────────────────────────────────
 export function MapShell() {
   const containerRef = useRef<HTMLDivElement>(null)
