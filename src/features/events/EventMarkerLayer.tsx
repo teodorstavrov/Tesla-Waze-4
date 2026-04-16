@@ -27,7 +27,7 @@ function makeIcon(event: RoadEvent): L.DivIcon {
 
   return L.divIcon({
     className: '',
-    html: `
+    html: `<div class="marker-scale-wrap">
       <div style="
         width:36px;height:36px;border-radius:50%;
         background:${color}22;border:2px solid ${color};
@@ -36,7 +36,7 @@ function makeIcon(event: RoadEvent): L.DivIcon {
         box-shadow:0 2px 8px rgba(0,0,0,0.55);
         cursor:pointer;
         animation:${animation};
-      ">${emoji}</div>`,
+      ">${emoji}</div></div>`,
     iconSize:    [36, 36],
     iconAnchor:  [18, 18],
     popupAnchor: [0, -22],

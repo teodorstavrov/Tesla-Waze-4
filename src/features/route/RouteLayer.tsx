@@ -61,13 +61,13 @@ export function RouteLayer() {
         destMarkerRef.current = L.marker([destination.lat, destination.lng], {
           icon: L.divIcon({
             className: '',
-            html: `<div style="
+            html: `<div class="marker-scale-wrap"><div style="
               width:32px;height:32px;border-radius:50%;
               background:#e31937;border:3px solid #fff;
               box-shadow:0 2px 10px rgba(227,25,55,0.6);
               display:flex;align-items:center;justify-content:center;
               font-size:14px;line-height:1;
-            ">&#x1F3C1;</div>`,
+            ">&#x1F3C1;</div></div>`,
             iconSize:   [32, 32],
             iconAnchor: [16, 16],
           }),

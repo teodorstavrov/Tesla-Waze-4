@@ -227,6 +227,18 @@ body,
   /* transition: transform 0.3s ease; — intentionally disabled: can cause jitter on Tesla */
 }
 
+/* ── Course-up counter-scale ─────────────────────────────────────────────
+ * When #map has scale(N) applied in course-up mode, every DivIcon marker
+ * appears N× larger. All marker inner divs carry .marker-scale-wrap, which
+ * reads --marker-counter-scale (set by MapShell._applyCourseUp) and shrinks
+ * the visual content back to its default size. The outer .leaflet-marker-icon
+ * element keeps its original dimensions so touch targets stay correct.
+ */
+.marker-scale-wrap {
+  transform: scale(var(--marker-counter-scale, 1));
+  transform-origin: center center;
+}
+
 @keyframes gps-pulse {
   0%,
   100% {

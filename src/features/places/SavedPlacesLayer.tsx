@@ -19,14 +19,14 @@ function makeIcon(type: PlaceType): L.DivIcon {
   const { emoji, color } = PLACE_CONFIG[type]
   return L.divIcon({
     className: '',
-    html: `<div style="
+    html: `<div class="marker-scale-wrap"><div style="
       width:44px;height:44px;border-radius:50%;
       background:${color};
       border:3px solid #fff;
       box-shadow:0 2px 12px rgba(0,0,0,0.4);
       display:flex;align-items:center;justify-content:center;
       font-size:20px;line-height:1;
-    ">${emoji}</div>`,
+    ">${emoji}</div></div>`,
     iconSize:   [44, 44],
     iconAnchor: [22, 22],
     popupAnchor:[0, -26],

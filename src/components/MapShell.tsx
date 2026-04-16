@@ -125,6 +125,9 @@ function _applyCourseUp(container: HTMLElement, heading: number): void {
     _lastWrittenTransform = newTransform
     container.style.transform = newTransform
     container.style.transformOrigin = '50% 50%'
+    // Keep CSS counter-scale in sync — marker inner divs read this variable
+    // via .marker-scale-wrap to cancel the map container's CSS scale enlargement.
+    container.style.setProperty('--marker-counter-scale', String((1 / _mapScale).toFixed(6)))
   }
 }
 
@@ -136,6 +139,7 @@ function _clearCourseUp(container: HTMLElement): void {
   _savedZoom = null
   _rotationDeg = 0
   _lastWrittenTransform = ''
+  container.style.removeProperty('--marker-counter-scale')
   if (container.style.transform) {
     container.style.transform = 'translateZ(0)'
     container.style.transformOrigin = ''

@@ -25,7 +25,7 @@ function makeCameraIcon(cam: SpeedCamera): L.DivIcon {
 
   return L.divIcon({
     className: '',
-    html: `<div style="
+    html: `<div class="marker-scale-wrap"><div style="
       width:44px;height:44px;
       display:flex;align-items:center;justify-content:center;
       cursor:pointer;
@@ -40,7 +40,7 @@ function makeCameraIcon(cam: SpeedCamera): L.DivIcon {
     ">
       <span style="font-size:14px;line-height:1;">📷</span>
       ${speed != null ? `<span style="font-size:9px;font-weight:700;color:#fff;line-height:1;margin-top:1px;">${label}</span>` : ''}
-    </div></div>`,
+    </div></div></div>`,
     iconSize:   [44, 44],
     iconAnchor: [22, 22],
   })

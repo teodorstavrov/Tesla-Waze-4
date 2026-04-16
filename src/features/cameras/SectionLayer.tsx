@@ -27,7 +27,7 @@ const COLOR_BORDER  = 'rgba(255,255,255,0.6)'
 function makePinIcon(emoji: string, label: string): L.DivIcon {
   return L.divIcon({
     className: '',
-    html: `<div style="
+    html: `<div class="marker-scale-wrap"><div style="
       display:flex;flex-direction:column;align-items:center;
       pointer-events:none;user-select:none;
     ">
@@ -41,7 +41,7 @@ function makePinIcon(emoji: string, label: string): L.DivIcon {
         <span style="font-size:13px;line-height:1;">${emoji}</span>
         <span style="font-size:7px;font-weight:700;color:#fff;line-height:1;margin-top:1px;">${label}</span>
       </div>
-    </div>`,
+    </div></div>`,
     iconSize:   [32, 32],
     iconAnchor: [16, 16],
   })

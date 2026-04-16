@@ -53,7 +53,7 @@ function makeStationIcon(s: NormalizedStation, nearRoute = false): L.DivIcon {
 
   return L.divIcon({
     className: '',   // no Leaflet default styles
-    html: `<div style="
+    html: `<div class="marker-scale-wrap"><div style="
       width:44px;height:44px;
       display:flex;align-items:center;justify-content:center;
       cursor:pointer;
@@ -65,7 +65,7 @@ function makeStationIcon(s: NormalizedStation, nearRoute = false): L.DivIcon {
       display:flex;align-items:center;justify-content:center;
       font-size:18px;line-height:1;
       user-select:none;-webkit-user-select:none;
-    ">⚡</div></div>`,
+    ">⚡</div></div></div>`,
     iconSize:   [44, 44],
     iconAnchor: [22, 22],
   })
@@ -129,7 +129,7 @@ function makeClusterIcon(count: number, maxPower: number | null): L.DivIcon {
   const size  = r * 2
   return L.divIcon({
     className: '',
-    html: `<div style="
+    html: `<div class="marker-scale-wrap"><div style="
       width:${size}px;height:${size}px;border-radius:50%;
       background:${color};opacity:0.88;
       border:2px solid #fff;
@@ -137,7 +137,7 @@ function makeClusterIcon(count: number, maxPower: number | null): L.DivIcon {
       display:flex;align-items:center;justify-content:center;
       font-size:${count >= 100 ? 10 : 12}px;font-weight:700;color:#fff;
       line-height:1;
-    ">${count}</div>`,
+    ">${count}</div></div>`,
     iconSize:   [size, size],
     iconAnchor: [r, r],
   })
