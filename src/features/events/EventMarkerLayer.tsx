@@ -25,20 +25,31 @@ function makeIcon(event: RoadEvent): L.DivIcon {
   // layout+paint), causing jitter near other map activity. Suppress on Tesla.
   const animation = (!isTeslaBrowser && isNew) ? 'event-new-pulse 0.9s ease-out 3' : 'none'
 
+  // Police gets a solid filled circle — much more readable on Tesla's screen.
+  // Other event types keep the semi-transparent style.
+  const isPolice = event.type === 'police'
+  const bg      = isPolice ? color          : `${color}22`
+  const border  = isPolice ? '3px solid #fff' : `2px solid ${color}`
+  const shadow  = isPolice
+    ? '0 2px 10px rgba(0,0,0,0.7)'
+    : '0 2px 8px rgba(0,0,0,0.55)'
+  const size    = isPolice ? 40 : 36
+  const font    = isPolice ? 19 : 17
+
   return L.divIcon({
     className: '',
     html: `<div class="marker-scale-wrap">
       <div style="
-        width:36px;height:36px;border-radius:50%;
-        background:${color}22;border:2px solid ${color};
+        width:${size}px;height:${size}px;border-radius:50%;
+        background:${bg};border:${border};
         display:flex;align-items:center;justify-content:center;
-        font-size:17px;line-height:1;
-        box-shadow:0 2px 8px rgba(0,0,0,0.55);
+        font-size:${font}px;line-height:1;
+        box-shadow:${shadow};
         cursor:pointer;
         animation:${animation};
       ">${emoji}</div></div>`,
-    iconSize:    [36, 36],
-    iconAnchor:  [18, 18],
+    iconSize:    [size, size],
+    iconAnchor:  [size / 2, size / 2],
     popupAnchor: [0, -22],
   })
 }
