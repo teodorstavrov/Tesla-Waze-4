@@ -65,8 +65,6 @@ function _emit(): void { _listeners.forEach((fn) => fn()) }
 async function _fetch(country: string): Promise<void> {
   const version = ++_fetchVersion
 
-  console.log(`[NO_CAM] fetch:start country=${country} version=${version} stored=${_state.cameras.length} fetchedAt=${_state.fetchedAt}`)
-
   // Stale-while-revalidate: if we have fresh data for this country, skip
   if (
     _state.country   === country &&
@@ -74,7 +72,6 @@ async function _fetch(country: string): Promise<void> {
     Date.now() - _state.fetchedAt < STALE_MS &&
     _state.cameras.length > 0
   ) {
-    console.log(`[NO_CAM] fetch:skip-stale country=${country} cameras=${_state.cameras.length}`)
     return
   }
 
@@ -88,18 +85,13 @@ async function _fetch(country: string): Promise<void> {
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const data = await res.json() as { cameras: SpeedCamera[] }
 
-    if (version !== _fetchVersion) {
-      console.log(`[NO_CAM] fetch:superseded country=${country} version=${version} current=${_fetchVersion}`)
-      return
-    }
+    if (version !== _fetchVersion) return
 
-    console.log(`[NO_CAM] fetch:result country=${country} cameras=${data.cameras.length}`)
     _state = { cameras: data.cameras, status: 'ok', fetchedAt: Date.now(), country }
     _save(country, data.cameras)
     _emit()
   } catch (err) {
     if (version !== _fetchVersion) return
-    console.error(`[NO_CAM] fetch:error country=${country}`, err)
     // Keep existing data on error — don't wipe the map
     _state = { ..._state, status: 'error' }
     _emit()

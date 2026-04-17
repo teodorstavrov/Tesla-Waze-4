@@ -35,12 +35,30 @@ function closestPointIndex(lat: number, lng: number, polyline: [number, number][
   return minIdx
 }
 
-function remainingDistanceM(fromIdx: number, polyline: [number, number][]): number {
-  let total = 0
-  for (let i = fromIdx; i < polyline.length - 1; i++) {
-    total += haversineM(polyline[i]![0], polyline[i]![1], polyline[i + 1]![0], polyline[i + 1]![1])
+// ── Cumulative distance cache ─────────────────────────────────────
+// Built once when the route polyline changes. Turns remainingDistanceM()
+// from O(n) haversine calls per GPS tick → O(1) array lookup.
+// On a 5000-point route this saves ~5000 trig operations per second on old Tesla MCU.
+let _cumPolylineRef: [number, number][] | null = null  // reference equality guard
+let _cumDistances: Float64Array | null = null           // cumulative metres from start
+let _cumTotal = 0                                       // total route length in metres
+
+function _ensureCumulative(polyline: [number, number][]): void {
+  if (_cumPolylineRef === polyline) return  // same object — already built
+  _cumPolylineRef = polyline
+  const n = polyline.length
+  _cumDistances = new Float64Array(n)
+  let sum = 0
+  for (let i = 1; i < n; i++) {
+    sum += haversineM(polyline[i - 1]![0], polyline[i - 1]![1], polyline[i]![0], polyline[i]![1])
+    _cumDistances[i] = sum
   }
-  return total
+  _cumTotal = sum
+}
+
+function remainingDistanceM(fromIdx: number): number {
+  if (!_cumDistances) return 0
+  return _cumTotal - (_cumDistances[fromIdx] ?? 0)
 }
 
 // ── Voice announcement helpers ────────────────────────────────────
@@ -118,6 +136,7 @@ function _resetAnnouncements(): void {
   _announced50.clear()
   _arrivedAnnounced = false
   _pendingAdvance = null
+  _cumPolylineRef = null  // force cumulative distance rebuild for the new route
 }
 
 function _emit(): void { _listeners.forEach((fn) => fn()) }
@@ -131,12 +150,14 @@ function _onGpsUpdate(): void {
   const gps = gpsStore.getPosition()
   if (!gps) return
 
+  _ensureCumulative(route.polyline)
+
   const idx = closestPointIndex(gps.lat, gps.lng, route.polyline)
   const [closestLat, closestLng] = route.polyline[idx]!
   const distFromRoute = haversineM(gps.lat, gps.lng, closestLat, closestLng)
 
   const deviated  = distFromRoute > 200
-  const remaining = remainingDistanceM(idx, route.polyline)
+  const remaining = remainingDistanceM(idx)
 
   // ── Arrival detection ───────────────────────────────────────────
   if (_state.destination) {

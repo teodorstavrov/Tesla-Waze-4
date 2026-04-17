@@ -37,9 +37,22 @@ export function formatExpiresIn(expiresAt: string): string {
 
   if (ms <= 0) return lang === 'bg' ? 'Изтекло' : 'Expired'
 
-  const mins  = Math.floor(ms / 60_000)
-  const hours = Math.floor(mins / 60)
-  const remMins = mins % 60
+  const mins     = Math.floor(ms / 60_000)
+  const hours    = Math.floor(mins / 60)
+  const days     = Math.floor(hours / 24)
+  const remHours = hours % 24
+  const remMins  = mins % 60
+
+  if (days >= 1) {
+    if (remHours === 0) {
+      return lang === 'bg'
+        ? `изтича след ${days} ${days === 1 ? 'ден' : 'дни'}`
+        : `expires in ${days} ${days === 1 ? 'day' : 'days'}`
+    }
+    return lang === 'bg'
+      ? `изтича след ${days} ${days === 1 ? 'ден' : 'дни'} и ${remHours} ч`
+      : `expires in ${days} ${days === 1 ? 'day' : 'days'} ${remHours} h`
+  }
 
   if (mins < 60) {
     return lang === 'bg' ? `изтича след ${mins} мин` : `expires in ${mins} min`

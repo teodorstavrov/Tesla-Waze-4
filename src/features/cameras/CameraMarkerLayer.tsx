@@ -124,7 +124,6 @@ export function CameraMarkerLayer() {
 
         // Hide all cameras when zoomed out
         if (zoomRef.current < MIN_ZOOM) {
-          console.log(`[NO_CAM] syncMarkers:hidden zoom=${zoomRef.current} < MIN_ZOOM=${MIN_ZOOM}`)
           clearAll()
           return
         }
@@ -136,8 +135,6 @@ export function CameraMarkerLayer() {
           (c) => c.lat >= bounds.minLat && c.lat <= bounds.maxLat &&
                  c.lng >= bounds.minLng && c.lng <= bounds.maxLng,
         )
-
-        console.log(`[NO_CAM] syncMarkers country=${country} stored=${cameras.length} zoom=${zoomRef.current} bounds=[${bounds.minLat.toFixed(3)},${bounds.minLng.toFixed(3)},${bounds.maxLat.toFixed(3)},${bounds.maxLng.toFixed(3)}] visible=${visible.length}`)
 
         const incoming = new Set(visible.map((c) => c.id))
 

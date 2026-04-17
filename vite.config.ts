@@ -12,7 +12,7 @@ export default defineConfig({
 
   build: {
     target: 'es2018',
-    sourcemap: true,
+    sourcemap: false,
     rollupOptions: {
       input: {
         main:  path.resolve(__dirname, 'index.html'),

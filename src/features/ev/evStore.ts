@@ -199,7 +199,12 @@ export const evStore = {
     // Only re-emit if this is a visible state change (no data yet, or new bbox)
     if (!hadData || _state.bboxKey !== key) _emit()
 
-    const url = `/api/ev/stations?bbox=${bbox.minLat},${bbox.minLng},${bbox.maxLat},${bbox.maxLng}`
+    // Snap bbox to 0.05° grid (~5.5 km) before sending to the server.
+    // This means slightly different viewports from different users (or small pans)
+    // produce the same URL, dramatically increasing CDN and server in-memory cache
+    // hit rates. Client still receives full results and filters by actual viewport.
+    const sq = (n: number) => Math.round(n * 20) / 20
+    const url = `/api/ev/stations?bbox=${sq(bbox.minLat)},${sq(bbox.minLng)},${sq(bbox.maxLat)},${sq(bbox.maxLng)}`
     logger.ev.debug('Fetching stations', { url, version })
 
     try {

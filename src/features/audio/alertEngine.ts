@@ -95,7 +95,9 @@ const PANEL_TRIGGER_M   = 80             // open panel when first entering 80m z
 
 let _unsub: (() => void) | null = null
 let _lastScanAt = 0
-const SCAN_THROTTLE_MS = 2000  // scan at most every 2s (GPS fires ~1Hz)
+// Match GPS frequency (1 Hz) so zone-entry is detected within 1 GPS tick, not 2.
+// At 100 km/h, a 2s throttle could miss the threshold crossing by up to 28m.
+const SCAN_THROTTLE_MS = 1000
 
 function _onPosition(): void {
   const now = Date.now()

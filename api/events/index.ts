@@ -2,12 +2,12 @@
 // ─── POST /api/events  — report new event ─────────────────────────────
 //
 // COST ARCHITECTURE:
-// GET always fetches ALL Bulgaria events directly from Redis — no in-memory cache.
-// Events are dynamic (admin delete/add must reflect immediately).
-// In-memory caching across multiple serverless instances caused stale markers
-// after admin deletes (each instance has its own memory — cacheDel on instance A
-// does not affect instance B).
-// Redis holds ~2-3 kB for <50 events — the read cost is negligible.
+// GET uses a short (20s) per-bbox in-memory cache on warm Vercel instances.
+// This coalesces bursts of concurrent requests (e.g. 50 users loading simultaneously)
+// from potentially 50 Redis reads down to ~3 (one per unique bbox per 20s window).
+// Admin deletes are visible within 20s max — acceptable for this use case.
+// Each Vercel instance caches independently, so there is no cross-instance invalidation
+// concern: worst case is a 20s delay, not a permanent stale state.
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { BULGARIA_BBOX, NORWAY_BBOX, parseBBox } from '../_lib/utils/bbox.js'
@@ -23,6 +23,12 @@ import { captureApiError } from '../_lib/utils/sentryApi.js'
 const VALID_TYPES = new Set<EventType>([
   'police', 'accident', 'hazard', 'traffic', 'camera', 'construction',
 ])
+
+// ── Server-side response cache (per bbox, 20s TTL) ───────────────────
+// Coalesces concurrent GET requests on the same warm Vercel instance.
+// At 50 concurrent users, reduces Redis reads from N/stale-window → ~3/stale-window.
+const _eventsCache = new Map<string, { events: RoadEvent[]; expiresAt: number }>()
+const GET_CACHE_TTL_MS = 20_000
 
 // In-memory GET rate limiter — no Redis cost
 const _getIpHits = new Map<string, { count: number; resetAt: number }>()
@@ -60,10 +66,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       const inNo = bbox.minLat <= NO.maxLat && bbox.maxLat >= NO.minLat
       const queryBBox = (!inBg && inNo) ? NO : (!inNo && inBg) ? BG : bbox
 
-      // Always read from Redis — no in-memory cache so admin deletes are instant
+      // Check in-memory cache first — coalesces concurrent requests on warm instances
+      const cacheKey = `${queryBBox.minLat},${queryBBox.minLng},${queryBBox.maxLat},${queryBBox.maxLng}`
+      const cached = _eventsCache.get(cacheKey)
+      const now = Date.now()
+      if (cached && cached.expiresAt > now) {
+        setCacheHeaders(res, 0)
+        res.status(200).json({ events: cached.events })
+        return
+      }
+
       const events = useRedis
         ? await eventRedisStore.getInBBox(queryBBox)
         : eventMemStore.getInBBox(queryBBox)
+
+      // Cache result for 20s — reduces Redis reads at 50 concurrent users
+      _eventsCache.set(cacheKey, { events, expiresAt: now + GET_CACHE_TTL_MS })
 
       setCacheHeaders(res, 0)
       res.status(200).json({ events })

@@ -55,6 +55,8 @@ import { t } from '@/lib/locale'
 
 let _rotationDeg = 0  // accumulated, unbounded (can exceed 360)
 let _lastWrittenTransform = ''  // dedup: skip style.transform write when value unchanged
+let _lastCounterScale = ''      // dedup: skip --marker-counter-scale write when value unchanged
+let _geocodeTimer: ReturnType<typeof setTimeout> | null = null  // debounce Nominatim requests
 
 // ── Scale computation ─────────────────────────────────────────────
 // Cached module-level — zero cost per GPS tick.
@@ -127,7 +129,13 @@ function _applyCourseUp(container: HTMLElement, heading: number): void {
     container.style.transformOrigin = '50% 50%'
     // Keep CSS counter-scale in sync — marker inner divs read this variable
     // via .marker-scale-wrap to cancel the map container's CSS scale enlargement.
-    container.style.setProperty('--marker-counter-scale', String((1 / _mapScale).toFixed(6)))
+    // Deduplicated: _mapScale only changes on resize, so the value is almost always
+    // identical between calls. Skipping redundant setProperty avoids style invalidation.
+    const counterScaleStr = (1 / _mapScale).toFixed(6)
+    if (counterScaleStr !== _lastCounterScale) {
+      _lastCounterScale = counterScaleStr
+      container.style.setProperty('--marker-counter-scale', counterScaleStr)
+    }
   }
 }
 
@@ -139,6 +147,7 @@ function _clearCourseUp(container: HTMLElement): void {
   _savedZoom = null
   _rotationDeg = 0
   _lastWrittenTransform = ''
+  _lastCounterScale = ''
   container.style.removeProperty('--marker-counter-scale')
   if (container.style.transform) {
     container.style.transform = 'translateZ(0)'
@@ -196,7 +205,7 @@ export function MapShell() {
       // Tesla browser: disable CSS-animated transitions that overwhelm
       // its software compositor and cause visible jitter during zoom/pan.
       fadeAnimation:       !isTeslaBrowser,
-      zoomAnimation:       true,
+      zoomAnimation:       !isTeslaBrowser,  // true on Tesla triggers JS animation machinery even though CSS transition is suppressed
       markerZoomAnimation: !isTeslaBrowser,
       preferCanvas:        true,   // fewer DOM nodes — better Tesla performance
       tapTolerance:        15,     // generous tap target for Tesla touchscreen
@@ -287,21 +296,27 @@ export function MapShell() {
         .setContent(wrap)
         .openOn(map)
 
-      // Reverse geocode — update address label when response arrives
-      const revLang = countryStore.getCountryOrDefault().searchLang
-      fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=jsonv2&accept-language=${encodeURIComponent(revLang)}`, {
-        headers: { 'User-Agent': 'TesRadar/1.0' },
-      })
-        .then((r) => r.json())
-        .then((data: { display_name?: string; address?: { road?: string; suburb?: string; city?: string; town?: string; village?: string } }) => {
-          const a = data.address
-          const parts: string[] = []
-          if (a?.road)    parts.push(a.road)
-          if (a?.suburb)  parts.push(a.suburb)
-          if (a?.city ?? a?.town ?? a?.village) parts.push((a?.city ?? a?.town ?? a?.village)!)
-          addr.textContent = parts.length ? parts.join(', ') : (data.display_name?.split(',').slice(0, 2).join(', ') ?? addr.textContent)
+      // Reverse geocode — update address label when response arrives.
+      // Debounced: if the user triggers multiple long-presses rapidly (accidental
+      // double-tap on Tesla touchscreen) only the most recent fires a network request.
+      if (_geocodeTimer) clearTimeout(_geocodeTimer)
+      _geocodeTimer = setTimeout(() => {
+        _geocodeTimer = null
+        const revLang = countryStore.getCountryOrDefault().searchLang
+        fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=jsonv2&accept-language=${encodeURIComponent(revLang)}`, {
+          headers: { 'User-Agent': 'TesRadar/1.0' },
         })
-        .catch(() => { /* keep coords */ })
+          .then((r) => r.json())
+          .then((data: { display_name?: string; address?: { road?: string; suburb?: string; city?: string; town?: string; village?: string } }) => {
+            const a = data.address
+            const parts: string[] = []
+            if (a?.road)    parts.push(a.road)
+            if (a?.suburb)  parts.push(a.suburb)
+            if (a?.city ?? a?.town ?? a?.village) parts.push((a?.city ?? a?.town ?? a?.village)!)
+            addr.textContent = parts.length ? parts.join(', ') : (data.display_name?.split(',').slice(0, 2).join(', ') ?? addr.textContent)
+          })
+          .catch(() => { /* keep coords */ })
+      }, 600)
 
       let destName = `${lat.toFixed(4)}, ${lng.toFixed(4)}`
       btn.addEventListener('click', () => {
