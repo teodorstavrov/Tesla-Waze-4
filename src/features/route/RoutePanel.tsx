@@ -69,6 +69,7 @@ export function RoutePanel() {
     }
     followStore.setFollowing(true)
     routeStore.startNavigation()
+    setDismissed(true)  // auto-minimize so the map is fully visible while driving
   }
 
   if (status === 'idle') return null
