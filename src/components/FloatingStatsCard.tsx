@@ -94,6 +94,7 @@ export function FloatingStatsCard() {
 
   const isSleeping  = teslaConnected && teslaSnap?.sleeping === true && pollStatus === 'sleeping'
   const isPolling   = pollStatus === 'polling'
+  const isWaking    = pollStatus === 'waking'
   const hasTeslaData = teslaConnected && teslaSnap !== null && !teslaSnap.sleeping
 
   const handleBatteryTap = useCallback(() => {
@@ -145,6 +146,7 @@ export function FloatingStatsCard() {
         <BatteryStat
           level={displayLevel}
           isPolling={isPolling}
+          isWaking={isWaking}
           isSleeping={isSleeping}
           hasTeslaData={hasTeslaData}
           teslaConnected={teslaConnected}
@@ -170,6 +172,7 @@ export function FloatingStatsCard() {
 function BatteryStat({
   level,
   isPolling,
+  isWaking,
   isSleeping,
   hasTeslaData,
   teslaConnected,
@@ -178,6 +181,7 @@ function BatteryStat({
 }: {
   level:          number
   isPolling:      boolean
+  isWaking:       boolean
   isSleeping:     boolean
   hasTeslaData:   boolean
   teslaConnected: boolean
@@ -189,36 +193,33 @@ function BatteryStat({
     : level > 20 ? '#eab308'
     :              '#ef4444'
 
-  // Label hierarchy:
-  //   polling          → "Tesla…"
-  //   sleeping         → "спи" / "asleep"
-  //   tesla live data  → "Tesla"  (green)
-  //   tesla connected, no data yet → show fallback source
-  //   not connected    → fallback source label
-  const label = isPolling
-    ? 'Tesla…'
-    : isSleeping
-      ? (getLang() === 'bg' ? 'спи' : 'asleep')
-      : hasTeslaData
-        ? 'Tesla'
-        : teslaConnected
-          ? (fallbackSource === 'user_entered' ? t('stats.manual') : '~')
-          : (fallbackSource === 'user_entered' ? t('stats.manual')
-             : fallbackSource === 'estimated'  ? '~'
-             :                                   '—')
+  const bg = getLang() === 'bg'
 
+  const label =
+    isWaking    ? (bg ? 'буди…' : 'waking…')
+    : isPolling ? 'Tesla…'
+    : isSleeping ? (bg ? 'спи ↺' : 'asleep ↺')
+    : hasTeslaData ? 'Tesla'
+    : teslaConnected
+      ? (fallbackSource === 'user_entered' ? t('stats.manual') : '~')
+      : (fallbackSource === 'user_entered' ? t('stats.manual')
+         : fallbackSource === 'estimated'  ? '~'
+         :                                   '—')
+
+  const dimmed    = isPolling || isWaking
   const labelColor =
-    hasTeslaData && !isPolling ? '#22c55e'    // live Tesla → green
-    : isSleeping               ? '#6b7280'    // sleeping → dim gray
-    :                            'var(--text-secondary)'
+    hasTeslaData && !dimmed ? '#22c55e'
+    : isSleeping             ? '#6b7280'
+    : isWaking               ? '#eab308'
+    :                          'var(--text-secondary)'
 
   const inner = (
     <div style={{ textAlign: 'center', minWidth: 40 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 3, justifyContent: 'center' }}>
-        <BatteryIcon level={level} color={isPolling ? 'var(--text-secondary)' : battColor} />
+        <BatteryIcon level={level} color={dimmed ? 'var(--text-secondary)' : battColor} />
         <span style={{
           fontSize: 16, fontWeight: 700,
-          color: isPolling ? 'var(--text-secondary)' : battColor,
+          color: dimmed ? 'var(--text-secondary)' : battColor,
           lineHeight: 1.2,
         }}>
           {Math.round(level)}%

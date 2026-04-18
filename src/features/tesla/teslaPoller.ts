@@ -5,23 +5,29 @@
 // COST POLICY:
 //   - Poll once immediately on connect / app resume
 //   - If vehicle awake: re-poll every AWAKE_INTERVAL_MS (10 min)
-//   - If vehicle sleeping: SLEEP_BACKOFF_MS (1 hour); never forces wake
+//   - If vehicle sleeping (background): SLEEP_BACKOFF_MS backoff, no wake
+//   - User-triggered refresh: wakes the car if sleeping (explicit user intent)
 //   - No polling while tab is hidden
-//   - Respects server 429 rate-limit
 //
 // DATA FLOW:
-//   poll() → GET /api/tesla/vehicle
-//     → batteryStore.setFromTesla(pct)      (re-anchors estimation engine)
-//     → teslaVehicleStore.setFromVehicleData (raw snapshot for UI display)
+//   _poll() → GET /api/tesla/vehicle
+//     → batteryStore.setFromTesla(pct)      — re-anchors estimation engine
+//     → teslaVehicleStore.setFromVehicleData — raw snapshot for UI display
 
 import { teslaStore } from './teslaStore'
 import { teslaVehicleStore } from './teslaVehicleStore'
 import { batteryStore } from '@/features/planning/batteryStore'
 
-const AWAKE_INTERVAL_MS = 10 * 60 * 1000  // 10 min
-const SLEEP_BACKOFF_MS  = 60 * 60 * 1000  // 1 hour — sleeping car, don't poke it
+const AWAKE_INTERVAL_MS = 10 * 60 * 1000  // 10 min — conservative
+const SLEEP_BACKOFF_MS  = 60 * 60 * 1000  // 1 hour — parked/sleeping car
 
-export type PollStatus = 'idle' | 'polling' | 'sleeping' | 'rate_limited' | 'error'
+export type PollStatus =
+  | 'idle'
+  | 'polling'
+  | 'sleeping'
+  | 'waking'    // user-triggered wake in progress (~30–45 s)
+  | 'rate_limited'
+  | 'error'
 
 type Listener = () => void
 const _statusListeners = new Set<Listener>()
@@ -53,7 +59,6 @@ async function _poll(): Promise<void> {
   try {
     const res = await fetch('/api/tesla/vehicle', { credentials: 'same-origin' })
 
-    // Server-side rate limit — respect the retry window
     if (res.status === 429) {
       const data = (await res.json()) as { retryAfterMs?: number }
       _setStatus('rate_limited')
@@ -68,22 +73,17 @@ async function _poll(): Promise<void> {
     }
 
     const data = (await res.json()) as {
-      vehicle: {
-        currentBatteryPercent: number
-        chargingState: string | null
-      } | null
+      vehicle: { currentBatteryPercent: number; chargingState: string | null } | null
       sleeping?: boolean
     }
 
     if (data.sleeping || !data.vehicle) {
-      // Vehicle asleep — update store with sleeping flag, long backoff, NO wake
       teslaVehicleStore.setSleeping()
       _setStatus('sleeping')
       _schedule(SLEEP_BACKOFF_MS)
       return
     }
 
-    // Live data received — update both stores
     const { currentBatteryPercent, chargingState } = data.vehicle
     teslaVehicleStore.setFromVehicleData(currentBatteryPercent, chargingState ?? null)
     batteryStore.setFromTesla(currentBatteryPercent)
@@ -95,10 +95,50 @@ async function _poll(): Promise<void> {
   }
 }
 
+// ── Wake flow (user-triggered only) ──────────────────────────────────────
+
+async function _wakeAndPoll(): Promise<void> {
+  _setStatus('waking')
+
+  try {
+    const res = await fetch('/api/tesla/wake', {
+      method:      'POST',
+      credentials: 'same-origin',
+    })
+
+    if (res.status === 429) {
+      // Already waking or woke recently — just retry the data poll
+      _setStatus('idle')
+      await _poll()
+      return
+    }
+
+    if (!res.ok) {
+      _setStatus('error')
+      _schedule(AWAKE_INTERVAL_MS)
+      return
+    }
+
+    const data = (await res.json()) as { woke?: boolean; timeout?: boolean }
+
+    if (data.woke) {
+      // Car is online — fetch data now
+      await _poll()
+    } else {
+      // Timed out (45 s) — car didn't wake; keep sleeping state, long backoff
+      teslaVehicleStore.setSleeping()
+      _setStatus('sleeping')
+      _schedule(SLEEP_BACKOFF_MS)
+    }
+  } catch {
+    _setStatus('error')
+    _schedule(AWAKE_INTERVAL_MS)
+  }
+}
+
 // ── Public API ────────────────────────────────────────────────────────────
 
 export const teslaPoller = {
-  /** Call once at app startup (idempotent). */
   start(): void {
     if (_started) return
     _started = true
@@ -116,12 +156,10 @@ export const teslaPoller = {
       }
     })
 
-    // Poll immediately if already connected on start
     if (teslaStore.getState().connected) {
       void _poll()
     }
 
-    // Pause while tab hidden, resume on return
     document.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'visible') {
         if (teslaStore.getState().connected) {
@@ -141,10 +179,25 @@ export const teslaPoller = {
     return () => _statusListeners.delete(fn)
   },
 
-  /** User-triggered refresh — resets sleep backoff, polls immediately. */
+  /**
+   * User-triggered refresh.
+   * If car is sleeping → wake it first, then poll (takes up to 45 s).
+   * If car is online → poll immediately.
+   */
   async refresh(): Promise<void> {
     _clearTimer()
-    _setStatus('idle')
-    await _poll()
+    const currentStatus = _status
+
+    if (currentStatus === 'sleeping') {
+      // Car is known to be sleeping — wake it explicitly
+      await _wakeAndPoll()
+    } else {
+      _setStatus('idle')
+      await _poll()
+      // If poll reveals car is sleeping, escalate to wake
+      if (_status === 'sleeping') {
+        await _wakeAndPoll()
+      }
+    }
   },
 }

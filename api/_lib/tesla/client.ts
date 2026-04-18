@@ -102,11 +102,25 @@ export async function getVehicleData(
 // ── Wake up ───────────────────────────────────────────────────────────────
 
 /**
- * Wake a sleeping vehicle. Tesla vehicles go to sleep after ~15 min idle.
- * Waking can take 30–90 seconds — the caller should poll vehicle state
- * and wait for state === 'online' before calling getVehicleData.
+ * Send a wake_up command. Non-throwing — best effort.
+ * Caller must then poll getVehicleOnlineState() until 'online'.
  */
 export async function wakeVehicle(sessionId: string, vehicleId: string): Promise<void> {
-  const res = await _teslaFetch(sessionId, `/api/1/vehicles/${vehicleId}/wake_up`, { method: 'POST' })
-  if (!res.ok) throw new Error(`Tesla wake_up failed: ${res.status}`)
+  try {
+    await _teslaFetch(sessionId, `/api/1/vehicles/${vehicleId}/wake_up`, { method: 'POST' })
+  } catch { /* best effort */ }
+}
+
+/**
+ * Fetch only the vehicle's online state ('online' | 'asleep' | 'offline' | 'waking').
+ * Does NOT wake the vehicle — safe to call on sleeping car.
+ */
+export async function getVehicleOnlineState(
+  sessionId: string,
+  vehicleId: string,
+): Promise<string> {
+  const res  = await _teslaFetch(sessionId, `/api/1/vehicles/${vehicleId}`)
+  if (!res.ok) return 'unknown'
+  const data = (await res.json()) as { response?: { state?: string } }
+  return data.response?.state ?? 'unknown'
 }
