@@ -55,6 +55,7 @@ export const DICTIONARY = {
       gps:       'GPS',
       muteOn:    'Включи звука',
       muteOff:   'Изключи звука',
+      manual:    'ръчно',
     },
 
     alerts: {
@@ -264,6 +265,7 @@ export const DICTIONARY = {
       gps:       'GPS',
       muteOn:    'Unmute',
       muteOff:   'Mute',
+      manual:    'manual',
     },
 
     alerts: {
@@ -473,6 +475,7 @@ export const DICTIONARY = {
       gps:       'GPS',
       muteOn:    'Slå på lyd',
       muteOff:   'Demp lyd',
+      manual:    'manuell',
     },
 
     alerts: {
@@ -683,6 +686,7 @@ export const DICTIONARY = {
       gps:       'GPS',
       muteOn:    'Slå på ljud',
       muteOff:   'Stäng av ljud',
+      manual:    'manuell',
     },
 
     alerts: {
@@ -893,6 +897,7 @@ export const DICTIONARY = {
       gps:       'GPS',
       muteOn:    'Ota ääni käyttöön',
       muteOff:   'Mykistä',
+      manual:    'manuaali',
     },
 
     alerts: {

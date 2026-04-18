@@ -1,5 +1,6 @@
 // ─── Top-right status card ─────────────────────────────────────────────
 // Phase 4+5: live station count (filtered/total), GPS accuracy.
+// Phase 22: live Tesla battery indicator with source label.
 
 import { useSyncExternalStore, useState, useEffect } from 'react'
 import { evStore } from '@/features/ev/evStore'
@@ -8,7 +9,9 @@ import { gpsStore } from '@/features/gps/gpsStore'
 import { eventStore } from '@/features/events/eventStore'
 import { audioManager } from '@/features/audio/audioManager'
 import { batteryStore } from '@/features/planning/batteryStore'
+import { teslaStore } from '@/features/tesla/teslaStore'
 import { t, langStore } from '@/lib/locale'
+import type { BatterySource } from '@/features/planning/batteryStore'
 
 export function FloatingStatsCard() {
   // Subscribe to lang changes so labels re-render when country is switched
@@ -23,8 +26,14 @@ export function FloatingStatsCard() {
   const [batteryState, setBatteryState] = useState(() => batteryStore.getState())
   useEffect(() => batteryStore.subscribe(() => setBatteryState(batteryStore.getState())), [])
 
-  const batteryLevel      = batteryState?.currentBatteryPercent ?? null
-  const batteryIsEstimate = batteryState?.source === 'estimated'
+  const teslaConnected = useSyncExternalStore(
+    teslaStore.subscribe,
+    () => teslaStore.getState().connected,
+    () => false,
+  )
+
+  const batteryLevel  = batteryState?.currentBatteryPercent ?? null
+  const batterySource = batteryState?.source ?? null
 
   const evState = useSyncExternalStore(
     evStore.subscribe.bind(evStore),
@@ -114,6 +123,16 @@ export function FloatingStatsCard() {
           : <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
         }
       </button>
+
+      {/* Battery — shown whenever a session exists (Tesla live or manual estimate) */}
+      {batteryLevel !== null && (
+        <BatteryStat
+          level={batteryLevel}
+          source={batterySource}
+          teslaConnected={teslaConnected}
+        />
+      )}
+
       <Stat
         label={t('stats.stations')}
         value={stationValue}
@@ -126,20 +145,71 @@ export function FloatingStatsCard() {
   )
 }
 
+// ── Battery stat ─────────────────────────────────────────────────────────
+
+function BatteryStat({
+  level,
+  source,
+  teslaConnected,
+}: {
+  level: number
+  source: BatterySource | null
+  teslaConnected: boolean
+}) {
+  // Color based on charge level
+  const battColor =
+    level > 60 ? '#22c55e'
+    : level > 20 ? '#eab308'
+    :              '#ef4444'
+
+  // Source label shown below the percentage
+  // tesla_live      → "Tesla"   (green — live reading)
+  // estimated + connected → "~Tesla"  (dim — drifting from last Tesla read)
+  // user_entered    → "ръчно" / "manual" (translation key)
+  // estimated alone → "~"      (estimated from manual base)
+  const label =
+    source === 'tesla_live'                      ? 'Tesla'
+    : (source === 'estimated' && teslaConnected) ? '~Tesla'
+    : source === 'user_entered'                  ? t('stats.manual')
+    :                                              '~'
+
+  const labelColor = source === 'tesla_live' ? '#22c55e' : 'var(--text-secondary)'
+
+  return (
+    <div style={{ textAlign: 'center', minWidth: 40 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 3, justifyContent: 'center' }}>
+        <BatteryIcon level={level} color={battColor} />
+        <span style={{ fontSize: 16, fontWeight: 700, color: battColor, lineHeight: 1.2 }}>
+          {Math.round(level)}%
+        </span>
+      </div>
+      <div style={{
+        fontSize: 9,
+        color: labelColor,
+        letterSpacing: '0.07em',
+        textTransform: 'uppercase',
+        marginTop: 1,
+      }}>
+        {label}
+      </div>
+    </div>
+  )
+}
+
+// ── Battery icon ─────────────────────────────────────────────────────────
+
 function BatteryIcon({ level, color }: { level: number; color: string }) {
-  // fill width: 0–100% mapped to 0–10px inner bar
   const fillW = Math.round((level / 100) * 10)
   return (
     <svg width="16" height="9" viewBox="0 0 16 9" fill="none" aria-hidden="true">
-      {/* body */}
       <rect x="0.5" y="0.5" width="13" height="8" rx="1.5" stroke={color} strokeWidth="1" />
-      {/* tip */}
       <rect x="14" y="3" width="1.5" height="3" rx="0.5" fill={color} />
-      {/* fill */}
       <rect x="2" y="2" width={fillW} height="5" rx="0.5" fill={color} />
     </svg>
   )
 }
+
+// ── Generic stat ─────────────────────────────────────────────────────────
 
 function Stat({
   label, value, accent, title,

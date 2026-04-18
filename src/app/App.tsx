@@ -46,6 +46,7 @@ import { alertEngine } from '@/features/audio/alertEngine'
 import { batteryTracker } from '@/features/planning/batteryTracker'
 import { useThemeStore } from '@/features/theme/store'
 import { teslaStore } from '@/features/tesla/teslaStore'
+import { teslaPoller } from '@/features/tesla/teslaPoller'
 
 export function App() {
   // Start GPS watching (feeds gpsStore; no rerenders from GPS ticks)
@@ -55,6 +56,7 @@ export function App() {
   useEffect(() => { alertEngine.start() }, [])
   useEffect(() => { batteryTracker.start() }, [])
   useEffect(() => { sectionEngine.start() }, [])
+  useEffect(() => { teslaPoller.start() }, [])
 
   // Tesla connection: check status on app load + handle OAuth redirect result
   useEffect(() => {
