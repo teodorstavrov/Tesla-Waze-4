@@ -19,10 +19,11 @@ import { gpsStore } from '@/features/gps/gpsStore'
 import { countryStore } from '@/lib/countryStore'
 
 // ── Constants ────────────────────────────────────────────────────────────
-const FETCH_THRESHOLD_M = 50    // re-fetch after 50 m movement (was 100)
-const SEARCH_RADIUS_M   = 40    // query radius around GPS position
-const OVERPASS_URL      = 'https://overpass-api.de/api/interpreter'
-const REQUEST_TIMEOUT   = 8_000 // ms
+const FETCH_THRESHOLD_M  = 50    // re-fetch after 50 m movement
+const SEARCH_RADIUS_M    = 40    // query radius around GPS position
+const OVERPASS_URL       = 'https://overpass-api.de/api/interpreter'
+const OVERPASS_FALLBACK  = 'https://overpass.kumi.systems/api/interpreter'
+const REQUEST_TIMEOUT    = 8_000 // ms
 
 // ── Highway priority (lower = more important road) ────────────────────────
 const HIGHWAY_PRIORITY: Record<string, number> = {
@@ -197,28 +198,39 @@ class SpeedLimitStore {
 
   private async fetchLimit(lat: number, lng: number): Promise<void> {
     this.fetching = true
-    const controller = new AbortController()
-    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT)
+
+    // Query ALL road ways within radius — no maxspeed filter.
+    // We apply road-type defaults for untagged ways in bestLimit().
+    const query =
+      `[out:json][timeout:7];` +
+      `way(around:${SEARCH_RADIUS_M},${lat},${lng})[highway~"^(motorway|motorway_link|trunk|trunk_link|primary|primary_link|secondary|secondary_link|tertiary|tertiary_link|residential|living_street|unclassified|service|road)$"];` +
+      `out tags 10;`
+
+    const body    = `data=${encodeURIComponent(query)}`
+    const headers = { 'Content-Type': 'application/x-www-form-urlencoded' }
 
     try {
-      // Query ALL road ways within radius — no maxspeed filter.
-      // We apply road-type defaults for untagged ways in bestLimit().
-      const query =
-        `[out:json][timeout:7];` +
-        `way(around:${SEARCH_RADIUS_M},${lat},${lng})[highway~"^(motorway|motorway_link|trunk|trunk_link|primary|primary_link|secondary|secondary_link|tertiary|tertiary_link|residential|living_street|unclassified|service|road)$"];` +
-        `out tags 10;`
+      // Try primary endpoint; on 5xx / timeout fall through to mirror.
+      let json: { elements?: Array<{ tags?: Record<string, string> }> } | null = null
 
-      const res = await fetch(OVERPASS_URL, {
-        method:  'POST',
-        body:    `data=${encodeURIComponent(query)}`,
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        signal:  controller.signal,
-      })
+      for (const url of [OVERPASS_URL, OVERPASS_FALLBACK]) {
+        const controller = new AbortController()
+        const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT)
+        try {
+          const res = await fetch(url, { method: 'POST', body, headers, signal: controller.signal })
+          clearTimeout(timer)
+          if (res.ok) {
+            json = await res.json() as { elements?: Array<{ tags?: Record<string, string> }> }
+            break
+          }
+          // 5xx (e.g. 504) → try mirror
+        } catch {
+          clearTimeout(timer)
+          // Timeout / network error → try mirror
+        }
+      }
 
-      if (!res.ok) return  // keep last known limit on error
-
-      const json: { elements?: Array<{ tags?: Record<string, string> }> } =
-        await res.json()
+      if (!json) return  // both endpoints failed — keep last known limit
 
       const countryCode = countryStore.getCode() ?? 'BG'
       const found = bestLimit(json.elements ?? [], countryCode)
@@ -231,9 +243,8 @@ class SpeedLimitStore {
         this.notify()
       }
     } catch {
-      // Network error / timeout / AbortError — keep last known limit
+      // Unexpected error — keep last known limit
     } finally {
-      clearTimeout(timer)
       this.fetching = false
     }
   }
