@@ -1,8 +1,8 @@
 // ─── Top-right status card ─────────────────────────────────────────────
 // Phase 4+5: live station count (filtered/total), GPS accuracy.
-// Phase 22: live Tesla battery indicator with source label.
+// Phase 22: live Tesla battery indicator with source label + tap-to-refresh.
 
-import { useSyncExternalStore, useState, useEffect } from 'react'
+import { useSyncExternalStore, useState, useEffect, useCallback } from 'react'
 import { evStore } from '@/features/ev/evStore'
 import { filterStore } from '@/features/ev/filterStore'
 import { gpsStore } from '@/features/gps/gpsStore'
@@ -10,11 +10,11 @@ import { eventStore } from '@/features/events/eventStore'
 import { audioManager } from '@/features/audio/audioManager'
 import { batteryStore } from '@/features/planning/batteryStore'
 import { teslaStore } from '@/features/tesla/teslaStore'
+import { teslaVehicleStore } from '@/features/tesla/teslaVehicleStore'
+import { teslaPoller } from '@/features/tesla/teslaPoller'
 import { t, langStore } from '@/lib/locale'
-import type { BatterySource } from '@/features/planning/batteryStore'
 
 export function FloatingStatsCard() {
-  // Subscribe to lang changes so labels re-render when country is switched
   useSyncExternalStore(langStore.subscribe, langStore.getLang, langStore.getLang)
 
   const { muted } = useSyncExternalStore(
@@ -23,8 +23,17 @@ export function FloatingStatsCard() {
     () => audioManager.getState(),
   )
 
+  // batteryStore — for manual/estimated fallback
   const [batteryState, setBatteryState] = useState(() => batteryStore.getState())
   useEffect(() => batteryStore.subscribe(() => setBatteryState(batteryStore.getState())), [])
+
+  // teslaVehicleStore — direct Tesla snapshot (priority source when connected)
+  const [teslaSnap, setTeslaSnap] = useState(() => teslaVehicleStore.getSnapshot())
+  useEffect(() => teslaVehicleStore.subscribe(() => setTeslaSnap(teslaVehicleStore.getSnapshot())), [])
+
+  // teslaPoller status (polling / sleeping / error / idle)
+  const [pollStatus, setPollStatus] = useState(() => teslaPoller.getStatus())
+  useEffect(() => teslaPoller.subscribeStatus(() => setPollStatus(teslaPoller.getStatus())), [])
 
   const teslaConnected = useSyncExternalStore(
     teslaStore.subscribe,
@@ -32,33 +41,26 @@ export function FloatingStatsCard() {
     () => false,
   )
 
-  const batteryLevel  = batteryState?.currentBatteryPercent ?? null
-  const batterySource = batteryState?.source ?? null
-
   const evState = useSyncExternalStore(
     evStore.subscribe.bind(evStore),
     () => evStore.getState(),
     () => evStore.getState(),
   )
-
   const filtersActive = useSyncExternalStore(
     filterStore.subscribe.bind(filterStore),
     () => filterStore.isActive(),
     () => false,
   )
-
   const filteredCount = useSyncExternalStore(
     filterStore.subscribe.bind(filterStore),
     () => filterStore.getFilteredStations().length,
     () => 0,
   )
-
   const eventCount = useSyncExternalStore(
     eventStore.subscribe.bind(eventStore),
     () => eventStore.getState().events.length,
     () => 0,
   )
-
   const gpsPos = useSyncExternalStore(
     gpsStore.onPosition.bind(gpsStore),
     () => gpsStore.getPosition(),
@@ -66,7 +68,6 @@ export function FloatingStatsCard() {
   )
 
   const totalCount = evState.stations.length
-
   const stationValue =
     evState.status === 'loading' && totalCount === 0 ? '…'
     : evState.status === 'error'                      ? '!'
@@ -79,10 +80,25 @@ export function FloatingStatsCard() {
 
   const gpsAccent =
     gpsPos == null          ? undefined
-    : gpsPos.accuracy < 20  ? '#22c55e'   // green — excellent
-    : gpsPos.accuracy < 50  ? '#eab308'   // yellow — good
-    : gpsPos.accuracy < 100 ? '#f97316'   // orange — poor
-    :                          '#ef4444'  // red — very poor
+    : gpsPos.accuracy < 20  ? '#22c55e'
+    : gpsPos.accuracy < 50  ? '#eab308'
+    : gpsPos.accuracy < 100 ? '#f97316'
+    :                          '#ef4444'
+
+  // ── Battery display logic ─────────────────────────────────────────────
+  // Priority: Tesla live snapshot → batteryStore fallback
+  const displayLevel: number | null =
+    teslaConnected && teslaSnap !== null
+      ? teslaSnap.batteryPercent
+      : (batteryState?.currentBatteryPercent ?? null)
+
+  const isSleeping  = teslaConnected && teslaSnap?.sleeping === true && pollStatus === 'sleeping'
+  const isPolling   = pollStatus === 'polling'
+  const hasTeslaData = teslaConnected && teslaSnap !== null && !teslaSnap.sleeping
+
+  const handleBatteryTap = useCallback(() => {
+    if (teslaConnected) void teslaPoller.refresh()
+  }, [teslaConnected])
 
   return (
     <div
@@ -124,12 +140,16 @@ export function FloatingStatsCard() {
         }
       </button>
 
-      {/* Battery — shown whenever a session exists (Tesla live or manual estimate) */}
-      {batteryLevel !== null && (
+      {/* Battery widget — always shown if any level is known */}
+      {displayLevel !== null && (
         <BatteryStat
-          level={batteryLevel}
-          source={batterySource}
+          level={displayLevel}
+          isPolling={isPolling}
+          isSleeping={isSleeping}
+          hasTeslaData={hasTeslaData}
           teslaConnected={teslaConnected}
+          fallbackSource={batteryState?.source ?? null}
+          onTap={teslaConnected ? handleBatteryTap : undefined}
         />
       )}
 
@@ -145,41 +165,62 @@ export function FloatingStatsCard() {
   )
 }
 
-// ── Battery stat ─────────────────────────────────────────────────────────
+// ── Battery stat widget ─────────────────────────────────────────────────────
 
 function BatteryStat({
   level,
-  source,
+  isPolling,
+  isSleeping,
+  hasTeslaData,
   teslaConnected,
+  fallbackSource,
+  onTap,
 }: {
-  level: number
-  source: BatterySource | null
+  level:          number
+  isPolling:      boolean
+  isSleeping:     boolean
+  hasTeslaData:   boolean
   teslaConnected: boolean
+  fallbackSource: string | null
+  onTap?:         () => void
 }) {
-  // Color based on charge level
   const battColor =
     level > 60 ? '#22c55e'
     : level > 20 ? '#eab308'
     :              '#ef4444'
 
-  // Source label shown below the percentage
-  // tesla_live      → "Tesla"   (green — live reading)
-  // estimated + connected → "~Tesla"  (dim — drifting from last Tesla read)
-  // user_entered    → "ръчно" / "manual" (translation key)
-  // estimated alone → "~"      (estimated from manual base)
-  const label =
-    source === 'tesla_live'                      ? 'Tesla'
-    : (source === 'estimated' && teslaConnected) ? '~Tesla'
-    : source === 'user_entered'                  ? t('stats.manual')
-    :                                              '~'
+  // Label hierarchy:
+  //   polling          → "Tesla…"
+  //   sleeping         → "спи" / "asleep"
+  //   tesla live data  → "Tesla"  (green)
+  //   tesla connected, no data yet → show fallback source
+  //   not connected    → fallback source label
+  const label = isPolling
+    ? 'Tesla…'
+    : isSleeping
+      ? (getLang() === 'bg' ? 'спи' : 'asleep')
+      : hasTeslaData
+        ? 'Tesla'
+        : teslaConnected
+          ? (fallbackSource === 'user_entered' ? t('stats.manual') : '~')
+          : (fallbackSource === 'user_entered' ? t('stats.manual')
+             : fallbackSource === 'estimated'  ? '~'
+             :                                   '—')
 
-  const labelColor = source === 'tesla_live' ? '#22c55e' : 'var(--text-secondary)'
+  const labelColor =
+    hasTeslaData && !isPolling ? '#22c55e'    // live Tesla → green
+    : isSleeping               ? '#6b7280'    // sleeping → dim gray
+    :                            'var(--text-secondary)'
 
-  return (
+  const inner = (
     <div style={{ textAlign: 'center', minWidth: 40 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 3, justifyContent: 'center' }}>
-        <BatteryIcon level={level} color={battColor} />
-        <span style={{ fontSize: 16, fontWeight: 700, color: battColor, lineHeight: 1.2 }}>
+        <BatteryIcon level={level} color={isPolling ? 'var(--text-secondary)' : battColor} />
+        <span style={{
+          fontSize: 16, fontWeight: 700,
+          color: isPolling ? 'var(--text-secondary)' : battColor,
+          lineHeight: 1.2,
+        }}>
           {Math.round(level)}%
         </span>
       </div>
@@ -193,6 +234,25 @@ function BatteryStat({
         {label}
       </div>
     </div>
+  )
+
+  if (!onTap) return inner
+
+  return (
+    <button
+      onClick={onTap}
+      title={isSleeping ? 'Tap to refresh (will try to wake car)' : 'Tap to refresh'}
+      style={{
+        background:   'none',
+        border:       'none',
+        padding:      0,
+        cursor:       'pointer',
+        touchAction:  'manipulation',
+        borderRadius: 6,
+      }}
+    >
+      {inner}
+    </button>
   )
 }
 
@@ -236,4 +296,14 @@ function Stat({
       </div>
     </div>
   )
+}
+
+// ── Locale helper ────────────────────────────────────────────────────────
+
+function getLang(): string {
+  try {
+    const override = localStorage.getItem('teslaradar:lang')
+    if (override) return override
+  } catch { /* ignore */ }
+  return 'bg'
 }
