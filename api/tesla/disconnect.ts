@@ -5,6 +5,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { revokeToken } from '../_lib/tesla/auth.js'
 import { getSession, deleteSession } from '../_lib/tesla/session.js'
+import { clearCachedState } from '../_lib/tesla/vehicleCache.js'
 import { parseCookie, clearSessionCookie } from '../_lib/utils/cookies.js'
 
 const SESSION_COOKIE = 'tesradar_sess'
@@ -25,6 +26,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       const clientSecret = process.env['TESLA_CLIENT_SECRET']!
       await revokeToken(sess.refreshToken, clientId, clientSecret)
       await deleteSession(sessionId)
+      await clearCachedState(sessionId)
     }
   }
 

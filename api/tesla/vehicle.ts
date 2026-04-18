@@ -1,28 +1,37 @@
 // ─── GET /api/tesla/vehicle ───────────────────────────────────────────────
-// Proxy: fetches live vehicle data from Tesla Fleet API and returns it
-// as normalized VehicleState. Called by the frontend polling loop (Phase 2).
+// Returns normalized vehicle state to the frontend.
 //
-// RATE LIMITING:
-//   Tesla recommends no more than 1 vehicle_data request per minute.
-//   We enforce a 30-second per-session cooldown in Redis.
-//   If a poll comes in too early, 429 is returned with retryAfterMs.
+// CACHE-FIRST STRATEGY (cheapness):
+//   1. Read Redis cache (`tesla:vehicle_cache:{sessionId}`)
+//   2. freshness = live (<5 min) or recent (<15 min)
+//      → return cached immediately. Zero Tesla API calls.
+//   3. freshness = stale (>15 min) or no cache
+//      → attempt live Tesla vehicle_data fetch
+//   4. Vehicle sleeping (408 from Tesla)
+//      → mark cache as sleeping, return cached % with sleeping=true
+//      → NEVER auto-wake. Only /api/tesla/wake does that (user-explicit).
 //
-// SLEEPING VEHICLES:
-//   If the vehicle is asleep, Tesla returns HTTP 408.
-//   We return { vehicle: null, sleeping: true } so the frontend can
-//   backoff and show a "Vehicle asleep" status without crashing.
+// ?force=1  — bypass freshness check; always try live fetch (user tap).
+//             Still respects a 30-second rate limit to prevent hammering.
+//
+// RESULT: Tesla API is called AT MOST once per 15 minutes per session
+//         under normal usage. Sleeping cars cost 0 additional calls.
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { getSession } from '../_lib/tesla/session.js'
 import { getVehicleData } from '../_lib/tesla/client.js'
-import { normalizeVehicleData } from '../_lib/tesla/normalize.js'
 import { redis, isRedisConfigured } from '../_lib/db/redis.js'
 import { parseCookie } from '../_lib/utils/cookies.js'
 import { captureApiError } from '../_lib/utils/sentryApi.js'
+import {
+  getCachedState,
+  setCachedState,
+  markSleeping,
+} from '../_lib/tesla/vehicleCache.js'
 import type { TeslaVehicleDataPayload } from '../_lib/tesla/normalize.js'
 
 const SESSION_COOKIE  = 'tesradar_sess'
-const POLL_COOLDOWN_S = 30    // minimum seconds between polls per session
+const RATE_LIMIT_S    = 30    // absolute minimum between live Tesla calls per session
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   res.setHeader('Cache-Control', 'no-store')
@@ -34,7 +43,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   const sessionId = parseCookie(req.headers['cookie'] ?? '', SESSION_COOKIE)
   if (!sessionId) {
-    res.status(401).json({ error: 'Not connected — no session cookie' })
+    res.status(401).json({ error: 'Not connected' })
     return
   }
 
@@ -44,17 +53,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     return
   }
 
-  // Per-session rate limit: prevent hammering Tesla's API
-  const rlKey   = `tesla:poll_rl:${sessionId}`
-  const lastPoll = await redis.get<number>(rlKey)
-  if (lastPoll && Date.now() - lastPoll < POLL_COOLDOWN_S * 1000) {
-    const retryAfterMs = POLL_COOLDOWN_S * 1000 - (Date.now() - lastPoll)
-    res.status(429).json({ error: 'Poll too frequent', retryAfterMs })
+  const force = req.query['force'] === '1'
+
+  // ── Step 1: Read cache ─────────────────────────────────────────────────
+
+  const cached = await getCachedState(sessionId)
+
+  // Sleeping vehicle: always return cached data — never auto-wake
+  if (cached?.sleeping) {
+    res.status(200).json({ vehicle: cached, sleeping: true })
     return
   }
 
-  // Record this poll attempt before the Tesla call
-  await redis.setWithExpiry(rlKey, Date.now(), POLL_COOLDOWN_S + 5)
+  // Fresh cache (live or recent): return without hitting Tesla
+  if (!force && cached && (cached.freshness === 'live' || cached.freshness === 'recent')) {
+    res.status(200).json({ vehicle: cached })
+    return
+  }
+
+  // ── Step 2: Rate limit before hitting Tesla ────────────────────────────
+
+  const rlKey    = `tesla:poll_rl:${sessionId}`
+  const lastPoll = await redis.get<number>(rlKey)
+  if (lastPoll && Date.now() - lastPoll < RATE_LIMIT_S * 1000) {
+    const retryAfterMs = RATE_LIMIT_S * 1000 - (Date.now() - lastPoll)
+    // Return cached (even if stale) rather than 429-ing the frontend
+    if (cached) {
+      res.status(200).json({ vehicle: cached })
+    } else {
+      res.status(429).json({ error: 'Poll too frequent', retryAfterMs })
+    }
+    return
+  }
+
+  await redis.setWithExpiry(rlKey, Date.now(), RATE_LIMIT_S + 5)
+
+  // ── Step 3: Live Tesla vehicle_data fetch ─────────────────────────────
 
   try {
     const raw = (await getVehicleData(
@@ -63,18 +97,25 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       'charge_state;drive_state;vehicle_state',
     )) as TeslaVehicleDataPayload
 
-    const normalized = normalizeVehicleData(raw)
+    const normalized = await setCachedState(sessionId, raw)
     res.status(200).json({ vehicle: normalized })
   } catch (err) {
-    const msg = (err instanceof Error ? err.message : String(err))
+    const msg = String(err instanceof Error ? err.message : err)
 
-    // 408 = vehicle asleep — not an error, just a state to handle gracefully
     if (msg.includes('408') || msg.includes('timeout') || msg.includes('asleep')) {
-      res.status(200).json({ vehicle: null, sleeping: true })
+      // Vehicle is sleeping — update cache flag, return last known values
+      const sleeping = await markSleeping(sessionId)
+      res.status(200).json({ vehicle: sleeping, sleeping: true })
       return
     }
 
     await captureApiError(err, 'tesla/vehicle')
-    res.status(502).json({ error: 'Failed to fetch vehicle data' })
+
+    // Non-sleeping error: return stale cache rather than an error response
+    if (cached) {
+      res.status(200).json({ vehicle: cached, error: 'tesla_fetch_failed' })
+    } else {
+      res.status(502).json({ error: 'Failed to fetch vehicle data' })
+    }
   }
 }

@@ -18,8 +18,10 @@ import { teslaStore } from './teslaStore'
 import { teslaVehicleStore } from './teslaVehicleStore'
 import { batteryStore } from '@/features/planning/batteryStore'
 
-const AWAKE_INTERVAL_MS = 10 * 60 * 1000  // 10 min — conservative
-const SLEEP_BACKOFF_MS  = 60 * 60 * 1000  // 1 hour — parked/sleeping car
+// Backend caches vehicle state for 15 min, so polling every 20 min is enough.
+// Most frontend polls return cached data — Tesla API is called at most once per 15 min.
+const POLL_INTERVAL_MS  = 20 * 60 * 1000  // 20 min frontend cycle (backend caches 15 min)
+const SLEEP_BACKOFF_MS  =  2 * 60 * 1000  // 2 min retry after sleeping (backend serves cache)
 
 export type PollStatus =
   | 'idle'
@@ -52,12 +54,13 @@ function _schedule(ms: number): void {
   _timer = setTimeout(() => { void _poll() }, ms)
 }
 
-async function _poll(): Promise<void> {
+async function _poll(forceFlag = false): Promise<void> {
   if (!teslaStore.getState().connected) return
   _setStatus('polling')
 
   try {
-    const res = await fetch('/api/tesla/vehicle', { credentials: 'same-origin' })
+    const url = forceFlag ? '/api/tesla/vehicle?force=1' : '/api/tesla/vehicle'
+    const res = await fetch(url, { credentials: 'same-origin' })
 
     if (res.status === 429) {
       const data = (await res.json()) as { retryAfterMs?: number }
@@ -80,15 +83,17 @@ async function _poll(): Promise<void> {
     if (data.sleeping || !data.vehicle) {
       teslaVehicleStore.setSleeping()
       _setStatus('sleeping')
+      // Short retry — next poll will get cached sleeping state (cheap)
       _schedule(SLEEP_BACKOFF_MS)
       return
     }
 
-    const { currentBatteryPercent, chargingState } = data.vehicle
-    teslaVehicleStore.setFromVehicleData(currentBatteryPercent, chargingState ?? null)
-    batteryStore.setFromTesla(currentBatteryPercent)
+    // data.vehicle is now NormalizedVehicleState from vehicleCache
+    const v = data.vehicle as { batteryPercent: number; chargingState: string | null }
+    teslaVehicleStore.setFromVehicleData(v.batteryPercent, v.chargingState ?? null)
+    batteryStore.setFromTesla(v.batteryPercent)
     _setStatus('idle')
-    _schedule(AWAKE_INTERVAL_MS)
+    _schedule(POLL_INTERVAL_MS)
   } catch {
     _setStatus('error')
     _schedule(AWAKE_INTERVAL_MS)
@@ -109,21 +114,21 @@ async function _wakeAndPoll(): Promise<void> {
     if (res.status === 429) {
       // Already waking or woke recently — just retry the data poll
       _setStatus('idle')
-      await _poll()
+      await _poll(true)
       return
     }
 
     if (!res.ok) {
       _setStatus('error')
-      _schedule(AWAKE_INTERVAL_MS)
+      _schedule(POLL_INTERVAL_MS)
       return
     }
 
     const data = (await res.json()) as { woke?: boolean; timeout?: boolean }
 
     if (data.woke) {
-      // Car is online — fetch data now
-      await _poll()
+      // Car is online — force-fetch fresh data (bypass any stale cache)
+      await _poll(true)
     } else {
       // Timed out (45 s) — car didn't wake; keep sleeping state, long backoff
       teslaVehicleStore.setSleeping()
@@ -201,3 +206,6 @@ export const teslaPoller = {
     }
   },
 }
+
+// Re-export for type narrowing in FloatingStatsCard
+export type { PollStatus }
