@@ -35,7 +35,7 @@ const SESSION_MAX_AGE_MS = 4 * 60 * 60 * 1000  // resume sessions up to 4h old
 
 // ── Types ─────────────────────────────────────────────────────────────
 
-export type BatterySource = 'user_entered' | 'estimated'
+export type BatterySource = 'user_entered' | 'estimated' | 'tesla_live'
 
 export interface BatterySessionState {
   currentEnergyKwh:          number
@@ -146,6 +146,27 @@ export const batteryStore = {
     } else {
       _state = null
     }
+    _emit()
+  },
+
+  /**
+   * Override battery % with a live reading from the Tesla Fleet API.
+   * Called by the Tesla polling loop (Phase 2) when fresh vehicle data arrives.
+   * Re-anchors the energy model so subsequent drain estimates start from the
+   * real value rather than drifting from an old estimate.
+   */
+  setFromTesla(pct: number): void {
+    if (!_state) return
+    const usable    = _state.usableKwhAfterDegradation
+    const newEnergy = (pct / 100) * usable
+    _state = {
+      ..._state,
+      currentEnergyKwh:      newEnergy,
+      currentBatteryPercent: pct,
+      source:                'tesla_live',
+      lastUpdatedAt:         Date.now(),
+    }
+    _persist(_state)
     _emit()
   },
 

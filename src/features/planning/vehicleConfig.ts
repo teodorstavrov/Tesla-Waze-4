@@ -74,9 +74,16 @@ export const VEHICLE_CONFIGS: ModelConfig[] = [
     model: 'Model X',
     yearRange: [2015, 2025],
     trims: [
-      { id: 'LR',      label: 'Long Range',            usableKwh: 95,   efficiencyWhKm: 195, yearRange: [2015, 2020] },
-      { id: 'LR_AWD',  label: 'Long Range AWD',        usableKwh: 95,   efficiencyWhKm: 198, yearRange: [2021, 2025] },
-      { id: 'PLAID',   label: 'Plaid',                 usableKwh: 95,   efficiencyWhKm: 215, yearRange: [2021, 2025] },
+      // ── Pre-refresh (2015–2020) ──────────────────────────────────
+      { id: 'X90D',   label: '90D',           usableKwh: 81,  efficiencyWhKm: 210, yearRange: [2015, 2017] },
+      { id: 'XP90D',  label: 'P90D',          usableKwh: 81,  efficiencyWhKm: 222, yearRange: [2015, 2016] },
+      { id: 'X75D',   label: '75D',           usableKwh: 72,  efficiencyWhKm: 200, yearRange: [2016, 2018] },
+      { id: 'X100D',  label: '100D',          usableKwh: 93,  efficiencyWhKm: 207, yearRange: [2017, 2020] },
+      { id: 'XP100D', label: 'P100D',         usableKwh: 93,  efficiencyWhKm: 218, yearRange: [2016, 2020] },
+      { id: 'LR',     label: 'Long Range',    usableKwh: 95,  efficiencyWhKm: 195, yearRange: [2019, 2020] },
+      // ── 2021+ refresh ────────────────────────────────────────────
+      { id: 'LR_AWD', label: 'Long Range AWD',usableKwh: 95,  efficiencyWhKm: 198, yearRange: [2021, 2025] },
+      { id: 'PLAID',  label: 'Plaid',         usableKwh: 95,  efficiencyWhKm: 215, yearRange: [2021, 2025] },
     ],
   },
   {

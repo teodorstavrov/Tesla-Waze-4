@@ -11,6 +11,7 @@ import { TESLA_MODELS, getYearsForModel, getTrimsForYear } from '@/features/plan
 import type { TeslaModel } from '@/features/planning/types'
 import { isTeslaBrowser } from '@/lib/browser'
 import { countryStore } from '@/lib/countryStore'
+import { TeslaConnect } from '@/features/tesla/TeslaConnect'
 
 // ── Model S 3-step configurator constants ─────────────────────────────
 const MS_YEAR_GROUPS = ['2012–2016', '2016–2019', '2019–2021', '2021+'] as const
@@ -74,12 +75,16 @@ function getLabels() {
     model:           isBg ? 'Модел'                                             : 'Model',
     trim:            isBg ? 'Версия'                                            : 'Version',
     year:            isBg ? 'Година'                                            : 'Year',
+    generation:      isBg ? 'Поколение'                                         : 'Generation',
+    batteryKwh:      isBg ? 'Батерия'                                           : 'Battery',
+    drive:           isBg ? 'Задвижване'                                        : 'Drive',
     battery:         isBg ? 'Текущ заряд'                                       : 'Current charge',
     batteryHint:     isBg ? 'нужен за планиране при пътуване'                  : 'needed for trip planning',
     degradation:     isBg ? 'Деградация (незадължително)'                       : 'Degradation (optional)',
     degradationHint: isBg ? 'Остави празно — ще се изчисли по годината.'        : 'Leave blank — will be estimated by year.',
     privacy:         isBg ? 'Данните се съхраняват локално на устройството. Не се изпращат никъде.' : 'Your data is stored locally. Nothing is shared.',
     placeholder:     isBg ? 'напр. 8'                                           : 'e.g. 8',
+    teslaSection:    isBg ? 'Tesla акаунт'                                      : 'Tesla account',
     later:           isBg ? 'По-късно'                                          : 'Later',
     save:            isBg ? 'Запази'                                            : 'Save',
     close:           isBg ? 'Затвори'                                           : 'Close',
@@ -490,10 +495,23 @@ export function VehicleProfileModal() {
               msGroup={msGroup}
               msBat={msBat}
               msDrv={msDrv}
-              onGroup={(g) => { setMsGroup(g); setMsBat(null); setMsDrv(null) }}
-              onBat={(b)   => { setMsBat(b);   setMsDrv(null) }}
+              onGroup={(g) => {
+                // Auto-select first available battery + drive so Save stays enabled
+                const bats   = Object.keys(MS_OPTIONS[g]).map(Number)
+                const firstB = bats[0] ?? null
+                const drvs   = firstB ? (MS_OPTIONS[g][firstB] ?? []) : []
+                const firstD = drvs[0] ?? null
+                setMsGroup(g); setMsBat(firstB); setMsDrv(firstD)
+              }}
+              onBat={(b) => {
+                // Auto-select first drive for the new battery choice
+                const drvs   = msGroup ? (MS_OPTIONS[msGroup][b] ?? []) : []
+                const firstD = drvs[0] ?? null
+                setMsBat(b); setMsDrv(firstD)
+              }}
               onDrv={setMsDrv}
               sectionLabel={SECTION_LABEL}
+              labels={labels}
             />
           ) : (
             trims.length > 0 && (
@@ -686,6 +704,12 @@ export function VehicleProfileModal() {
             </div>
           </div>
 
+          {/* Tesla account */}
+          <div>
+            <div style={SECTION_LABEL}>{labels.teslaSection}</div>
+            <TeslaConnect />
+          </div>
+
           {/* Spacer */}
           <div style={{ flex: 1, minHeight: 8 }} />
 
@@ -770,7 +794,7 @@ function ModelPill({
 function ModelSConfigurator({
   msGroup, msBat, msDrv,
   onGroup, onBat, onDrv,
-  sectionLabel,
+  sectionLabel, labels,
 }: {
   msGroup: MSYearGroup | null
   msBat:   number | null
@@ -779,6 +803,7 @@ function ModelSConfigurator({
   onBat:   (b: number) => void
   onDrv:   (d: string) => void
   sectionLabel: React.CSSProperties
+  labels: ReturnType<typeof getLabels>
 }) {
   const CHIP = (sel: boolean): React.CSSProperties => ({
     padding: '9px 14px',
@@ -802,7 +827,7 @@ function ModelSConfigurator({
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* Step 1 — Year group */}
       <div>
-        <div style={sectionLabel}>Generation</div>
+        <div style={sectionLabel}>{labels.generation}</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {MS_YEAR_GROUPS.map((g) => (
             <button key={g} onClick={() => onGroup(g)} style={CHIP(msGroup === g)}>
@@ -815,7 +840,7 @@ function ModelSConfigurator({
       {/* Step 2 — Battery */}
       {msGroup && (
         <div>
-          <div style={sectionLabel}>Battery</div>
+          <div style={sectionLabel}>{labels.batteryKwh}</div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {batteries.map((b) => (
               <button key={b} onClick={() => onBat(b)} style={{ ...CHIP(msBat === b), flex: 'none', minWidth: 52 }}>
@@ -829,7 +854,7 @@ function ModelSConfigurator({
       {/* Step 3 — Drive */}
       {msGroup && msBat && (
         <div>
-          <div style={sectionLabel}>Drive</div>
+          <div style={sectionLabel}>{labels.drive}</div>
           <div style={{ display: 'flex', gap: 6 }}>
             {drives.map((d) => (
               <button key={d} onClick={() => onDrv(d)} style={CHIP(msDrv === d)}>

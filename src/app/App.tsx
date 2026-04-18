@@ -45,6 +45,7 @@ import { PricingModal } from '@/components/PricingModal'
 import { alertEngine } from '@/features/audio/alertEngine'
 import { batteryTracker } from '@/features/planning/batteryTracker'
 import { useThemeStore } from '@/features/theme/store'
+import { teslaStore } from '@/features/tesla/teslaStore'
 
 export function App() {
   // Start GPS watching (feeds gpsStore; no rerenders from GPS ticks)
@@ -54,6 +55,28 @@ export function App() {
   useEffect(() => { alertEngine.start() }, [])
   useEffect(() => { batteryTracker.start() }, [])
   useEffect(() => { sectionEngine.start() }, [])
+
+  // Tesla connection: check status on app load + handle OAuth redirect result
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const connected = params.get('tesla_connected')
+    const error     = params.get('tesla_error')
+
+    if (connected === '1' || error) {
+      // Clean the URL params so they don't persist on reload
+      const clean = window.location.pathname
+      window.history.replaceState(null, '', clean)
+    }
+
+    if (error === 'denied') {
+      teslaStore.setError('denied')
+    } else if (error) {
+      teslaStore.setError('server_error')
+    }
+
+    // Always check backend status (restores connection after page reload too)
+    void teslaStore.checkStatus()
+  }, [])  // eslint-disable-line react-hooks/exhaustive-deps
 
   // Get the audio unlock trigger
   const { unlock } = useAudioUnlock()
