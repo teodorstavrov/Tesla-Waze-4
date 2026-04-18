@@ -61,12 +61,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   // Sleeping vehicle: always return cached data — never auto-wake
   if (cached?.sleeping) {
+    console.log('[BATTERY_FIX] server vehicle state response: sleeping, battery =', cached.batteryPercent ?? null)
     res.status(200).json({ vehicle: cached, sleeping: true })
     return
   }
 
   // Fresh cache (live or recent): return without hitting Tesla
   if (!force && cached && (cached.freshness === 'live' || cached.freshness === 'recent')) {
+    console.log('[BATTERY_FIX] server vehicle state response: cached (', cached.freshness, '), battery =', cached.batteryPercent ?? null)
     res.status(200).json({ vehicle: cached })
     return
   }
@@ -97,7 +99,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       'charge_state;drive_state;vehicle_state',
     )) as TeslaVehicleDataPayload
 
+    console.log('[BATTERY_FIX] raw Tesla payload: battery_level =', (raw as { charge_state?: { battery_level?: number } }).charge_state?.battery_level ?? 'missing')
     const normalized = await setCachedState(sessionId, raw)
+    console.log('[BATTERY_FIX] normalized Tesla battery:', normalized.batteryPercent)
+    console.log('[BATTERY_FIX] server vehicle state response: live, battery =', normalized.batteryPercent)
     res.status(200).json({ vehicle: normalized })
   } catch (err) {
     const msg = String(err instanceof Error ? err.message : err)
@@ -105,6 +110,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     if (msg.includes('408') || msg.includes('timeout') || msg.includes('asleep')) {
       // Vehicle is sleeping — update cache flag, return last known values
       const sleeping = await markSleeping(sessionId)
+      console.log('[BATTERY_FIX] server vehicle state response: sleeping (just marked), battery =', sleeping?.batteryPercent ?? null)
       res.status(200).json({ vehicle: sleeping, sleeping: true })
       return
     }

@@ -86,16 +86,27 @@ export function FloatingStatsCard() {
     :                          '#ef4444'
 
   // ── Battery display logic ─────────────────────────────────────────────
-  // Priority: Tesla live snapshot → batteryStore fallback
-  const displayLevel: number | null =
-    teslaConnected && teslaSnap !== null
+  // Priority: 1. Tesla live/cached (non-null) → 2. manual / estimated fallback
+  // teslaSnap.batteryPercent is null when car is sleeping with no Redis cache —
+  // in that case we must fall through to the manual battery, not show 0%.
+  const teslaBattery: number | null =
+    teslaConnected && teslaSnap !== null && teslaSnap.batteryPercent !== null
       ? teslaSnap.batteryPercent
-      : (batteryState?.currentBatteryPercent ?? null)
+      : null
+  const manualBattery = batteryState?.currentBatteryPercent ?? null
+  const displayLevel: number | null = teslaBattery ?? manualBattery
+
+  // [BATTERY_FIX] log whenever any battery-relevant value changes
+  useEffect(() => {
+    console.log('[BATTERY_FIX] manual battery value:', manualBattery, '| source:', batteryState?.source)
+    console.log('[BATTERY_FIX] tesla snap:', teslaSnap ? `{pct:${teslaSnap.batteryPercent},sleeping:${teslaSnap.sleeping}}` : null)
+    console.log('[BATTERY_FIX] final chosen battery source:', teslaBattery !== null ? 'tesla' : 'manual', '| final displayed battery:', displayLevel)
+  }, [teslaBattery, manualBattery, teslaSnap, batteryState?.source, displayLevel])
 
   const isSleeping  = teslaConnected && teslaSnap?.sleeping === true && pollStatus === 'sleeping'
   const isPolling   = pollStatus === 'polling'
   const isWaking    = pollStatus === 'waking'
-  const hasTeslaData = teslaConnected && teslaSnap !== null && !teslaSnap.sleeping
+  const hasTeslaData = teslaConnected && teslaBattery !== null && !teslaSnap?.sleeping
 
   const handleBatteryTap = useCallback(() => {
     if (teslaConnected) void teslaPoller.refresh()

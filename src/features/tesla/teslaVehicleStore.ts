@@ -13,7 +13,7 @@
 // READ BY:    FloatingStatsCard, future UI
 
 export interface TeslaVehicleSnapshot {
-  batteryPercent: number         // last known battery % from Tesla
+  batteryPercent: number | null  // null = sleeping with no cached value; otherwise last known %
   chargingState:  string | null  // 'Charging' | 'Stopped' | 'Disconnected' | 'Complete' | null
   updatedAt:      number         // Unix ms of last successful data fetch
   sleeping:       boolean        // true if vehicle was asleep on last check
@@ -43,11 +43,16 @@ export const teslaVehicleStore = {
    * Called by teslaPoller when vehicle is sleeping.
    * @param batteryPercent — pass the server's cached % so the snapshot shows
    *   the real last-known value even on the very first poll when the car was
-   *   already asleep. Without this, first-sleep defaults to 0%.
+   *   already asleep. Pass null (or omit) when no cached value exists —
+   *   the UI will fall back to manual battery instead of showing 0%.
    */
-  setSleeping(batteryPercent?: number): void {
+  setSleeping(batteryPercent?: number | null): void {
+    const pct =
+      batteryPercent !== undefined
+        ? batteryPercent                    // caller provided explicit value (may be null)
+        : (_snap?.batteryPercent ?? null)   // keep prior snap if we have one
     _snap = {
-      batteryPercent: batteryPercent ?? _snap?.batteryPercent ?? 0,
+      batteryPercent: pct,
       chargingState:  _snap?.chargingState ?? null,
       updatedAt:      _snap?.updatedAt ?? Date.now(),
       sleeping:       true,

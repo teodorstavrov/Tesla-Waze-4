@@ -105,10 +105,15 @@ async function _poll(forceFlag = false): Promise<void> {
       // Without this, sleeping on first connect shows 0% and manual battery wins.
       const cachedPct = data.vehicle?.batteryPercent ?? null
       console.log('[TESLA_FIX] sleeping | cached battery:', cachedPct)
-      teslaVehicleStore.setSleeping(cachedPct ?? undefined)
+      console.log('[BATTERY_FIX] frontend Tesla battery received: sleeping, cached %:', cachedPct)
+      // Pass cachedPct directly — null means no cache, UI falls back to manual battery
+      teslaVehicleStore.setSleeping(cachedPct)
       if (cachedPct !== null) {
         batteryStore.setFromTesla(cachedPct)
         console.log('[TESLA_FIX] batteryStore.setFromTesla (sleeping, cached):', cachedPct)
+        console.log('[BATTERY_FIX] battery source set: tesla_cached =', cachedPct)
+      } else {
+        console.log('[BATTERY_FIX] battery source: no Tesla cache → UI will show manual battery')
       }
       _setStatus('sleeping')
       _schedule(SLEEP_BACKOFF_MS)
@@ -117,9 +122,11 @@ async function _poll(forceFlag = false): Promise<void> {
 
     const v = data.vehicle
     console.log('[TESLA_FIX] normalized battery value:', v.batteryPercent)
+    console.log('[BATTERY_FIX] frontend Tesla battery received: live, batteryPercent =', v.batteryPercent)
     teslaVehicleStore.setFromVehicleData(v.batteryPercent, v.chargingState ?? null)
     batteryStore.setFromTesla(v.batteryPercent)
     console.log('[TESLA_FIX] batteryStore.setFromTesla (live):', v.batteryPercent)
+    console.log('[BATTERY_FIX] battery source set: tesla_live =', v.batteryPercent)
     _setStatus('idle')
     _schedule(POLL_INTERVAL_MS)
   } catch (err) {
