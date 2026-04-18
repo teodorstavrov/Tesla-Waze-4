@@ -35,6 +35,43 @@ function closestPointIndex(lat: number, lng: number, polyline: [number, number][
   return minIdx
 }
 
+/**
+ * Haversine distance (metres) from point to the closest point on segment a→b.
+ * Projects in equirectangular space (accurate enough for short segments).
+ * Used to avoid false deviation alerts on long straight highway segments
+ * where vertex spacing can exceed the 200 m deviation threshold.
+ */
+function _segDistM(
+  lat: number, lng: number,
+  a: [number, number], b: [number, number],
+): number {
+  const dx = b[0] - a[0], dy = b[1] - a[1]
+  const t = (dx === 0 && dy === 0)
+    ? 0
+    : Math.max(0, Math.min(1, ((lat - a[0]) * dx + (lng - a[1]) * dy) / (dx * dx + dy * dy)))
+  return haversineM(lat, lng, a[0] + t * dx, a[1] + t * dy)
+}
+
+/**
+ * True perpendicular distance from the GPS fix to the polyline.
+ * Finds the closest vertex first (O(n)), then checks the two adjacent
+ * segments (O(1)) — total cost equals the existing vertex search.
+ *
+ * WHY: closestPointIndex gives the nearest *vertex*.  On highways OSRM
+ * emits sparse polylines (vertices every 200–500 m on long straights).
+ * A car driving perfectly on-route can be 300 m from the nearest vertex,
+ * incorrectly triggering the 200 m deviation threshold and forcing a reroute.
+ */
+function distToPolylineM(lat: number, lng: number, polyline: [number, number][]): number {
+  const idx = closestPointIndex(lat, lng, polyline)
+  let d = haversineM(lat, lng, polyline[idx]![0], polyline[idx]![1])
+  if (idx > 0)
+    d = Math.min(d, _segDistM(lat, lng, polyline[idx - 1]!, polyline[idx]!))
+  if (idx < polyline.length - 1)
+    d = Math.min(d, _segDistM(lat, lng, polyline[idx]!, polyline[idx + 1]!))
+  return d
+}
+
 // ── Cumulative distance cache ─────────────────────────────────────
 // Built once when the route polyline changes. Turns remainingDistanceM()
 // from O(n) haversine calls per GPS tick → O(1) array lookup.
@@ -152,9 +189,8 @@ function _onGpsUpdate(): void {
 
   _ensureCumulative(route.polyline)
 
-  const idx = closestPointIndex(gps.lat, gps.lng, route.polyline)
-  const [closestLat, closestLng] = route.polyline[idx]!
-  const distFromRoute = haversineM(gps.lat, gps.lng, closestLat, closestLng)
+  const idx         = closestPointIndex(gps.lat, gps.lng, route.polyline)
+  const distFromRoute = distToPolylineM(gps.lat, gps.lng, route.polyline)
 
   const deviated  = distFromRoute > 200
   const remaining = remainingDistanceM(idx)
