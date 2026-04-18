@@ -36,7 +36,7 @@ export type VehicleSource = 'vehicle_data' | 'telemetry'
 
 export interface NormalizedVehicleState {
   source:         VehicleSource
-  batteryPercent: number
+  batteryPercent: number | null  // null if battery_level was absent from Tesla API response
   chargingState:  string | null
   speedKph:       number | null
   latitude:       number | null

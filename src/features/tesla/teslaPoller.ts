@@ -58,7 +58,7 @@ function _schedule(ms: number): void {
 
 // Shape of /api/tesla/vehicle response (matches NormalizedVehicleState from vehicleCache)
 interface VehicleResponse {
-  batteryPercent: number
+  batteryPercent: number | null  // null when battery_level missing from Tesla response
   chargingState:  string | null
   sleeping:       boolean
 }
@@ -93,27 +93,26 @@ async function _poll(forceFlag = false): Promise<void> {
       error?:    string
     }
 
-    console.log('[TESLA_FIX] raw battery payload:', JSON.stringify({
-      sleeping:       data.sleeping,
-      batteryPercent: data.vehicle?.batteryPercent,
-      chargingState:  data.vehicle?.chargingState,
-    }))
+    console.log('[BATTERY_FIX] poll response battery:', data.vehicle?.batteryPercent ?? null,
+      '| sleeping flag:', data.sleeping ?? false,
+      '| vehicle null:', data.vehicle === null)
 
     if (data.sleeping || !data.vehicle) {
-      // Server returns last-known cached state even when sleeping.
-      // Use it to keep the snapshot accurate and re-anchor the estimation engine.
-      // Without this, sleeping on first connect shows 0% and manual battery wins.
+      // sleeping=true OR vehicle=null: use cached battery if available.
+      // sleeping does NOT suppress a valid batteryPercent — it passes through unchanged.
       const cachedPct = data.vehicle?.batteryPercent ?? null
-      console.log('[TESLA_FIX] sleeping | cached battery:', cachedPct)
-      console.log('[BATTERY_FIX] frontend Tesla battery received: sleeping, cached %:', cachedPct)
-      // Pass cachedPct directly — null means no cache, UI falls back to manual battery
+      console.log('[BATTERY_FIX] sleeping flag: true | cached battery from server:', cachedPct)
+
+      // Pass cachedPct directly — null = server had no cache, UI will fall back to manual
       teslaVehicleStore.setSleeping(cachedPct)
+      console.log('[BATTERY_FIX] teslaVehicleStore battery:', teslaVehicleStore.getSnapshot()?.batteryPercent ?? null)
+
       if (cachedPct !== null) {
         batteryStore.setFromTesla(cachedPct)
-        console.log('[TESLA_FIX] batteryStore.setFromTesla (sleeping, cached):', cachedPct)
-        console.log('[BATTERY_FIX] battery source set: tesla_cached =', cachedPct)
+        console.log('[BATTERY_FIX] batteryStore tesla battery:', batteryStore.getState()?.currentBatteryPercent ?? null,
+          '| source:', batteryStore.getState()?.source)
       } else {
-        console.log('[BATTERY_FIX] battery source: no Tesla cache → UI will show manual battery')
+        console.log('[BATTERY_FIX] batteryStore tesla battery: skipped — no cached % from server')
       }
       _setStatus('sleeping')
       _schedule(SLEEP_BACKOFF_MS)
@@ -121,12 +120,19 @@ async function _poll(forceFlag = false): Promise<void> {
     }
 
     const v = data.vehicle
-    console.log('[TESLA_FIX] normalized battery value:', v.batteryPercent)
-    console.log('[BATTERY_FIX] frontend Tesla battery received: live, batteryPercent =', v.batteryPercent)
-    teslaVehicleStore.setFromVehicleData(v.batteryPercent, v.chargingState ?? null)
-    batteryStore.setFromTesla(v.batteryPercent)
-    console.log('[TESLA_FIX] batteryStore.setFromTesla (live):', v.batteryPercent)
-    console.log('[BATTERY_FIX] battery source set: tesla_live =', v.batteryPercent)
+    console.log('[BATTERY_FIX] sleeping flag: false | live battery from server:', v.batteryPercent)
+
+    // Guard: only update stores when battery is actually present
+    if (v.batteryPercent !== null) {
+      teslaVehicleStore.setFromVehicleData(v.batteryPercent, v.chargingState ?? null)
+      batteryStore.setFromTesla(v.batteryPercent)
+    } else {
+      console.log('[BATTERY_FIX] live battery is null — stores NOT updated, keeping last known values')
+    }
+
+    console.log('[BATTERY_FIX] teslaVehicleStore battery:', teslaVehicleStore.getSnapshot()?.batteryPercent ?? null)
+    console.log('[BATTERY_FIX] batteryStore tesla battery:', batteryStore.getState()?.currentBatteryPercent ?? null,
+      '| source:', batteryStore.getState()?.source)
     _setStatus('idle')
     _schedule(POLL_INTERVAL_MS)
   } catch (err) {

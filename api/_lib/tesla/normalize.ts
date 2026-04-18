@@ -13,7 +13,7 @@ const MI_TO_KM = 1.60934
 
 export interface VehicleState {
   // Battery
-  currentBatteryPercent: number                                          // 0–100
+  currentBatteryPercent: number | null                                   // null if battery_level absent from Tesla response
   batteryRangeKm:        number | null                                   // estimated remaining range
   chargingState:         'Charging' | 'Stopped' | 'Disconnected' | 'Complete' | 'NoPower' | null
   chargeLimitPercent:    number | null
@@ -72,7 +72,7 @@ export function normalizeVehicleData(raw: TeslaVehicleDataPayload): VehicleState
   const speedMph = ds.speed ?? null
 
   return {
-    currentBatteryPercent: cs.battery_level ?? 0,
+    currentBatteryPercent: cs.battery_level ?? null,
     batteryRangeKm:   cs.battery_range != null
       ? Math.round(cs.battery_range * MI_TO_KM)
       : null,

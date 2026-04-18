@@ -96,12 +96,16 @@ export function FloatingStatsCard() {
   const manualBattery = batteryState?.currentBatteryPercent ?? null
   const displayLevel: number | null = teslaBattery ?? manualBattery
 
-  // [BATTERY_FIX] log whenever any battery-relevant value changes
+  // [BATTERY_FIX] diagnostic — fires whenever any battery-relevant value changes
   useEffect(() => {
-    console.log('[BATTERY_FIX] manual battery value:', manualBattery, '| source:', batteryState?.source)
-    console.log('[BATTERY_FIX] tesla snap:', teslaSnap ? `{pct:${teslaSnap.batteryPercent},sleeping:${teslaSnap.sleeping}}` : null)
-    console.log('[BATTERY_FIX] final chosen battery source:', teslaBattery !== null ? 'tesla' : 'manual', '| final displayed battery:', displayLevel)
-  }, [teslaBattery, manualBattery, teslaSnap, batteryState?.source, displayLevel])
+    console.log('[BATTERY_FIX] final UI teslaBattery:', teslaBattery,
+      '| manualBattery:', manualBattery,
+      '| displayLevel:', displayLevel,
+      '| teslaConnected:', teslaConnected,
+      '| snapPct:', teslaSnap?.batteryPercent ?? null,
+      '| snapSleeping:', teslaSnap?.sleeping ?? null,
+      '| manualSource:', batteryState?.source ?? null)
+  }, [teslaBattery, manualBattery, displayLevel, teslaConnected, teslaSnap, batteryState?.source])
 
   const isSleeping  = teslaConnected && teslaSnap?.sleeping === true && pollStatus === 'sleeping'
   const isPolling   = pollStatus === 'polling'
