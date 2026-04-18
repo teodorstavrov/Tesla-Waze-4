@@ -90,6 +90,64 @@ window.addEventListener('resize', () => {
 let _courseUpActive = false
 let _savedZoom: number | null = null
 
+// ── Perspective navigation (lookahead pan) ────────────────────────────
+// During active navigation + course-up, pan to a point N meters ahead of
+// the car instead of the car's exact position. This places the avatar in
+// the lower portion of the viewport (~65% from top) so more road ahead
+// is visible — the essential "navigation camera" feel.
+//
+// HOW IT WORKS:
+//   Normal follow: map.panTo([car.lat, car.lng]) → car appears at 50% / 50%.
+//   Perspective:   map.panTo(lookahead) → lookahead at 50%; car at ~65%.
+//
+// SCALE COMPENSATION:
+//   Course-up adds CSS scale(~1.887) to the map container. A displacement of
+//   N Leaflet pixels translates to N × scale visual pixels on screen. Dividing
+//   the desired visual fraction by _mapScale undoes the amplification so the
+//   car ends up at PERSPECTIVE_VISUAL_FRACTION below center visually.
+//
+// COST:
+//   Two cheap trig ops per GPS tick (same as existing haversineM helper).
+//   No DOM work, no extra elements, no layout reflow. Pure Leaflet panTo.
+//
+// ACTIVE ONLY WHEN:
+//   - routeStore mode === 'navigating'  (not preview, not idle)
+//   - headingMode === 'course-up'
+//   - GPS heading is known
+//   Otherwise falls back to normal centered follow.
+
+/** Fraction of screen height the car should sit BELOW center (visual pixels). */
+const PERSPECTIVE_VISUAL_FRACTION = 0.15  // car at ~65% from top (50% + 15%)
+
+/**
+ * Compute how many meters ahead of the car to center the map,
+ * so the car appears PERSPECTIVE_VISUAL_FRACTION below center visually.
+ * Accounts for CSS scale already applied to the map container.
+ */
+function _lookaheadMeters(lat: number, zoom: number): number {
+  const metersPerLeafletPx =
+    (156543.03392 * Math.cos(lat * Math.PI / 180)) / Math.pow(2, zoom)
+  // Desired visual offset → Leaflet pixel offset (undo CSS scale effect)
+  const lookaheadLeafletPx =
+    (window.innerHeight * PERSPECTIVE_VISUAL_FRACTION) / _mapScale
+  return lookaheadLeafletPx * metersPerLeafletPx
+}
+
+/**
+ * Return a lat/lng that is `meters` ahead of [lat, lng] in `heading` direction.
+ * Pure equirectangular approximation — accurate enough at navigation scale.
+ */
+function _offsetInHeading(
+  lat: number, lng: number, heading: number, meters: number,
+): [number, number] {
+  const R      = 6371000
+  const hdgRad = (heading * Math.PI) / 180
+  const latRad = (lat * Math.PI) / 180
+  const dLat   = (meters * Math.cos(hdgRad)) / R
+  const dLng   = (meters * Math.sin(hdgRad)) / (R * Math.cos(latRad))
+  return [lat + (dLat * 180) / Math.PI, lng + (dLng * 180) / Math.PI]
+}
+
 function _applyCourseUp(container: HTMLElement, heading: number): void {
   // On first entry: save zoom and compensate for the CSS scale visual zoom
   if (!_courseUpActive && mapInstance) {
@@ -369,16 +427,9 @@ export function MapShell() {
       const panOptions: L.PanOptions = isTeslaBrowser
         ? { animate: false }
         : { animate: true, duration: 0.5 }
-      followStore.beginProgrammaticMove()
-      // Release lock only after movement is complete (moveend fires for both
-      // animated and instant pans). Prevents false dragstart during animation.
-      map.once('moveend', () => followStore.endProgrammaticMove())
-      map.panTo([pos.lat, pos.lng], panOptions)
-
-      // ── Course-up (heading-up): rotate map so travel direction is always up ──
-      // Active only during active navigation with a known heading.
-      // The map container rotates by -heading; the HeadingAvatar arrow rotates
-      // by +heading — the two cancel so the arrow always points up on screen.
+      // ── Course-up rotation ────────────────────────────────────────────────
+      // Applied before panTo so _courseUpActive / _mapScale are up to date
+      // when we compute the perspective lookahead below.
       const container = containerRef.current
       if (!container) return
       const courseUp = settingsStore.get().headingMode === 'course-up'
@@ -387,6 +438,21 @@ export function MapShell() {
       } else {
         _clearCourseUp(container)
       }
+
+      // ── Perspective navigation pan ────────────────────────────────────────
+      // During active navigation + course-up + known heading: pan to a point
+      // N meters ahead of the car so the avatar lands at ~65% from screen top.
+      // Fallback: standard centered follow (car at screen center).
+      const isNavigating = routeStore.getState().mode === 'navigating'
+      let panTarget: [number, number] = [pos.lat, pos.lng]
+      if (isNavigating && courseUp && pos.heading != null && _courseUpActive) {
+        const lm = _lookaheadMeters(pos.lat, map.getZoom())
+        panTarget = _offsetInHeading(pos.lat, pos.lng, pos.heading, lm)
+      }
+
+      followStore.beginProgrammaticMove()
+      map.once('moveend', () => followStore.endProgrammaticMove())
+      map.panTo(panTarget, panOptions)
     })
 
     // React to heading mode changes immediately:
