@@ -4,8 +4,9 @@
 //
 // COST POLICY:
 //   - Poll once immediately on connect / app resume
-//   - If vehicle awake: re-poll every AWAKE_INTERVAL_MS (10 min)
-//   - If vehicle sleeping (background): SLEEP_BACKOFF_MS backoff, no wake
+//   - If vehicle awake: re-poll every POLL_INTERVAL_MS (20 min)
+//   - If vehicle sleeping: SLEEP_BACKOFF_MS retry, no auto-wake
+//   - On error / rate-limit: AWAKE_INTERVAL_MS backoff
 //   - User-triggered refresh: wakes the car if sleeping (explicit user intent)
 //   - No polling while tab is hidden
 //
@@ -19,9 +20,10 @@ import { teslaVehicleStore } from './teslaVehicleStore'
 import { batteryStore } from '@/features/planning/batteryStore'
 
 // Backend caches vehicle state for 15 min, so polling every 20 min is enough.
-// Most frontend polls return cached data — Tesla API is called at most once per 15 min.
-const POLL_INTERVAL_MS  = 20 * 60 * 1000  // 20 min frontend cycle (backend caches 15 min)
-const SLEEP_BACKOFF_MS  =  2 * 60 * 1000  // 2 min retry after sleeping (backend serves cache)
+const POLL_INTERVAL_MS  = 20 * 60 * 1000  // 20 min — normal awake cycle
+const SLEEP_BACKOFF_MS  =  2 * 60 * 1000  // 2 min  — retry while sleeping
+const AWAKE_INTERVAL_MS = 10 * 60 * 1000  // 10 min — backoff after error/rate-limit
+                                           // (was missing → ReferenceError killed poller)
 
 export type PollStatus =
   | 'idle'
@@ -34,9 +36,9 @@ export type PollStatus =
 type Listener = () => void
 const _statusListeners = new Set<Listener>()
 
-let _timer:   ReturnType<typeof setTimeout> | null = null
-let _status:  PollStatus = 'idle'
-let _started  = false
+let _timer:  ReturnType<typeof setTimeout> | null = null
+let _status: PollStatus = 'idle'
+let _started = false
 
 function _setStatus(s: PollStatus): void {
   _status = s
@@ -54,13 +56,22 @@ function _schedule(ms: number): void {
   _timer = setTimeout(() => { void _poll() }, ms)
 }
 
+// Shape of /api/tesla/vehicle response (matches NormalizedVehicleState from vehicleCache)
+interface VehicleResponse {
+  batteryPercent: number
+  chargingState:  string | null
+  sleeping:       boolean
+}
+
 async function _poll(forceFlag = false): Promise<void> {
   if (!teslaStore.getState().connected) return
   _setStatus('polling')
+  console.log('[TESLA_FIX] _poll start | force:', forceFlag)
 
   try {
     const url = forceFlag ? '/api/tesla/vehicle?force=1' : '/api/tesla/vehicle'
     const res = await fetch(url, { credentials: 'same-origin' })
+    console.log('[TESLA_FIX] raw response status:', res.status)
 
     if (res.status === 429) {
       const data = (await res.json()) as { retryAfterMs?: number }
@@ -70,31 +81,49 @@ async function _poll(forceFlag = false): Promise<void> {
     }
 
     if (!res.ok) {
+      console.log('[TESLA_FIX] non-ok response, scheduling AWAKE_INTERVAL_MS backoff')
       _setStatus('error')
       _schedule(AWAKE_INTERVAL_MS)
       return
     }
 
     const data = (await res.json()) as {
-      vehicle: { currentBatteryPercent: number; chargingState: string | null } | null
+      vehicle:  VehicleResponse | null
       sleeping?: boolean
+      error?:    string
     }
 
+    console.log('[TESLA_FIX] raw battery payload:', JSON.stringify({
+      sleeping:       data.sleeping,
+      batteryPercent: data.vehicle?.batteryPercent,
+      chargingState:  data.vehicle?.chargingState,
+    }))
+
     if (data.sleeping || !data.vehicle) {
-      teslaVehicleStore.setSleeping()
+      // Server returns last-known cached state even when sleeping.
+      // Use it to keep the snapshot accurate and re-anchor the estimation engine.
+      // Without this, sleeping on first connect shows 0% and manual battery wins.
+      const cachedPct = data.vehicle?.batteryPercent ?? null
+      console.log('[TESLA_FIX] sleeping | cached battery:', cachedPct)
+      teslaVehicleStore.setSleeping(cachedPct ?? undefined)
+      if (cachedPct !== null) {
+        batteryStore.setFromTesla(cachedPct)
+        console.log('[TESLA_FIX] batteryStore.setFromTesla (sleeping, cached):', cachedPct)
+      }
       _setStatus('sleeping')
-      // Short retry — next poll will get cached sleeping state (cheap)
       _schedule(SLEEP_BACKOFF_MS)
       return
     }
 
-    // data.vehicle is now NormalizedVehicleState from vehicleCache
-    const v = data.vehicle as { batteryPercent: number; chargingState: string | null }
+    const v = data.vehicle
+    console.log('[TESLA_FIX] normalized battery value:', v.batteryPercent)
     teslaVehicleStore.setFromVehicleData(v.batteryPercent, v.chargingState ?? null)
     batteryStore.setFromTesla(v.batteryPercent)
+    console.log('[TESLA_FIX] batteryStore.setFromTesla (live):', v.batteryPercent)
     _setStatus('idle')
     _schedule(POLL_INTERVAL_MS)
-  } catch {
+  } catch (err) {
+    console.log('[TESLA_FIX] _poll caught error:', String(err))
     _setStatus('error')
     _schedule(AWAKE_INTERVAL_MS)
   }
@@ -120,7 +149,7 @@ async function _wakeAndPoll(): Promise<void> {
 
     if (!res.ok) {
       _setStatus('error')
-      _schedule(POLL_INTERVAL_MS)
+      _schedule(AWAKE_INTERVAL_MS)
       return
     }
 
@@ -130,12 +159,13 @@ async function _wakeAndPoll(): Promise<void> {
       // Car is online — force-fetch fresh data (bypass any stale cache)
       await _poll(true)
     } else {
-      // Timed out (45 s) — car didn't wake; keep sleeping state, long backoff
+      // Timed out (45 s) — car didn't wake; keep sleeping state, short backoff
       teslaVehicleStore.setSleeping()
       _setStatus('sleeping')
       _schedule(SLEEP_BACKOFF_MS)
     }
-  } catch {
+  } catch (err) {
+    console.log('[TESLA_FIX] _wakeAndPoll caught error:', String(err))
     _setStatus('error')
     _schedule(AWAKE_INTERVAL_MS)
   }
@@ -194,7 +224,6 @@ export const teslaPoller = {
     const currentStatus = _status
 
     if (currentStatus === 'sleeping') {
-      // Car is known to be sleeping — wake it explicitly
       await _wakeAndPoll()
     } else {
       _setStatus('idle')
@@ -206,6 +235,3 @@ export const teslaPoller = {
     }
   },
 }
-
-// Re-export for type narrowing in FloatingStatsCard
-export type { PollStatus }

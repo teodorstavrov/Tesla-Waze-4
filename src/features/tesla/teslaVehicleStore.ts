@@ -39,13 +39,17 @@ export const teslaVehicleStore = {
     _emit()
   },
 
-  /** Called by teslaPoller when vehicle is sleeping (no data available). */
-  setSleeping(): void {
-    // Keep the previous batteryPercent if we have one — just mark as sleeping
+  /**
+   * Called by teslaPoller when vehicle is sleeping.
+   * @param batteryPercent — pass the server's cached % so the snapshot shows
+   *   the real last-known value even on the very first poll when the car was
+   *   already asleep. Without this, first-sleep defaults to 0%.
+   */
+  setSleeping(batteryPercent?: number): void {
     _snap = {
-      batteryPercent: _snap?.batteryPercent ?? 0,
-      chargingState:  _snap?.chargingState  ?? null,
-      updatedAt:      _snap?.updatedAt      ?? Date.now(),
+      batteryPercent: batteryPercent ?? _snap?.batteryPercent ?? 0,
+      chargingState:  _snap?.chargingState ?? null,
+      updatedAt:      _snap?.updatedAt ?? Date.now(),
       sleeping:       true,
     }
     _emit()
