@@ -265,18 +265,35 @@ export function MapShell() {
       fadeAnimation:       !isTeslaBrowser,
       zoomAnimation:       !isTeslaBrowser,  // true on Tesla triggers JS animation machinery even though CSS transition is suppressed
       markerZoomAnimation: !isTeslaBrowser,
-      preferCanvas:        true,   // fewer DOM nodes — better Tesla performance
+      // preferCanvas NOT set: SVG renderer avoids the canvas clear→redraw blank
+      // frame that is visible on Tesla's compositor when zooming with course-up
+      // CSS scale active. Modern Chromium SVG is efficient enough for route lines.
       tapTolerance:        15,     // generous tap target for Tesla touchscreen
     })
 
     mapInstance = map
 
-    // Disable follow on user-initiated drag; also clear course-up rotation
+    // Disable follow on user-initiated drag.
+    // Course-up is only cleared when NOT actively navigating — during navigation
+    // the user may pan to look ahead without wanting to reset the heading rotation
+    // and zoom compensation (which would cause a jarring zoom jump).
     map.on('dragstart', () => {
       if (!followStore.isProgrammaticMove()) {
         followStore.setFollowing(false)
-        if (containerRef.current) _clearCourseUp(containerRef.current)
-        logger.follow.debug('Follow disabled by drag')
+        const isNavigating = routeStore.getState().mode === 'navigating'
+        if (!isNavigating && containerRef.current) {
+          _clearCourseUp(containerRef.current)
+        }
+        logger.follow.debug('Follow disabled by drag', { isNavigating })
+      }
+    })
+
+    // Keep _savedZoom in sync when the user manually zooms while in course-up.
+    // Without this, exiting course-up after a user zoom restores the stale
+    // _savedZoom, snapping the map to the wrong zoom level.
+    map.on('zoomend', () => {
+      if (_courseUpActive) {
+        _savedZoom = map.getZoom() + 1  // +1 undoes the course-up compensation offset
       }
     })
 

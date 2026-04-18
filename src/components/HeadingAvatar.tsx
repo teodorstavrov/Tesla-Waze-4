@@ -106,7 +106,22 @@ export function HeadingAvatar() {
       }
     })
 
+    // Hide the arrow during zoom so the position-snap from markerZoomAnimation:false
+    // is never visible. The marker reappears immediately after zoom settles.
+    const onZoomStart = () => {
+      const el = markerRef.current?.getElement()
+      if (el) el.style.opacity = '0'
+    }
+    const onZoomEnd = () => {
+      const el = markerRef.current?.getElement()
+      if (el) el.style.opacity = '1'
+    }
+    map.on('zoomstart', onZoomStart)
+    map.on('zoomend',   onZoomEnd)
+
     return () => {
+      map.off('zoomstart', onZoomStart)
+      map.off('zoomend',   onZoomEnd)
       unsub()
       marker.remove()
       markerRef.current = null
