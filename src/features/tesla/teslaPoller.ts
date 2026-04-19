@@ -19,6 +19,7 @@ import { teslaStore } from './teslaStore'
 import { teslaVehicleStore } from './teslaVehicleStore'
 import { batteryStore } from '@/features/planning/batteryStore'
 
+
 // Backend caches vehicle state for 15 min, so polling every 20 min is enough.
 const POLL_INTERVAL_MS  = 20 * 60 * 1000  // 20 min — normal awake cycle
 const SLEEP_BACKOFF_MS  =  2 * 60 * 1000  // 2 min  — retry while sleeping
@@ -29,8 +30,9 @@ export type PollStatus =
   | 'idle'
   | 'polling'
   | 'sleeping'
-  | 'waking'    // user-triggered wake in progress (~30–45 s)
+  | 'waking'         // user-triggered wake in progress (~30–45 s)
   | 'rate_limited'
+  | 'auth_error'     // 401 — session expired or no vehicleId; user must reconnect
   | 'error'
 
 type Listener = () => void
@@ -72,6 +74,16 @@ async function _poll(forceFlag = false): Promise<void> {
     const url = forceFlag ? '/api/tesla/vehicle?force=1' : '/api/tesla/vehicle'
     const res = await fetch(url, { credentials: 'same-origin' })
     console.log('[TESLA_FIX] raw response status:', res.status)
+
+    if (res.status === 401) {
+      // Session expired or vehicleId missing — re-check status so UI reflects reality
+      const body = await res.json().catch(() => ({})) as { error?: string }
+      console.log('[TESLA_FIX] 401 from /api/tesla/vehicle:', body.error)
+      _setStatus('auth_error')
+      // Re-sync connection state — this will show "disconnected" if session is truly gone
+      void teslaStore.checkStatus()
+      return  // no retry — user must reconnect
+    }
 
     if (res.status === 429) {
       const data = (await res.json()) as { retryAfterMs?: number }

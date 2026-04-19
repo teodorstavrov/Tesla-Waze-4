@@ -48,8 +48,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   }
 
   const sess = await getSession(sessionId)
-  if (!sess?.vehicleId) {
-    res.status(401).json({ error: 'No Tesla vehicle associated with this session' })
+  if (!sess) {
+    res.status(401).json({ error: 'session_expired', hint: 'Please reconnect Tesla' })
+    return
+  }
+  if (!sess.vehicleId) {
+    res.status(401).json({ error: 'no_vehicle_id', hint: 'OAuth succeeded but vehicle list fetch failed — please disconnect and reconnect' })
     return
   }
 

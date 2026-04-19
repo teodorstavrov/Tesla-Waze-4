@@ -107,9 +107,10 @@ export function FloatingStatsCard() {
       '| manualSource:', batteryState?.source ?? null)
   }, [teslaBattery, manualBattery, displayLevel, teslaConnected, teslaSnap, batteryState?.source])
 
-  const isSleeping  = teslaConnected && teslaSnap?.sleeping === true && pollStatus === 'sleeping'
-  const isPolling   = pollStatus === 'polling'
-  const isWaking    = pollStatus === 'waking'
+  const isSleeping   = teslaConnected && teslaSnap?.sleeping === true && pollStatus === 'sleeping'
+  const isPolling    = pollStatus === 'polling'
+  const isWaking     = pollStatus === 'waking'
+  const isAuthError  = pollStatus === 'auth_error'
   const hasTeslaData = teslaConnected && teslaBattery !== null && !teslaSnap?.sleeping
 
   const handleBatteryTap = useCallback(() => {
@@ -163,6 +164,7 @@ export function FloatingStatsCard() {
           isPolling={isPolling}
           isWaking={isWaking}
           isSleeping={isSleeping}
+          isAuthError={isAuthError}
           hasTeslaData={hasTeslaData}
           teslaConnected={teslaConnected}
           fallbackSource={batteryState?.source ?? null}
@@ -189,6 +191,7 @@ function BatteryStat({
   isPolling,
   isWaking,
   isSleeping,
+  isAuthError,
   hasTeslaData,
   teslaConnected,
   fallbackSource,
@@ -198,6 +201,7 @@ function BatteryStat({
   isPolling:      boolean
   isWaking:       boolean
   isSleeping:     boolean
+  isAuthError:    boolean
   hasTeslaData:   boolean
   teslaConnected: boolean
   fallbackSource: string | null
@@ -212,9 +216,10 @@ function BatteryStat({
   const bg = getLang() === 'bg'
 
   const label =
-    isWaking    ? (bg ? 'буди…' : 'waking…')
-    : isPolling ? 'Tesla…'
-    : isSleeping ? (bg ? 'спи ↺' : 'asleep ↺')
+    isAuthError ? (bg ? 'свържи ↺' : 'reconnect')
+    : isWaking    ? (bg ? 'буди…' : 'waking…')
+    : isPolling   ? 'Tesla…'
+    : isSleeping  ? (bg ? 'спи ↺' : 'asleep ↺')
     : hasTeslaData ? 'Tesla'
     : teslaConnected
       ? (fallbackSource === 'user_entered' ? t('stats.manual') : '~')
@@ -224,10 +229,11 @@ function BatteryStat({
 
   const dimmed    = isPolling || isWaking || !hasLevel
   const labelColor =
-    hasTeslaData && !dimmed ? '#22c55e'
-    : isSleeping             ? '#6b7280'
-    : isWaking               ? '#eab308'
-    :                          'var(--text-secondary)'
+    isAuthError              ? '#ef4444'
+    : hasTeslaData && !dimmed ? '#22c55e'
+    : isSleeping              ? '#6b7280'
+    : isWaking                ? '#eab308'
+    :                           'var(--text-secondary)'
 
   // Tesla live data gets a larger, more prominent display
   const isTeslaLive = hasTeslaData && !dimmed
