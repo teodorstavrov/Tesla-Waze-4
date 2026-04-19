@@ -156,8 +156,8 @@ export function FloatingStatsCard() {
         }
       </button>
 
-      {/* Battery widget — always shown if any level is known */}
-      {displayLevel !== null && (
+      {/* Battery widget — shown when level is known OR Tesla is connected (shows polling state) */}
+      {(displayLevel !== null || teslaConnected) && (
         <BatteryStat
           level={displayLevel}
           isPolling={isPolling}
@@ -194,7 +194,7 @@ function BatteryStat({
   fallbackSource,
   onTap,
 }: {
-  level:          number
+  level:          number | null
   isPolling:      boolean
   isWaking:       boolean
   isSleeping:     boolean
@@ -203,8 +203,9 @@ function BatteryStat({
   fallbackSource: string | null
   onTap?:         () => void
 }) {
-  const battColor =
-    level > 60 ? '#22c55e'
+  const hasLevel  = level !== null
+  const battColor = !hasLevel ? 'var(--text-secondary)'
+    : level > 60 ? '#22c55e'
     : level > 20 ? '#eab308'
     :              '#ef4444'
 
@@ -221,32 +222,48 @@ function BatteryStat({
          : fallbackSource === 'estimated'  ? '~'
          :                                   '—')
 
-  const dimmed    = isPolling || isWaking
+  const dimmed    = isPolling || isWaking || !hasLevel
   const labelColor =
     hasTeslaData && !dimmed ? '#22c55e'
     : isSleeping             ? '#6b7280'
     : isWaking               ? '#eab308'
     :                          'var(--text-secondary)'
 
+  // Tesla live data gets a larger, more prominent display
+  const isTeslaLive = hasTeslaData && !dimmed
+  const numSize     = isTeslaLive ? 20 : 16
+
   const inner = (
-    <div style={{ textAlign: 'center', minWidth: 40 }}>
+    <div style={{ textAlign: 'center', minWidth: isTeslaLive ? 52 : 40 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 3, justifyContent: 'center' }}>
-        <BatteryIcon level={level} color={dimmed ? 'var(--text-secondary)' : battColor} />
+        {hasLevel && (
+          <BatteryIcon level={level} color={dimmed ? 'var(--text-secondary)' : battColor} />
+        )}
         <span style={{
-          fontSize: 16, fontWeight: 700,
+          fontSize: numSize, fontWeight: 700,
           color: dimmed ? 'var(--text-secondary)' : battColor,
           lineHeight: 1.2,
         }}>
-          {Math.round(level)}%
+          {hasLevel ? `${Math.round(level)}%` : '—'}
         </span>
       </div>
+      {/* Tesla live: show label with green dot indicator */}
       <div style={{
-        fontSize: 9,
+        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
+        fontSize: isTeslaLive ? 10 : 9,
         color: labelColor,
         letterSpacing: '0.07em',
         textTransform: 'uppercase',
         marginTop: 1,
+        fontWeight: isTeslaLive ? 700 : 400,
       }}>
+        {isTeslaLive && (
+          <span style={{
+            width: 5, height: 5, borderRadius: '50%',
+            background: '#22c55e',
+            display: 'inline-block', flexShrink: 0,
+          }} />
+        )}
         {label}
       </div>
     </div>
