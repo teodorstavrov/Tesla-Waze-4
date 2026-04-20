@@ -46,8 +46,8 @@ export function TeslaConnect() {
   )
   const L = _labels()
 
-  // ── Loading ─────────────────────────────────────────────────────────
-  if (state.loading) {
+  // ── Loading (only when not yet connected — avoids layout jump) ──────
+  if (state.loading && !state.connected) {
     return (
       <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.45)', padding: '8px 0' }}>
         {L.connecting}

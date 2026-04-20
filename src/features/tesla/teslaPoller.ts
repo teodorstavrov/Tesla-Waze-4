@@ -203,17 +203,23 @@ export const teslaPoller = {
     if (_started) return
     _started = true
 
+    // Only react to connected→disconnected or disconnected→connected transitions.
+    // Ignoring intermediate loading=true emits prevents checkStatus() from
+    // triggering a new poll while the car was already connected.
+    let _prevConnected = teslaStore.getState().connected
     teslaStore.subscribe(() => {
-      const { connected } = teslaStore.getState()
-      if (connected) {
+      const { connected, loading } = teslaStore.getState()
+      if (loading) return  // intermediate state — wait for final result
+      if (connected && !_prevConnected) {
         _clearTimer()
         _setStatus('idle')
         void _poll()
-      } else {
+      } else if (!connected && _prevConnected) {
         _clearTimer()
         _setStatus('idle')
         teslaVehicleStore.clear()
       }
+      _prevConnected = connected
     })
 
     if (teslaStore.getState().connected) {
