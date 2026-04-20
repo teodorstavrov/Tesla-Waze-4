@@ -14,6 +14,7 @@
 
 import { useState } from 'react'
 import { countryStore } from '@/lib/countryStore'
+import { getLang } from '@/lib/locale'
 import type { CountryConfig } from '@/config/countries'
 
 const STORAGE_KEY = 'teslaradar-onboarded-v2'
@@ -30,7 +31,7 @@ interface Step {
 }
 
 function getSteps(country: CountryConfig): Step[] {
-  const isBg = country.locale === 'bg'
+  const isBg = getLang() === 'bg'
 
   // ── Step 1: Welcome ───────────────────────────────────────────────────
   // EN: full welcome screen with tagline + benefit bullets + early-version note
@@ -118,7 +119,7 @@ export function Onboarding() {
 
   const country  = countryStore.getCountryOrDefault()
   const steps    = getSteps(country)
-  const isBg     = country.locale === 'bg'
+  const isBg     = getLang() === 'bg'
   const isLast   = step === steps.length - 1
   const current  = steps[step]!
 

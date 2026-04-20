@@ -4,10 +4,10 @@
 
 import { useSyncExternalStore } from 'react'
 import { teslaStore } from './teslaStore.js'
-import { countryStore } from '@/lib/countryStore'
+import { getLang, langStore } from '@/lib/locale'
 
 function _labels() {
-  const isBg = countryStore.getCountryOrDefault().locale === 'bg'
+  const isBg = getLang() === 'bg'
   return {
     sectionTitle: isBg ? 'Tesla акаунт'           : 'Tesla account',
     connect:      isBg ? 'Свържи Tesla акаунт'    : 'Connect Tesla',
@@ -38,6 +38,7 @@ function TeslaT() {
 // ── Component ────────────────────────────────────────────────────────────
 
 export function TeslaConnect() {
+  useSyncExternalStore(langStore.subscribe.bind(langStore), getLang, getLang)
   const state = useSyncExternalStore(
     teslaStore.subscribe,
     teslaStore.getState,

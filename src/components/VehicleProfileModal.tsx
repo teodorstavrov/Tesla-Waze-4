@@ -3,14 +3,14 @@
 // Inline SVG silhouettes per model — zero network, instant, vector-crisp.
 // Touch-friendly battery slider with +/− fine controls.
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { vehicleProfileStore } from '@/features/planning/store'
 import { batteryStore } from '@/features/planning/batteryStore'
 import { TESLA_MODELS, getYearsForModel, getTrimsForYear } from '@/features/planning/vehicleConfig'
 import type { TeslaModel } from '@/features/planning/types'
 import { isTeslaBrowser } from '@/lib/browser'
-import { countryStore } from '@/lib/countryStore'
+import { getLang, langStore } from '@/lib/locale'
 import { TeslaConnect } from '@/features/tesla/TeslaConnect'
 
 // ── Model S 3-step configurator constants ─────────────────────────────
@@ -66,10 +66,9 @@ const MS_REVERSE: Record<string, [MSYearGroup, number, string]> = {
 }
 
 // ── Locale-aware label map ─────────────────────────────────────────────
-// Computed once per modal open — no live reactivity needed.
+// Re-computed on every render — caller must subscribe to langStore.
 function getLabels() {
-  const locale = countryStore.getCountryOrDefault().locale
-  const isBg   = locale === 'bg'
+  const isBg = getLang() === 'bg'
   return {
     title:           isBg ? 'Профил на автомобила'                             : 'Vehicle Setup',
     model:           isBg ? 'Модел'                                             : 'Model',
@@ -261,6 +260,8 @@ function CloseX() {
 
 // ── Main modal ────────────────────────────────────────────────────────
 export function VehicleProfileModal() {
+  useSyncExternalStore(langStore.subscribe.bind(langStore), getLang, getLang)
+
   const [open,  setOpen]  = useState(false)
   const [shown, setShown] = useState(false)
 
