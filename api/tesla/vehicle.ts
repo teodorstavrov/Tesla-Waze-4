@@ -17,14 +17,14 @@
 // IDENTIFIER PRIORITY:
 //   Uses vehicleVin (VIN) when available — the stable, preferred Fleet API
 //   identifier. Falls back to vehicleId (numeric ID) for sessions created
-//   before VIN storage was introduced (pre-launch sessions).
-//
-// RESULT: Tesla API is called AT MOST once per 15 minutes per session
-//         under normal usage. Sleeping cars cost 0 additional calls.
+//   before VIN storage was introduced.
+//   If both are null (OAuth callback's vehicle fetch failed), this endpoint
+//   attempts a one-time recovery by calling /api/1/vehicles and backfilling
+//   the session — so the user doesn't need to reconnect just for that.
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { getSession } from '../_lib/tesla/session.js'
-import { getVehicleData } from '../_lib/tesla/client.js'
+import { getSession, updateSessionVehicle } from '../_lib/tesla/session.js'
+import { getVehicleData, getVehicles } from '../_lib/tesla/client.js'
 import { redis, isRedisConfigured } from '../_lib/db/redis.js'
 import { parseCookie } from '../_lib/utils/cookies.js'
 import { captureApiError } from '../_lib/utils/sentryApi.js'
@@ -48,7 +48,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   const sessionId = parseCookie(req.headers['cookie'] ?? '', SESSION_COOKIE)
   if (!sessionId) {
-    res.status(401).json({ error: 'Not connected' })
+    res.status(401).json({ error: 'session_expired' })
     return
   }
 
@@ -60,11 +60,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   // VIN is the preferred Fleet API identifier; fall back to numeric vehicleId for
   // sessions created before VIN storage was introduced (pre-launch sessions).
-  const vehicleIdentifier = sess.vehicleVin ?? sess.vehicleId
+  let vehicleIdentifier = sess.vehicleVin ?? sess.vehicleId
+
+  // ── Vehicle-info recovery ─────────────────────────────────────────────
+  // If both are null (OAuth callback's vehicle fetch failed transiently),
+  // try to fetch the vehicle list and backfill the session in-place.
+  // This self-heals the "no_vehicle_id" state without requiring a reconnect.
+  if (!vehicleIdentifier) {
+    console.log('[TESLA_VEHICLE] vehicleIdentifier missing — attempting recovery via /api/1/vehicles')
+    try {
+      const vehicles = await getVehicles(sessionId)
+      if (vehicles.length > 0) {
+        const v = vehicles[0]!
+        const recoveredId   = String(v.id)
+        const recoveredVin  = v.vin
+        const recoveredName = v.display_name || v.vin
+        await updateSessionVehicle(sessionId, recoveredId, recoveredVin, recoveredName)
+        vehicleIdentifier = recoveredVin || recoveredId
+        console.log('[TESLA_VEHICLE] recovery succeeded — vehicleVin:', recoveredVin, 'vehicleId:', recoveredId)
+      } else {
+        console.log('[TESLA_VEHICLE] recovery failed — empty vehicle list from Tesla API')
+      }
+    } catch (err) {
+      console.error('[TESLA_VEHICLE] recovery failed — getVehicles threw:', String(err))
+    }
+  }
+
   if (!vehicleIdentifier) {
     res.status(401).json({
       error: 'no_vehicle_id',
-      hint: 'OAuth succeeded but vehicle list fetch failed — please disconnect and reconnect',
+      hint: 'Vehicle not associated with session. Check Vercel logs for [TESLA_VEHICLE] recovery errors.',
     })
     return
   }
@@ -93,7 +118,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const lastPoll = await redis.get<number>(rlKey)
   if (lastPoll && Date.now() - lastPoll < RATE_LIMIT_S * 1000) {
     const retryAfterMs = RATE_LIMIT_S * 1000 - (Date.now() - lastPoll)
-    // Return cached (even if stale) rather than 429-ing the frontend
     if (cached) {
       res.status(200).json({ vehicle: cached })
     } else {
@@ -119,7 +143,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     const msg = String(err instanceof Error ? err.message : err)
 
     if (msg.includes('408') || msg.includes('timeout') || msg.includes('asleep')) {
-      // Vehicle is sleeping — update cache flag, return last known values
       const sleeping = await markSleeping(sessionId)
       res.status(200).json({ vehicle: sleeping, sleeping: true })
       return
@@ -127,7 +150,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
     await captureApiError(err, 'tesla/vehicle')
 
-    // Non-sleeping error: return stale cache rather than an error response
     if (cached) {
       res.status(200).json({ vehicle: cached, error: 'tesla_fetch_failed' })
     } else {

@@ -84,10 +84,19 @@ async function _poll(forceFlag = false): Promise<void> {
     const res = await fetch(url, { credentials: 'same-origin' })
 
     if (res.status === 401) {
-      // Session expired or no vehicleVin/vehicleId — re-check status so UI reflects reality
-      _setStatus('auth_error')
-      void teslaStore.checkStatus()
-      return  // no retry — user must reconnect
+      const body = await res.json().catch(() => ({})) as { error?: string }
+      if (body.error === 'no_vehicle_id') {
+        // Vehicle fetch failed during OAuth — session is otherwise valid.
+        // vehicle.ts will try to auto-recover on this same request, so
+        // reschedule a quick retry (30 s) before giving up and showing auth_error.
+        _setStatus('auth_error')
+        _schedule(30_000)
+      } else {
+        // session_expired or any other 401 — session is gone, user must reconnect
+        _setStatus('auth_error')
+        void teslaStore.checkStatus()
+      }
+      return
     }
 
     if (res.status === 429) {

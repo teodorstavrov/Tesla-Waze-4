@@ -91,6 +91,23 @@ export async function updateSessionTokens(
   await redis.setWithExpiry(_sessKey(sessionId), updated, SESSION_TTL_S)
 }
 
+/**
+ * Backfill vehicle identifiers in an existing session.
+ * Called when the OAuth callback's vehicle fetch failed but a later call
+ * successfully retrieves the vehicle list.
+ */
+export async function updateSessionVehicle(
+  sessionId:   string,
+  vehicleId:   string,
+  vehicleVin:  string,
+  vehicleName: string,
+): Promise<void> {
+  const existing = await getSession(sessionId)
+  if (!existing) return
+  const updated: TeslaSession = { ...existing, vehicleId, vehicleVin, vehicleName }
+  await redis.setWithExpiry(_sessKey(sessionId), updated, SESSION_TTL_S)
+}
+
 /** Delete session — called on disconnect. */
 export async function deleteSession(sessionId: string): Promise<void> {
   await redis.del(_sessKey(sessionId))
