@@ -5,7 +5,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { getSession } from '../_lib/tesla/session.js'
-import { getValidAccessToken, TESLA_API_BASE } from '../_lib/tesla/client.js'
+import { getValidAccessToken, getVehicles, TESLA_API_BASE } from '../_lib/tesla/client.js'
 import { getCachedState } from '../_lib/tesla/vehicleCache.js'
 import { parseCookie } from '../_lib/utils/cookies.js'
 import { isRedisConfigured } from '../_lib/db/redis.js'
@@ -79,6 +79,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     liveError = 'no vehicleIdentifier in session (vehicleVin and vehicleId are both null)'
   }
 
+  // When vehicleIdentifier is null, also attempt getVehicles() to see what Tesla returns
+  let vehicleListRaw: unknown = null
+  let vehicleListError: string | null = null
+  let vehicleListStatus: string | null = null
+
+  if (!vehicleIdentifier) {
+    try {
+      const token = await getValidAccessToken(sessionId)
+      if (!token) {
+        vehicleListError = 'no_valid_token — getValidAccessToken returned null'
+      } else {
+        // Call /api/1/vehicles directly so we can see raw response
+        const url = `${TESLA_API_BASE}/api/1/vehicles`
+        const r = await fetch(url, {
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        })
+        vehicleListStatus = String(r.status)
+        const body = await r.json() as unknown
+        vehicleListRaw = body
+        if (!r.ok) {
+          vehicleListError = `Tesla /api/1/vehicles returned HTTP ${r.status}`
+        }
+      }
+    } catch (e) {
+      vehicleListError = String(e)
+    }
+  }
+
   // Extract key fields from raw response
   type RawBody = { response?: { charge_state?: { battery_level?: unknown; charging_state?: unknown; battery_range?: unknown }; drive_state?: { latitude?: unknown; longitude?: unknown; speed?: unknown }; vehicle_state?: { odometer?: unknown } } }
   const raw = liveRaw as RawBody | null
@@ -106,5 +134,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       } : null,
       full_response: liveRaw,
     },
+
+    // Only present when vehicleIdentifier is null — shows raw /api/1/vehicles response
+    ...(vehicleListStatus !== null || vehicleListError !== null ? {
+      vehicle_list_probe: {
+        status: vehicleListStatus,
+        error:  vehicleListError,
+        raw:    vehicleListRaw,
+      },
+    } : {}),
   })
 }
