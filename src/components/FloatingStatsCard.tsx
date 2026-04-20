@@ -96,16 +96,6 @@ export function FloatingStatsCard() {
   const manualBattery = batteryState?.currentBatteryPercent ?? null
   const displayLevel: number | null = teslaBattery ?? manualBattery
 
-  // [BATTERY_FIX] diagnostic — fires whenever any battery-relevant value changes
-  useEffect(() => {
-    console.log('[BATTERY_FIX] final UI teslaBattery:', teslaBattery,
-      '| manualBattery:', manualBattery,
-      '| displayLevel:', displayLevel,
-      '| teslaConnected:', teslaConnected,
-      '| snapPct:', teslaSnap?.batteryPercent ?? null,
-      '| snapSleeping:', teslaSnap?.sleeping ?? null,
-      '| manualSource:', batteryState?.source ?? null)
-  }, [teslaBattery, manualBattery, displayLevel, teslaConnected, teslaSnap, batteryState?.source])
 
   const isSleeping   = teslaConnected && teslaSnap?.sleeping === true && pollStatus === 'sleeping'
   const isPolling    = pollStatus === 'polling'

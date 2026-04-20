@@ -14,6 +14,11 @@
 // ?force=1  — bypass freshness check; always try live fetch (user tap).
 //             Still respects a 30-second rate limit to prevent hammering.
 //
+// IDENTIFIER PRIORITY:
+//   Uses vehicleVin (VIN) when available — the stable, preferred Fleet API
+//   identifier. Falls back to vehicleId (numeric ID) for sessions created
+//   before VIN storage was introduced (pre-launch sessions).
+//
 // RESULT: Tesla API is called AT MOST once per 15 minutes per session
 //         under normal usage. Sleeping cars cost 0 additional calls.
 
@@ -52,8 +57,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     res.status(401).json({ error: 'session_expired', hint: 'Please reconnect Tesla' })
     return
   }
-  if (!sess.vehicleId) {
-    res.status(401).json({ error: 'no_vehicle_id', hint: 'OAuth succeeded but vehicle list fetch failed — please disconnect and reconnect' })
+
+  // VIN is the preferred Fleet API identifier; fall back to numeric vehicleId for
+  // sessions created before VIN storage was introduced (pre-launch sessions).
+  const vehicleIdentifier = sess.vehicleVin ?? sess.vehicleId
+  if (!vehicleIdentifier) {
+    res.status(401).json({
+      error: 'no_vehicle_id',
+      hint: 'OAuth succeeded but vehicle list fetch failed — please disconnect and reconnect',
+    })
     return
   }
 
@@ -65,14 +77,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   // Sleeping vehicle: always return cached data — never auto-wake
   if (cached?.sleeping) {
-    console.log('[BATTERY_FIX] server vehicle state response: sleeping, battery =', cached.batteryPercent ?? null)
     res.status(200).json({ vehicle: cached, sleeping: true })
     return
   }
 
   // Fresh cache (live or recent): return without hitting Tesla
   if (!force && cached && (cached.freshness === 'live' || cached.freshness === 'recent')) {
-    console.log('[BATTERY_FIX] server vehicle state response: cached (', cached.freshness, '), battery =', cached.batteryPercent ?? null)
     res.status(200).json({ vehicle: cached })
     return
   }
@@ -99,14 +109,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   try {
     const raw = (await getVehicleData(
       sessionId,
-      sess.vehicleId,
+      vehicleIdentifier,
       'charge_state;drive_state;vehicle_state',
     )) as TeslaVehicleDataPayload
 
-    console.log('[BATTERY_FIX] raw Tesla payload: battery_level =', (raw as { charge_state?: { battery_level?: number } }).charge_state?.battery_level ?? 'missing')
     const normalized = await setCachedState(sessionId, raw)
-    console.log('[BATTERY_FIX] normalized Tesla battery:', normalized.batteryPercent)
-    console.log('[BATTERY_FIX] server vehicle state response: live, battery =', normalized.batteryPercent)
     res.status(200).json({ vehicle: normalized })
   } catch (err) {
     const msg = String(err instanceof Error ? err.message : err)
@@ -114,7 +121,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     if (msg.includes('408') || msg.includes('timeout') || msg.includes('asleep')) {
       // Vehicle is sleeping — update cache flag, return last known values
       const sleeping = await markSleeping(sessionId)
-      console.log('[BATTERY_FIX] server vehicle state response: sleeping (just marked), battery =', sleeping?.batteryPercent ?? null)
       res.status(200).json({ vehicle: sleeping, sleeping: true })
       return
     }

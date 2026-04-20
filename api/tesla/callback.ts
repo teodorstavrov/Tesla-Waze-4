@@ -5,7 +5,7 @@
 // Flow:
 //   1. Validate the state parameter (CSRF protection) — consumed from Redis
 //   2. Exchange the authorization code for access + refresh tokens (PKCE)
-//   3. Fetch the user's vehicle list to associate a vehicleId with the session
+//   3. Fetch the user's vehicle list to associate a vehicleId+VIN with the session
 //   4. Persist tokens + vehicle info in Redis under the session ID
 //   5. Redirect browser back to the app with a success/error signal
 //
@@ -69,25 +69,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     // Exchange auth code for tokens (PKCE verifier proves we initiated this flow)
     const tokens = await exchangeCodeForTokens(code, codeVerifier, clientId, clientSecret, redirectUri)
 
-    // Save tokens first so getVehicles can use them
-    await saveSession(sessionId, tokens, null, null)
+    // Save tokens immediately so getVehicles can use them (vehicle fields unknown yet)
+    await saveSession(sessionId, tokens, null, null, null)
 
-    // Fetch vehicle list — associate the first vehicle with this session
-    let vehicleId:   string | null = null
-    let vehicleName: string | null = null
-    try {
-      const vehicles = await getVehicles(sessionId)
-      if (vehicles.length > 0) {
-        const v     = vehicles[0]!
-        vehicleId   = String(v.id)
-        vehicleName = v.display_name || v.vin
+    // Fetch vehicle list — associate the first vehicle with this session.
+    // Stores both numeric vehicleId (back-compat) and VIN (preferred Fleet API identifier).
+    // Retried once on transient failure — a null VIN means /api/tesla/vehicle returns 401.
+    let vehicleId:         string | null = null
+    let vehicleVin:        string | null = null
+    let vehicleName:       string | null = null
+    let vehicleFetchError: string | null = null
+
+    for (let attempt = 1; attempt <= 2; attempt++) {
+      try {
+        const vehicles = await getVehicles(sessionId)
+        if (vehicles.length > 0) {
+          const v     = vehicles[0]!
+          vehicleId   = String(v.id)
+          vehicleVin  = v.vin
+          vehicleName = v.display_name || v.vin
+        }
+        vehicleFetchError = null
+        break
+      } catch (err) {
+        vehicleFetchError = String(err)
+        if (attempt < 2) await new Promise<void>((r) => setTimeout(r, 1500))
       }
-    } catch {
-      // Non-fatal: connect succeeds even if vehicle list fetch fails
     }
 
-    // Re-save with vehicle info
-    await saveSession(sessionId, tokens, vehicleId, vehicleName)
+    if (!vehicleVin) {
+      // Log clearly — user will see "no_vehicle_id" on vehicle poll until they reconnect.
+      console.error('[TESLA_CALLBACK] vehicle list fetch failed — vehicleVin is null.', {
+        error: vehicleFetchError,
+        hint: 'User must disconnect and reconnect to retry vehicle association.',
+      })
+    }
+
+    // Persist final session (vehicleId + vehicleVin may be null if fetch failed)
+    await saveSession(sessionId, tokens, vehicleId, vehicleVin, vehicleName)
 
     // Redirect to app — frontend will call /api/tesla/status to confirm
     res.redirect(302, `${APP_URL}?tesla_connected=1`)

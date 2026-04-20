@@ -45,7 +45,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   }
 
   const sess = await getSession(sessionId)
-  if (!sess?.vehicleId) {
+  // VIN preferred; fall back to numeric vehicleId for pre-VIN sessions
+  const vehicleIdentifier = sess?.vehicleVin ?? sess?.vehicleId ?? null
+  if (!vehicleIdentifier) {
     res.status(401).json({ error: 'No vehicle associated' })
     return
   }
@@ -62,13 +64,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   try {
     // Send wake command (non-blocking — Tesla processes it asynchronously)
-    await wakeVehicle(sessionId, sess.vehicleId)
+    await wakeVehicle(sessionId, vehicleIdentifier)
 
     // Poll vehicle state until online or timeout
     const deadline = Date.now() + TIMEOUT_MS
     while (Date.now() < deadline) {
       await _sleep(POLL_INTERVAL_MS)
-      const state = await getVehicleOnlineState(sessionId, sess.vehicleId)
+      const state = await getVehicleOnlineState(sessionId, vehicleIdentifier)
       if (state === 'online') {
         res.status(200).json({ woke: true })
         return

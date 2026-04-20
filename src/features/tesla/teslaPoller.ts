@@ -1,14 +1,24 @@
 // ─── Tesla Live Data Poller ────────────────────────────────────────────────
 //
-// Polls /api/tesla/vehicle on a conservative schedule.
+// Polls /api/tesla/vehicle on a schedule designed to feel live without
+// hammering Tesla's Fleet API.
 //
 // COST POLICY:
 //   - Poll once immediately on connect / app resume
-//   - If vehicle awake: re-poll every POLL_INTERVAL_MS (20 min)
-//   - If vehicle sleeping: SLEEP_BACKOFF_MS retry, no auto-wake
-//   - On error / rate-limit: AWAKE_INTERVAL_MS backoff
+//   - Vehicle awake: re-poll every POLL_INTERVAL_MS (3 min)
+//     The backend serves a 5-min Redis cache, so actual Tesla API calls
+//     happen at most once per 5 min regardless of frontend poll rate.
+//   - Vehicle sleeping: SLEEP_BACKOFF_MS (2 min) — check if it woke up
+//   - On error / rate-limit: AWAKE_INTERVAL_MS (10 min) backoff
 //   - User-triggered refresh: wakes the car if sleeping (explicit user intent)
 //   - No polling while tab is hidden
+//
+// TODO (Fleet Telemetry): Polling vehicle_data every few minutes is the
+//   correct approach for now, but Tesla's Fleet Telemetry (streaming WebSocket)
+//   would give sub-second updates without any polling cost. When the app is
+//   ready to run a persistent server-side listener, replace this poller with
+//   a telemetry subscription that pushes battery/charging state to Redis and
+//   lets the frontend subscribe via SSE or WebSocket.
 //
 // DATA FLOW:
 //   _poll() → GET /api/tesla/vehicle
@@ -19,12 +29,12 @@ import { teslaStore } from './teslaStore'
 import { teslaVehicleStore } from './teslaVehicleStore'
 import { batteryStore } from '@/features/planning/batteryStore'
 
-
-// Backend caches vehicle state for 15 min, so polling every 20 min is enough.
-const POLL_INTERVAL_MS  = 20 * 60 * 1000  // 20 min — normal awake cycle
-const SLEEP_BACKOFF_MS  =  2 * 60 * 1000  // 2 min  — retry while sleeping
-const AWAKE_INTERVAL_MS = 10 * 60 * 1000  // 10 min — backoff after error/rate-limit
-                                           // (was missing → ReferenceError killed poller)
+// Backend Redis cache is 5 min live + 15 min recent.
+// 3-min frontend poll means the UI stays within the live window.
+// Actual Tesla API calls: at most once per 15 min (backend-enforced).
+const POLL_INTERVAL_MS  =  3 * 60 * 1000  // 3 min — awake car
+const SLEEP_BACKOFF_MS  =  2 * 60 * 1000  // 2 min — sleeping car
+const AWAKE_INTERVAL_MS = 10 * 60 * 1000  // 10 min — error/rate-limit backoff
 
 export type PollStatus =
   | 'idle'
@@ -68,19 +78,14 @@ interface VehicleResponse {
 async function _poll(forceFlag = false): Promise<void> {
   if (!teslaStore.getState().connected) return
   _setStatus('polling')
-  console.log('[TESLA_FIX] _poll start | force:', forceFlag)
 
   try {
     const url = forceFlag ? '/api/tesla/vehicle?force=1' : '/api/tesla/vehicle'
     const res = await fetch(url, { credentials: 'same-origin' })
-    console.log('[TESLA_FIX] raw response status:', res.status)
 
     if (res.status === 401) {
-      // Session expired or vehicleId missing — re-check status so UI reflects reality
-      const body = await res.json().catch(() => ({})) as { error?: string }
-      console.log('[TESLA_FIX] 401 from /api/tesla/vehicle:', body.error)
+      // Session expired or no vehicleVin/vehicleId — re-check status so UI reflects reality
       _setStatus('auth_error')
-      // Re-sync connection state — this will show "disconnected" if session is truly gone
       void teslaStore.checkStatus()
       return  // no retry — user must reconnect
     }
@@ -93,7 +98,6 @@ async function _poll(forceFlag = false): Promise<void> {
     }
 
     if (!res.ok) {
-      console.log('[TESLA_FIX] non-ok response, scheduling AWAKE_INTERVAL_MS backoff')
       _setStatus('error')
       _schedule(AWAKE_INTERVAL_MS)
       return
@@ -105,26 +109,14 @@ async function _poll(forceFlag = false): Promise<void> {
       error?:    string
     }
 
-    console.log('[BATTERY_FIX] poll response battery:', data.vehicle?.batteryPercent ?? null,
-      '| sleeping flag:', data.sleeping ?? false,
-      '| vehicle null:', data.vehicle === null)
-
     if (data.sleeping || !data.vehicle) {
-      // sleeping=true OR vehicle=null: use cached battery if available.
-      // sleeping does NOT suppress a valid batteryPercent — it passes through unchanged.
       const cachedPct = data.vehicle?.batteryPercent ?? null
-      console.log('[BATTERY_FIX] sleeping flag: true | cached battery from server:', cachedPct)
 
-      // Pass cachedPct directly — null = server had no cache, UI will fall back to manual
+      // Pass cachedPct directly — null = server had no cache, UI falls back to manual
       teslaVehicleStore.setSleeping(cachedPct)
-      console.log('[BATTERY_FIX] teslaVehicleStore battery:', teslaVehicleStore.getSnapshot()?.batteryPercent ?? null)
 
       if (cachedPct !== null) {
         batteryStore.setFromTesla(cachedPct)
-        console.log('[BATTERY_FIX] batteryStore tesla battery:', batteryStore.getState()?.currentBatteryPercent ?? null,
-          '| source:', batteryStore.getState()?.source)
-      } else {
-        console.log('[BATTERY_FIX] batteryStore tesla battery: skipped — no cached % from server')
       }
       _setStatus('sleeping')
       _schedule(SLEEP_BACKOFF_MS)
@@ -132,23 +124,16 @@ async function _poll(forceFlag = false): Promise<void> {
     }
 
     const v = data.vehicle
-    console.log('[BATTERY_FIX] sleeping flag: false | live battery from server:', v.batteryPercent)
 
-    // Guard: only update stores when battery is actually present
+    // Only update stores when battery is actually present in the response
     if (v.batteryPercent !== null) {
       teslaVehicleStore.setFromVehicleData(v.batteryPercent, v.chargingState ?? null)
       batteryStore.setFromTesla(v.batteryPercent)
-    } else {
-      console.log('[BATTERY_FIX] live battery is null — stores NOT updated, keeping last known values')
     }
 
-    console.log('[BATTERY_FIX] teslaVehicleStore battery:', teslaVehicleStore.getSnapshot()?.batteryPercent ?? null)
-    console.log('[BATTERY_FIX] batteryStore tesla battery:', batteryStore.getState()?.currentBatteryPercent ?? null,
-      '| source:', batteryStore.getState()?.source)
     _setStatus('idle')
     _schedule(POLL_INTERVAL_MS)
-  } catch (err) {
-    console.log('[TESLA_FIX] _poll caught error:', String(err))
+  } catch {
     _setStatus('error')
     _schedule(AWAKE_INTERVAL_MS)
   }
@@ -189,8 +174,7 @@ async function _wakeAndPoll(): Promise<void> {
       _setStatus('sleeping')
       _schedule(SLEEP_BACKOFF_MS)
     }
-  } catch (err) {
-    console.log('[TESLA_FIX] _wakeAndPoll caught error:', String(err))
+  } catch {
     _setStatus('error')
     _schedule(AWAKE_INTERVAL_MS)
   }

@@ -33,13 +33,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   // Read current Redis cache
   const cached = redisOk ? await getCachedState(sessionId) : null
 
+  // VIN preferred for Fleet API calls; fall back to numeric vehicleId
+  const vehicleIdentifier = sess.vehicleVin ?? sess.vehicleId
+
   // Session metadata (no tokens)
   const sessionMeta = {
-    vehicleId:   sess.vehicleId,
-    vehicleName: sess.vehicleName,
-    tokenExpiresAt: new Date(sess.tokenExpiresAt).toISOString(),
-    tokenExpired: Date.now() > sess.tokenExpiresAt,
-    createdAt:   new Date(sess.createdAt).toISOString(),
+    vehicleId:        sess.vehicleId,
+    vehicleVin:       sess.vehicleVin  ?? null,
+    vehicleIdentifier,                            // what actually gets used in API calls
+    vehicleName:      sess.vehicleName,
+    tokenExpiresAt:   new Date(sess.tokenExpiresAt).toISOString(),
+    tokenExpired:     Date.now() > sess.tokenExpiresAt,
+    createdAt:        new Date(sess.createdAt).toISOString(),
   }
 
   // Live fetch from Tesla — raw response
@@ -47,14 +52,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   let liveError: string | null = null
   let liveStatus: number | null = null
 
-  if (sess.vehicleId) {
+  if (vehicleIdentifier) {
     try {
       const token = await getValidAccessToken(sessionId)
       if (!token) {
         liveError = 'no_valid_token — getValidAccessToken returned null'
       } else {
         const endpoints = 'charge_state;drive_state;vehicle_state'
-        const url = `${TESLA_API_BASE}/api/1/vehicles/${sess.vehicleId}/vehicle_data?endpoints=${encodeURIComponent(endpoints)}`
+        const url = `${TESLA_API_BASE}/api/1/vehicles/${vehicleIdentifier}/vehicle_data?endpoints=${encodeURIComponent(endpoints)}`
         const r = await fetch(url, {
           headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
         })
@@ -71,7 +76,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       liveError = String(e)
     }
   } else {
-    liveError = 'no vehicleId in session'
+    liveError = 'no vehicleIdentifier in session (vehicleVin and vehicleId are both null)'
   }
 
   // Extract key fields from raw response

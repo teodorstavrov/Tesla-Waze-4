@@ -23,7 +23,8 @@ export interface TeslaSession {
   accessToken:    string
   refreshToken:   string
   tokenExpiresAt: number        // Unix ms
-  vehicleId:      string | null
+  vehicleId:      string | null  // Tesla numeric ID (v.id) — kept for back-compat
+  vehicleVin:     string | null  // VIN — preferred identifier for Fleet API paths
   vehicleName:    string | null
   createdAt:      number        // Unix ms
 }
@@ -54,6 +55,7 @@ export async function saveSession(
   sessionId:   string,
   tokens:      TeslaTokens,
   vehicleId:   string | null,
+  vehicleVin:  string | null,
   vehicleName: string | null,
 ): Promise<void> {
   const sess: TeslaSession = {
@@ -61,6 +63,7 @@ export async function saveSession(
     refreshToken:   tokens.refreshToken,
     tokenExpiresAt: tokens.expiresAt,
     vehicleId,
+    vehicleVin,
     vehicleName,
     createdAt: Date.now(),
   }

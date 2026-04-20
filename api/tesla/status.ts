@@ -40,6 +40,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   res.status(200).json({
     connected:   true,
     vehicleId:   sess.vehicleId,
+    vehicleVin:  sess.vehicleVin  ?? null,
     vehicleName: sess.vehicleName,
     connectedAt: sess.createdAt,
   })
