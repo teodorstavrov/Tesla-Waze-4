@@ -6,15 +6,21 @@ import { ThemeToggle } from '@/components/ThemeToggle'
 import { SatelliteButton } from '@/components/SatelliteButton'
 import { openCountryPicker } from '@/components/CountryPicker'
 import { countryStore } from '@/lib/countryStore'
-import { langStore } from '@/lib/locale'
+import { langStore, getLang } from '@/lib/locale'
 
 const FB_GROUP_URL = 'https://www.facebook.com/groups/1496658052161240'
+
+function _pickerIcon(): string {
+  const code = countryStore.getCode()
+  if (code === 'BG' && getLang() === 'en') return '🇬🇧'
+  return countryStore.getCountryOrDefault().flag
+}
 
 export function RightControls() {
   const countryFlag = useSyncExternalStore(
     langStore.subscribe.bind(langStore),
-    () => countryStore.getCountryOrDefault().flag,
-    () => countryStore.getCountryOrDefault().flag,
+    _pickerIcon,
+    _pickerIcon,
   )
 
   return (
