@@ -106,8 +106,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     return
   }
 
-  // Fresh cache (live or recent): return without hitting Tesla
-  if (!force && cached && (cached.freshness === 'live' || cached.freshness === 'recent')) {
+  // Live cache only: return without hitting Tesla.
+  // "recent" (5–15 min) is intentionally NOT served from cache — we hit Tesla
+  // so the frontend reflects actual changes (e.g. battery drop while driving).
+  // The 30-second rate limit below still prevents Tesla API spam.
+  if (!force && cached && cached.freshness === 'live') {
     res.status(200).json({ vehicle: cached })
     return
   }
