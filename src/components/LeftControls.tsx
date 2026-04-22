@@ -19,12 +19,6 @@ export function LeftControls() {
     () => 'north-up' as const,
   )
 
-  const showTraffic = useSyncExternalStore(
-    settingsStore.subscribe.bind(settingsStore),
-    () => settingsStore.get().showTraffic,
-    () => false,
-  )
-
   const isCourseUp    = headingMode === 'course-up'
   const [modeHint, setModeHint] = useState<string | null>(null)
   const modeHintTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -96,17 +90,6 @@ export function LeftControls() {
       <button className="icon-btn" onClick={() => getMap()?.zoomOut(1)}
         title="Zoom out" aria-label="Zoom out">
         <MinusIcon />
-      </button>
-      <div style={{ height: 1, background: 'var(--glass-border)', margin: '4px 0' }} />
-      <button
-        className="icon-btn"
-        onClick={() => settingsStore.toggleTraffic()}
-        title={showTraffic ? 'Hide traffic' : 'Show traffic'}
-        aria-label={showTraffic ? 'Hide traffic' : 'Show traffic'}
-        aria-pressed={showTraffic}
-        style={{ color: showTraffic ? '#22c55e' : undefined }}
-      >
-        <TrafficIcon active={showTraffic} />
       </button>
       <button className="icon-btn" onClick={openVehicleProfileModal}
         title={t('controls.vehicleProfile')}
@@ -194,22 +177,6 @@ function CarBatteryIcon() {
   )
 }
 
-function TrafficIcon({ active }: { active: boolean }) {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {/* Road */}
-      <path d="M12 2 L12 22" strokeDasharray="2 2" opacity="0.35" />
-      <path d="M5 5 L19 5" strokeWidth="1.5" opacity="0.4" />
-      <path d="M5 19 L19 19" strokeWidth="1.5" opacity="0.4" />
-      {/* Traffic lights */}
-      <rect x="8" y="8" width="8" height="8" rx="1.5" strokeWidth="1.5" />
-      <circle cx="12" cy="10" r="1" fill={active ? '#22c55e' : 'currentColor'} stroke="none" />
-      <circle cx="12" cy="12" r="1" fill={active ? '#eab308' : 'currentColor'} stroke="none" opacity={active ? 1 : 0.4} />
-      <circle cx="12" cy="14" r="1" fill={active ? '#ef4444' : 'currentColor'} stroke="none" opacity={active ? 1 : 0.25} />
-    </svg>
-  )
-}
 
 function HeartIcon() {
   return (

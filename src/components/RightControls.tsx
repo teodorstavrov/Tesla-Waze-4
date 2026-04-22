@@ -7,6 +7,7 @@ import { SatelliteButton } from '@/components/SatelliteButton'
 import { openCountryPicker } from '@/components/CountryPicker'
 import { countryStore } from '@/lib/countryStore'
 import { langStore, getLang } from '@/lib/locale'
+import { settingsStore } from '@/features/settings/settingsStore'
 
 const FB_GROUP_URL = 'https://www.facebook.com/groups/1496658052161240'
 
@@ -21,6 +22,11 @@ export function RightControls() {
     langStore.subscribe.bind(langStore),
     _pickerIcon,
     _pickerIcon,
+  )
+  const showTraffic = useSyncExternalStore(
+    settingsStore.subscribe.bind(settingsStore),
+    () => settingsStore.get().showTraffic,
+    () => false,
   )
 
   return (
@@ -38,6 +44,16 @@ export function RightControls() {
         opacity: 0.5,
       }}
     >
+      <button
+        className="icon-btn"
+        onClick={() => settingsStore.toggleTraffic()}
+        title={showTraffic ? 'Hide traffic' : 'Show traffic'}
+        aria-label={showTraffic ? 'Hide traffic' : 'Show traffic'}
+        aria-pressed={showTraffic}
+        style={{ width: 63, height: 63, color: showTraffic ? '#22c55e' : undefined }}
+      >
+        <TrafficIcon active={showTraffic} />
+      </button>
       <ThemeToggle />
       <SatelliteButton />
       <button
@@ -61,6 +77,18 @@ export function RightControls() {
         <FacebookIcon />
       </a>
     </div>
+  )
+}
+
+function TrafficIcon({ active }: { active: boolean }) {
+  return (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="8" y="2" width="8" height="20" rx="2" strokeWidth="1.5" />
+      <circle cx="12" cy="7"  r="2" fill={active ? '#ef4444' : 'currentColor'} stroke="none" opacity={active ? 1 : 0.3} />
+      <circle cx="12" cy="12" r="2" fill={active ? '#eab308' : 'currentColor'} stroke="none" opacity={active ? 1 : 0.3} />
+      <circle cx="12" cy="17" r="2" fill={active ? '#22c55e' : 'currentColor'} stroke="none" opacity={active ? 1 : 0.3} />
+    </svg>
   )
 }
 
