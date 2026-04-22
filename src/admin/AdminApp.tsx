@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react'
 import type L from 'leaflet'
+import { buildWazeEmbedUrl } from '@/lib/waze'
 
 const EVENT_LABELS: Record<string, string> = {
   police:       '🚔 Полиция',
@@ -99,6 +100,9 @@ function Dashboard({ secret }: { secret: string }) {
   const [syncMsg, setSyncMsg] = useState('')
   const [addMode, setAddMode] = useState(false)
   const [selType, setSelType] = useState<EventType>('police')
+  // Waze embed center — defaults to Sofia; updates when admin places a marker
+  const [wazeCenter, setWazeCenter] = useState({ lat: 42.698, lng: 23.322, zoom: 13 })
+  const [wazeOpen, setWazeOpen] = useState(false)
 
   const headers = { Authorization: `Bearer ${secret}` }
 
@@ -132,6 +136,8 @@ function Dashboard({ secret }: { secret: string }) {
   }
 
   async function addEvent(lat: number, lng: number) {
+    // Keep Waze embed centered on the area the admin is working in
+    setWazeCenter({ lat, lng, zoom: 15 })
     const r = await fetch('/api/admin/events', {
       method: 'POST',
       headers: { ...headers, 'Content-Type': 'application/json' },
@@ -270,6 +276,52 @@ function Dashboard({ secret }: { secret: string }) {
             }}>
             {addMode ? '✅ Режим: кликни на картата' : '📍 Режим добавяне'}
           </button>
+        </div>
+
+        {/* Waze map context */}
+        <div style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+          <button
+            onClick={() => setWazeOpen((v) => !v)}
+            style={{
+              width: '100%', padding: '11px 18px',
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              background: 'none', border: 'none', cursor: 'pointer', color: '#ccc',
+            }}
+          >
+            <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: '#888' }}>
+              🗺 Waze карта
+            </span>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+              stroke="#888" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+              style={{ transform: wazeOpen ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s' }}
+              aria-hidden="true">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+
+          {wazeOpen && (
+            <div style={{ padding: '0 18px 14px' }}>
+              <div style={{ fontSize: 11, color: '#666', marginBottom: 8, lineHeight: 1.5 }}>
+                View-only Waze map context. Places a marker when you add an event.
+              </div>
+              <iframe
+                title="Waze map context (view only)"
+                src={buildWazeEmbedUrl({ lat: wazeCenter.lat, lon: wazeCenter.lng, zoom: wazeCenter.zoom })}
+                width="100%"
+                height="220"
+                allow="geolocation"
+                referrerPolicy="no-referrer-when-downgrade"
+                style={{
+                  border: '1px solid rgba(255,255,255,0.1)',
+                  borderRadius: 8,
+                  display: 'block',
+                }}
+              />
+              <div style={{ fontSize: 10, color: '#555', marginTop: 6, textAlign: 'center' }}>
+                &copy; Waze &mdash; view only, no live data access
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Event stats */}

@@ -11,6 +11,7 @@ import { routeStore } from '@/features/route/routeStore'
 import { getMap } from '@/components/MapShell'
 import { isTeslaBrowser } from '@/lib/browser'
 import { t, getLang, langStore } from '@/lib/locale'
+import { buildWazeDeepLink } from '@/lib/waze'
 import type { NormalizedStation, Connector } from './types'
 
 export function StationPanel() {
@@ -218,6 +219,37 @@ export function StationPanel() {
               >
                 {t('station.navigate')}
               </button>
+
+              {/* Waze deep link — web only (Waze is not available in Tesla browser) */}
+              {!isTeslaBrowser && (
+                <a
+                  href={buildWazeDeepLink({ lat: station.lat, lon: station.lng, navigate: true, query: station.name })}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label="Open in Waze"
+                  title="Open in Waze"
+                  style={{
+                    padding: '11px 14px',
+                    borderRadius: 10,
+                    background: '#07C5CE22',
+                    border: '1.5px solid #07C5CE55',
+                    color: '#07C5CE',
+                    fontSize: 13,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    touchAction: 'manipulation',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: 5,
+                    textDecoration: 'none',
+                    flexShrink: 0,
+                  }}
+                >
+                  <WazeIcon />
+                  Waze
+                </a>
+              )}
             </div>
           </>
         )}
@@ -321,6 +353,14 @@ function RefreshIcon({ spinning }: { spinning: boolean }) {
     >
       <polyline points="23 4 23 10 17 10" />
       <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" />
+    </svg>
+  )
+}
+
+function WazeIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12 2C6.477 2 2 6.477 2 12c0 2.09.638 4.03 1.728 5.635L2.5 21l3.48-1.188A9.956 9.956 0 0 0 12 22c5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18a8 8 0 0 1-4.073-1.112l-.292-.174-3.025 1.033.982-3.094-.19-.31A8 8 0 1 1 12 20zm4.077-6.022c-.222-.111-1.315-.648-1.518-.722-.203-.074-.351-.111-.499.111-.148.222-.574.722-.703.87-.129.148-.259.167-.48.056-.223-.111-.94-.346-1.79-1.104-.661-.59-1.107-1.319-1.237-1.541-.129-.222-.014-.342.097-.453.1-.099.222-.26.333-.389.111-.13.148-.222.222-.37.074-.148.037-.278-.018-.389-.056-.111-.499-1.203-.684-1.648-.18-.432-.363-.374-.499-.38-.129-.007-.278-.009-.426-.009-.148 0-.389.056-.593.278-.203.222-.78.762-.78 1.857 0 1.096.799 2.154.91 2.302.111.148 1.573 2.4 3.81 3.366.532.229.948.366 1.272.469.535.17 1.021.146 1.406.088.429-.064 1.315-.537 1.5-1.057.186-.52.186-.965.13-1.057-.055-.092-.203-.148-.426-.259z"/>
     </svg>
   )
 }
