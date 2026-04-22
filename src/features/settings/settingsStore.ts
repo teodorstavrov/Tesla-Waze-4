@@ -4,11 +4,12 @@
 export type HeadingMode = 'course-up' | 'north-up'
 
 interface Settings {
-  headingMode: HeadingMode
+  headingMode:  HeadingMode
+  showTraffic:  boolean
 }
 
 const STORAGE_KEY = 'teslaradar:settings'
-const DEFAULTS: Settings = { headingMode: 'north-up' }
+const DEFAULTS: Settings = { headingMode: 'north-up', showTraffic: false }
 
 type Listener = () => void
 const _listeners = new Set<Listener>()
@@ -33,6 +34,13 @@ export const settingsStore = {
   setHeadingMode(mode: HeadingMode): void {
     const s = _load()
     s.headingMode = mode
+    _save(s)
+    _emit()
+  },
+
+  toggleTraffic(): void {
+    const s = _load()
+    s.showTraffic = !s.showTraffic
     _save(s)
     _emit()
   },

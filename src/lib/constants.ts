@@ -23,6 +23,14 @@ export const TILE_ATTRIBUTION =
 export const TILE_SATELLITE_ATTRIBUTION =
   'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP'
 
+// ─── TomTom Traffic overlay ──────────────────────────────────────────
+// Official TomTom Traffic Flow Tiles API (ToS-safe, free tier: 2 500 req/day).
+// Overlaid on top of the base tile layer — shows green/yellow/red on streets.
+// Key is restricted to this domain in the TomTom dashboard.
+export const TOMTOM_API_KEY = 'UZy6QCNYERobnoEtB8Zsxh7dry6NKvtD'
+export const TILE_TRAFFIC =
+  `https://api.tomtom.com/traffic/map/4/tile/flow/relative0/{z}/{x}/{y}.png?key=${TOMTOM_API_KEY}`
+
 // ─── App ──────────────────────────────────────────────────────────────
 export const APP_NAME = 'TesRadar'
 export const APP_VERSION = '2.0.0'

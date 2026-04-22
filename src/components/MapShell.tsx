@@ -19,13 +19,14 @@
 // carry the singletons across hot-reload boundaries without destroying
 // the live map.
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useSyncExternalStore } from 'react'
 import { L } from '@/lib/leaflet'
 import { logger } from '@/lib/logger'
 import {
   MIN_ZOOM, MAX_ZOOM,
   TILE_DARK, TILE_LIGHT, TILE_VOYAGER, TILE_VOYAGER_DARK, TILE_SATELLITE,
   TILE_ATTRIBUTION, TILE_SATELLITE_ATTRIBUTION,
+  TILE_TRAFFIC,
 } from '@/lib/constants'
 import { countryStore } from '@/lib/countryStore'
 import { useThemeStore } from '@/features/theme/store'
@@ -216,18 +217,21 @@ function _clearCourseUp(container: HTMLElement): void {
 // ── HMR-safe module-level singletons ──────────────────────────────
 // On cold start: null. On HMR reload: recovered from the previous
 // module's dispose callback so the live map is never destroyed.
-type HotData = { mapInstance: L.Map | null; tileLayer: L.TileLayer | null }
+type HotData = { mapInstance: L.Map | null; tileLayer: L.TileLayer | null; trafficLayer: L.TileLayer | null }
 
 let mapInstance: L.Map | null =
   (import.meta.hot?.data as Partial<HotData> | undefined)?.mapInstance ?? null
 let tileLayer: L.TileLayer | null =
   (import.meta.hot?.data as Partial<HotData> | undefined)?.tileLayer ?? null
+let trafficLayer: L.TileLayer | null =
+  (import.meta.hot?.data as Partial<HotData> | undefined)?.trafficLayer ?? null
 
 // Save state before this module is replaced by HMR
 if (import.meta.hot) {
   import.meta.hot.dispose((data) => {
-    (data as HotData).mapInstance = mapInstance
-    ;(data as HotData).tileLayer  = tileLayer
+    (data as HotData).mapInstance   = mapInstance
+    ;(data as HotData).tileLayer    = tileLayer
+    ;(data as HotData).trafficLayer = trafficLayer
   })
 }
 
@@ -244,6 +248,11 @@ export function getCourseUpScale(): number {
 export function MapShell() {
   const containerRef = useRef<HTMLDivElement>(null)
   const { theme, mapMode } = useThemeStore()
+  const showTraffic = useSyncExternalStore(
+    settingsStore.subscribe.bind(settingsStore),
+    () => settingsStore.get().showTraffic,
+    () => false,
+  )
 
   // ── Initialize map (runs once per cold start) ─────────────────
   useEffect(() => {
@@ -537,6 +546,33 @@ export function MapShell() {
 
     logger.map.debug('Tile updated', { mapMode, theme })
   }, [theme, mapMode])
+
+  // ── Traffic overlay (TomTom) ──────────────────────────────────
+  useEffect(() => {
+    if (!mapInstance) return
+    const map = mapInstance
+
+    if (showTraffic) {
+      if (!trafficLayer) {
+        trafficLayer = L.tileLayer(TILE_TRAFFIC, {
+          maxZoom:           MAX_ZOOM,
+          opacity:           0.8,
+          updateWhenIdle:    false,
+          updateWhenZooming: false,
+          // TomTom tiles load at z>=7 — below that the overlay is empty anyway
+          minZoom:           7,
+          // Declare pane so traffic always renders above base tiles but below markers
+          pane: 'overlayPane',
+        }).addTo(map)
+      } else if (!map.hasLayer(trafficLayer)) {
+        trafficLayer.addTo(map)
+      }
+    } else {
+      if (trafficLayer && map.hasLayer(trafficLayer)) {
+        map.removeLayer(trafficLayer)
+      }
+    }
+  }, [showTraffic])
 
   // ── Sync data-theme attribute to <html> for CSS custom props ──
   useEffect(() => {
