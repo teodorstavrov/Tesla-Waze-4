@@ -53,7 +53,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const state         = generateState()
 
   // Store state → code_verifier in Redis (10 min — enough to complete OAuth)
-  await savePkceState(state, codeVerifier)
+  try {
+    await savePkceState(state, codeVerifier)
+  } catch (err) {
+    console.error('[CONNECT] Redis savePkceState failed:', String(err))
+    res.status(503).json({
+      error: 'Session store unavailable — please try again in a moment',
+      hint:  String(err),
+    })
+    return
+  }
 
   // Set session cookie (HttpOnly prevents JS access; Secure ensures HTTPS only)
   res.setHeader('Set-Cookie', buildSessionCookie(SESSION_COOKIE, sessionId, SESSION_MAX_AGE))

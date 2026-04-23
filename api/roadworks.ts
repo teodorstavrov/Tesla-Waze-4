@@ -121,12 +121,16 @@ function parseXml(xml: string): RoadworkRecord[] {
 export default async function handler(_req: VercelRequest, res: VercelResponse): Promise<void> {
   res.setHeader('Cache-Control', 'public, max-age=1800, stale-while-revalidate=300')
 
-  // Redis cache
+  // Redis cache — wrapped in try/catch so Redis exhaustion doesn't block the live fetch
   if (isRedisConfigured()) {
-    const cached = await redis.get<RoadworkRecord[]>(CACHE_KEY)
-    if (cached) {
-      res.status(200).json({ roadworks: cached, source: 'cache' })
-      return
+    try {
+      const cached = await redis.get<RoadworkRecord[]>(CACHE_KEY)
+      if (cached) {
+        res.status(200).json({ roadworks: cached, source: 'cache' })
+        return
+      }
+    } catch (err) {
+      console.warn('[ROADWORKS] Redis read failed, falling through to live fetch:', String(err))
     }
   }
 
@@ -148,7 +152,11 @@ export default async function handler(_req: VercelRequest, res: VercelResponse):
     const data = parseXml(xml)
 
     if (isRedisConfigured() && data.length > 0) {
-      await redis.setWithExpiry(CACHE_KEY, data, CACHE_TTL)
+      try {
+        await redis.setWithExpiry(CACHE_KEY, data, CACHE_TTL)
+      } catch (err) {
+        console.warn('[ROADWORKS] Redis write failed, continuing without cache:', String(err))
+      }
     }
 
     console.log(`[ROADWORKS] Loaded ${data.length} records from ${url}`)

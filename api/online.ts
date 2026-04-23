@@ -11,8 +11,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { redis, isRedisConfigured } from './_lib/db/redis.js'
 
 const KEY         = 'teslaradar:online:v1'
-const TTL_S       = 30    // session considered online for 30s after last heartbeat
-const KEY_EXPIRY  = 120   // delete entire key if no activity for 2 min
+const TTL_S       = 7 * 60  // session considered online for 7 min (matches 5-min heartbeat + buffer)
+const KEY_EXPIRY  = 15 * 60 // delete entire key if no activity for 15 min
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*')

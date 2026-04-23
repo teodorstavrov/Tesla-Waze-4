@@ -5,7 +5,7 @@
 import type { RoadEvent, EventType } from './types.js'
 import { logger } from '@/lib/logger'
 
-const STALE_MS = 3 * 60 * 1000  // 3 min — cost reduction; events rarely change second-by-second
+const STALE_MS = 10 * 60 * 1000  // 10 min — events change rarely; big Redis saving
 
 interface EventState {
   events: RoadEvent[]

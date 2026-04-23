@@ -12,7 +12,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { isTeslaBrowser } from '@/lib/browser'
 
-const HEARTBEAT_MS = 20_000
+const HEARTBEAT_MS = 5 * 60_000   // 5 min — reduces Redis commands ~5x vs 60s
 
 function getSessionId(): string {
   const KEY = 'tesradar:sid'

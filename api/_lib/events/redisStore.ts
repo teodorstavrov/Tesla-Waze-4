@@ -40,9 +40,12 @@ async function _write(events: RoadEvent[]): Promise<void> {
 
 export const eventRedisStore = {
   async getInBBox(bbox: { minLat: number; minLng: number; maxLat: number; maxLng: number }): Promise<RoadEvent[]> {
-    const all = _pruneExpired(await _readAll())
-    // Write pruned list back lazily (fire-and-forget — don't block the response)
-    void _write(all)
+    const raw = await _readAll()
+    const all = _pruneExpired(raw)
+    // Only write back if we actually pruned something — skips the Redis SET on most GETs
+    if (all.length < raw.length) {
+      _write(all).catch((err) => console.warn('[eventRedisStore] lazy prune write failed:', String(err)))
+    }
     return all.filter(
       (e) =>
         e.lat >= bbox.minLat && e.lat <= bbox.maxLat &&
@@ -69,8 +72,11 @@ export const eventRedisStore = {
   },
 
   async getAll(): Promise<RoadEvent[]> {
-    const all = _pruneExpired(await _readAll())
-    void _write(all)
+    const raw = await _readAll()
+    const all = _pruneExpired(raw)
+    if (all.length < raw.length) {
+      _write(all).catch((err) => console.warn('[eventRedisStore] lazy prune write failed:', String(err)))
+    }
     return all
   },
 
