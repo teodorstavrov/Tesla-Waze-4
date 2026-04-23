@@ -8,6 +8,7 @@ import { openCountryPicker } from '@/components/CountryPicker'
 import { countryStore } from '@/lib/countryStore'
 import { langStore, getLang } from '@/lib/locale'
 import { settingsStore } from '@/features/settings/settingsStore'
+import { roadworksStore } from '@/features/roadworks/roadworksStore'
 
 const FB_GROUP_URL = 'https://www.facebook.com/groups/1496658052161240'
 
@@ -27,6 +28,11 @@ export function RightControls() {
     settingsStore.subscribe.bind(settingsStore),
     () => settingsStore.get().showTraffic,
     () => false,
+  )
+  const { visible: showRoadworks, status: rwStatus } = useSyncExternalStore(
+    roadworksStore.subscribe,
+    roadworksStore.getState,
+    roadworksStore.getState,
   )
 
   return (
@@ -54,6 +60,19 @@ export function RightControls() {
       >
         <TrafficIcon active={showTraffic} />
       </button>
+      <button
+        className="icon-btn"
+        onClick={() => roadworksStore.toggle()}
+        title={showRoadworks ? 'Hide road closures' : 'Show road closures'}
+        aria-label={showRoadworks ? 'Hide road closures' : 'Show road closures'}
+        aria-pressed={showRoadworks}
+        style={{ width: 63, height: 63, color: showRoadworks ? '#f97316' : undefined }}
+      >
+        {rwStatus === 'loading'
+          ? <RoadworksLoadingIcon />
+          : <RoadworksIcon active={showRoadworks} />
+        }
+      </button>
       <ThemeToggle />
       <SatelliteButton />
       <button
@@ -77,6 +96,31 @@ export function RightControls() {
         <FacebookIcon />
       </a>
     </div>
+  )
+}
+
+function RoadworksIcon({ active }: { active: boolean }) {
+  const c = active ? '#f97316' : 'currentColor'
+  return (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
+      stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {/* Warning triangle */}
+      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
+        fill={active ? '#f9731622' : 'none'} />
+      {/* Exclamation */}
+      <line x1="12" y1="9" x2="12" y2="13" strokeWidth="2.5" stroke={c} />
+      <circle cx="12" cy="17" r="0.5" fill={c} stroke={c} strokeWidth="1.5" />
+    </svg>
+  )
+}
+
+function RoadworksLoadingIcon() {
+  return (
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+      style={{ animation: 'spin 0.8s linear infinite' }} aria-hidden="true">
+      <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+    </svg>
   )
 }
 
