@@ -76,9 +76,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         return
       }
 
-      const events = useRedis
-        ? await eventRedisStore.getInBBox(queryBBox)
-        : eventMemStore.getInBBox(queryBBox)
+      let events: RoadEvent[]
+      if (useRedis) {
+        try {
+          events = await eventRedisStore.getInBBox(queryBBox)
+        } catch {
+          // Redis unavailable (e.g. daily limit exceeded) — fall back to in-memory
+          events = eventMemStore.getInBBox(queryBBox)
+        }
+      } else {
+        events = eventMemStore.getInBBox(queryBBox)
+      }
 
       // Cache result for 20s — reduces Redis reads at 50 concurrent users
       _eventsCache.set(cacheKey, { events, expiresAt: now + GET_CACHE_TTL_MS })
@@ -96,7 +104,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   if (req.method === 'POST') {
     try {
       const ip = (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() ?? 'unknown'
-      const allowed = await rateLimit(ip, 'events', 20, 600)
+      let allowed = true
+      try { allowed = await rateLimit(ip, 'events', 20, 600) } catch { /* Redis down — skip rate limit */ }
       if (!allowed) { res.status(429).json({ error: 'Too many reports. Please wait a few minutes.' }); return }
 
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body

@@ -24,12 +24,18 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
     // Rate limit: 3 votes per IP per event per hour (prevents vote spam)
     const ip = (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() ?? 'unknown'
-    const allowed = await rateLimit(ip, `vote:${id}`, 3, 3600)
+    let allowed = true
+    try { allowed = await rateLimit(ip, `vote:${id}`, 3, 3600) } catch { /* Redis down — skip */ }
     if (!allowed) { res.status(429).json({ error: 'Too many votes on this event' }); return }
 
-    const event = isRedisConfigured()
-      ? await eventRedisStore.confirm(id)
-      : eventMemStore.confirm(id)
+    let event
+    try {
+      event = isRedisConfigured()
+        ? await eventRedisStore.confirm(id)
+        : eventMemStore.confirm(id)
+    } catch {
+      event = eventMemStore.confirm(id)
+    }
     if (!event) { res.status(404).json({ error: 'Event not found or expired' }); return }
 
     res.status(200).json({ event })
