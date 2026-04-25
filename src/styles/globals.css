@@ -542,6 +542,59 @@ body,
   }
 }
 
+/* ─── AMD Lite performance mode ──────────────────────────────────────── */
+/*
+   Applied when <html data-perf="tesla_amd_lite">.
+   These rules ADD on top of [data-tesla] optimisations.
+
+   Root cause of tile checkerboard on AMD:
+     1. Leaflet requests tiles continuously during pan (updateWhenIdle=false).
+        Each incoming tile triggers a CSS opacity transition (0 → 1, 150ms).
+        Simultaneously the map container has a CSS transform transition.
+        Two concurrent transition sets saturate AMD's GPU compositor pipeline.
+     2. The compositor must rebuild its layer tree on every new tile that
+        arrives while the map is moving — visible as 30×30px grey squares.
+
+   Fixes applied here (JS side already handled in MapShell/EvMarkerLayer/etc):
+     • Kill per-tile CSS transition → tiles appear instantly, no 150ms fade.
+       Fewer concurrent animations = fewer compositor passes per frame.
+     • Kill the map #map transform transition (restored by [data-tesla] rule).
+       Rotation snaps directly — one fewer CSS animation to composite.
+     • Strip any remaining backdrop-filter that [data-tesla] might miss.
+*/
+[data-perf="tesla_amd_lite"] .leaflet-tile,
+[data-perf="tesla_intel_legacy"] .leaflet-tile {
+  /* Kill per-tile fade-in — biggest source of mid-pan compositor pressure */
+  transition: none !important;
+}
+
+[data-perf="tesla_amd_lite"] #map,
+[data-perf="tesla_intel_legacy"] #map {
+  /* Kill map rotation transition — one less GPU animation layer during drives */
+  transition: none !important;
+}
+
+[data-perf="tesla_amd_lite"] .glass,
+[data-perf="tesla_intel_legacy"] .glass {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: rgba(13, 13, 19, 0.97) !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6) !important;
+}
+
+[data-perf="tesla_amd_lite"] .icon-btn,
+[data-perf="tesla_intel_legacy"] .icon-btn {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  transition: none !important;
+}
+
+/* Intel legacy: additional memory reduction — thinner tile pipeline */
+[data-perf="tesla_intel_legacy"] .leaflet-container {
+  /* image-rendering hint for older Intel GPU rasteriser */
+  image-rendering: auto;
+}
+
 /* ─── Scrollbar ──────────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
   width: 4px;

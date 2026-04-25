@@ -1,15 +1,22 @@
 // ─── User Settings Store (localStorage) ───────────────────────────────
 // Device-local user preferences. No server sync.
 
+import type { PerformanceMode } from '@/config/performanceProfiles'
+
 export type HeadingMode = 'course-up' | 'north-up'
 
 interface Settings {
-  headingMode:  HeadingMode
-  showTraffic:  boolean
+  headingMode:     HeadingMode
+  showTraffic:     boolean
+  performanceMode: PerformanceMode
 }
 
 const STORAGE_KEY = 'teslaradar:settings'
-const DEFAULTS: Settings = { headingMode: 'north-up', showTraffic: false }
+const DEFAULTS: Settings = {
+  headingMode:     'north-up',
+  showTraffic:     false,
+  performanceMode: 'auto',
+}
 
 type Listener = () => void
 const _listeners = new Set<Listener>()
@@ -41,6 +48,13 @@ export const settingsStore = {
   toggleTraffic(): void {
     const s = _load()
     s.showTraffic = !s.showTraffic
+    _save(s)
+    _emit()
+  },
+
+  setPerformanceMode(mode: PerformanceMode): void {
+    const s = _load()
+    s.performanceMode = mode
     _save(s)
     _emit()
   },

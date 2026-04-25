@@ -13,6 +13,7 @@ import { eventStore } from './eventStore.js'
 import { EVENT_EMOJI, EVENT_COLORS } from './types.js'
 import { logger } from '@/lib/logger'
 import { isTeslaBrowser } from '@/lib/browser'
+import { getActivePerformanceProfile } from '@/config/performanceProfiles'
 import type { RoadEvent } from './types.js'
 
 const NEW_THRESHOLD_MS = 2 * 60 * 1000  // pulse events reported within 2 minutes
@@ -21,9 +22,11 @@ function makeIcon(event: RoadEvent): L.DivIcon {
   const color = EVENT_COLORS[event.type] ?? '#888'
   const emoji = EVENT_EMOJI[event.type]  ?? '📍'
   const isNew = Date.now() - new Date(event.reportedAt).getTime() < NEW_THRESHOLD_MS
-  // Tesla: CSS animations on divIcon run on main thread (box-shadow pulse forces
-  // layout+paint), causing jitter near other map activity. Suppress on Tesla.
-  const animation = (!isTeslaBrowser && isNew) ? 'event-new-pulse 0.9s ease-out 3' : 'none'
+  // Suppress pulse if Tesla browser or profile disables marker animations.
+  const profile = getActivePerformanceProfile()
+  const animation = (!isTeslaBrowser && isNew && profile.useMarkerAnimations)
+    ? 'event-new-pulse 0.9s ease-out 3'
+    : 'none'
 
   // Police gets a solid filled circle — much more readable on Tesla's screen.
   // Other event types keep the semi-transparent style.
@@ -97,13 +100,14 @@ export function EventMarkerLayer() {
 
       function onMoveEnd(): void {
         if (moveTimer) clearTimeout(moveTimer)
+        const debounce = getActivePerformanceProfile().mapMoveDebounceMs
         moveTimer = setTimeout(() => {
           const b = map.getBounds()
           eventStore.fetch({
             minLat: b.getSouth(), minLng: b.getWest(),
             maxLat: b.getNorth(), maxLng: b.getEast(),
           })
-        }, 400)
+        }, debounce)
       }
 
       map.on('moveend', onMoveEnd)

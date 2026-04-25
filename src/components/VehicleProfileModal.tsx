@@ -12,6 +12,8 @@ import type { TeslaModel } from '@/features/planning/types'
 import { isTeslaBrowser } from '@/lib/browser'
 import { getLang, langStore } from '@/lib/locale'
 import { TeslaConnect } from '@/features/tesla/TeslaConnect'
+import { settingsStore } from '@/features/settings/settingsStore'
+import type { PerformanceMode } from '@/config/performanceProfiles'
 
 // ── Model S 3-step configurator constants ─────────────────────────────
 const MS_YEAR_GROUPS = ['2012–2016', '2016–2019', '2019–2021', '2021+'] as const
@@ -88,6 +90,13 @@ function getLabels() {
     save:            isBg ? 'Запази'                                            : 'Save',
     close:           isBg ? 'Затвори'                                           : 'Close',
     dialogLabel:     isBg ? 'Профил на автомобила'                             : 'Vehicle Setup',
+    perfModeLabel:   isBg ? 'Компютър / производителност'                      : 'Computer / Performance mode',
+    perfModeHint:    isBg ? 'Промяната влиза в сила след презареждане'          : 'Change takes effect after reload',
+    perfAuto:        isBg ? 'Автоматично'                                       : 'Auto',
+    perfNormal:      isBg ? 'Нормален'                                          : 'Normal',
+    perfAmd:         isBg ? 'AMD Lite — по-малко визуални ефекти'               : 'AMD Lite — reduced visual load',
+    perfIntel:       isBg ? 'Intel / Стар MCU — минимален режим'               : 'Intel / Legacy MCU — minimal mode',
+    perfHigh:        isBg ? 'Висока производителност'                           : 'High Performance',
   }
 }
 
@@ -274,6 +283,10 @@ export function VehicleProfileModal() {
     existing?.degradationPercent != null ? String(existing.degradationPercent) : ''
   )
 
+  const [perfMode, setPerfMode] = useState<PerformanceMode>(
+    () => settingsStore.get().performanceMode
+  )
+
   // ── Model S 3-step state ──────────────────────────────────────────────
   const [msGroup, setMsGroup] = useState<MSYearGroup | null>(null)
   const [msBat,   setMsBat]   = useState<number | null>(null)
@@ -330,6 +343,7 @@ export function VehicleProfileModal() {
       setBattery(80); setDegrad('')
       setMsGroup(null); setMsBat(null); setMsDrv(null)
     }
+    setPerfMode(settingsStore.get().performanceMode)
     setOpen(true)
     if (isTeslaBrowser) {
       setShown(true)
@@ -374,6 +388,7 @@ export function VehicleProfileModal() {
     }
     vehicleProfileStore.save(savedProfile)
     batteryStore.resetFromProfile({ ...savedProfile, updatedAt: Date.now() })
+    settingsStore.setPerformanceMode(perfMode)
     close()
   }
 
@@ -709,6 +724,44 @@ export function VehicleProfileModal() {
           <div>
             <div style={SECTION_LABEL}>{labels.teslaSection}</div>
             <TeslaConnect />
+          </div>
+
+          {/* Performance mode */}
+          <div>
+            <div style={SECTION_LABEL}>{labels.perfModeLabel}</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+              {([
+                { value: 'auto',               label: labels.perfAuto },
+                { value: 'tesla_amd_lite',      label: labels.perfAmd },
+                { value: 'tesla_intel_legacy',  label: labels.perfIntel },
+                { value: 'high_performance',    label: labels.perfHigh },
+              ] as { value: PerformanceMode; label: string }[]).map(({ value, label }) => {
+                const sel = perfMode === value
+                return (
+                  <button
+                    key={value}
+                    onClick={() => setPerfMode(value)}
+                    style={{
+                      padding: '10px 14px',
+                      borderRadius: 10,
+                      border: `1px solid ${sel ? 'rgba(227,25,55,0.65)' : 'rgba(255,255,255,0.10)'}`,
+                      background: sel ? 'rgba(227,25,55,0.14)' : 'rgba(255,255,255,0.04)',
+                      color: sel ? '#fff' : 'rgba(255,255,255,0.6)',
+                      fontSize: 14,
+                      fontWeight: sel ? 700 : 400,
+                      cursor: 'pointer',
+                      touchAction: 'manipulation',
+                      textAlign: 'left' as const,
+                    }}
+                  >
+                    {label}
+                  </button>
+                )
+              })}
+            </div>
+            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 6 }}>
+              {labels.perfModeHint}
+            </div>
           </div>
 
           {/* Spacer */}

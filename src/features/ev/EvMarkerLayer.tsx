@@ -24,6 +24,7 @@ import { filterStore } from './filterStore.js'
 import { routeStore } from '@/features/route/routeStore'
 import { logger } from '@/lib/logger'
 import { getLang } from '@/lib/locale'
+import { getActivePerformanceProfile } from '@/config/performanceProfiles'
 import type { NormalizedStation } from './types.js'
 
 // ── Constants ─────────────────────────────────────────────────────
@@ -286,16 +287,17 @@ export function EvMarkerLayer() {
       // Initial sync
       syncMarkers()
 
-      // Fetch on moveend (debounced 400ms)
+      // Fetch on moveend — debounce from performance profile
       function onMoveEnd(): void {
         if (moveTimer) clearTimeout(moveTimer)
+        const debounce = getActivePerformanceProfile().evDebounceMs
         moveTimer = setTimeout(() => {
           const b = map.getBounds()
           evStore.fetch({
             minLat: b.getSouth(), minLng: b.getWest(),
             maxLat: b.getNorth(), maxLng: b.getEast(),
           })
-        }, 400)
+        }, debounce)
       }
 
       // Re-render on zoom change (may switch between cluster/individual modes)

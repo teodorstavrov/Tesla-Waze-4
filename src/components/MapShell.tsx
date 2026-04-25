@@ -37,6 +37,8 @@ import { savedPlacesStore } from '@/features/places/savedPlacesStore'
 import { settingsStore } from '@/features/settings/settingsStore'
 import { isTeslaBrowser } from '@/lib/browser'
 import { t } from '@/lib/locale'
+import { getActivePerformanceProfile } from '@/config/performanceProfiles'
+import type { PerformanceProfile } from '@/config/performanceProfiles'
 
 // ── Course-up (heading-up) map rotation helpers ───────────────────
 // When navigating, the map rotates so the direction of travel is always
@@ -58,6 +60,10 @@ let _rotationDeg = 0  // accumulated, unbounded (can exceed 360)
 let _lastWrittenTransform = ''  // dedup: skip style.transform write when value unchanged
 let _lastCounterScale = ''      // dedup: skip --marker-counter-scale write when value unchanged
 let _geocodeTimer: ReturnType<typeof setTimeout> | null = null  // debounce Nominatim requests
+
+// Performance profile — read once at module load, refreshed on settingsStore change
+// (settingsStore.subscribe callback in the map init effect keeps this current)
+let _perfProfile: PerformanceProfile = getActivePerformanceProfile()
 
 // ── Scale computation ─────────────────────────────────────────────
 // Cached module-level — zero cost per GPS tick.
@@ -167,12 +173,11 @@ function _applyCourseUp(container: HTMLElement, heading: number): void {
   if (delta > 180)  delta -= 360  // e.g. 350→10: delta = -340 → +20
   if (delta < -180) delta += 360  // e.g. 10→350: delta = 340 → -20
 
-  // Tesla: skip style mutation when heading change is negligible (< 0.8°).
-  // Redundant style.transform writes trigger style-recalc cycles even when the
-  // computed value is identical — at highway speed on a straight road this fires
-  // 1×/sec for a zero-change rotation, competing with tile load rasterization.
-  // Non-Tesla keeps full precision for smooth animated rotation.
-  if (isTeslaBrowser && Math.abs(delta) < 0.8) {
+  // Skip style mutation when heading change is below profile threshold.
+  // Redundant style.transform writes trigger style-recalc cycles even when
+  // the computed value is identical — competing with tile load rasterization.
+  // AMD Lite raises this to 2.0° to further reduce compositor pressure.
+  if (isTeslaBrowser && Math.abs(delta) < _perfProfile.rotationThresholdDeg) {
     // Still need to apply transformOrigin on first call
     if (!_lastWrittenTransform) container.style.transformOrigin = '50% 50%'
     return
@@ -236,6 +241,18 @@ if (import.meta.hot) {
 }
 
 export function getMap(): L.Map | null { return mapInstance }
+
+/** Write data-perf attribute to <html> so CSS performance rules engage. */
+function _applyPerfAttribute(): void {
+  const id = _perfProfile.id
+  if (id === 'auto' || id === 'normal') {
+    document.documentElement.removeAttribute('data-perf')
+  } else {
+    document.documentElement.setAttribute('data-perf', id)
+  }
+}
+// Apply immediately on module load (before first React render)
+_applyPerfAttribute()
 
 /** Returns the CSS scale currently applied to the map container in course-up mode.
  *  HeadingAvatar uses this to apply a reciprocal scale so the avatar stays at its
@@ -447,12 +464,13 @@ export function MapShell() {
       _lastPanLat = pos.lat
       _lastPanLng = pos.lng
 
-      // Tesla: instant repositioning eliminates the 500ms animation window
-      // that causes jitter when panel renders or tile loads overlap the pan.
-      // Non-Tesla: keep smooth animated follow (current behavior unchanged).
-      const panOptions: L.PanOptions = isTeslaBrowser
-        ? { animate: false }
-        : { animate: true, duration: 0.5 }
+      // Instant pan on Tesla or when profile disables animation.
+      // AMD Lite: panAnimate=false eliminates the 500ms window where tile
+      // loads collide with the Leaflet pan transition (main jitter source).
+      const panOptions: L.PanOptions =
+        (isTeslaBrowser || !_perfProfile.panAnimate)
+          ? { animate: false }
+          : { animate: true, duration: 0.5 }
       // ── Course-up rotation ────────────────────────────────────────────────
       // Applied before panTo so _courseUpActive / _mapScale are up to date
       // when we compute the perspective lookahead below.
@@ -481,19 +499,18 @@ export function MapShell() {
       map.panTo(panTarget, panOptions)
     })
 
-    // React to heading mode changes immediately:
-    // - north-up → clear rotation right away
-    // - course-up → enable follow so the next GPS tick calls _applyCourseUp.
-    //   Without this, _applyCourseUp is unreachable: in route-preview mode
-    //   inPreview=true blocks auto-follow, so the GPS handler returns early
-    //   and the rotation never fires even though the setting changed.
+    // React to settings changes: heading mode + performance profile
     const unsubSettings = settingsStore.subscribe(() => {
-      const headingMode = settingsStore.get().headingMode
+      const { headingMode } = settingsStore.get()
       if (headingMode === 'north-up' && containerRef.current) {
         _clearCourseUp(containerRef.current)
       } else if (headingMode === 'course-up') {
         followStore.setFollowing(true)
       }
+      // Refresh module-level profile so GPS callback uses latest threshold
+      _perfProfile = getActivePerformanceProfile()
+      // Reflect on <html> so CSS rules activate instantly
+      _applyPerfAttribute()
     })
 
     logger.map.info('Map initialized', { country: initCountry.code, center: initCountry.center, zoom: initCountry.zoom })
@@ -522,24 +539,29 @@ export function MapShell() {
     const attribution =
       mapMode === 'satellite' ? TILE_SATELLITE_ATTRIBUTION : TILE_ATTRIBUTION
 
+    const profile = getActivePerformanceProfile()
     const tileOptions = {
       attribution,
       subdomains:        'abcd',
       maxZoom:           MAX_ZOOM,
-      keepBuffer:        4,
-      updateWhenIdle:    false,
-      updateWhenZooming: false,
+      keepBuffer:        profile.tileKeepBuffer,
+      updateWhenIdle:    profile.tileUpdateWhenIdle,
+      updateWhenZooming: profile.tileUpdateWhenZooming,
     }
 
     if (tileLayer) {
-      const prev = tileLayer
-      // New layer starts invisible and fades in via CSS transition
-      const next = L.tileLayer(url, { ...tileOptions, opacity: 0 }).addTo(map)
-      tileLayer = next
-
-      // Double-RAF: browser paints opacity:0 before we trigger the transition
-      requestAnimationFrame(() => requestAnimationFrame(() => next.setOpacity(1)))
-      setTimeout(() => { if (map.hasLayer(prev)) map.removeLayer(prev) }, 500)
+      if (profile.tileFadeAnimation) {
+        // Crossfade: new layer starts invisible and fades to opaque
+        const prev = tileLayer
+        const next = L.tileLayer(url, { ...tileOptions, opacity: 0 }).addTo(map)
+        tileLayer = next
+        requestAnimationFrame(() => requestAnimationFrame(() => next.setOpacity(1)))
+        setTimeout(() => { if (map.hasLayer(prev)) map.removeLayer(prev) }, 500)
+      } else {
+        // Instant swap (AMD Lite / Intel): avoid double-layer opacity animation
+        map.removeLayer(tileLayer)
+        tileLayer = L.tileLayer(url, tileOptions).addTo(map)
+      }
     } else {
       tileLayer = L.tileLayer(url, tileOptions).addTo(map)
     }

@@ -12,6 +12,7 @@ import { L } from '@/lib/leaflet'
 import { getMap } from '@/components/MapShell'
 import { cameraStore } from './cameraStore'
 import { getLang, t } from '@/lib/locale'
+import { getActivePerformanceProfile } from '@/config/performanceProfiles'
 import type { SpeedCamera } from './types'
 
 const MIN_ZOOM = 10   // don't show cameras at country-level zoom
@@ -170,7 +171,8 @@ export function CameraMarkerLayer() {
 
       function onMoveEnd(): void {
         if (moveTimerRef.current) clearTimeout(moveTimerRef.current)
-        moveTimerRef.current = setTimeout(syncMarkers, 200)
+        const debounce = getActivePerformanceProfile().cameraDebounceMs
+        moveTimerRef.current = setTimeout(syncMarkers, debounce)
       }
 
       const unsubCameras = cameraStore.subscribe(syncMarkers)
