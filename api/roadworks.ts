@@ -23,14 +23,19 @@ export interface RoadworkRecord {
   severity:  string   // 'high' | 'medium' | 'low' | 'unknown'
 }
 
-// Build today's feed URL using Sofia local time (UTC+2 winter / UTC+3 summer)
-function buildUrl(): string {
-  // Add 2 h to UTC as conservative offset — good enough for date selection
-  const sofia = new Date(Date.now() + 2 * 60 * 60 * 1000)
-  const y = sofia.getUTCFullYear()
-  const m = String(sofia.getUTCMonth() + 1).padStart(2, '0')
-  const d = String(sofia.getUTCDate()).padStart(2, '0')
-  return `https://datasheet.api.bg/files/${y}${m}${d}_roadworks_r01.xml`
+// Build feed URL candidates — today first, yesterday as fallback.
+// Bulgaria is UTC+2 (EET) / UTC+3 (EEST). Using UTC+3 (summer) offset so we
+// never accidentally request tomorrow's file during the overlap hour.
+function buildUrls(): string[] {
+  const urls: string[] = []
+  for (const offsetDays of [0, -1]) {
+    const d = new Date(Date.now() + 3 * 60 * 60 * 1000 + offsetDays * 86400000)
+    const y = d.getUTCFullYear()
+    const m = String(d.getUTCMonth() + 1).padStart(2, '0')
+    const dd = String(d.getUTCDate()).padStart(2, '0')
+    urls.push(`https://datasheet.api.bg/files/${y}${m}${dd}_roadworks_r01.xml`)
+  }
+  return urls
 }
 
 // ── XML parsing ───────────────────────────────────────────────────────────────
@@ -134,35 +139,43 @@ export default async function handler(_req: VercelRequest, res: VercelResponse):
     }
   }
 
-  const url = buildUrl()
-  try {
-    const r = await fetch(url, {
-      headers: { 'User-Agent': 'TesRadar/1.0 (tesradar.tech)' },
-      signal: AbortSignal.timeout(10_000),
-    })
+  const urls = buildUrls()
+  let lastError = ''
 
-    if (!r.ok) {
-      // Feed might not exist yet today — return empty rather than error
-      console.warn(`[ROADWORKS] Feed returned ${r.status} for ${url}`)
-      res.status(200).json({ roadworks: [], source: 'empty', hint: `Feed ${r.status} at ${url}` })
-      return
-    }
+  for (const url of urls) {
+    try {
+      const r = await fetch(url, {
+        headers: { 'User-Agent': 'TesRadar/1.0 (tesradar.tech)' },
+        signal: AbortSignal.timeout(10_000),
+      })
 
-    const xml  = await r.text()
-    const data = parseXml(xml)
-
-    if (isRedisConfigured() && data.length > 0) {
-      try {
-        await redis.setWithExpiry(CACHE_KEY, data, CACHE_TTL)
-      } catch (err) {
-        console.warn('[ROADWORKS] Redis write failed, continuing without cache:', String(err))
+      if (!r.ok) {
+        console.warn(`[ROADWORKS] ${r.status} for ${url} — trying next`)
+        lastError = `HTTP ${r.status}`
+        continue  // try yesterday's file
       }
-    }
 
-    console.log(`[ROADWORKS] Loaded ${data.length} records from ${url}`)
-    res.status(200).json({ roadworks: data, source: 'live', url })
-  } catch (err) {
-    console.error('[ROADWORKS] Fetch/parse error:', String(err))
-    res.status(502).json({ error: String(err), url })
+      const xml  = await r.text()
+      const data = parseXml(xml)
+
+      if (isRedisConfigured() && data.length > 0) {
+        try {
+          await redis.setWithExpiry(CACHE_KEY, data, CACHE_TTL)
+        } catch (err) {
+          console.warn('[ROADWORKS] Redis write failed, continuing without cache:', String(err))
+        }
+      }
+
+      console.log(`[ROADWORKS] Loaded ${data.length} records from ${url}`)
+      res.status(200).json({ roadworks: data, source: 'live', url })
+      return
+    } catch (err) {
+      lastError = String(err)
+      console.warn(`[ROADWORKS] Fetch error for ${url}:`, lastError)
+    }
   }
+
+  // All URLs failed
+  console.error('[ROADWORKS] All feed URLs failed:', lastError)
+  res.status(200).json({ roadworks: [], source: 'empty', hint: lastError })
 }
