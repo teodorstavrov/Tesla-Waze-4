@@ -83,6 +83,7 @@ const _listeners = new Set<Listener>()
 
 let _abortController: AbortController | null = null
 let _fetchVersion = 0
+let _lastCountry   = _initCountry
 
 // ── Internal helpers ──────────────────────────────────────────────
 
@@ -165,6 +166,15 @@ export const evStore = {
     // Skip fetch when tab/app is hidden — saves provider calls and Vercel invocations
     if (typeof document !== 'undefined' && document.hidden) return
 
+    // If the user crossed into a different country, discard the accumulated station set
+    // so we don't mix e.g. Bulgarian stations onto a Norwegian map view.
+    const currentCountry = countryStore.getCode() ?? 'BG'
+    if (currentCountry !== _lastCountry) {
+      _lastCountry = currentCountry
+      _abortController?.abort()
+      _state = { ..._state, stations: [], fetchedAt: null, bboxKey: null, status: 'idle', error: null }
+    }
+
     const key = _bboxKey(bbox)
 
     // Same bbox, data is fresh → skip
@@ -218,19 +228,26 @@ export const evStore = {
 
       if (version !== _fetchVersion) return
 
+      // Accumulate stations across bboxes — merge new into existing by id.
+      // Replacing would cause stations from the previous viewport to disappear on pan.
+      const stationMap = new Map(_state.stations.map((s) => [s.id, s]))
+      for (const s of data.stations) stationMap.set(s.id, s)
+      const merged = [...stationMap.values()]
+
       _state = {
         ..._state,
-        stations: data.stations,
+        stations: merged,
         status: 'ok',
         error: null,
         fetchedAt: Date.now(),
         meta: data.meta,
       }
 
-      _saveToLocalStorage(countryStore.getCode() ?? 'BG', data.stations)
+      _saveToLocalStorage(countryStore.getCode() ?? 'BG', merged)
 
       logger.ev.info('Stations loaded', {
-        count: data.stations.length,
+        fetched: data.stations.length,
+        total: merged.length,
         dedup: data.meta.deduplicated,
         cacheHit: data.meta.cacheHit,
       })
