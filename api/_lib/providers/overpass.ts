@@ -100,7 +100,7 @@ function extractConnectors(tags: OverpassTags): Connector[] {
   return connectors
 }
 
-function parseOSMCharge(raw: string | undefined): { pricePerKwh: number | null; priceCurrency: string | null } {
+export function parseOSMCharge(raw: string | undefined): { pricePerKwh: number | null; priceCurrency: string | null } {
   if (!raw) return { pricePerKwh: null, priceCurrency: null }
   const s = raw.trim()
   const numMatch = s.match(/(\d+[.,]\d+|\d+)/)

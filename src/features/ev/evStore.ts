@@ -165,12 +165,21 @@ export const evStore = {
   async fetch(bbox: { minLat: number; minLng: number; maxLat: number; maxLng: number }): Promise<void> {
     if (typeof document !== 'undefined' && document.hidden) return
 
-    // Country changed — clear accumulated stations so old country's markers don't bleed in
+    // Country changed — swap immediately to the new country's cached stations (if any)
     const currentCountry = countryStore.getCode() ?? 'BG'
     if (currentCountry !== _lastCountry) {
       _lastCountry = currentCountry
       _abortController?.abort()
-      _state = { ..._state, stations: [], fetchedAt: null, bboxKey: null, status: 'idle', error: null }
+      const cached = _loadFromLocalStorage(currentCountry)
+      _state = {
+        ..._state,
+        stations:  cached,
+        fetchedAt: null,
+        bboxKey:   null,
+        status:    cached.length > 0 ? 'ok' : 'idle',
+        error:     null,
+      }
+      if (cached.length > 0) _emit()
     }
 
     const key = _bboxKey(bbox)

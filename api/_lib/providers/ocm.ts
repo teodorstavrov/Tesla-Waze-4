@@ -61,7 +61,7 @@ interface OCMStation {
 // ── Normalize ─────────────────────────────────────────────────────
 
 /** Map OCM connector type string to simplified type */
-function simplifyConnectorType(title: string | null | undefined): string {
+export function simplifyConnectorType(title: string | null | undefined): string {
   const t = (title ?? '').toLowerCase()
   if (t.includes('chademo'))          return 'CHAdeMO'
   if (t.includes('ccs') || t.includes('combo')) return 'CCS'
@@ -90,7 +90,7 @@ function normalizeConnectors(raw: OCMConnection[] | null | undefined): Connector
  *   "0.35 BGN/kWh"  "0,35 лв/kWh"  "0.49 EUR/kWh"
  *   "£0.33/kWh"     "0.49€/kWh"    "Free"  ""  null
  */
-function parseUsageCost(raw: string | null | undefined): { pricePerKwh: number | null; priceCurrency: string | null } {
+export function parseUsageCost(raw: string | null | undefined): { pricePerKwh: number | null; priceCurrency: string | null } {
   if (raw == null || raw.trim() === '') return { pricePerKwh: null, priceCurrency: null }
 
   const s = raw.trim().toLowerCase()
@@ -177,6 +177,27 @@ function normalize(raw: OCMStation): NormalizedStation | null {
   }
 }
 
+// ── OCM HTTP fetch with single retry ────────────────────────────
+
+async function _fetchOCMText(params: URLSearchParams): Promise<string> {
+  const url  = `${BASE_URL}?${params.toString()}`
+  const opts: RequestInit = { headers: { Accept: 'application/json' } }
+
+  async function attempt(): Promise<string> {
+    const res = await fetchWithTimeout(url, opts, FETCH_TIMEOUT_MS)
+    if (!res.ok) throw new Error(`OCM HTTP ${res.status}`)
+    return res.text()
+  }
+
+  try {
+    return await attempt()
+  } catch {
+    // Single retry after 3 s — OCM occasionally has brief 5xx spikes or timeouts
+    await new Promise<void>((r) => setTimeout(r, 3_000))
+    return attempt()
+  }
+}
+
 // ── Public API ────────────────────────────────────────────────────
 
 export async function fetchOCMStations(bbox: BBox): Promise<ProviderResult> {
@@ -200,14 +221,7 @@ export async function fetchOCMStations(bbox: BBox): Promise<ProviderResult> {
     })
 
     // Read as text first — OCM returns plain "REJECTED_APIKEY" when rate-limited
-    const httpRes = await fetchWithTimeout(
-      `${BASE_URL}?${params.toString()}`,
-      { headers: { 'Accept': 'application/json' } },
-      FETCH_TIMEOUT_MS,
-    )
-    if (!httpRes.ok) throw new Error(`OCM HTTP ${httpRes.status}`)
-
-    const text = await httpRes.text()
+    const text = await _fetchOCMText(params)
     if (text.startsWith('REJECTED')) {
       throw new Error('OCM rate-limited — set OCM_API_KEY env variable (free at openchargemap.org/site/developerinfo)')
     }

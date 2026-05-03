@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "npx tsx --test api/_lib/merge/stations.test.ts api/_lib/providers/ocm.test.ts api/_lib/providers/overpass.test.ts api/_lib/tesla/normalize.test.ts"
   },
   "dependencies": {
     "@sentry/node": "^10.46.0",
