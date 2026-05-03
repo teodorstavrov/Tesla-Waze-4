@@ -150,7 +150,9 @@ function normalize(el: OverpassElement): NormalizedStation | null {
   const isFree = tags['fee'] === 'no' ? true : tags['fee'] === 'yes' ? false : null
 
   // OSM "charge" tag examples: "0.30 EUR/kWh", "BGN 0.35/kWh", "0.49€/kWh"
-  const { pricePerKwh, priceCurrency } = parseOSMCharge(tags['charge'])
+  const chargeTag = tags['charge'] ?? null
+  const { pricePerKwh, priceCurrency } = parseOSMCharge(chargeTag ?? undefined)
+  const pricingText = chargeTag   // preserve raw string for display when parse yields null
 
   return {
     id: `osm:${el.id}`,
@@ -171,6 +173,7 @@ function normalize(el: OverpassElement): NormalizedStation | null {
     isFree,
     pricePerKwh,
     priceCurrency,
+    pricingText,
     lastUpdated: null,
   }
 }

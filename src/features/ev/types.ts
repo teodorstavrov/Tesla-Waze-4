@@ -36,6 +36,8 @@ export interface NormalizedStation {
   isFree: boolean | null
   pricePerKwh: number | null
   priceCurrency: string | null
+  /** Raw pricing description from provider (e.g. "Pay at machine", "0.35 BGN/kWh") */
+  pricingText: string | null
   lastUpdated: string | null
 }
 

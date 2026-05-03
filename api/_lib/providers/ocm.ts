@@ -151,6 +151,7 @@ function normalize(raw: OCMStation): NormalizedStation | null {
                : false
 
   const { pricePerKwh, priceCurrency } = parseUsageCost(raw.UsageCost)
+  const pricingText = (raw.UsageCost && raw.UsageCost.trim()) ? raw.UsageCost.trim() : null
 
   return {
     id: `ocm:${externalId}`,
@@ -171,6 +172,7 @@ function normalize(raw: OCMStation): NormalizedStation | null {
     isFree,
     pricePerKwh,
     priceCurrency,
+    pricingText,
     lastUpdated: raw.DateLastStatusUpdate ?? null,
   }
 }

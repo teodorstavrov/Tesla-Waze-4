@@ -7,17 +7,23 @@
 // ─────────────────────────────────────────────────────────────────────
 // Two stations are considered the same if they are within DEDUP_METERS
 // of each other. We iterate in provider priority order (tesla > ocm > osm)
-// so the more authoritative record wins.
+// so the more authoritative record wins on identity.
 //
-// This is O(n²) but fine for Bulgaria's station count (~200-800 total).
-// If this ever becomes a bottleneck, replace with a grid-cell bucketing
-// approach (O(n) average).
+// PRICE ENRICHMENT
+// ─────────────────────────────────────────────────────────────────────
+// When a Tesla station deduplicates against an OCM entry, Tesla wins the
+// id/name/connectors — but OCM may carry real price data that Tesla lacks.
+// We copy pricePerKwh / priceCurrency / pricingText / isFree from the
+// lower-priority duplicate onto the winner when the winner has null values.
+// Same enrichment applies OCM→OSM and Tesla→OSM duplicates.
+//
+// This is O(n²) but fine for ~200-800 stations per country.
 
 import type { NormalizedStation, ProviderResult } from '../normalize/types.js'
 import { haversineMeters } from '../utils/geo.js'
 
 /** Stations within this distance (meters) are considered the same location */
-const DEDUP_METERS = 80
+const DEDUP_METERS = 100
 
 export interface MergeResult {
   stations: NormalizedStation[]
@@ -32,16 +38,42 @@ export function mergeStations(results: ProviderResult[]): MergeResult {
   const merged: NormalizedStation[] = []
   let deduplicated = 0
 
-  // Process providers in priority order: tesla → ocm → osm
-  // First provider's station always wins when two are within DEDUP_METERS.
   for (const result of results) {
     for (const station of result.stations) {
-      const duplicate = merged.some(
+      const existingIdx = merged.findIndex(
         (existing) =>
           haversineMeters([existing.lat, existing.lng], [station.lat, station.lng]) < DEDUP_METERS,
       )
 
-      if (duplicate) {
+      if (existingIdx >= 0) {
+        // Winner keeps identity — but inherit price fields from duplicate when winner has none
+        const winner = merged[existingIdx]!
+        let enriched = false
+        let patch: Partial<NormalizedStation> = {}
+
+        if (winner.pricePerKwh == null && station.pricePerKwh != null) {
+          patch = {
+            ...patch,
+            pricePerKwh:  station.pricePerKwh,
+            priceCurrency: station.priceCurrency,
+            pricingText:  station.pricingText ?? winner.pricingText,
+            isFree:       station.isFree ?? winner.isFree,
+          }
+          enriched = true
+        }
+
+        if (winner.pricingText == null && station.pricingText != null) {
+          patch = { ...patch, pricingText: station.pricingText }
+          enriched = true
+        }
+
+        if (winner.isFree == null && station.isFree != null) {
+          patch = { ...patch, isFree: station.isFree }
+          enriched = true
+        }
+
+        if (enriched) merged[existingIdx] = { ...winner, ...patch }
+
         deduplicated++
       } else {
         merged.push(station)

@@ -103,8 +103,30 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const stations     = [...bgMerge.stations, ...noMerge.stations, ...seMerge.stations, ...fiMerge.stations]
   const deduplicated = bgMerge.deduplicated + noMerge.deduplicated + seMerge.deduplicated + fiMerge.deduplicated
 
-  // ── Compare with existing snapshot — skip if unchanged ───────────
+  // ── Load existing snapshot ────────────────────────────────────────
   const existing = await stationDb.getAll()
+  const existingCount = existing?.length ?? 0
+
+  // ── Safety guard: never overwrite with dramatically fewer stations ─
+  // If providers return <70% of the known count, one or more providers
+  // likely failed silently — keep the old snapshot rather than shrinking.
+  if (existingCount > 50 && stations.length < existingCount * 0.70) {
+    console.warn(
+      `[SYNC] Safety guard: new count ${stations.length} is <70% of existing ${existingCount} — keeping old data`,
+    )
+    res.status(200).json({
+      synced:         false,
+      skipped:        'safety_guard',
+      reason:         `new=${stations.length} < 70% of existing=${existingCount}`,
+      existingCount,
+      newCount:       stations.length,
+      elapsedMs:      Date.now() - t0,
+      syncedAt:       new Date().toISOString(),
+    })
+    return
+  }
+
+  // ── Compare with existing snapshot — skip if unchanged ───────────
   const unchanged =
     existing !== null &&
     existing.length === stations.length &&

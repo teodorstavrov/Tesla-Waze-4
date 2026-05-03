@@ -154,6 +154,8 @@ export function StationPanel() {
                       : `${station.pricePerKwh.toFixed(2)} ${station.priceCurrency ?? ''}/kWh`.trim()
                   }
                 />
+              ) : station.pricingText ? (
+                <InfoItem label={t('station.price')} value={station.pricingText} />
               ) : station.isFree != null ? (
                 <InfoItem label={t('station.price')} value={station.isFree ? t('station.free') : t('station.paid')} />
               ) : null}
