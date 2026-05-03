@@ -57,6 +57,28 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     return
   }
 
+  // ── Heal mode: skip full sync if all providers were healthy last time ─
+  // Called daily Mon–Sat by Vercel Cron (?heal=1).
+  // Costs 1 Redis read when healthy; falls through to full sync if any
+  // provider had status='error' in the last recorded sync.
+  if (req.query['heal'] === '1') {
+    const lastMeta = await stationDb.getMeta()
+    const allOk = lastMeta !== null &&
+      lastMeta.providers.tesla.status !== 'error' &&
+      lastMeta.providers.ocm.status   !== 'error' &&
+      lastMeta.providers.osm.status   !== 'error'
+
+    if (allOk) {
+      res.status(200).json({
+        skipped:   'all_providers_ok',
+        syncedAt:  lastMeta.syncedAt,
+        providers: lastMeta.providers,
+      })
+      return
+    }
+    // At least one provider failed last time — fall through to full sync
+  }
+
   // ── Fetch all providers for all 4 countries in parallel ──────────
   const t0 = Date.now()
 
