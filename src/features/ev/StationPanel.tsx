@@ -8,7 +8,6 @@ import { useSyncExternalStore, useEffect, useState, useCallback } from 'react'
 import { evStore } from './evStore'
 import { audioManager } from '@/features/audio/audioManager'
 import { routeStore } from '@/features/route/routeStore'
-import { getMap } from '@/components/MapShell'
 import { isTeslaBrowser } from '@/lib/browser'
 import { t, getLang, langStore } from '@/lib/locale'
 import type { NormalizedStation, Connector } from './types'
@@ -30,12 +29,7 @@ export function StationPanel() {
   const handleRefresh = useCallback(async () => {
     if (refreshing) return
     setRefreshing(true)
-    const map = getMap()
-    const bounds = map?.getBounds()
-    const bbox = bounds
-      ? { minLat: bounds.getSouth(), minLng: bounds.getWest(), maxLat: bounds.getNorth(), maxLng: bounds.getEast() }
-      : { minLat: 41.0, minLng: 22.0, maxLat: 44.5, maxLng: 28.7 }
-    await evStore.forceRefresh(bbox)
+    await evStore.forceRefresh()
     setRefreshing(false)
     setRefreshedAt(Date.now())
   }, [refreshing])

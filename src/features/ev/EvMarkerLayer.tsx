@@ -298,7 +298,7 @@ export function EvMarkerLayer() {
       fetchCountry()
 
       // Re-fetch when user switches country
-      const unsubCountry = countryStore.subscribe(() => { clearAll(); fetchCountry() })
+      const unsubCountry = countryStore.subscribe(fetchCountry)
 
       // Re-render on moveend (no re-fetch — we already have all country stations)
       function onMoveEnd(): void {

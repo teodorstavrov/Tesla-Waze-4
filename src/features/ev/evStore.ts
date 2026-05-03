@@ -1,22 +1,19 @@
 // ─── EV Station Store (module-level, NOT React state) ─────────────────
 //
-// Manages EV station data with:
-//   • stale-while-revalidate: serve cached data immediately, refresh silently
-//   • request versioning: discard responses from superseded fetches
-//   • bbox-aware fetching: re-fetch when map view changes significantly
-//   • stable identity: station list only replaces, never patches, so marker
-//     registry in EvMarkerLayer can diff by id
-//
-// STALE threshold matches the server's merged-response cache TTL (10 min).
-// If data is fresh enough for the same bbox, skip the fetch entirely.
+// Fetch flow:
+//   1. Hydrate immediately from localStorage (instant markers on load)
+//   2. Fetch full country bbox from server (Redis snapshot, no live providers)
+//   3. Merge result into existing stations by id — never replace, never clear
+//   4. Skip fetch if same bbox and data is < 30 min old
+//   5. On network error: keep whatever is in memory (stale-while-revalidate)
 
 import type { NormalizedStation, StationsApiResponse } from './types'
 import { logger } from '@/lib/logger'
 import { countryStore } from '@/lib/countryStore'
 
-const STALE_MS  = 30 * 60 * 1000  // 30 min — station data is stable; matches 20min server cache + margin
+const STALE_MS  = 30 * 60 * 1000       // re-fetch after 30 min
 const LS_PREFIX = 'ev-stations-cache'
-const LS_TTL    = 24 * 60 * 60 * 1000     // 24 hours — offline fallback max age
+const LS_TTL    = 24 * 60 * 60 * 1000  // discard localStorage after 24 h
 
 // ── localStorage persistence (country-keyed) ─────────────────────
 
@@ -25,6 +22,7 @@ function _lsKey(country: string): string {
 }
 
 function _saveToLocalStorage(country: string, stations: NormalizedStation[]): void {
+  if (stations.length === 0) return  // never overwrite a good cache with empty
   try {
     localStorage.setItem(_lsKey(country), JSON.stringify({ stations, savedAt: Date.now() }))
   } catch { /* quota exceeded — non-fatal */ }
@@ -36,30 +34,26 @@ function _loadFromLocalStorage(country: string): NormalizedStation[] {
     if (!raw) return []
     const { stations, savedAt } = JSON.parse(raw) as { stations: NormalizedStation[], savedAt: number }
     if (!Array.isArray(stations) || stations.length === 0) return []
-    if (Date.now() - savedAt > LS_TTL) return []  // too stale — discard
+    if (Date.now() - savedAt > LS_TTL) return []
     return stations
   } catch { return [] }
 }
 
-// ── State shape ───────────────────────────────────────────────────
+// ── State ─────────────────────────────────────────────────────────
 
 type FetchStatus = 'idle' | 'loading' | 'ok' | 'error'
 
 interface EvState {
-  stations: NormalizedStation[]
-  status: FetchStatus
-  error: string | null
-  fetchedAt: number | null
-  bboxKey: string | null
-  meta: StationsApiResponse['meta'] | null
+  stations:        NormalizedStation[]
+  status:          FetchStatus
+  error:           string | null
+  fetchedAt:       number | null
+  bboxKey:         string | null
+  meta:            StationsApiResponse['meta'] | null
   selectedStation: NormalizedStation | null
-  markersVisible: boolean
+  markersVisible:  boolean
 }
 
-// ── Module-level state ────────────────────────────────────────────
-
-// Eagerly hydrate from localStorage (country-aware) so the map shows
-// stations on first render even before the first network request completes.
 const _initCountry = countryStore.getCode() ?? 'BG'
 const _cached      = _loadFromLocalStorage(_initCountry)
 
@@ -75,7 +69,7 @@ let _state: EvState = {
 }
 
 if (_cached.length > 0) {
-  logger.ev.debug('Hydrated from localStorage cache', { count: _cached.length })
+  logger.ev.debug('Hydrated from localStorage', { count: _cached.length })
 }
 
 type Listener = () => void
@@ -83,16 +77,13 @@ const _listeners = new Set<Listener>()
 
 let _abortController: AbortController | null = null
 let _fetchVersion = 0
-let _lastCountry   = _initCountry
+let _lastCountry  = _initCountry
 
-// ── Internal helpers ──────────────────────────────────────────────
+// ── Helpers ───────────────────────────────────────────────────────
 
-function _emit(): void {
-  _listeners.forEach((fn) => fn())
-}
+function _emit(): void { _listeners.forEach((fn) => fn()) }
 
 function _bboxKey(b: { minLat: number; minLng: number; maxLat: number; maxLng: number }): string {
-  // Round to 2 decimal places (~1km resolution) to avoid refetching on tiny pans
   const r = (n: number) => Math.round(n * 100) / 100
   return `${r(b.minLat)},${r(b.minLng)},${r(b.maxLat)},${r(b.maxLng)}`
 }
@@ -101,12 +92,22 @@ function _isStale(): boolean {
   return _state.fetchedAt == null || Date.now() - _state.fetchedAt >= STALE_MS
 }
 
+function _countryBbox() {
+  const [[swLat, swLng], [neLat, neLng]] = countryStore.getCountryOrDefault().bounds
+  return { minLat: swLat, minLng: swLng, maxLat: neLat, maxLng: neLng }
+}
+
+function _mergeStations(incoming: NormalizedStation[]): NormalizedStation[] {
+  if (incoming.length === 0) return _state.stations  // never shrink with empty response
+  const map = new Map(_state.stations.map((s) => [s.id, s]))
+  for (const s of incoming) map.set(s.id, s)
+  return [...map.values()]
+}
+
 // ── Public API ────────────────────────────────────────────────────
 
 export const evStore = {
-  getState(): Readonly<EvState> {
-    return _state
-  },
+  getState(): Readonly<EvState> { return _state },
 
   subscribe(listener: Listener): () => void {
     _listeners.add(listener)
@@ -124,8 +125,11 @@ export const evStore = {
     _emit()
   },
 
-  /** Force a fresh Redis read, bypassing server in-memory cache. */
-  async forceRefresh(bbox: { minLat: number; minLng: number; maxLat: number; maxLng: number }): Promise<void> {
+  /** Bust server in-memory cache and reload the full country station set. */
+  async forceRefresh(): Promise<void> {
+    const bbox = _countryBbox()
+    const key  = _bboxKey(bbox)
+
     _abortController?.abort()
     _abortController = new AbortController()
     const version = ++_fetchVersion
@@ -133,8 +137,9 @@ export const evStore = {
     _state = { ..._state, status: 'loading', error: null }
     _emit()
 
-    const url = `/api/ev/stations?bbox=${bbox.minLat},${bbox.minLng},${bbox.maxLat},${bbox.maxLng}&bust=1`
-    logger.ev.info('Force-refreshing stations (bust cache)', { url })
+    const sq  = (n: number) => Math.round(n * 20) / 20
+    const url = `/api/ev/stations?bbox=${sq(bbox.minLat)},${sq(bbox.minLng)},${sq(bbox.maxLat)},${sq(bbox.maxLng)}&bust=1`
+    logger.ev.info('Force-refreshing stations', { url })
 
     try {
       const res = await fetch(url, { signal: _abortController.signal })
@@ -143,31 +148,24 @@ export const evStore = {
       const data = (await res.json()) as StationsApiResponse
       if (version !== _fetchVersion) return
 
-      _state = {
-        ..._state,
-        stations: data.stations,
-        status: 'ok',
-        error: null,
-        fetchedAt: Date.now(),
-        meta: data.meta,
-      }
-      _saveToLocalStorage(countryStore.getCode() ?? 'BG', data.stations)
-      logger.ev.info('Force-refresh complete', { count: data.stations.length })
+      const merged = _mergeStations(data.stations)
+      _state = { ..._state, stations: merged, status: 'ok', error: null, fetchedAt: Date.now(), bboxKey: key, meta: data.meta }
+      _saveToLocalStorage(countryStore.getCode() ?? 'BG', merged)
+      logger.ev.info('Force-refresh complete', { fetched: data.stations.length, total: merged.length })
       _emit()
     } catch (err) {
       if (version !== _fetchVersion) return
       if ((err as Error).name === 'AbortError') return
+      logger.ev.warn('Force-refresh failed — keeping cached stations', { err: String(err) })
       _state = { ..._state, status: _state.stations.length > 0 ? 'ok' : 'error', error: String(err) }
       _emit()
     }
   },
 
   async fetch(bbox: { minLat: number; minLng: number; maxLat: number; maxLng: number }): Promise<void> {
-    // Skip fetch when tab/app is hidden — saves provider calls and Vercel invocations
     if (typeof document !== 'undefined' && document.hidden) return
 
-    // If the user crossed into a different country, discard the accumulated station set
-    // so we don't mix e.g. Bulgarian stations onto a Norwegian map view.
+    // Country changed — clear accumulated stations so old country's markers don't bleed in
     const currentCountry = countryStore.getCode() ?? 'BG'
     if (currentCountry !== _lastCountry) {
       _lastCountry = currentCountry
@@ -177,95 +175,44 @@ export const evStore = {
 
     const key = _bboxKey(bbox)
 
-    // Same bbox, data is fresh → skip
-    if (
-      _state.bboxKey === key &&
-      !_isStale() &&
-      _state.status !== 'error'
-    ) {
-      logger.ev.debug('EV fetch skipped (fresh cache)', { key })
+    // Skip if same bbox and data is still fresh
+    if (_state.bboxKey === key && !_isStale() && _state.status !== 'error') {
+      logger.ev.debug('EV fetch skipped (fresh)', { key })
       return
     }
 
-    // Abort any in-flight request for a different bbox
-    if (_state.bboxKey !== key) {
-      _abortController?.abort()
-    }
+    if (_state.bboxKey !== key) _abortController?.abort()
 
-    // If we have stale data for a different bbox, emit immediately so markers
-    // update from old data while the new fetch is in flight (stale-while-revalidate)
     const hadData = _state.stations.length > 0
+    _abortController  = new AbortController()
+    const version     = ++_fetchVersion
 
-    _abortController = new AbortController()
-    const version = ++_fetchVersion
+    _state = { ..._state, status: 'loading', bboxKey: key, error: null }
+    if (!hadData) _emit()  // show loading state only when we have nothing to display yet
 
-    _state = {
-      ..._state,
-      status: 'loading',
-      bboxKey: key,
-      error: null,
-    }
-
-    // Only re-emit if this is a visible state change (no data yet, or new bbox)
-    if (!hadData || _state.bboxKey !== key) _emit()
-
-    // Snap bbox to 0.05° grid (~5.5 km) before sending to the server.
-    // This means slightly different viewports from different users (or small pans)
-    // produce the same URL, dramatically increasing CDN and server in-memory cache
-    // hit rates. Client still receives full results and filters by actual viewport.
-    const sq = (n: number) => Math.round(n * 20) / 20
+    // Snap to 0.05° grid so nearby viewports share the same CDN-cached response
+    const sq  = (n: number) => Math.round(n * 20) / 20
     const url = `/api/ev/stations?bbox=${sq(bbox.minLat)},${sq(bbox.minLng)},${sq(bbox.maxLat)},${sq(bbox.maxLng)}`
     logger.ev.debug('Fetching stations', { url, version })
 
     try {
       const res = await fetch(url, { signal: _abortController.signal })
-
-      if (version !== _fetchVersion) return  // superseded by newer request
-
+      if (version !== _fetchVersion) return
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
-
       const data = (await res.json()) as StationsApiResponse
-
       if (version !== _fetchVersion) return
 
-      // Accumulate stations across bboxes — merge new into existing by id.
-      // Replacing would cause stations from the previous viewport to disappear on pan.
-      const stationMap = new Map(_state.stations.map((s) => [s.id, s]))
-      for (const s of data.stations) stationMap.set(s.id, s)
-      const merged = [...stationMap.values()]
-
-      _state = {
-        ..._state,
-        stations: merged,
-        status: 'ok',
-        error: null,
-        fetchedAt: Date.now(),
-        meta: data.meta,
-      }
-
+      const merged = _mergeStations(data.stations)
+      _state = { ..._state, stations: merged, status: 'ok', error: null, fetchedAt: Date.now(), meta: data.meta }
       _saveToLocalStorage(countryStore.getCode() ?? 'BG', merged)
-
-      logger.ev.info('Stations loaded', {
-        fetched: data.stations.length,
-        total: merged.length,
-        dedup: data.meta.deduplicated,
-        cacheHit: data.meta.cacheHit,
-      })
-
+      logger.ev.info('Stations loaded', { fetched: data.stations.length, total: merged.length, cacheHit: data.meta.cacheHit })
       _emit()
     } catch (err) {
       if (version !== _fetchVersion) return
       if ((err as Error).name === 'AbortError') return
-
-      logger.ev.warn('Stations fetch failed', { err: String(err) })
-
-      // If we already have data (possibly from SW cache), keep showing it
-      // rather than switching to error state — user sees stale data, not broken UI
-      if (_state.stations.length > 0) {
-        _state = { ..._state, status: 'ok' }
-      } else {
-        _state = { ..._state, status: 'error', error: String(err) }
-      }
+      logger.ev.warn('Stations fetch failed — keeping cached stations', { err: String(err) })
+      // Keep existing stations visible; only go to error state if we have nothing
+      _state = { ..._state, status: _state.stations.length > 0 ? 'ok' : 'error', error: String(err) }
       _emit()
     }
   },
