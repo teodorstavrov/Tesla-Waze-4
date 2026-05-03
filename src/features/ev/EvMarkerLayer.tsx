@@ -22,6 +22,7 @@ import { getMap } from '@/components/MapShell'
 import { evStore } from './evStore.js'
 import { filterStore } from './filterStore.js'
 import { routeStore } from '@/features/route/routeStore'
+import { countryStore } from '@/lib/countryStore'
 import { logger } from '@/lib/logger'
 import { getLang } from '@/lib/locale'
 import { getActivePerformanceProfile } from '@/config/performanceProfiles'
@@ -287,17 +288,23 @@ export function EvMarkerLayer() {
       // Initial sync
       syncMarkers()
 
-      // Fetch on moveend — debounce from performance profile
+      // Fetch ALL stations for the current country in one request.
+      // With ~400-500 stations per country the payload is small enough to load in full;
+      // no viewport-based pagination needed — avoids stations disappearing on pan.
+      function fetchCountry(): void {
+        const [[swLat, swLng], [neLat, neLng]] = countryStore.getCountryOrDefault().bounds
+        evStore.fetch({ minLat: swLat, minLng: swLng, maxLat: neLat, maxLng: neLng })
+      }
+      fetchCountry()
+
+      // Re-fetch when user switches country
+      const unsubCountry = countryStore.subscribe(() => { clearAll(); fetchCountry() })
+
+      // Re-render on moveend (no re-fetch — we already have all country stations)
       function onMoveEnd(): void {
         if (moveTimer) clearTimeout(moveTimer)
         const debounce = getActivePerformanceProfile().evDebounceMs
-        moveTimer = setTimeout(() => {
-          const b = map.getBounds()
-          evStore.fetch({
-            minLat: b.getSouth(), minLng: b.getWest(),
-            maxLat: b.getNorth(), maxLng: b.getEast(),
-          })
-        }, debounce)
+        moveTimer = setTimeout(syncMarkers, debounce)
       }
 
       // Re-render on zoom change (may switch between cluster/individual modes)
@@ -309,20 +316,13 @@ export function EvMarkerLayer() {
       map.on('moveend', onMoveEnd)
       map.on('zoomend', onZoomEnd)
 
-      // Initial fetch
-      const b = map.getBounds()
-      evStore.fetch({
-        minLat: b.getSouth(), minLng: b.getWest(),
-        maxLat: b.getNorth(), maxLng: b.getEast(),
-      })
-
       logger.ev.debug('EvMarkerLayer initialized')
 
       return () => {
         if (moveTimer) clearTimeout(moveTimer)
         map.off('moveend', onMoveEnd)
         map.off('zoomend', onZoomEnd)
-        unsubEv(); unsubFilter(); unsubRoute()
+        unsubEv(); unsubFilter(); unsubRoute(); unsubCountry()
         clearAll()
       }
     }
