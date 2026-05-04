@@ -1,13 +1,20 @@
 // ─── Speed Section Polyline Layer ─────────────────────────────────────
 //
-// Draws each speed section as a simple Leaflet polyline + start/end markers.
-// Null-render React component — all DOM work is imperative Leaflet.
+// Draws each speed section as a Leaflet polyline that follows the actual
+// road geometry, not a straight line between camera coordinates.
 //
-// PERFORMANCE:
-// - Polylines are drawn once on mount (sections never change at runtime).
-// - Active section is highlighted via setStyle() — no remount.
-// - No per-tick work in this component; sectionStore subscription only
-//   needed for the highlight update.
+// Road geometry is fetched from OSRM (OpenStreetMap routing engine) on first
+// use, then cached in localStorage indefinitely. Sections never change at
+// runtime, so the cache is effectively permanent.
+//
+// RENDER STRATEGY:
+// - Draw straight-line placeholders immediately on mount.
+// - In the background, fetch road geometry in batches of 5 from OSRM.
+// - Replace each polyline's latLngs with road path as results arrive.
+// - On OSRM failure, the straight-line placeholder stays (graceful fallback).
+//
+// CACHE: localStorage key `section-path:v1:{id}` — invalidate by bumping
+//        ROAD_PATH_VER if section coordinates change significantly.
 //
 // TESLA: no animations, no CSS transitions, plain colours.
 
@@ -19,6 +26,38 @@ import { SPEED_SECTIONS } from './sections'
 import { isTeslaBrowser } from '@/lib/browser'
 import { t } from '@/lib/locale'
 import type { SpeedSection } from './sectionTypes'
+
+const ROAD_PATH_VER  = 'v1'
+const OSRM_BASE      = 'https://router.project-osrm.org/route/v1/driving'
+const BATCH_SIZE     = 5
+const BATCH_DELAY_MS = 200
+
+async function fetchRoadPath(
+  section: SpeedSection,
+  signal:  AbortSignal,
+): Promise<[number, number][] | null> {
+  const cacheKey = `section-path:${ROAD_PATH_VER}:${section.id}`
+
+  try {
+    const hit = localStorage.getItem(cacheKey)
+    if (hit) return JSON.parse(hit) as [number, number][]
+  } catch { /* storage unavailable */ }
+
+  const url = `${OSRM_BASE}/${section.startLng},${section.startLat};${section.endLng},${section.endLat}?overview=full&geometries=geojson`
+  try {
+    const res = await fetch(url, { signal })
+    if (!res.ok) return null
+    const data = await res.json() as {
+      routes?: Array<{ geometry?: { coordinates?: [number, number][] } }>
+    }
+    const coords = data.routes?.[0]?.geometry?.coordinates
+    if (!coords || coords.length < 2) return null
+    try { localStorage.setItem(cacheKey, JSON.stringify(coords)) } catch { /* quota */ }
+    return coords
+  } catch {
+    return null
+  }
+}
 
 const COLOR_IDLE    = 'rgba(249,115,22,0.55)'   // orange, dimmed
 const COLOR_ACTIVE  = '#ef4444'                  // red, full opacity
@@ -116,7 +155,30 @@ export function SectionLayer() {
       const unsub = sectionStore.subscribe(syncHighlight)
       syncHighlight()
 
+      // Progressively replace straight-line placeholders with road geometry
+      const enrichAbort = new AbortController()
+      ;(async () => {
+        for (let i = 0; i < SPEED_SECTIONS.length; i += BATCH_SIZE) {
+          if (enrichAbort.signal.aborted) break
+          await Promise.all(
+            SPEED_SECTIONS.slice(i, i + BATCH_SIZE).map(async (section) => {
+              if (enrichAbort.signal.aborted) return
+              const entry = layersRef.current.get(section.id)
+              if (!entry) return
+              const coords = await fetchRoadPath(section, enrichAbort.signal)
+              if (coords && !enrichAbort.signal.aborted) {
+                entry.line.setLatLngs(coords.map(([lng, lat]) => [lat, lng]))
+              }
+            }),
+          )
+          if (!enrichAbort.signal.aborted && i + BATCH_SIZE < SPEED_SECTIONS.length) {
+            await new Promise<void>(r => setTimeout(r, BATCH_DELAY_MS))
+          }
+        }
+      })()
+
       return () => {
+        enrichAbort.abort()
         unsub()
         for (const { line, startM, endM } of layersRef.current.values()) {
           line.remove(); startM.remove(); endM.remove()
