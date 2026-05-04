@@ -23,7 +23,7 @@ import { SPEED_SECTIONS_FI } from './sections_fi'
 
 export const SPEED_SECTIONS: SpeedSection[] = [
 
-  // ══ АМ „Тракия" (A1) — east → west  (Sofia → Burgas direction) ════════
+  // ══ АМ „Тракия" (A1) — Sofia → Burgas ════════════════════════════════
 
   {
     id:       'trakiya-vakarel-ihtiman',
@@ -40,33 +40,11 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     id:       'trakiya-vetren-krastina',
     road:     'А1 Тракия',
     name:     'Ветрен — Кръстина',
-    startLat:  42.2640,
-    startLng:  24.0730,
-    endLat:    42.2700,
-    endLng:    24.2260,
+    startLat:  42.6400,
+    startLng:  27.1700,
+    endLat:    42.5550,
+    endLng:    27.3350,
     lengthM:   13_600,
-    limitKmh:  140,
-  },
-  {
-    id:       'trakiya-pazardjik-plovdiv',
-    road:     'А1 Тракия',
-    name:     'Пазарджик — Пловдив',
-    startLat:  42.1913,
-    startLng:  24.3448,
-    endLat:    42.1491,
-    endLng:    24.6718,
-    lengthM:   27_000,
-    limitKmh:  140,
-  },
-  {
-    id:       'trakiya-chirpan-opulchenets',
-    road:     'А1 Тракия',
-    name:     'Чирпан — Опълченец',
-    startLat:  42.1100,
-    startLng:  25.2200,
-    endLat:    42.0950,
-    endLng:    25.0680,
-    lengthM:   13_300,
     limitKmh:  140,
   },
   {
@@ -124,52 +102,8 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     lengthM:   25_400,
     limitKmh:  140,
   },
-  {
-    id:       'trakiya-plovdiv-iztok-belozem',
-    road:     'А1 Тракия',
-    name:     'Пловдив Изток — Белозем',
-    startLat:  42.1483,
-    startLng:  24.8203,
-    endLat:    42.2128,
-    endLng:    24.5793,
-    lengthM:   25_000,
-    limitKmh:  140,
-  },
-  {
-    id:       'trakiya-stara-zagora-nova-zagora',
-    road:     'А1 Тракия',
-    name:     'Стара Загора — Нова Загора',
-    startLat:  42.4241,
-    startLng:  25.6374,
-    endLat:    42.4897,
-    endLng:    26.0018,
-    lengthM:   30_000,
-    limitKmh:  140,
-  },
-  {
-    id:       'trakiya-nova-zagora-sliven',
-    road:     'А1 Тракия',
-    name:     'Нова Загора — Сливен',
-    startLat:  42.4897,
-    startLng:  26.0018,
-    endLat:    42.6162,
-    endLng:    26.2971,
-    lengthM:   36_000,
-    limitKmh:  140,
-  },
-  {
-    id:       'trakiya-karnobat-burgas',
-    road:     'А1 Тракия',
-    name:     'Карнобат — Бургас',
-    startLat:  42.6503,
-    startLng:  26.9834,
-    endLat:    42.4972,
-    endLng:    27.4621,
-    lengthM:   28_000,
-    limitKmh:  140,
-  },
 
-  // ══ АМ „Тракия" (A1) — west → east  (Burgas → Sofia direction) ════════
+  // ══ АМ „Тракия" (A1) — Burgas → Sofia ════════════════════════════════
 
   {
     id:       'trakiya-ihtiman-vakarel',
@@ -180,6 +114,83 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     endLat:    42.5315,
     endLng:    23.7548,
     lengthM:   19_200,
+    limitKmh:  140,
+  },
+  {
+    id:       'trakiya-shtarkovo-tsalapitsa',
+    road:     'А1 Тракия',
+    name:     'Щърково — Цалапица',
+    startLat:  42.0950,
+    startLng:  24.2840,
+    endLat:    42.1130,
+    endLng:    24.5720,
+    lengthM:   25_400,
+    limitKmh:  140,
+  },
+  {
+    id:       'trakiya-tsalapitsa-radinovo',
+    road:     'А1 Тракия',
+    name:     'Цалапица — Радиново',
+    startLat:  42.1130,
+    startLng:  24.5720,
+    endLat:    42.1130,
+    endLng:    24.6770,
+    lengthM:   10_900,
+    limitKmh:  140,
+  },
+  {
+    id:       'trakiya-radinovo-tsaratsovo',
+    road:     'А1 Тракия',
+    name:     'Радиново — Царацово',
+    startLat:  42.1130,
+    startLng:  24.6770,
+    endLat:    42.1180,
+    endLng:    24.7200,
+    lengthM:   4_000,
+    limitKmh:  140,
+  },
+  {
+    id:       'trakiya-tsaratsovo-trilistnik',
+    road:     'А1 Тракия',
+    name:     'Царацово — Трилистник',
+    startLat:  42.1180,
+    startLng:  24.7200,
+    endLat:    42.0680,
+    endLng:    24.8800,
+    lengthM:   14_400,
+    limitKmh:  140,
+  },
+  {
+    id:       'trakiya-trilistnik-opulchenets',
+    road:     'А1 Тракия',
+    name:     'Трилистник — Опълченец',
+    startLat:  42.0680,
+    startLng:  24.8800,
+    endLat:    42.0950,
+    endLng:    25.0680,
+    lengthM:   22_000,
+    limitKmh:  140,
+  },
+  {
+    id:       'trakiya-opulchenets-chirpan',
+    road:     'А1 Тракия',
+    name:     'Опълченец — Чирпан',
+    startLat:  42.0950,
+    startLng:  25.0680,
+    endLat:    42.1100,
+    endLng:    25.2200,
+    lengthM:   13_300,
+    limitKmh:  140,
+  },
+  {
+    id:       'trakiya-krastina-vetren',
+    road:     'А1 Тракия',
+    name:     'Кръстина — Ветрен',
+    startLat:  42.5550,
+    startLng:  27.3350,
+    endLat:    42.6400,
+    endLng:    27.1700,
+    lengthM:   13_600,
     limitKmh:  140,
   },
 
@@ -219,16 +230,52 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     limitKmh:  140,
   },
 
-  // ══ АМ „Струма" (A3) — north → south  (Sofia → Kulata) ══════════════
+  // ══ АМ „Хемус" (A2) — Varna → Sofia ════════════════════════════════════
 
   {
-    id:       'struma-tunel-malo-buchino-sofia',
+    id:       'hemos-churek-gorni-bogrov',
+    road:     'АМ Хемус',
+    name:     'Чурек — Горни Богров',
+    startLat:  42.7980,
+    startLng:  23.7570,
+    endLat:    42.7410,
+    endLng:    23.5340,
+    lengthM:   20_200,
+    limitKmh:  140,
+  },
+  {
+    id:       'hemos-belokopitovo-kaspichan',
+    road:     'АМ Хемус',
+    name:     'Белокопитово — Каспичан',
+    startLat:  43.2730,
+    startLng:  26.8450,
+    endLat:    43.3110,
+    endLng:    27.0820,
+    lengthM:   21_300,
+    limitKmh:  140,
+  },
+  {
+    id:       'hemos-devnya-ignatiyevo',
+    road:     'АМ Хемус',
+    name:     'Девня — Игнатиево',
+    startLat:  43.2260,
+    startLng:  27.5670,
+    endLat:    43.3380,
+    endLng:    27.6450,
+    lengthM:   17_900,
+    limitKmh:  140,
+  },
+
+  // ══ АМ „Струма" (A3) — Sofia → Kulata ══════════════════════════════════
+
+  {
+    id:       'struma-sofia-tunel-malo-buchino',
     road:     'АМ Струма',
-    name:     'Тунел Мало Бучино — София',
-    startLat:  42.5000,
-    startLng:  23.2470,
-    endLat:    42.5450,
-    endLng:    23.2680,
+    name:     'София — Тунел Мало Бучино',
+    startLat:  42.5450,
+    startLng:  23.2680,
+    endLat:    42.5000,
+    endLng:    23.2470,
     lengthM:   7_500,
     limitKmh:  140,
   },
@@ -266,8 +313,19 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     limitKmh:  140,
   },
 
-  // ══ АМ „Струма" (A3) — south → north  (Kulata → Sofia) ══════════════
+  // ══ АМ „Струма" (A3) — Kulata → Sofia ══════════════════════════════════
 
+  {
+    id:       'struma-tunel-malo-buchino-sofia',
+    road:     'АМ Струма',
+    name:     'Тунел Мало Бучино — София',
+    startLat:  42.5000,
+    startLng:  23.2470,
+    endLat:    42.5450,
+    endLng:    23.2680,
+    lengthM:   7_500,
+    limitKmh:  140,
+  },
   {
     id:       'struma-pokrovnik-bulgarchevo',
     road:     'АМ Струма',
@@ -290,8 +348,19 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     lengthM:   7_300,
     limitKmh:  140,
   },
+  {
+    id:       'struma-damyanitsa-marikostinovo',
+    road:     'АМ Струма',
+    name:     'Дамяница — Марикостиново',
+    startLat:  41.6192,
+    startLng:  23.3141,
+    endLat:    41.5220,
+    endLng:    23.3020,
+    lengthM:   12_200,
+    limitKmh:  140,
+  },
 
-  // ══ АМ „Марица" (A4) — west → east  (Plovdiv → Turkey) ══════════════
+  // ══ АМ „Марица" (A4) — Plovdiv → Turkey ════════════════════════════════
 
   {
     id:       'maritza-harmanli-lyubimets',
@@ -327,7 +396,7 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     limitKmh:  140,
   },
 
-  // ══ АМ „Марица" (A4) — east → west  (Turkey → Plovdiv) ══════════════
+  // ══ АМ „Марица" (A4) — Turkey → Plovdiv ════════════════════════════════
 
   {
     id:       'maritza-lyubimets-harmanli',
@@ -363,7 +432,7 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     limitKmh:  140,
   },
 
-  // ══ АМ „Европа" (A6) — Sofia ring ════════════════════════════════════
+  // ══ АМ „Европа" (A6) ════════════════════════════════════════════════════
 
   {
     id:       'evropa-chepintsi-iliyansi',
@@ -376,8 +445,19 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     lengthM:   10_300,
     limitKmh:  120,
   },
+  {
+    id:       'evropa-iliyansi-chepintsi',
+    road:     'АМ Европа',
+    name:     'Илиянци — Чепинци',
+    startLat:  42.7210,
+    startLng:  23.3150,
+    endLat:    42.7760,
+    endLng:    23.3390,
+    lengthM:   10_300,
+    limitKmh:  120,
+  },
 
-  // ══ Път І-1  (Sofia → Kulata / Sofia → Vidin) ═══════════════════════ ~
+  // ══ Път І-1  (Sofia — Kulata / Sofia — Vidin) ════════════════════════ ~
 
   {
     id:       'i1-kocherinovo-slatino',   // ~approximate
@@ -387,6 +467,17 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     startLng:  23.0530,
     endLat:    42.0070,
     endLng:    23.0730,
+    lengthM:   10_600,
+    limitKmh:  90,
+  },
+  {
+    id:       'i1-slatino-kocherinovo',   // ~approximate
+    road:     'Път І-1',
+    name:     'Слатино — Кочериново',
+    startLat:  42.0070,
+    startLng:  23.0730,
+    endLat:    42.0860,
+    endLng:    23.0530,
     lengthM:   10_600,
     limitKmh:  90,
   },
@@ -401,8 +492,19 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     lengthM:   7_500,
     limitKmh:  90,
   },
+  {
+    id:       'i1-zheglitsa-sratsimirovo',  // ~approximate
+    road:     'Път І-1',
+    name:     'Жеглица — Срацимирово',
+    startLat:  43.9360,
+    startLng:  22.7760,
+    endLat:    43.9120,
+    endLng:    22.8260,
+    lengthM:   7_500,
+    limitKmh:  90,
+  },
 
-  // ══ Път І-2  (Sofia → Varna via Shumen) ═════════════════════════════ ~
+  // ══ Път І-2  (Sofia — Varna via Shumen) ══════════════════════════════ ~
 
   {
     id:       'i2-struyno-shumen',          // ~approximate
@@ -415,8 +517,19 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     lengthM:   7_700,
     limitKmh:  90,
   },
+  {
+    id:       'i2-shumen-struyno',          // ~approximate
+    road:     'Път І-2',
+    name:     'Шумен — Струйно',
+    startLat:  43.2710,
+    startLng:  26.9400,
+    endLat:    43.2900,
+    endLng:    27.0200,
+    lengthM:   7_700,
+    limitKmh:  90,
+  },
 
-  // ══ Път І-3  (Botevgrad → Pleven → Ruse) ════════════════════════════ ~
+  // ══ Път І-3  (Botevgrad — Pleven — Ruse) ════════════════════════════ ~
 
   {
     id:       'i3-telish-dolni-dabnik',     // ~approximate
@@ -426,6 +539,17 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     startLng:  24.1450,
     endLat:    43.3530,
     endLng:    24.2840,
+    lengthM:   21_700,
+    limitKmh:  90,
+  },
+  {
+    id:       'i3-dolni-dabnik-telish',     // ~approximate
+    road:     'Път І-3',
+    name:     'Долни Дъбник — Телиш',
+    startLat:  43.3530,
+    startLng:  24.2840,
+    endLat:    43.3970,
+    endLng:    24.1450,
     lengthM:   21_700,
     limitKmh:  90,
   },
@@ -440,8 +564,19 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     lengthM:   21_200,
     limitKmh:  90,
   },
+  {
+    id:       'i3-peychinovo-gorna-studena',  // ~approximate
+    road:     'Път І-3',
+    name:     'Пейчиново — Горна Студена',
+    startLat:  43.3920,
+    startLng:  25.1480,
+    endLat:    43.3580,
+    endLng:    25.3960,
+    lengthM:   21_200,
+    limitKmh:  90,
+  },
 
-  // ══ Път І-4  (Botevgrad → Troyan → Lovech area) ═════════════════════ ~
+  // ══ Път І-4  (Botevgrad — Troyan — Lovech area) ══════════════════════ ~
 
   {
     id:       'i4-sopot-balgarski-izvor',   // ~approximate
@@ -451,6 +586,17 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     startLng:  24.1770,
     endLat:    43.0170,
     endLng:    24.1020,
+    lengthM:   9_200,
+    limitKmh:  90,
+  },
+  {
+    id:       'i4-balgarski-izvor-sopot',   // ~approximate
+    road:     'Път І-4',
+    name:     'Български Извор — Сопот',
+    startLat:  43.0170,
+    startLng:  24.1020,
+    endLat:    42.9770,
+    endLng:    24.1770,
     lengthM:   9_200,
     limitKmh:  90,
   },
@@ -466,6 +612,17 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     limitKmh:  90,
   },
   {
+    id:       'i4-golets-sopot',            // ~approximate
+    road:     'Път І-4',
+    name:     'Голец — Сопот',
+    startLat:  43.0840,
+    startLng:  24.0650,
+    endLat:    42.9770,
+    endLng:    24.1770,
+    lengthM:   17_900,
+    limitKmh:  90,
+  },
+  {
     id:       'i4-ryahovtsite-bogatovo',    // ~approximate
     road:     'Път І-4',
     name:     'Ряховците — Богатово',
@@ -473,6 +630,17 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     startLng:  25.1120,
     endLat:    43.2070,
     endLng:    25.2270,
+    lengthM:   16_900,
+    limitKmh:  90,
+  },
+  {
+    id:       'i4-bogatovo-ryahovtsite',    // ~approximate
+    road:     'Път І-4',
+    name:     'Богатово — Ряховците',
+    startLat:  43.2070,
+    startLng:  25.2270,
+    endLat:    43.1750,
+    endLng:    25.1120,
     lengthM:   16_900,
     limitKmh:  90,
   },
@@ -488,6 +656,17 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     limitKmh:  90,
   },
   {
+    id:       'i4-momin-sbor-bogatovo',     // ~approximate
+    road:     'Път І-4',
+    name:     'Момин сбор — Богатово',
+    startLat:  43.0980,
+    startLng:  25.0650,
+    endLat:    43.2070,
+    endLng:    25.2270,
+    lengthM:   23_700,
+    limitKmh:  90,
+  },
+  {
     id:       'i4-prolaz-omurtag',          // ~approximate
     road:     'Път І-4',
     name:     'Пролаз — Омуртаг',
@@ -498,8 +677,19 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     lengthM:   13_400,
     limitKmh:  90,
   },
+  {
+    id:       'i4-omurtag-prolaz',          // ~approximate
+    road:     'Път І-4',
+    name:     'Омуртаг — Пролаз',
+    startLat:  43.1050,
+    startLng:  26.4240,
+    endLat:    43.0560,
+    endLng:    26.2910,
+    lengthM:   13_400,
+    limitKmh:  90,
+  },
 
-  // ══ Път І-5  (Ruse → Stara Zagora) ══════════════════════════════════ ~
+  // ══ Път І-5  (Ruse — Stara Zagora) ══════════════════════════════════ ~
 
   {
     id:       'i5-polski-trambesh-polikraishe',  // ~approximate
@@ -509,6 +699,17 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     startLng:  25.6310,
     endLat:    43.2390,
     endLng:    25.5430,
+    lengthM:   21_100,
+    limitKmh:  90,
+  },
+  {
+    id:       'i5-polikraishe-polski-trambesh',  // ~approximate
+    road:     'Път І-5',
+    name:     'Поликраище — Полски Тръмбеш',
+    startLat:  43.2390,
+    startLng:  25.5430,
+    endLat:    43.3620,
+    endLng:    25.6310,
     lengthM:   21_100,
     limitKmh:  90,
   },
@@ -524,6 +725,17 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     limitKmh:  90,
   },
   {
+    id:       'i5-trastenik-obretenk',      // ~approximate
+    road:     'Път І-5',
+    name:     'Тръстеник — Обретеник',
+    startLat:  43.4190,
+    startLng:  25.0100,
+    endLat:    43.4680,
+    endLng:    25.0870,
+    lengthM:   8_700,
+    limitKmh:  90,
+  },
+  {
     id:       'i5-odylyanik-trastenik',     // ~approximate
     road:     'Път І-5',
     name:     'Одяланик — Тръстеник',
@@ -531,6 +743,17 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     startLng:  25.0850,
     endLat:    43.4190,
     endLng:    25.0100,
+    lengthM:   14_600,
+    limitKmh:  90,
+  },
+  {
+    id:       'i5-trastenik-odylyanik',     // ~approximate
+    road:     'Път І-5',
+    name:     'Тръстеник — Одяланик',
+    startLat:  43.4190,
+    startLng:  25.0100,
+    endLat:    43.4600,
+    endLng:    25.0850,
     lengthM:   14_600,
     limitKmh:  90,
   },
@@ -546,6 +769,17 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     limitKmh:  90,
   },
   {
+    id:       'i5-polikraishe-samodvene',   // ~approximate
+    road:     'Път І-5',
+    name:     'Поликраище — Самоводене',
+    startLat:  43.2390,
+    startLng:  25.5430,
+    endLat:    43.1970,
+    endLng:    25.5490,
+    lengthM:   6_500,
+    limitKmh:  90,
+  },
+  {
     id:       'i5-yagoda-kazanlak',         // ~approximate
     road:     'Път І-5',
     name:     'Ягода — Казанлък',
@@ -556,8 +790,19 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     lengthM:   13_200,
     limitKmh:  90,
   },
+  {
+    id:       'i5-kazanlak-yagoda',         // ~approximate
+    road:     'Път І-5',
+    name:     'Казанлък — Ягода',
+    startLat:  42.6190,
+    startLng:  25.3970,
+    endLat:    42.5380,
+    endLng:    25.3300,
+    lengthM:   13_200,
+    limitKmh:  90,
+  },
 
-  // ══ Път І-6  (Sofia → Pernik → Radomir) ══════════════════════════════ ~
+  // ══ Път І-6  (Sofia — Pernik — Radomir) ══════════════════════════════ ~
 
   {
     id:       'i6-radomir-belanitsa',       // ~approximate
@@ -567,6 +812,17 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     startLng:  22.9630,
     endLat:    42.5030,
     endLng:    23.0270,
+    lengthM:   8_400,
+    limitKmh:  90,
+  },
+  {
+    id:       'i6-belanitsa-radomir',       // ~approximate
+    road:     'Път І-6',
+    name:     'Беланица — Радомир',
+    startLat:  42.5030,
+    startLng:  23.0270,
+    endLat:    42.5470,
+    endLng:    22.9630,
     lengthM:   8_400,
     limitKmh:  90,
   },
@@ -581,6 +837,17 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     startLng:  25.5510,
     endLat:    43.0020,
     endLng:    25.4450,
+    lengthM:   13_200,
+    limitKmh:  90,
+  },
+  {
+    id:       'ii55-vaglevtsi-kilifar',     // ~approximate
+    road:     'Път ІІ-55',
+    name:     'Въглевци — Килифарево',
+    startLat:  43.0020,
+    startLng:  25.4450,
+    endLat:    42.9330,
+    endLng:    25.5510,
     lengthM:   13_200,
     limitKmh:  90,
   },
