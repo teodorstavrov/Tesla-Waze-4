@@ -61,26 +61,26 @@ for (const s of SPEED_SECTIONS) {
 
 console.log('\n[2] Avg speed calculation (engine formula)')
 
-const section = SPEED_SECTIONS[0]!  // А1 Вакарел — Ихтиман, 19000m, 140 km/h
+const section = SPEED_SECTIONS[0]!  // А1 Вакарел — Ихтиман, 21300m, 140 km/h
 
-// 10 min → 114 km/h (well under 140 limit)
+// 10 min → 127.8 → 128 km/h (under 140 limit)
 {
   const avgKmh = Math.round((section.lengthM / (10 * 60)) * 3.6)
-  assert(approx(avgKmh, 114, 2), `19000m / 10min = ${avgKmh} km/h ≈ 114`)
+  assert(approx(avgKmh, 128, 2), `21300m / 10min = ${avgKmh} km/h ≈ 128`)
   assert(avgKmh < section.limitKmh, `${avgKmh} < ${section.limitKmh} — under limit`)
 }
 
-// 9 min → 126.7 → 127 km/h (under 140)
+// 11 min → 116.2 → 116 km/h (under 140)
 {
-  const avgKmh = Math.round((section.lengthM / (9 * 60)) * 3.6)
-  assert(approx(avgKmh, 127, 2), `19000m / 9min = ${avgKmh} km/h ≈ 127`)
+  const avgKmh = Math.round((section.lengthM / (11 * 60)) * 3.6)
+  assert(approx(avgKmh, 116, 2), `21300m / 11min = ${avgKmh} km/h ≈ 116`)
   assert(avgKmh <= section.limitKmh, `${avgKmh} ≤ ${section.limitKmh} — at/under limit`)
 }
 
-// 7 min → 162.9 → 163 km/h (over 140 limit)
+// 7 min → 182.6 → 183 km/h (over 140 limit)
 {
   const avgKmh = Math.round((section.lengthM / (7 * 60)) * 3.6)
-  assert(avgKmh > section.limitKmh, `19000m / 7min = ${avgKmh} km/h > ${section.limitKmh} limit`)
+  assert(avgKmh > section.limitKmh, `21300m / 7min = ${avgKmh} km/h > ${section.limitKmh} limit`)
 }
 
 // ── Test 3: Entry detection (ENTRY_M = 150m) ──────────────────────────

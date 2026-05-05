@@ -27,7 +27,7 @@ import { isTeslaBrowser } from '@/lib/browser'
 import { t } from '@/lib/locale'
 import type { SpeedSection } from './sectionTypes'
 
-const ROAD_PATH_VER  = 'v1'
+const ROAD_PATH_VER  = 'v2'
 const OSRM_BASE      = 'https://router.project-osrm.org/route/v1/driving'
 const BATCH_SIZE     = 5
 const BATCH_DELAY_MS = 200
