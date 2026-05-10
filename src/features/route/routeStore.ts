@@ -4,7 +4,7 @@
 // Tracks live remaining distance, deviation, step-by-step navigation,
 // voice announcements and arrival detection via GPS.
 
-import { fetchOSRMRoute } from './valhalla.js'
+import { fetchOSRMRoute, fetchRouteViaHemus } from './valhalla.js'
 import { maneuverVoiceText } from './maneuver.js'
 import { gpsStore } from '@/features/gps/gpsStore'
 import { audioManager } from '@/features/audio/audioManager'
@@ -139,6 +139,7 @@ let _state: RouteState = {
   currentStepIndex: 1,
   distToNextStepM:  null,
   arrived:          false,
+  viaHemus:         false,
 }
 
 type Listener = () => void
@@ -336,15 +337,14 @@ export const routeStore = {
     _stopGpsTracking()
     _resetAnnouncements()
 
-    _state = { destination: dest, routes: [], activeRouteIndex: 0, route: null, status: 'loading', mode: 'preview', error: null, deviated: false, remainingM: null, currentStepIndex: 1, distToNextStepM: null, arrived: false }
+    const viaHemus = _state.viaHemus
+    _state = { destination: dest, routes: [], activeRouteIndex: 0, route: null, status: 'loading', mode: 'preview', error: null, deviated: false, remainingM: null, currentStepIndex: 1, distToNextStepM: null, arrived: false, viaHemus }
     _emit()
 
     try {
-      const routes = await fetchOSRMRoute(
-        [gps.lat, gps.lng],
-        [dest.lat, dest.lng],
-        _abort.signal,
-      )
+      const routes = viaHemus
+        ? await fetchRouteViaHemus([gps.lat, gps.lng], [dest.lat, dest.lng], _abort.signal)
+        : await fetchOSRMRoute([gps.lat, gps.lng], [dest.lat, dest.lng], _abort.signal)
       const primary = routes[0]!
       _state = {
         ..._state,
@@ -422,18 +422,16 @@ export const routeStore = {
     _stopGpsTracking()
     _resetAnnouncements()
 
-    const dest = _state.destination
+    const dest     = _state.destination
+    const viaHemus = _state.viaHemus
     _state = { ..._state, status: 'loading', deviated: false, remainingM: null, currentStepIndex: 1, distToNextStepM: null }
     _emit()
 
     try {
       // Single route — no alternatives popup on reroute
-      const routes = await fetchOSRMRoute(
-        [gps.lat, gps.lng],
-        [dest.lat, dest.lng],
-        _abort.signal,
-        0,
-      )
+      const routes = viaHemus
+        ? await fetchRouteViaHemus([gps.lat, gps.lng], [dest.lat, dest.lng], _abort.signal)
+        : await fetchOSRMRoute([gps.lat, gps.lng], [dest.lat, dest.lng], _abort.signal, 0)
       const primary = routes[0]!
       _state = {
         ..._state,
@@ -469,11 +467,22 @@ export const routeStore = {
     }
   },
 
+  /** Toggle Via Хемус waypoint and re-fetch the current route. */
+  async toggleViaHemus(): Promise<void> {
+    const newViaHemus = !_state.viaHemus
+    _state = { ..._state, viaHemus: newViaHemus }
+    if (_state.destination) {
+      await routeStore.navigateTo(_state.destination)
+    } else {
+      _emit()
+    }
+  },
+
   clear(): void {
     _abort?.abort()
     _stopGpsTracking()
     _resetAnnouncements()
-    _state = { destination: null, routes: [], activeRouteIndex: 0, route: null, status: 'idle', mode: 'preview', error: null, deviated: false, remainingM: null, currentStepIndex: 1, distToNextStepM: null, arrived: false }
+    _state = { destination: null, routes: [], activeRouteIndex: 0, route: null, status: 'idle', mode: 'preview', error: null, deviated: false, remainingM: null, currentStepIndex: 1, distToNextStepM: null, arrived: false, viaHemus: false }
     _emit()
   },
 }

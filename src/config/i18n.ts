@@ -127,6 +127,7 @@ export const DICTIONARY = {
       alt:           'Алт',
       start:         'Старт',
       arrived:       'Пристигнахте!',
+      viaHemus:      'Via A2 Хемус',
       inDist:        'след',
     },
 
@@ -353,6 +354,7 @@ export const DICTIONARY = {
       alt:           'Alt',
       start:         'Start',
       arrived:       'Arrived!',
+      viaHemus:      'Via A2 Hemus',
       inDist:        'in',
     },
 
@@ -579,6 +581,7 @@ export const DICTIONARY = {
       alt:           'Alt',
       start:         'Start',
       arrived:       'Fremme!',
+      viaHemus:      'Via A2 Hemus',
       inDist:        'om',
     },
 
@@ -806,6 +809,7 @@ export const DICTIONARY = {
       alt:           'Alt',
       start:         'Start',
       arrived:       'Framme!',
+      viaHemus:      'Via A2 Hemus',
       inDist:        'om',
     },
 
@@ -1033,6 +1037,7 @@ export const DICTIONARY = {
       alt:           'Vaihtoehto',
       start:         'Aloitus',
       arrived:       'Perillä!',
+      viaHemus:      'Via A2 Hemus',
       inDist:        'päässä',
     },
 

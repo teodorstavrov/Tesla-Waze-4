@@ -37,4 +37,5 @@ export interface RouteState {
   currentStepIndex: number            // index into route.steps for next upcoming maneuver
   distToNextStepM:  number | null     // live distance to next maneuver point (metres)
   arrived:          boolean           // GPS within 50m of destination
+  viaHemus:         boolean           // force route through A2 Hemus waypoint
 }

@@ -94,6 +94,12 @@ interface VResponse {
   alternates?: Array<{ trip: VTrip }>
 }
 
+// ── A2 Hemus through-waypoint (В.Търново junction on E772) ────────────
+// OSM gap: Ябланица→В.Търново section is incomplete in the DB.
+// Forcing a through-waypoint here makes Valhalla stitch the available
+// A2 segments instead of falling back to A1 Тракия.
+const HEMUS_WAYPOINT: [number, number] = [43.0870, 25.6172]
+
 // ── Trip parser ────────────────────────────────────────────────────────
 
 function parseTrip(trip: VTrip): Route {
@@ -117,6 +123,63 @@ function parseTrip(trip: VTrip): Route {
 
   return {
     polyline,
+    distanceM: Math.round(trip.summary.length * 1000),
+    durationS: Math.round(trip.summary.time),
+    steps,
+  }
+}
+
+// ── Multi-leg trip parser (used when through-waypoints are present) ───
+// Valhalla emits one leg per break/through segment.
+// We decode each leg's shape separately, merge them into one polyline
+// (skipping the duplicate point at each join), and map maneuver
+// begin_shape_index values to the merged array.
+
+function parseTripMultiLeg(trip: VTrip): Route {
+  if (trip.legs.length === 1) return parseTrip(trip)
+
+  const steps: RouteStep[] = []
+  let fullPolyline: [number, number][] = []
+
+  for (let li = 0; li < trip.legs.length; li++) {
+    const leg      = trip.legs[li]!
+    const legPoly  = decodePoly6(leg.shape)
+    const isLast   = li === trip.legs.length - 1
+
+    // legStartInFull: index in fullPolyline where this leg's shape[0] lives.
+    // For leg 0 it's 0; for subsequent legs the through-waypoint is the
+    // last point already appended, so offset = fullPolyline.length - 1.
+    const legStartInFull = li === 0 ? 0 : fullPolyline.length - 1
+
+    if (li === 0) {
+      fullPolyline = [...legPoly]
+    } else {
+      // leg[0] == previous leg's last point — skip to avoid duplicate
+      fullPolyline = fullPolyline.concat(legPoly.slice(1))
+    }
+
+    for (const m of leg.maneuvers) {
+      // Skip the intermediate "arrive" maneuver at through-waypoints
+      if (!isLast && (m.type === 4 || m.type === 5 || m.type === 6)) continue
+
+      const { type, modifier } = mapManeuver(m.type)
+      const absIdx = legStartInFull + m.begin_shape_index
+      const pt     = fullPolyline[absIdx] ?? fullPolyline[0]!
+      steps.push({
+        lat:       pt[0],
+        lng:       pt[1],
+        type,
+        modifier,
+        exit:      m.type === 26 ? (m.roundabout_exit_count ?? undefined) : undefined,
+        name:      m.street_names?.[0] ?? '',
+        distanceM: Math.round(m.length * 1000),
+        durationS: Math.round(m.time),
+      })
+    }
+  }
+
+  return {
+    polyline:  fullPolyline,
     distanceM: Math.round(trip.summary.length * 1000),
     durationS: Math.round(trip.summary.time),
     steps,
@@ -170,3 +233,44 @@ export async function fetchRoute(
 
 // Backward-compatible alias (routeStore imports this name)
 export { fetchRoute as fetchOSRMRoute }
+
+// ── Via Хемус variant — forces a through-waypoint on A2 ───────────────
+
+export async function fetchRouteViaHemus(
+  origin:  [number, number],
+  dest:    [number, number],
+  signal?: AbortSignal,
+): Promise<Route[]> {
+  const cacheKey = _cacheKey(origin, dest) + ':hemus'
+  const hit = _cache.get(cacheKey)
+  if (hit && Date.now() < hit.expiresAt) return hit.routes
+
+  const body = JSON.stringify({
+    locations: [
+      { lat: origin[0],         lon: origin[1],         type: 'break' },
+      { lat: HEMUS_WAYPOINT[0], lon: HEMUS_WAYPOINT[1], type: 'through' },
+      { lat: dest[0],           lon: dest[1],            type: 'break' },
+    ],
+    costing: 'auto',
+    costing_options: { auto: { use_highways: 1.0 } },
+    alternates: 0,
+  })
+
+  const res = await fetch(`${VALHALLA_BASE}/route`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body,
+    signal,
+  })
+  if (!res.ok) {
+    const txt = await res.text().catch(() => '')
+    throw new Error(`Valhalla ${res.status}: ${txt.slice(0, 120)}`)
+  }
+
+  const data   = (await res.json()) as VResponse
+  const routes = [parseTripMultiLeg(data.trip)]
+
+  if (_cache.size >= 20) _cache.delete(_cache.keys().next().value!)
+  _cache.set(cacheKey, { routes, expiresAt: Date.now() + ROUTE_CACHE_TTL_MS })
+  return routes
+}

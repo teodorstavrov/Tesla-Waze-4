@@ -25,7 +25,7 @@ export function RoutePanel() {
   // Re-render on country/language change
   useSyncExternalStore(langStore.subscribe.bind(langStore), getLang, getLang)
 
-  const { route, routes, activeRouteIndex, destination, status, mode, error, deviated, remainingM } =
+  const { route, routes, activeRouteIndex, destination, status, mode, error, deviated, remainingM, viaHemus } =
     useSyncExternalStore(
       routeStore.subscribe.bind(routeStore),
       () => routeStore.getState(),
@@ -228,6 +228,35 @@ export function RoutePanel() {
               </button>
             ))}
           </div>
+
+          {/* Via Хемус toggle */}
+          <button
+            onClick={() => { void routeStore.toggleViaHemus() }}
+            style={{
+              width: '100%', padding: '7px 10px', borderRadius: 8,
+              border: viaHemus
+                ? '1px solid rgba(251,191,36,0.8)'
+                : '1px solid rgba(255,255,255,0.16)',
+              background: viaHemus
+                ? 'rgba(251,191,36,0.15)'
+                : 'rgba(255,255,255,0.06)',
+              color:      viaHemus ? '#fbbf24' : 'var(--text-secondary)',
+              fontSize:   13,
+              fontWeight: viaHemus ? 700 : 400,
+              cursor:     'pointer',
+              touchAction: 'manipulation',
+              display:    'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap:        6,
+            }}
+          >
+            <span style={{ fontSize: 15 }}>🏔</span>
+            <span>{t('route.viaHemus')}</span>
+            {viaHemus && (
+              <span style={{ fontSize: 11, opacity: 0.7, marginLeft: 4 }}>✓ активен</span>
+            )}
+          </button>
 
           {/* Battery arrival estimate */}
           {vehicleProfile && route && batterySession && (() => {
