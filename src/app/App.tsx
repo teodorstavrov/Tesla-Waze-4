@@ -34,6 +34,7 @@ import { RoutePanel } from '@/features/route/RoutePanel'
 import { TurnInstruction } from '@/features/route/TurnInstruction'
 import { AlertToast } from '@/features/audio/AlertToast'
 const OfflineToast = lazy(() => import('@/components/OfflineToast').then(m => ({ default: m.OfflineToast })))
+import { SettingsPanel } from '@/components/SettingsPanel'
 import { SupportModal } from '@/components/SupportModal'
 import { DonationNudge } from '@/components/DonationNudge'
 import { RatingModal } from '@/components/RatingModal'
@@ -41,6 +42,7 @@ import { VehicleProfileModal } from '@/components/VehicleProfileModal'
 import { CountryPicker } from '@/components/CountryPicker'
 import { NorwayBetaBanner } from '@/components/NorwayBetaBanner'
 import { OnlineCounter } from '@/components/OnlineCounter'
+import { CarClock } from '@/components/CarClock'
 import { UpgradeModal } from '@/components/UpgradeModal'
 import { PricingModal } from '@/components/PricingModal'
 import { alertEngine } from '@/features/audio/alertEngine'
@@ -129,7 +131,9 @@ export function App() {
       <LeftControls />
       <RightControls />
       <BottomDock />
+      <CarClock />
       <OnlineCounter />
+      <SettingsPanel />
 
       {/* Layer 2: panels + filter bar (above dock) */}
       <SectionCard />

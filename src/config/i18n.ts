@@ -78,6 +78,8 @@ export const DICTIONARY = {
       kmh:           'км/ч',
       withinLimit:   'В рамките на лимита ✓',
       overLimit:     'Лимитът е',
+      avg:           'СРД',
+      rem:           'ОСТ',
     },
 
     dock: {
@@ -227,6 +229,20 @@ export const DICTIONARY = {
       dialogLabel: 'Подкрепи проекта',
       closeLabel:  'Затвори',
     },
+
+    settings: {
+      title:          'Настройки',
+      traffic:        'Трафик',
+      roadworks:      'Пътни ремонти',
+      nightMode:      'Нощен режим',
+      dayMode:        'Дневен режим',
+      satellite:      'Сателитна карта',
+      standardMap:    'Стандартна карта',
+      country:        'Смени страна',
+      facebook:       'Facebook група',
+      showRightPanel: 'Десен панел',
+      showClock:      'Часовник',
+    },
   },
 
   en: {
@@ -288,6 +304,8 @@ export const DICTIONARY = {
       kmh:           'km/h',
       withinLimit:   'Within the limit ✓',
       overLimit:     'Limit:',
+      avg:           'AVG',
+      rem:           'REM',
     },
 
     dock: {
@@ -437,6 +455,20 @@ export const DICTIONARY = {
       dialogLabel: 'Support the project',
       closeLabel:  'Close',
     },
+
+    settings: {
+      title:          'Settings',
+      traffic:        'Traffic',
+      roadworks:      'Road works',
+      nightMode:      'Night mode',
+      dayMode:        'Day mode',
+      satellite:      'Satellite view',
+      standardMap:    'Standard map',
+      country:        'Switch country',
+      facebook:       'Facebook group',
+      showRightPanel: 'Right panel',
+      showClock:      'Clock',
+    },
   },
   // ─── Norwegian (Bokmål) ────────────────────────────────────────────────
   no: {
@@ -498,6 +530,8 @@ export const DICTIONARY = {
       kmh:           'km/t',
       withinLimit:   'Innenfor grensen ✓',
       overLimit:     'Grense:',
+      avg:           'SNITT',
+      rem:           'IGJEN',
     },
 
     dock: {
@@ -647,6 +681,20 @@ export const DICTIONARY = {
       dialogLabel: 'Støtt prosjektet',
       closeLabel:  'Lukk',
     },
+
+    settings: {
+      title:          'Innstillinger',
+      traffic:        'Trafikk',
+      roadworks:      'Veiarbeid',
+      nightMode:      'Nattmodus',
+      dayMode:        'Dagmodus',
+      satellite:      'Satellittkart',
+      standardMap:    'Standardkart',
+      country:        'Bytt land',
+      facebook:       'Facebook-gruppe',
+      showRightPanel: 'Høyre panel',
+      showClock:      'Klokke',
+    },
   },
 
   // ─── Swedish ────────────────────────────────────────────────────────────
@@ -709,6 +757,8 @@ export const DICTIONARY = {
       kmh:           'km/h',
       withinLimit:   'Inom gränsen ✓',
       overLimit:     'Gräns:',
+      avg:           'SNITT',
+      rem:           'KVAR',
     },
 
     dock: {
@@ -858,6 +908,20 @@ export const DICTIONARY = {
       dialogLabel: 'Stöd projektet',
       closeLabel:  'Stäng',
     },
+
+    settings: {
+      title:          'Inställningar',
+      traffic:        'Trafik',
+      roadworks:      'Vägarbete',
+      nightMode:      'Nattläge',
+      dayMode:        'Dagläge',
+      satellite:      'Satellittkarta',
+      standardMap:    'Standardkarta',
+      country:        'Byt land',
+      facebook:       'Facebook-grupp',
+      showRightPanel: 'Höger panel',
+      showClock:      'Klocka',
+    },
   },
 
   // ─── Finnish ────────────────────────────────────────────────────────────
@@ -920,6 +984,8 @@ export const DICTIONARY = {
       kmh:           'km/h',
       withinLimit:   'Rajan sisällä ✓',
       overLimit:     'Raja:',
+      avg:           'KESK',
+      rem:           'JÄLJ',
     },
 
     dock: {
@@ -1068,6 +1134,20 @@ export const DICTIONARY = {
       qrAlt:       'Lahjoitus-QR-koodi',
       dialogLabel: 'Tue projektia',
       closeLabel:  'Sulje',
+    },
+
+    settings: {
+      title:          'Asetukset',
+      traffic:        'Liikenne',
+      roadworks:      'Tietyöt',
+      nightMode:      'Yötila',
+      dayMode:        'Päivätila',
+      satellite:      'Satelliittikartta',
+      standardMap:    'Peruskartta',
+      country:        'Vaihda maa',
+      facebook:       'Facebook-ryhmä',
+      showRightPanel: 'Oikea paneeli',
+      showClock:      'Kello',
     },
   },
 } as const satisfies Record<string, Record<string, Record<string, string>>>

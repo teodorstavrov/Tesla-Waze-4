@@ -4,7 +4,7 @@
 // Tracks live remaining distance, deviation, step-by-step navigation,
 // voice announcements and arrival detection via GPS.
 
-import { fetchOSRMRoute } from './osrm.js'
+import { fetchOSRMRoute } from './valhalla.js'
 import { maneuverVoiceText } from './maneuver.js'
 import { gpsStore } from '@/features/gps/gpsStore'
 import { audioManager } from '@/features/audio/audioManager'
