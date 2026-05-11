@@ -17,7 +17,7 @@ import { isTeslaBrowser } from '@/lib/browser'
 import { audioManager } from '@/features/audio/audioManager'
 import { getSectionsForCountry } from './sections'
 import { countryStore } from '@/lib/countryStore'
-import type { SpeedSection, SectionSession } from './sectionTypes'
+import type { SpeedSection, SectionSession, SectionExit } from './sectionTypes'
 import type { GpsPosition } from '@/features/gps/types'
 
 // ── Constants ─────────────────────────────────────────────────────────
@@ -33,18 +33,15 @@ const MIN_SPEED_KMH   = 5     // ignore GPS noise below 5 km/h
 
 export interface SectionState {
   session:  SectionSession | null   // active section, or null if none
-  lastExit: {                       // result of last completed section
-    section: SpeedSection
-    avgKmh:  number
-    limitKmh: number
-  } | null
+  lastExit: SectionExit | null      // most recent exit — cleared after 15s (brief notification)
   preWarn: {                        // approaching a section (within PREWARN_M)
     section: SpeedSection
     distM:   number
   } | null
+  history:  SectionExit[]           // all completed sections this session (never auto-cleared)
 }
 
-let _state: SectionState = { session: null, lastExit: null, preWarn: null }
+let _state: SectionState = { session: null, lastExit: null, preWarn: null, history: [] }
 
 type Listener = () => void
 const _listeners = new Set<Listener>()
@@ -58,6 +55,10 @@ export const sectionStore = {
   subscribe(fn: Listener): () => void {
     _listeners.add(fn)
     return () => { _listeners.delete(fn) }
+  },
+  clearHistory(): void {
+    _state = { ..._state, history: [], lastExit: null }
+    _emit()
   },
 }
 
@@ -135,23 +136,26 @@ function _onPosition(pos: GpsPosition): void {
 
       _emaAvg = null   // reset EMA for next section
       _lastEmittedAvg = -1; _lastEmittedDistBkt = -1; _lastEmittedWarned = false
+      const exitEntry: SectionExit = {
+        section:   sess.section,
+        avgKmh:    finalAvg,
+        limitKmh:  sess.section.limitKmh,
+        timestamp: now,
+      }
       _state = {
         session:  null,
         preWarn:  null,
-        lastExit: {
-          section:  sess.section,
-          avgKmh:   finalAvg,
-          limitKmh: sess.section.limitKmh,
-        },
+        lastExit: exitEntry,
+        history:  [..._state.history, exitEntry],
       }
       _prevPos = pos
       _emit()
 
-      // Clear lastExit after 15s so card disappears
+      // Clear lastExit after 5s — history bar is the persistent record
       setTimeout(() => {
         _state = { ..._state, lastExit: null }
         _emit()
-      }, 15_000)
+      }, 5_000)
 
       return
     }

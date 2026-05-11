@@ -1,34 +1,33 @@
-// ─── Active Speed Section Card ─────────────────────────────────────────
+// ─── Active Speed Section Card + Section History Bar ──────────────────
 //
-// Floating HUD shown while the driver is inside a speed-controlled section.
+// Top-right card — shown while driving through or approaching a section:
+//   ActiveView:  [ Current speed ]  [ Limit sign ]  [ Avg speed ]  [ Remaining ]
+//   PreWarnView: approach warning with distance + limit
 //
-// ActiveView layout (horizontal):
-//   [ Current speed ]  [ Limit sign ]  [ Avg speed ]  [ Remaining ]
-//        km/h             circle            AVG             km / REM
-//
-// TESLA MODE:
-//   Always in DOM, visibility toggled via aria-hidden (no GPU layer churn).
+// Bottom-right history bar — accumulates all completed sections this session:
+//   Collapsed: row of colored pills  [✅ 88] [❌ 147] ...
+//   Expanded:  glass card with full detail list
 
-import { useSyncExternalStore } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import { sectionStore } from './sectionEngine'
 import { gpsStore } from '@/features/gps/gpsStore'
 import { isTeslaBrowser } from '@/lib/browser'
 import { t, langStore } from '@/lib/locale'
 import { PremiumBadge } from '@/components/PremiumBadge'
-import type { SectionSession, SpeedSection } from './sectionTypes'
+import type { SectionSession, SpeedSection, SectionExit } from './sectionTypes'
 
 const CARD_W = 320
 
 export function SectionCard() {
   useSyncExternalStore(langStore.subscribe, langStore.getLang, langStore.getLang)
 
-  const { session, lastExit, preWarn } = useSyncExternalStore(
+  const { session, lastExit, preWarn, history } = useSyncExternalStore(
     sectionStore.subscribe.bind(sectionStore),
     () => sectionStore.getState(),
     () => sectionStore.getState(),
   )
 
-  const visible = Boolean(session ?? lastExit ?? preWarn)
+  const topVisible = Boolean(session ?? preWarn)
 
   const wrapStyle: React.CSSProperties = {
     position: 'absolute',
@@ -38,31 +37,33 @@ export function SectionCard() {
     width:    CARD_W,
   }
 
-  if (isTeslaBrowser) {
-    return (
-      <div aria-hidden={!visible} className="tesla-overlay-host" style={wrapStyle}>
-        <CardContent session={session} lastExit={lastExit} preWarn={preWarn} />
-      </div>
-    )
-  }
-
-  if (!visible) return null
-  return (
-    <div style={{ ...wrapStyle, opacity: visible ? 1 : 0, transition: 'opacity 0.2s ease-out' }}>
-      <CardContent session={session} lastExit={lastExit} preWarn={preWarn} />
+  const topCard = isTeslaBrowser ? (
+    <div aria-hidden={!topVisible} className="tesla-overlay-host" style={wrapStyle}>
+      <TopCardContent session={session} preWarn={preWarn} />
     </div>
+  ) : topVisible ? (
+    <div style={wrapStyle}>
+      <TopCardContent session={session} preWarn={preWarn} />
+    </div>
+  ) : null
+
+  return (
+    <>
+      {topCard}
+      {history.length > 0 && (
+        <SectionHistoryBar history={history} lastExitTs={lastExit?.timestamp ?? null} />
+      )}
+    </>
   )
 }
 
-function CardContent({
-  session, lastExit, preWarn,
+function TopCardContent({
+  session, preWarn,
 }: {
   session:  SectionSession | null
-  lastExit: { section: SpeedSection; avgKmh: number; limitKmh: number } | null
   preWarn:  { section: SpeedSection; distM: number } | null
 }) {
   if (session)  return <ActiveView session={session} />
-  if (lastExit) return <ExitView   lastExit={lastExit} />
   if (preWarn)  return <PreWarnView preWarn={preWarn} />
   return null
 }
@@ -83,14 +84,12 @@ function ActiveView({ session }: { session: SectionSession }) {
   const remainingKm = (remainingM / 1000).toFixed(1)
   const progress    = Math.min(1, distM / section.lengthM)
 
-  // Avg speed color
   const avgOverLimit = avgKmh > section.limitKmh
   const avgRatio     = section.limitKmh > 0 ? avgKmh / section.limitKmh : 0
   const avgColor     = avgOverLimit    ? '#ef4444'
                      : avgRatio > 0.93 ? '#f97316'
                      :                   '#22c55e'
 
-  // Current speed color
   const speedOver  = currentSpeed !== null && currentSpeed > section.limitKmh
   const speedRatio = currentSpeed !== null && section.limitKmh > 0
     ? currentSpeed / section.limitKmh : 0
@@ -100,8 +99,6 @@ function ActiveView({ session }: { session: SectionSession }) {
                    :                                 '#fff'
 
   const barColor = avgOverLimit ? '#ef4444' : avgRatio > 0.93 ? '#f97316' : '#3b82f6'
-
-  // Smaller font for 3-digit limits (100, 110, 120, 130, 140)
   const limitFontSize = section.limitKmh >= 100 ? 15 : 19
 
   return (
@@ -109,7 +106,6 @@ function ActiveView({ session }: { session: SectionSession }) {
       className={isTeslaBrowser ? 'glass tesla-overlay-inner' : 'glass'}
       style={{ padding: '10px 16px 10px' }}
     >
-      {/* ── Road label ─────────────────────────────────────────── */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 5, marginBottom: 10,
       }}>
@@ -124,22 +120,18 @@ function ActiveView({ session }: { session: SectionSession }) {
         <PremiumBadge feature="average_speed_sections" />
       </div>
 
-      {/* ── HUD row ────────────────────────────────────────────── */}
       <div style={{
         display:        'flex',
         alignItems:     'center',
         justifyContent: 'space-between',
         gap:            4,
       }}>
-
-        {/* 1. Current speed */}
         <HudCell
           value={currentSpeed !== null ? String(currentSpeed) : '—'}
           valueColor={speedColor}
           label={t('sections.kmh')}
         />
 
-        {/* 2. Speed limit sign */}
         <div style={{
           width:          60,
           height:         60,
@@ -162,14 +154,12 @@ function ActiveView({ session }: { session: SectionSession }) {
           </span>
         </div>
 
-        {/* 3. Avg speed */}
         <HudCell
           value={avgKmh > 0 ? String(avgKmh) : '—'}
           valueColor={avgColor}
           label={t('sections.avg')}
         />
 
-        {/* 4. Remaining km */}
         <div style={{ textAlign: 'center', minWidth: 52 }}>
           <div style={{
             fontSize:           26,
@@ -189,7 +179,6 @@ function ActiveView({ session }: { session: SectionSession }) {
         </div>
       </div>
 
-      {/* ── Progress bar ───────────────────────────────────────── */}
       <div style={{
         marginTop:    10,
         height:       4,
@@ -289,42 +278,167 @@ function PreWarnView({ preWarn }: { preWarn: { section: SpeedSection; distM: num
   )
 }
 
-// ── ExitView ───────────────────────────────────────────────────────────
+// ── SectionHistoryBar — bottom-right, accumulates all exits ───────────
 
-function ExitView({ lastExit }: { lastExit: { section: SpeedSection; avgKmh: number; limitKmh: number } }) {
-  const { section, avgKmh, limitKmh } = lastExit
-  const ok    = avgKmh <= limitKmh
-  const color = ok ? '#22c55e' : '#ef4444'
+function SectionHistoryBar({
+  history,
+  lastExitTs,
+}: {
+  history:    SectionExit[]
+  lastExitTs: number | null
+}) {
+  const [expanded, setExpanded] = useState(false)
 
+  const reversed = [...history].reverse()
+
+  if (!expanded) {
+    return (
+      // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
+      <div
+        onClick={() => setExpanded(true)}
+        style={{
+          position:   'absolute',
+          bottom:     80,
+          right:      12,
+          zIndex:     440,
+          display:    'flex',
+          gap:        5,
+          flexDirection: 'row-reverse',
+          maxWidth:   'calc(100vw - 24px)',
+          flexWrap:   'nowrap',
+          overflow:   'hidden',
+          cursor:     'pointer',
+          touchAction: 'manipulation',
+        }}
+      >
+        {reversed.map((exit) => {
+          const ok        = exit.avgKmh <= exit.limitKmh
+          const isNew     = exit.timestamp === lastExitTs
+          const bg        = ok ? 'rgba(34,197,94,0.18)'   : 'rgba(239,68,68,0.18)'
+          const border    = ok ? 'rgba(34,197,94,0.55)'   : 'rgba(239,68,68,0.55)'
+          const textColor = ok ? '#4ade80' : '#f87171'
+          return (
+            <div
+              key={exit.timestamp}
+              style={{
+                background,
+                border:       `1px solid ${border}`,
+                borderRadius: 20,
+                padding:      '5px 11px',
+                fontSize:     13,
+                fontWeight:   700,
+                color:        textColor,
+                display:      'flex',
+                alignItems:   'center',
+                gap:          4,
+                flexShrink:   0,
+                boxShadow:    isNew
+                  ? `0 0 10px ${ok ? 'rgba(34,197,94,0.55)' : 'rgba(239,68,68,0.55)'}`
+                  : 'none',
+                fontVariantNumeric: 'tabular-nums',
+              }}
+            >
+              <span>{ok ? '✅' : '❌'}</span>
+              <span style={{ fontVariantNumeric: 'tabular-nums' }}>{exit.avgKmh}</span>
+            </div>
+          )
+        })}
+      </div>
+    )
+  }
+
+  // ── Expanded panel ─────────────────────────────────────────────────
   return (
     <div
       className={isTeslaBrowser ? 'glass tesla-overlay-inner' : 'glass'}
-      style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 6 }}
+      style={{
+        position:  'absolute',
+        bottom:    80,
+        right:     12,
+        zIndex:    440,
+        width:     CARD_W,
+        maxHeight: 380,
+        display:   'flex',
+        flexDirection: 'column',
+      }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-        <span style={{ fontSize: 16 }}>{ok ? '✅' : '🚨'}</span>
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span style={{
-            fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)',
-            textTransform: 'uppercase', letterSpacing: '0.09em',
-          }}>
-            {t('sections.exit')}
-          </span>
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)' }}>{section.road}</span>
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', alignItems: 'baseline', gap: 5 }}>
-        <span style={{ fontSize: 38, fontWeight: 900, color, lineHeight: 1, letterSpacing: '-0.02em' }}>
-          {avgKmh}
+      {/* Header */}
+      <div style={{
+        display:        'flex',
+        alignItems:     'center',
+        justifyContent: 'space-between',
+        padding:        '10px 14px 8px',
+        borderBottom:   '1px solid rgba(255,255,255,0.08)',
+        flexShrink:     0,
+      }}>
+        <span style={{
+          fontSize: 11, fontWeight: 800,
+          color: 'rgba(255,255,255,0.45)',
+          textTransform: 'uppercase', letterSpacing: '0.09em',
+        }}>
+          {history.length} {t('sections.history')}
         </span>
-        <span style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)' }}>{t('sections.kmh')}</span>
+        <button
+          onClick={() => setExpanded(false)}
+          style={{
+            background: 'rgba(255,255,255,0.1)',
+            border:     '1px solid rgba(255,255,255,0.18)',
+            borderRadius: 6,
+            color:      'rgba(255,255,255,0.6)',
+            fontSize:   13,
+            fontWeight: 700,
+            padding:    '3px 9px',
+            cursor:     'pointer',
+            touchAction: 'manipulation',
+          }}
+        >
+          ✕
+        </button>
       </div>
 
-      <div style={{ fontSize: 12, fontWeight: 600, color: ok ? '#4ade80' : '#f87171' }}>
-        {ok
-          ? t('sections.withinLimit')
-          : `${t('sections.overLimit')} ${limitKmh} ${t('sections.kmh')}`}
+      {/* Scrollable list */}
+      <div style={{ overflowY: 'auto', padding: '6px 14px 12px' }}>
+        {reversed.map((exit) => {
+          const ok    = exit.avgKmh <= exit.limitKmh
+          const color = ok ? '#22c55e' : '#ef4444'
+          return (
+            <div
+              key={exit.timestamp}
+              style={{
+                paddingTop:   10,
+                marginTop:    10,
+                borderTop:    '1px solid rgba(255,255,255,0.07)',
+              }}
+            >
+              <div style={{
+                fontSize: 10, color: 'rgba(255,255,255,0.4)',
+                marginBottom: 5, letterSpacing: '0.05em',
+                overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+              }}>
+                {exit.section.road} · {exit.section.name}
+              </div>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: 6 }}>
+                <span style={{
+                  fontSize: 30, fontWeight: 900, color, lineHeight: 1,
+                  fontVariantNumeric: 'tabular-nums', letterSpacing: '-0.02em',
+                }}>
+                  {exit.avgKmh}
+                </span>
+                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
+                  {t('sections.kmh')}
+                </span>
+                <span style={{
+                  marginLeft: 6, fontSize: 12, fontWeight: 600,
+                  color: ok ? '#4ade80' : '#f87171',
+                }}>
+                  {ok
+                    ? t('sections.withinLimit')
+                    : `${t('sections.overLimit')} ${exit.limitKmh} ${t('sections.kmh')}`}
+                </span>
+              </div>
+            </div>
+          )
+        })}
       </div>
     </div>
   )

@@ -80,6 +80,7 @@ export const DICTIONARY = {
       overLimit:     'Лимитът е',
       avg:           'СРД',
       rem:           'ОСТ',
+      history:       'Минати отсечки',
     },
 
     dock: {
@@ -307,6 +308,7 @@ export const DICTIONARY = {
       overLimit:     'Limit:',
       avg:           'AVG',
       rem:           'REM',
+      history:       'Sections passed',
     },
 
     dock: {
@@ -534,6 +536,7 @@ export const DICTIONARY = {
       overLimit:     'Grense:',
       avg:           'SNITT',
       rem:           'IGJEN',
+      history:       'Strekninger',
     },
 
     dock: {
@@ -762,6 +765,7 @@ export const DICTIONARY = {
       overLimit:     'Gräns:',
       avg:           'SNITT',
       rem:           'KVAR',
+      history:       'Sträckor',
     },
 
     dock: {
@@ -990,6 +994,7 @@ export const DICTIONARY = {
       overLimit:     'Raja:',
       avg:           'KESK',
       rem:           'JÄLJ',
+      history:       'Osuudet',
     },
 
     dock: {

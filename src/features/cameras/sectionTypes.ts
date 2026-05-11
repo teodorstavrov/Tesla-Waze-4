@@ -16,6 +16,14 @@ export interface SpeedSection {
   limitKmh:   number          // enforced speed limit
 }
 
+// One completed section result (accumulated in history during a trip)
+export interface SectionExit {
+  section:   SpeedSection
+  avgKmh:    number
+  limitKmh:  number
+  timestamp: number   // Date.now() at exit — used as React key
+}
+
 // Runtime state tracked by sectionEngine
 export interface SectionSession {
   section:    SpeedSection
