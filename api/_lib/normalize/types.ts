@@ -2,7 +2,7 @@
 // All three providers (Tesla, OCM, Overpass) are reduced to this shape.
 // The frontend only ever sees NormalizedStation — never raw provider data.
 
-export type StationSource = 'tesla' | 'ocm' | 'osm'
+export type StationSource = 'tesla' | 'ocm' | 'osm' | 'user'
 
 export type StationStatus =
   | 'available'   // confirmed operational
@@ -45,6 +45,12 @@ export interface NormalizedStation {
   /** Raw pricing description from provider (e.g. "Pay at machine", "0.35 BGN/kWh") */
   pricingText: string | null
   lastUpdated: string | null
+  /** Only set for source='user' stations submitted by users */
+  approvalStatus?: 'pending' | 'approved'
+  /** Free-text notes from the submitter (source='user' only) */
+  submitterNotes?: string | null
+  /** ISO timestamp when a user submitted this station */
+  submittedAt?: string
 }
 
 // ── Provider result envelope ──────────────────────────────────────
@@ -69,7 +75,7 @@ export interface ProviderResult {
 export interface StationsApiResponse {
   stations: NormalizedStation[]
   meta: {
-    providers: Record<StationSource, ProviderMeta>
+    providers: Partial<Record<StationSource, ProviderMeta>>
     total: number
     deduplicated: number
     bbox: { minLat: number; minLng: number; maxLat: number; maxLng: number }

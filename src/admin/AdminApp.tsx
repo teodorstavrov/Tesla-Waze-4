@@ -92,9 +92,26 @@ function LoginScreen({ onLogin }: { onLogin: (secret: string) => void }) {
 
 // ── Dashboard ────────────────────────────────────────────────────────────
 
+interface UserStation {
+  id:             string
+  name:           string
+  lat:            number
+  lng:            number
+  address:        string | null
+  city:           string | null
+  network:        string | null
+  approvalStatus: 'pending' | 'approved'
+  submittedAt:    string
+  submitterNotes: string | null
+  totalPorts:     number
+  maxPowerKw:     number | null
+  connectors:     Array<{ type: string; powerKw: number | null; count: number }>
+}
+
 function Dashboard({ secret }: { secret: string }) {
-  const [stats,   setStats]   = useState<Stats | null>(null)
-  const [events,  setEvents]  = useState<RoadEvent[]>([])
+  const [stats,        setStats]        = useState<Stats | null>(null)
+  const [events,       setEvents]       = useState<RoadEvent[]>([])
+  const [userStations, setUserStations] = useState<UserStation[]>([])
   const [syncing, setSyncing] = useState(false)
   const [syncMsg, setSyncMsg] = useState('')
   const [addMode, setAddMode] = useState(false)
@@ -103,12 +120,14 @@ function Dashboard({ secret }: { secret: string }) {
   const headers = { Authorization: `Bearer ${secret}` }
 
   const loadAll = useCallback(async () => {
-    const [sr, er] = await Promise.all([
-      fetch('/api/admin/stats',  { headers }),
-      fetch('/api/admin/events', { headers }),
+    const [sr, er, usr] = await Promise.all([
+      fetch('/api/admin/stats',         { headers }),
+      fetch('/api/admin/events',        { headers }),
+      fetch('/api/admin/user-stations', { headers }),
     ])
-    if (sr.ok) setStats(await sr.json() as Stats)
-    if (er.ok) setEvents(((await er.json()) as { events: RoadEvent[] }).events)
+    if (sr.ok)  setStats(await sr.json() as Stats)
+    if (er.ok)  setEvents(((await er.json()) as { events: RoadEvent[] }).events)
+    if (usr.ok) setUserStations(((await usr.json()) as { stations: UserStation[] }).stations)
   }, [secret]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { void loadAll() }, [loadAll])
@@ -129,6 +148,25 @@ function Dashboard({ secret }: { secret: string }) {
   async function deleteEvent(id: string) {
     await fetch(`/api/admin/events?id=${id}`, { method: 'DELETE', headers })
     setEvents((prev) => prev.filter((e) => e.id !== id))
+  }
+
+  async function approveUserStation(id: string) {
+    const r = await fetch('/api/admin/user-stations', {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, action: 'approve' }),
+    })
+    if (r.ok) setUserStations((prev) => prev.map((s) => s.id === id ? { ...s, approvalStatus: 'approved' as const } : s))
+  }
+
+  async function rejectUserStation(id: string) {
+    if (!confirm('Сигурен ли си, че искаш да изтриеш тази станция?')) return
+    const r = await fetch('/api/admin/user-stations', {
+      method: 'POST',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, action: 'reject' }),
+    })
+    if (r.ok) setUserStations((prev) => prev.filter((s) => s.id !== id))
   }
 
   async function addEvent(lat: number, lng: number) {
@@ -274,6 +312,13 @@ function Dashboard({ secret }: { secret: string }) {
 
         {/* Event stats */}
         <EventStats events={events} />
+
+        {/* User-submitted stations */}
+        <UserStationsPanel
+          stations={userStations}
+          onApprove={(id) => { void approveUserStation(id) }}
+          onReject={(id)  => { void rejectUserStation(id) }}
+        />
       </div>
 
       {/* ── Map ── */}
@@ -670,6 +715,131 @@ function AdminMap({ events, addMode, onMapClick, onDelete }: AdminMapProps) {
   }, [events])
 
   return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+}
+
+// ── User-submitted stations panel ────────────────────────────────────────
+
+function UserStationsPanel({
+  stations, onApprove, onReject,
+}: {
+  stations:  UserStation[]
+  onApprove: (id: string) => void
+  onReject:  (id: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+  const pending  = stations.filter((s) => s.approvalStatus === 'pending')
+  const approved = stations.filter((s) => s.approvalStatus === 'approved')
+
+  return (
+    <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          width: '100%', padding: '12px 18px', background: 'none', border: 'none',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          color: '#e2e8f0', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+        }}
+      >
+        <span>⚡ Потребителски станции</span>
+        <span style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+          {pending.length > 0 && (
+            <span style={{
+              background: 'rgba(168,85,247,0.22)', color: '#d8b4fe',
+              borderRadius: 99, padding: '1px 8px', fontSize: 11, fontWeight: 700,
+            }}>
+              {pending.length} нови
+            </span>
+          )}
+          <span style={{ color: '#666', fontSize: 12 }}>{open ? '▲' : '▼'}</span>
+        </span>
+      </button>
+
+      {open && (
+        <div style={{ padding: '0 14px 14px' }}>
+          {stations.length === 0 && (
+            <div style={{ fontSize: 12, color: '#555', padding: '8px 4px' }}>Няма подадени станции</div>
+          )}
+          {stations.map((s) => (
+            <div key={s.id} style={{
+              padding: '10px 0',
+              borderTop: '1px solid rgba(255,255,255,0.06)',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#e2e8f0', marginBottom: 2 }}>
+                    {s.name}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#64748b', marginBottom: 3 }}>
+                    {[s.address, s.city].filter(Boolean).join(', ') || `${s.lat.toFixed(5)}, ${s.lng.toFixed(5)}`}
+                  </div>
+                  {s.connectors.length > 0 && (
+                    <div style={{ fontSize: 11, color: '#94a3b8' }}>
+                      {s.connectors.map((c) => `${c.type}${c.powerKw ? ` ${c.powerKw}kW` : ''} ×${c.count}`).join(', ')}
+                    </div>
+                  )}
+                  {s.submitterNotes && (
+                    <div style={{ fontSize: 11, color: '#7c6f3a', marginTop: 3, fontStyle: 'italic' }}>
+                      "{s.submitterNotes}"
+                    </div>
+                  )}
+                  <div style={{ fontSize: 10, color: '#475569', marginTop: 4 }}>
+                    {new Date(s.submittedAt).toLocaleString('bg-BG')}
+                  </div>
+                </div>
+                <span style={{
+                  fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 8, flexShrink: 0,
+                  background: s.approvalStatus === 'pending' ? 'rgba(168,85,247,0.18)' : 'rgba(34,197,94,0.18)',
+                  color:      s.approvalStatus === 'pending' ? '#d8b4fe' : '#4ade80',
+                }}>
+                  {s.approvalStatus === 'pending' ? 'НЕОДОБРЕНА' : 'ОДОБРЕНА'}
+                </span>
+              </div>
+
+              {s.approvalStatus === 'pending' && (
+                <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+                  <button
+                    onClick={() => onApprove(s.id)}
+                    style={{
+                      flex: 1, padding: '7px 0', borderRadius: 7, cursor: 'pointer', fontSize: 12, fontWeight: 700,
+                      background: 'rgba(34,197,94,0.18)', border: '1px solid rgba(34,197,94,0.45)', color: '#4ade80',
+                    }}
+                  >
+                    ✅ Одобри
+                  </button>
+                  <button
+                    onClick={() => onReject(s.id)}
+                    style={{
+                      flex: 1, padding: '7px 0', borderRadius: 7, cursor: 'pointer', fontSize: 12, fontWeight: 700,
+                      background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)', color: '#f87171',
+                    }}
+                  >
+                    ❌ Откажи
+                  </button>
+                </div>
+              )}
+              {s.approvalStatus === 'approved' && (
+                <button
+                  onClick={() => onReject(s.id)}
+                  style={{
+                    marginTop: 6, width: '100%', padding: '5px 0', borderRadius: 7, cursor: 'pointer',
+                    fontSize: 11, fontWeight: 600,
+                    background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#f87171',
+                  }}
+                >
+                  Изтрий
+                </button>
+              )}
+            </div>
+          ))}
+          {approved.length > 0 && (
+            <div style={{ fontSize: 11, color: '#475569', paddingTop: 6 }}>
+              {approved.length} одобрени · {pending.length} чакат
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
 }
 
 function eventEmoji(type: string): string {

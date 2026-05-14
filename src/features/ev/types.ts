@@ -2,7 +2,7 @@
 // Mirror of api/_lib/normalize/types.ts — kept in sync manually.
 // The API and frontend have separate TS configs so we can't share directly.
 
-export type StationSource = 'tesla' | 'ocm' | 'osm'
+export type StationSource = 'tesla' | 'ocm' | 'osm' | 'user'
 
 export type StationStatus =
   | 'available'
@@ -39,6 +39,9 @@ export interface NormalizedStation {
   /** Raw pricing description from provider (e.g. "Pay at machine", "0.35 BGN/kWh") */
   pricingText: string | null
   lastUpdated: string | null
+  approvalStatus?: 'pending' | 'approved'
+  submitterNotes?: string | null
+  submittedAt?: string
 }
 
 export interface ProviderMeta {
@@ -51,7 +54,7 @@ export interface ProviderMeta {
 export interface StationsApiResponse {
   stations: NormalizedStation[]
   meta: {
-    providers: Record<StationSource, ProviderMeta>
+    providers: Partial<Record<StationSource, ProviderMeta>>
     total: number
     deduplicated: number
     bbox: { minLat: number; minLng: number; maxLat: number; maxLng: number }

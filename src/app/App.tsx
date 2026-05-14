@@ -20,6 +20,7 @@ import { useAudioUnlock } from '@/features/audio/useAudioUnlock'
 import { EvMarkerLayer } from '@/features/ev/EvMarkerLayer'
 import { StationPanel } from '@/features/ev/StationPanel'
 import { FilterBar } from '@/features/ev/FilterBar'
+import { AddStationForm } from '@/features/ev/AddStationForm'
 import { EventMarkerLayer } from '@/features/events/EventMarkerLayer'
 const ReportModal  = lazy(() => import('@/features/events/ReportModal').then(m => ({ default: m.ReportModal })))
 import { EventPanel } from '@/features/events/EventPanel'
@@ -143,6 +144,7 @@ export function App() {
       <EventPanel />
 
       {/* Layer 3: modal overlays */}
+      <AddStationForm />
       <Suspense fallback={null}><ReportModal /></Suspense>
 
       {/* Layer 4: alert toast (above everything) */}

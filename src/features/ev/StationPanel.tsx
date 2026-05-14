@@ -99,8 +99,9 @@ export function StationPanel() {
                 )}
               </div>
 
-              <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
+              <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                 <SourceBadge source={station.source} />
+                {station.source === 'user' && <ApprovalBadge approvalStatus={station.approvalStatus} />}
                 <StatusBadge status={station.status} />
                 <button
                   onClick={() => evStore.selectStation(null)}
@@ -289,11 +290,13 @@ function SourceBadge({ source }: { source: NormalizedStation['source'] }) {
     tesla: 'Tesla',
     ocm:   'OCM',
     osm:   'OSM',
+    user:  t('station.userSource'),
   }
   const colors: Record<string, string> = {
     tesla: '#e31937',
     ocm:   '#2B7FFF',
     osm:   '#22c55e',
+    user:  '#a855f7',
   }
   return (
     <span style={{
@@ -303,6 +306,22 @@ function SourceBadge({ source }: { source: NormalizedStation['source'] }) {
       color: '#fff',
     }}>
       {labels[source] ?? source.toUpperCase()}
+    </span>
+  )
+}
+
+function ApprovalBadge({ approvalStatus }: { approvalStatus?: 'pending' | 'approved' }) {
+  if (!approvalStatus) return null
+  const isPending = approvalStatus === 'pending'
+  return (
+    <span style={{
+      fontSize: 10, fontWeight: 700, letterSpacing: '0.05em',
+      padding: '2px 7px', borderRadius: 8,
+      background: isPending ? 'rgba(168,85,247,0.18)' : 'rgba(34,197,94,0.18)',
+      color: isPending ? '#d8b4fe' : '#4ade80',
+      border: `1px solid ${isPending ? 'rgba(168,85,247,0.4)' : 'rgba(34,197,94,0.4)'}`,
+    }}>
+      {isPending ? t('station.pending') : t('station.approved')}
     </span>
   )
 }

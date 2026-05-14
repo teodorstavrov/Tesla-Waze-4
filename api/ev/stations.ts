@@ -14,6 +14,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { parseBBox, BULGARIA_BBOX, bboxCacheKey, quantizeBBox, inBBox } from '../_lib/utils/bbox.js'
 import { stationDb } from '../_lib/db/stationDb.js'
+import { userStationDb } from '../_lib/db/userStationDb.js'
 import { cacheGet, cacheSet } from '../_lib/cache/memory.js'
 import { setCacheHeaders } from '../_lib/cache/headers.js'
 import { captureApiError } from '../_lib/utils/sentryApi.js'
@@ -71,9 +72,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   try {
     const allStations = await stationDb.getAll()
 
+    // User stations are fetched outside the provider cache (always fresh, small list)
+    const allUserStations = await userStationDb.getAll()
+    const userInBBox = allUserStations.filter((s) => inBBox(s.lat, s.lng, qbbox))
+
     if (allStations !== null && allStations.length > 0) {
       const syncMeta = await stationDb.getMeta()
-      const stations = allStations.filter((s) => inBBox(s.lat, s.lng, qbbox))
+      const providerStations = allStations.filter((s) => inBBox(s.lat, s.lng, qbbox))
+      const stations = [...providerStations, ...userInBBox]
 
       const response: StationsApiResponse = {
         stations,
@@ -82,6 +88,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
             tesla: { ...(syncMeta?.providers.tesla ?? EMPTY_META), fetchMs: 0 },
             ocm:   { ...(syncMeta?.providers.ocm   ?? EMPTY_META), fetchMs: 0 },
             osm:   { ...(syncMeta?.providers.osm   ?? EMPTY_META), fetchMs: 0 },
+            user:  { status: 'ok', count: userInBBox.length, fetchMs: 0 },
           },
           total:        stations.length,
           deduplicated: syncMeta?.deduplicated ?? 0,
@@ -91,16 +98,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         },
       }
 
-      cacheSet(mergedKey, response, MERGED_CACHE_TTL_MS)
+      // Cache only provider stations response (user stations always fetched fresh)
+      const providerOnlyResponse: StationsApiResponse = {
+        ...response,
+        stations: providerStations,
+        meta: { ...response.meta, total: providerStations.length },
+      }
+      cacheSet(mergedKey, providerOnlyResponse, MERGED_CACHE_TTL_MS)
 
       if (!IS_PRODUCTION) {
         res.setHeader('X-EV-Debug', JSON.stringify({
-          source: 'redis', total: stations.length,
+          source: 'redis', total: stations.length, user: userInBBox.length,
           ms: Date.now() - t0, syncedAt: syncMeta?.syncedAt,
         }))
       }
 
       setCacheHeaders(res, 300, 600)
+      res.status(200).json(response)
+      return
+    }
+
+    // Provider snapshot empty but user stations may still exist
+    if (userInBBox.length > 0) {
+      const response: StationsApiResponse = {
+        stations: userInBBox,
+        meta: {
+          providers: { tesla: EMPTY_META, ocm: EMPTY_META, osm: EMPTY_META, user: { status: 'ok', count: userInBBox.length, fetchMs: 0 } },
+          total: userInBBox.length, deduplicated: 0,
+          bbox:     { minLat: qbbox.minLat, minLng: qbbox.minLng, maxLat: qbbox.maxLat, maxLng: qbbox.maxLng },
+          cachedAt: new Date().toISOString(),
+          cacheHit: false,
+        },
+      }
+      setCacheHeaders(res, 60)
       res.status(200).json(response)
       return
     }

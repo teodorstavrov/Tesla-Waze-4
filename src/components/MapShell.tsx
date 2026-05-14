@@ -34,6 +34,7 @@ import { followStore } from '@/features/follow/followStore'
 import { gpsStore } from '@/features/gps/gpsStore'
 import { routeStore } from '@/features/route/routeStore'
 import { savedPlacesStore } from '@/features/places/savedPlacesStore'
+import { addStationStore } from '@/features/ev/addStationStore'
 import { settingsStore } from '@/features/settings/settingsStore'
 import { isTeslaBrowser } from '@/lib/browser'
 import { t } from '@/lib/locale'
@@ -383,9 +384,26 @@ export function MapShell() {
       placeRow.appendChild(makePlaceBtn('🏠', '#22c55e', 'home'))
       placeRow.appendChild(makePlaceBtn('💼', '#3b82f6', 'work'))
 
+      const addStationBtn = document.createElement('button')
+      addStationBtn.textContent = `⚡ ${t('map.addStation')}`
+      addStationBtn.style.cssText = [
+        'background:rgba(251,191,36,0.12)',
+        'color:#fbbf24',
+        'border:1.5px solid rgba(251,191,36,0.4)',
+        'border-radius:10px', 'padding:10px 0',
+        'font-size:13px', 'font-weight:700',
+        'cursor:pointer', 'touch-action:manipulation', 'width:100%',
+        'letter-spacing:0.04em',
+      ].join(';')
+      addStationBtn.addEventListener('click', () => {
+        map.closePopup()
+        addStationStore.open(lat, lng, addr.textContent ?? `${lat.toFixed(5)}, ${lng.toFixed(5)}`)
+      })
+
       wrap.appendChild(addr)
       wrap.appendChild(btn)
       wrap.appendChild(placeRow)
+      wrap.appendChild(addStationBtn)
 
       L.popup({
         className:    'nav-popup',

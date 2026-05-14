@@ -38,6 +38,7 @@ const CLUSTER_CELL_DEG = 0.5      // ~50km grid cell
 // 34×34px visible circle. Original color scheme preserved.
 
 function stationColor(s: NormalizedStation): string {
+  if (s.source === 'user' && s.approvalStatus === 'pending') return '#a855f7'
   if (s.status === 'offline' || s.status === 'planned') return '#888'
   if (s.source === 'tesla')                              return '#e31937'
   if (s.maxPowerKw != null && s.maxPowerKw >= 150)       return '#F59E0B'
@@ -48,10 +49,15 @@ function stationColor(s: NormalizedStation): string {
 function makeStationIcon(s: NormalizedStation, nearRoute = false): L.DivIcon {
   const color   = stationColor(s)
   const opacity = s.status === 'offline' || s.status === 'planned' ? 0.5 : 1
-  const border  = nearRoute ? '3px solid #FFD700' : '2.5px solid rgba(255,255,255,0.9)'
-  const shadow  = nearRoute
-    ? '0 0 0 2px #FFD700, 0 3px 12px rgba(0,0,0,0.6)'
-    : '0 3px 12px rgba(0,0,0,0.55)'
+
+  const isPendingUser = s.source === 'user' && s.approvalStatus === 'pending'
+  const icon  = isPendingUser ? '❓' : '⚡'
+  const bord  = isPendingUser
+    ? '2.5px dashed rgba(168,85,247,0.8)'
+    : nearRoute ? '3px solid #FFD700' : '2.5px solid rgba(255,255,255,0.9)'
+  const shad  = isPendingUser
+    ? '0 0 0 2px rgba(168,85,247,0.3), 0 3px 12px rgba(0,0,0,0.6)'
+    : nearRoute ? '0 0 0 2px #FFD700, 0 3px 12px rgba(0,0,0,0.6)' : '0 3px 12px rgba(0,0,0,0.55)'
 
   return L.divIcon({
     className: '',   // no Leaflet default styles
@@ -62,12 +68,12 @@ function makeStationIcon(s: NormalizedStation, nearRoute = false): L.DivIcon {
     "><div style="
       width:34px;height:34px;border-radius:50%;
       background:${color};opacity:${opacity};
-      border:${border};
-      box-shadow:${shadow};
+      border:${bord};
+      box-shadow:${shad};
       display:flex;align-items:center;justify-content:center;
       font-size:18px;line-height:1;
       user-select:none;-webkit-user-select:none;
-    ">⚡</div></div></div>`,
+    ">${icon}</div></div></div>`,
     iconSize:   [44, 44],
     iconAnchor: [22, 22],
   })
