@@ -16,9 +16,10 @@ import { cacheGet, cacheSet } from '../cache/memory.js'
 import type { NormalizedStation, ProviderResult, Connector } from '../normalize/types.js'
 
 const CACHE_TTL_MS = 15 * 60 * 1000   // 15 minutes
-const FETCH_TIMEOUT_MS = 12_000
+const FETCH_TIMEOUT_MS = 14_000
 const BASE_URL = 'https://api.openchargemap.io/v3/poi/'
-const MAX_RESULTS = 500
+const PAGE_SIZE  = 500   // OCM max per request (free tier)
+const MAX_PAGES  = 6     // cap at 3000 results per country
 
 // ── Raw OCM types ─────────────────────────────────────────────────
 
@@ -212,25 +213,38 @@ export async function fetchOCMStations(bbox: BBox): Promise<ProviderResult> {
     }
 
     const apiKey = process.env['OCM_API_KEY'] ?? ''
-    const params = new URLSearchParams({
-      output: 'json',
+    const baseParams: Record<string, string> = {
+      output:      'json',
       boundingbox: toOCMBBox(qbbox),
-      maxresults: String(MAX_RESULTS),
-      verbose: 'false',
+      maxresults:  String(PAGE_SIZE),
+      verbose:     'false',
       ...(apiKey ? { key: apiKey } : {}),
-    })
-
-    // Read as text first — OCM returns plain "REJECTED_APIKEY" when rate-limited
-    const text = await _fetchOCMText(params)
-    if (text.startsWith('REJECTED')) {
-      throw new Error('OCM rate-limited — set OCM_API_KEY env variable (free at openchargemap.org/site/developerinfo)')
     }
 
-    const raw = JSON.parse(text) as OCMStation[]
-    if (!Array.isArray(raw)) throw new Error('Unexpected OCM response shape')
+    // Paginate: fetch pages until we get fewer than PAGE_SIZE results or hit MAX_PAGES.
+    // Without pagination OCM caps at PAGE_SIZE (500) per request — large countries
+    // like Bulgaria have 1000+ stations and the first page silently truncates them.
+    const allRaw: OCMStation[] = []
+    for (let page = 0; page < MAX_PAGES; page++) {
+      const params = new URLSearchParams({
+        ...baseParams,
+        startindex: String(page * PAGE_SIZE),
+      })
+
+      const text = await _fetchOCMText(params)
+      if (text.startsWith('REJECTED')) {
+        throw new Error('OCM rate-limited — set OCM_API_KEY env variable (free at openchargemap.org/site/developerinfo)')
+      }
+
+      const pageRaw = JSON.parse(text) as OCMStation[]
+      if (!Array.isArray(pageRaw)) throw new Error('Unexpected OCM response shape')
+
+      allRaw.push(...pageRaw)
+      if (pageRaw.length < PAGE_SIZE) break  // last page — no more data
+    }
 
     const stations: NormalizedStation[] = []
-    for (const item of raw) {
+    for (const item of allRaw) {
       const station = normalize(item)
       if (station) stations.push(station)
     }

@@ -6,6 +6,10 @@
     "api/**/*.ts": {
       "memory": 128,
       "maxDuration": 60
+    },
+    "api/cron/sync-stations.ts": {
+      "memory": 256,
+      "maxDuration": 300
     }
   },
   "crons": [

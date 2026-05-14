@@ -15,7 +15,7 @@ import { cacheGet, cacheSet } from '../cache/memory.js'
 import type { NormalizedStation, ProviderResult, Connector } from '../normalize/types.js'
 
 const CACHE_TTL_MS = 30 * 60 * 1000  // 30 minutes
-const FETCH_TIMEOUT_MS = 15_000       // Overpass can be slow on complex queries
+const FETCH_TIMEOUT_MS = 35_000       // must exceed the Overpass [timeout:30] query directive
 const OVERPASS_URL = 'https://overpass-api.de/api/interpreter'
 const OVERPASS_FALLBACK = 'https://overpass.kumi.systems/api/interpreter'
 
@@ -182,7 +182,7 @@ function normalize(el: OverpassElement): NormalizedStation | null {
 
 function buildQuery(bboxStr: string): string {
   return [
-    '[out:json][timeout:25];',
+    '[out:json][timeout:30];',
     '(',
     `  node["amenity"="charging_station"](${bboxStr});`,
     `  way["amenity"="charging_station"](${bboxStr});`,

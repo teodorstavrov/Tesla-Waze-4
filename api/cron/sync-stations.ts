@@ -148,13 +148,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     return
   }
 
-  // ── Compare with existing snapshot — skip if unchanged ───────────
+  // ── Compare with existing snapshot — skip if truly unchanged ────
+  // Require same count AND a stable sample of IDs across the array.
+  // The old first+last check was too weak — same-count syncs with shuffled
+  // stations (or silent truncation to the same number) would never update.
+  function _sampleIds(arr: typeof stations, n = 5): string {
+    if (arr.length === 0) return ''
+    const step = Math.max(1, Math.floor(arr.length / n))
+    return Array.from({ length: n }, (_, i) => arr[Math.min(i * step, arr.length - 1)]?.id ?? '').join(',')
+  }
   const unchanged =
     existing !== null &&
     existing.length === stations.length &&
-    // Quick hash: compare first+last id as a cheap change signal
-    existing[0]?.id === stations[0]?.id &&
-    existing[existing.length - 1]?.id === stations[stations.length - 1]?.id
+    _sampleIds(existing) === _sampleIds(stations)
 
   function providerMeta(r: PromiseSettledResult<ProviderResult>) {
     if (r.status === 'fulfilled') return { status: r.value.meta.status, count: r.value.meta.count }
