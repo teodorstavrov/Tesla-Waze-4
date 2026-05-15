@@ -5,9 +5,6 @@ import { useSyncExternalStore, useState, useRef } from 'react'
 import { evStore } from '@/features/ev/evStore'
 import { eventStore } from '@/features/events/eventStore'
 import { routeStore } from '@/features/route/routeStore'
-import { addStationStore } from '@/features/ev/addStationStore'
-import { gpsStore } from '@/features/gps/gpsStore'
-import { getMap } from './MapShell'
 import { langStore, t } from '@/lib/locale'
 
 export function BottomDock() {
@@ -50,28 +47,6 @@ export function BottomDock() {
       gap: 'clamp(6px, 2.5vw, 13px)',
       alignItems: 'center',
     }}>
-      {/* Add Station */}
-      <button
-        className="icon-btn"
-        style={{
-          width: 'clamp(58px, 17vw, 83px)', height: 'clamp(58px, 17vw, 83px)',
-          borderRadius: 'clamp(12px, 4vw, 16px)',
-          background: 'rgba(251,191,36,0.15)',
-          borderColor: 'rgba(251,191,36,0.45)',
-          color: '#fbbf24',
-          boxShadow: '0 2px 12px rgba(0,0,0,0.18)',
-        }}
-        title={t('map.addStation')}
-        aria-label={t('map.addStation')}
-        onClick={() => {
-          const pos = gpsStore.getPosition() ?? getMap()?.getCenter()
-          if (!pos) return
-          addStationStore.open(pos.lat, pos.lng, '')
-        }}
-      >
-        <AddStationIcon />
-      </button>
-
       {/* EV Stations toggle */}
       <button
         className="icon-btn"
@@ -167,17 +142,6 @@ export function BottomDock() {
         </button>
       </div>
     </div>
-  )
-}
-
-function AddStationIcon() {
-  return (
-    <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z" />
-      <line x1="19" y1="3" x2="23" y2="3" />
-      <line x1="21" y1="1" x2="21" y2="5" />
-    </svg>
   )
 }
 
