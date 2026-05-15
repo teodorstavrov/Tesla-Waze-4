@@ -18,11 +18,23 @@ import { userStationDb } from '../_lib/db/userStationDb.js'
 import { cacheGet, cacheSet } from '../_lib/cache/memory.js'
 import { setCacheHeaders } from '../_lib/cache/headers.js'
 import { captureApiError } from '../_lib/utils/sentryApi.js'
-import type { StationsApiResponse, ProviderMeta } from '../_lib/normalize/types.js'
+import type { StationsApiResponse, ProviderMeta, NormalizedStation } from '../_lib/normalize/types.js'
 
-const MERGED_CACHE_TTL_MS = 20 * 60 * 1000
+const MERGED_CACHE_TTL_MS      = 20 * 60 * 1000
+const USER_STATIONS_CACHE_TTL  =  2 * 60 * 1000  // 2 min — new submissions appear quickly
+const USER_STATIONS_CACHE_KEY  = 'user-stations-all'
 const IS_PRODUCTION = process.env['NODE_ENV'] === 'production' || process.env['VERCEL_ENV'] === 'production'
 const EMPTY_META: ProviderMeta = { status: 'error', count: 0, fetchMs: 0 }
+
+// Fetches all user stations with a short in-memory cache (2 min) so that
+// even provider-snapshot cache hits include recently-submitted user stations.
+async function _getUserStations(): Promise<NormalizedStation[]> {
+  const hit = cacheGet<NormalizedStation[]>(USER_STATIONS_CACHE_KEY)
+  if (hit) return hit
+  const stations = await userStationDb.getAll()
+  cacheSet(USER_STATIONS_CACHE_KEY, stations, USER_STATIONS_CACHE_TTL)
+  return stations
+}
 
 // ── In-memory rate limit (no Redis cost) ─────────────────────────────
 // Stations is a read-only GET — per-instance limiting is sufficient.
@@ -50,13 +62,26 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const t0        = Date.now()
   const bust      = req.query['bust'] === '1'  // manual refresh — skip in-memory cache
 
-  // ── 1. In-memory cache — serve immediately, zero Redis, zero rate-limit cost
+  // ── 1. In-memory cache — serve immediately with freshly-checked user stations
+  // Provider snapshot is cached for 20 min; user stations use their own 2-min
+  // cache so new submissions appear on the map within ~2 minutes without a bust.
   if (!bust) {
     const cached = cacheGet<StationsApiResponse>(mergedKey)
     if (cached) {
+      const userStations   = await _getUserStations()
+      const userInBBox     = userStations.filter((s) => inBBox(s.lat, s.lng, qbbox))
+      const withUsers: StationsApiResponse = {
+        ...cached,
+        stations: [...cached.stations, ...userInBBox],
+        meta: {
+          ...cached.meta,
+          cacheHit: true,
+          total: cached.stations.length + userInBBox.length,
+          providers: { ...cached.meta.providers, user: { status: 'ok', count: userInBBox.length, fetchMs: 0 } },
+        },
+      }
       setCacheHeaders(res, 300, 600)
-      cached.meta.cacheHit = true
-      res.status(200).json(cached)
+      res.status(200).json(withUsers)
       return
     }
   }
@@ -72,8 +97,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   try {
     const allStations = await stationDb.getAll()
 
-    // User stations are fetched outside the provider cache (always fresh, small list)
-    const allUserStations = await userStationDb.getAll()
+    const allUserStations = await _getUserStations()
     const userInBBox = allUserStations.filter((s) => inBBox(s.lat, s.lng, qbbox))
 
     if (allStations !== null && allStations.length > 0) {

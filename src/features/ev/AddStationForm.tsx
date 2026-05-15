@@ -6,6 +6,7 @@
 
 import { useState, useSyncExternalStore } from 'react'
 import { addStationStore } from './addStationStore'
+import { evStore } from './evStore'
 import { t } from '@/lib/locale'
 import { isTeslaBrowser } from '@/lib/browser'
 
@@ -118,6 +119,8 @@ function AddStationModal({
         return
       }
       setDone(true)
+      // Reload stations so the new marker appears immediately with bust=1 to skip server cache
+      void evStore.forceRefresh()
     } catch {
       setError(t('addStation.networkError'))
       setSubmitting(false)

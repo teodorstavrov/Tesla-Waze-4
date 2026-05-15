@@ -13,6 +13,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { userStationDb, makeApproveToken } from '../_lib/db/userStationDb.js'
 import { rateLimit } from '../_lib/utils/rateLimit.js'
+import { cacheDel } from '../_lib/cache/memory.js'
 import { captureApiError } from '../_lib/utils/sentryApi.js'
 import type { NormalizedStation, Connector } from '../_lib/normalize/types.js'
 
@@ -107,6 +108,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     }
 
     await userStationDb.add(station)
+
+    // Bust the in-memory user-stations cache so the next request to /api/ev/stations
+    // on this same Vercel instance picks up the new station immediately.
+    cacheDel('user-stations-all')
 
     // ── Send approval email ───────────────────────────────────────
     const token      = makeApproveToken(id)
