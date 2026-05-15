@@ -282,11 +282,11 @@ function AddStationModal({
                 <span style={{ fontSize: 12, color: '#fbbf24', fontWeight: 700, width: 70, flexShrink: 0 }}>{c.type}</span>
                 <input type="number" min="1" max="1000" placeholder="kW" value={c.powerKw}
                   onChange={(e) => updateConnector(c.type, 'powerKw', e.target.value)}
-                  style={{ ...inputStyle, width: 70, textAlign: 'right' }} />
+                  style={{ ...inputStyle, width: 84, textAlign: 'right' }} />
                 <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>kW</span>
                 <input type="number" min="1" max="50" placeholder="бр." value={c.count}
                   onChange={(e) => updateConnector(c.type, 'count', e.target.value)}
-                  style={{ ...inputStyle, width: 54, textAlign: 'right' }} />
+                  style={{ ...inputStyle, width: 65, textAlign: 'right' }} />
                 <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>{t('addStation.pcs')}</span>
               </div>
             ))}
