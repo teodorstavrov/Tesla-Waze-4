@@ -5,6 +5,7 @@
 import { useSyncExternalStore, useState, useEffect } from 'react'
 import { eventStore } from './eventStore.js'
 import { gpsStore } from '@/features/gps/gpsStore'
+import { addStationStore } from '@/features/ev/addStationStore'
 import { audioManager } from '@/features/audio/audioManager'
 import { getMap } from '@/components/MapShell'
 import { EVENT_EMOJI, EVENT_COLORS } from './types.js'
@@ -126,6 +127,29 @@ export function ReportModal() {
             />
           ))}
         </div>
+
+        <button
+          onClick={() => {
+            eventStore.closeReportModal()
+            const pos = gpsStore.getPosition() ?? getMap()?.getCenter()
+            if (pos) addStationStore.open(pos.lat, pos.lng, '')
+          }}
+          style={{
+            width: '100%',
+            padding: '13px',
+            borderRadius: 10,
+            background: 'rgba(251,191,36,0.12)',
+            border: '1px solid rgba(251,191,36,0.4)',
+            color: '#fbbf24',
+            fontSize: 15,
+            fontWeight: 700,
+            cursor: 'pointer',
+            touchAction: 'manipulation',
+            marginBottom: 10,
+          }}
+        >
+          ⚡ {t('map.addStation')}
+        </button>
 
         <button
           onClick={() => eventStore.closeReportModal()}
