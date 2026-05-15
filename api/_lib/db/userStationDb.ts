@@ -43,6 +43,43 @@ export const userStationDb = {
     await redis.set(USER_STATIONS_KEY, filtered)
     return true
   },
+
+  /** Update editable fields, only if ownerToken matches. Returns 'ok', 'not_found', or 'forbidden'. */
+  async update(
+    id: string,
+    ownerToken: string,
+    changes: Partial<Pick<NormalizedStation, 'name' | 'address' | 'city' | 'network' | 'connectors' | 'isFree' | 'pricePerKwh' | 'priceCurrency' | 'submitterNotes' | 'totalPorts' | 'maxPowerKw'>>,
+  ): Promise<'ok' | 'not_found' | 'forbidden'> {
+    if (!redis.isConfigured()) return 'not_found'
+    const all = await this.getAll()
+    const idx = all.findIndex((s) => s.id === id)
+    if (idx === -1) return 'not_found'
+    const station = all[idx]!
+    if (!_verifyOwner(station.ownerToken, ownerToken)) return 'forbidden'
+    all[idx] = { ...station, ...changes }
+    await redis.set(USER_STATIONS_KEY, all)
+    return 'ok'
+  },
+
+  /** Delete by owner token. Returns 'ok', 'not_found', or 'forbidden'. */
+  async deleteByOwner(id: string, ownerToken: string): Promise<'ok' | 'not_found' | 'forbidden'> {
+    if (!redis.isConfigured()) return 'not_found'
+    const all = await this.getAll()
+    const idx = all.findIndex((s) => s.id === id)
+    if (idx === -1) return 'not_found'
+    if (!_verifyOwner(all[idx]!.ownerToken, ownerToken)) return 'forbidden'
+    const filtered = all.filter((_, i) => i !== idx)
+    await redis.set(USER_STATIONS_KEY, filtered)
+    return 'ok'
+  },
+}
+
+function _verifyOwner(stored: string | undefined, provided: string): boolean {
+  if (!stored || !provided) return false
+  // Constant-time comparison to avoid timing oracles
+  const a = Buffer.from(stored.padEnd(64, '\0'), 'utf8')
+  const b = Buffer.from(provided.padEnd(64, '\0'), 'utf8')
+  try { return timingSafeEqual(a, b) } catch { return false }
 }
 
 // ── HMAC-based one-click approval token ──────────────────────────────

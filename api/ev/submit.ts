@@ -28,6 +28,13 @@ function randomId(): string {
   return Math.random().toString(36).slice(2) + Date.now().toString(36)
 }
 
+function randomToken(): string {
+  // 32 random hex bytes → 64-char string, cryptographically unpredictable
+  const bytes = new Uint8Array(32)
+  crypto.getRandomValues(bytes)
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('')
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS')
@@ -80,7 +87,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     }, null)
 
     // ── Build station record ──────────────────────────────────────
-    const id = `user:${randomId()}`
+    const id         = `user:${randomId()}`
+    const ownerToken = randomToken()
     const station: NormalizedStation = {
       id,
       source:          'user',
@@ -105,6 +113,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       approvalStatus:  'pending',
       submittedAt:     new Date().toISOString(),
       submitterNotes:  String(body?.notes ?? '').trim().slice(0, 1000) || null,
+      ownerToken,
     }
 
     await userStationDb.add(station)
@@ -166,7 +175,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       console.log('[ev/submit] No RESEND_API_KEY — approve URL:', approveUrl)
     }
 
-    res.status(200).json({ ok: true, id, approvalStatus: 'pending' })
+    res.status(200).json({ ok: true, id, ownerToken, approvalStatus: 'pending' })
   } catch (err) {
     await captureApiError(err, 'ev/submit POST')
     res.status(500).json({ error: 'Грешка при запазване. Моля, опитайте отново.' })

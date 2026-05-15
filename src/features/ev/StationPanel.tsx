@@ -6,6 +6,8 @@
 
 import { useSyncExternalStore, useEffect, useState, useCallback } from 'react'
 import { evStore } from './evStore'
+import { addStationStore } from './addStationStore'
+import { getOwnerToken } from './userStationOwner'
 import { audioManager } from '@/features/audio/audioManager'
 import { routeStore } from '@/features/route/routeStore'
 import { isTeslaBrowser } from '@/lib/browser'
@@ -215,6 +217,32 @@ export function StationPanel() {
               >
                 {t('station.navigate')}
               </button>
+
+              {station.source === 'user' && (() => {
+                const ownerToken = getOwnerToken(station.id)
+                if (!ownerToken) return null
+                return (
+                  <button
+                    onClick={() => {
+                      evStore.selectStation(null)
+                      addStationStore.openEdit(station, ownerToken)
+                    }}
+                    style={{
+                      padding: '11px 16px',
+                      borderRadius: 10,
+                      background: 'rgba(168,85,247,0.12)',
+                      border: '1.5px solid rgba(168,85,247,0.4)',
+                      color: '#c084fc',
+                      fontSize: 14,
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      touchAction: 'manipulation',
+                    }}
+                  >
+                    ✏️
+                  </button>
+                )
+              })()}
             </div>
           </>
         )}

@@ -28,10 +28,12 @@ const EMPTY_META: ProviderMeta = { status: 'error', count: 0, fetchMs: 0 }
 
 // Fetches all user stations with a short in-memory cache (2 min) so that
 // even provider-snapshot cache hits include recently-submitted user stations.
+// ownerToken is stripped — it must never leave the server.
 async function _getUserStations(): Promise<NormalizedStation[]> {
   const hit = cacheGet<NormalizedStation[]>(USER_STATIONS_CACHE_KEY)
   if (hit) return hit
-  const stations = await userStationDb.getAll()
+  const raw      = await userStationDb.getAll()
+  const stations = raw.map(({ ownerToken: _drop, ...s }) => s)
   cacheSet(USER_STATIONS_CACHE_KEY, stations, USER_STATIONS_CACHE_TTL)
   return stations
 }

@@ -51,6 +51,9 @@ export interface NormalizedStation {
   submitterNotes?: string | null
   /** ISO timestamp when a user submitted this station */
   submittedAt?: string
+  /** Secret token that authorises the submitter to edit/delete.
+   *  INTERNAL ONLY — must be stripped before sending to the public API. */
+  ownerToken?: string
 }
 
 // ── Provider result envelope ──────────────────────────────────────
