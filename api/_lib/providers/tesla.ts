@@ -24,7 +24,8 @@ import { cacheGet, cacheSet } from '../cache/memory.js'
 import type { NormalizedStation, ProviderResult, Connector } from '../normalize/types.js'
 
 const CACHE_TTL_MS = 2 * 60 * 60 * 1000   // 2 hours
-const FETCH_TIMEOUT_MS = 12_000
+// 14s HTTP timeout > 10s query timeout — Overpass sends a clean error before HTTP fires
+const FETCH_TIMEOUT_MS = 14_000
 const OVERPASS_URL = 'https://overpass-api.de/api/interpreter'
 const OVERPASS_FALLBACK = 'https://overpass.kumi.systems/api/interpreter'
 
@@ -149,7 +150,7 @@ function normalize(el: OverpassElement): NormalizedStation | null {
 function buildTeslaQuery(bboxStr: string): string {
   // Match nodes/ways with any Tesla-identifying tag
   return [
-    '[out:json][timeout:20];',
+    '[out:json][timeout:10];',
     '(',
     // network=Tesla (most common tagging)
     `  node["amenity"="charging_station"]["network"="Tesla"](${bboxStr});`,
