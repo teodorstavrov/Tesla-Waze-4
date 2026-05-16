@@ -44,7 +44,6 @@ export function AddStationForm() {
       key={state.edit?.id ?? `add-${state.lat}-${state.lng}`}
       lat={state.lat}
       lng={state.lng}
-      initialAddress={state.address}
       editData={state.edit}
       onClose={() => addStationStore.close()}
     />
@@ -54,19 +53,16 @@ export function AddStationForm() {
 // ── Modal ──────────────────────────────────────────────────────────────
 
 function AddStationModal({
-  lat, lng, initialAddress, editData, onClose,
+  lat, lng, editData, onClose,
 }: {
-  lat:            number
-  lng:            number
-  initialAddress: string
-  editData:       ReturnType<typeof addStationStore.getState>['edit']
-  onClose:        () => void
+  lat:      number
+  lng:      number
+  editData: ReturnType<typeof addStationStore.getState>['edit']
+  onClose:  () => void
 }) {
   const isEdit = editData != null
 
   const [name,        setName]       = useState(editData?.name        ?? '')
-  const [address,     setAddress]    = useState(editData?.address     ?? initialAddress)
-  const [city,        setCity]       = useState(editData?.city        ?? '')
   const [network,     setNetwork]    = useState(editData?.network     ?? '')
   const [connectors,  setConnectors] = useState<ConnectorEntry[]>(() =>
     editData ? toEntries(editData.connectors) : [],
@@ -107,8 +103,6 @@ function AddStationModal({
 
     const payload = {
       name:          name.trim(),
-      address:       address.trim() || null,
-      city:          city.trim() || null,
       country:       'BG',
       network:       network.trim() || null,
       connectors:    builtConnectors,
@@ -243,17 +237,9 @@ function AddStationModal({
         {/* Form */}
         <form onSubmit={(e) => { void handleSubmit(e) }} style={{ padding: '14px 18px 18px', display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-          <Field label={`${t('addStation.name')} *`}>
-            <Input value={name} onChange={setName} placeholder={t('addStation.namePlaceholder')} />
-          </Field>
-
-          <Field label={t('addStation.address')}>
-            <Input value={address} onChange={setAddress} placeholder={t('addStation.addressPlaceholder')} />
-          </Field>
-
           <div style={{ display: 'flex', gap: 10 }}>
-            <Field label={t('addStation.city')} style={{ flex: 1 }}>
-              <Input value={city} onChange={setCity} placeholder="София" />
+            <Field label={`${t('addStation.name')} *`} style={{ flex: 2 }}>
+              <Input value={name} onChange={setName} placeholder={t('addStation.namePlaceholder')} />
             </Field>
             <Field label={t('addStation.network')} style={{ flex: 1 }}>
               <Input value={network} onChange={setNetwork} placeholder="EVN, ERG…" />
