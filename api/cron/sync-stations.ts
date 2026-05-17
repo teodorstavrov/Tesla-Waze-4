@@ -25,6 +25,7 @@ import { fetchOverpassStations } from '../_lib/providers/overpass.js'
 import { mergeStations } from '../_lib/merge/stations.js'
 import { stationDb } from '../_lib/db/stationDb.js'
 import { isRedisConfigured } from '../_lib/db/redis.js'
+import { haversineMeters } from '../_lib/utils/geo.js'
 import type { ProviderResult } from '../_lib/normalize/types.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
@@ -129,6 +130,27 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const existing = await stationDb.getAll()
   const existingCount = existing?.length ?? 0
 
+  // ── Fallback: preserve stations from failed providers ─────────────
+  // If a provider fails entirely for all countries, its last-known
+  // stations are re-injected so they NEVER disappear from the DB due
+  // to temporary API downtime. Proximity-deduped (100m) against fresh
+  // data so we don't create duplicates where OCM already covers the spot.
+  const teslaFailed = combinedMeta(bgTeslaResult, noTeslaResult, seTeslaResult, fiTeslaResult).status === 'error'
+  const osmFailed   = combinedMeta(bgOsmResult,   noOsmResult,   seOsmResult,   fiOsmResult).status === 'error'
+
+  if ((teslaFailed || osmFailed) && existing) {
+    for (const old of existing) {
+      const shouldFallback =
+        (old.source === 'tesla' && teslaFailed) ||
+        (old.source === 'osm'   && osmFailed)
+      if (!shouldFallback) continue
+      const alreadyCovered = stations.some(
+        (s) => haversineMeters([s.lat, s.lng], [old.lat, old.lng]) < 100,
+      )
+      if (!alreadyCovered) stations.push(old)
+    }
+  }
+
   // ── Safety guard: never overwrite with dramatically fewer stations ─
   // If providers return <70% of the known count, one or more providers
   // likely failed silently — keep the old snapshot rather than shrinking.
@@ -197,6 +219,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     unchanged,
     stations:    stations.length,
     deduplicated,
+    fallback: {
+      tesla: teslaFailed,
+      osm:   osmFailed,
+    },
     countries: {
       BG: bgMerge.stations.length,
       NO: noMerge.stations.length,
