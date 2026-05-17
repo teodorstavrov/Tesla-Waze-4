@@ -33,6 +33,11 @@ export interface MergeResult {
 /**
  * Merge stations from multiple providers with priority-ordered deduplication.
  * Results must be ordered by provider priority (first = highest priority).
+ *
+ * Deduplication fires only CROSS-PROVIDER — two stations from the same
+ * provider are assumed unique by the provider's own ID system.
+ * Same-provider proximity matches (e.g. two OCM chargers in the same
+ * parking lot 50m apart) are intentionally kept as separate entries.
  */
 export function mergeStations(results: ProviderResult[]): MergeResult {
   const merged: NormalizedStation[] = []
@@ -42,6 +47,7 @@ export function mergeStations(results: ProviderResult[]): MergeResult {
     for (const station of result.stations) {
       const existingIdx = merged.findIndex(
         (existing) =>
+          existing.source !== station.source &&
           haversineMeters([existing.lat, existing.lng], [station.lat, station.lng]) < DEDUP_METERS,
       )
 
