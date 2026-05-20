@@ -336,9 +336,12 @@ function Dashboard({ secret }: { secret: string }) {
         )}
         <AdminMap
           events={events}
+          userStations={userStations}
           addMode={addMode}
           onMapClick={(lat, lng) => { void addEvent(lat, lng) }}
           onDelete={(id) => { void deleteEvent(id) }}
+          onApproveStation={(id) => { void approveUserStation(id) }}
+          onRejectStation={(id)  => { void rejectUserStation(id) }}
         />
       </div>
     </div>
@@ -598,24 +601,32 @@ function Row({ label, count, total, color = '#e31937' }: { label: string; count:
 // ── Leaflet map component ────────────────────────────────────────────────
 
 interface AdminMapProps {
-  events: RoadEvent[]
-  addMode: boolean
-  onMapClick: (lat: number, lng: number) => void
-  onDelete: (id: string) => void
+  events:           RoadEvent[]
+  userStations:     UserStation[]
+  addMode:          boolean
+  onMapClick:       (lat: number, lng: number) => void
+  onDelete:         (id: string) => void
+  onApproveStation: (id: string) => void
+  onRejectStation:  (id: string) => void
 }
 
-function AdminMap({ events, addMode, onMapClick, onDelete }: AdminMapProps) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const mapRef       = useRef<L.Map | null>(null)
-  const markersRef   = useRef<Map<string, L.Marker>>(new Map())
-  const addModeRef   = useRef(addMode)
-  const onClickRef   = useRef(onMapClick)
-  const onDeleteRef  = useRef(onDelete)
+function AdminMap({ events, userStations, addMode, onMapClick, onDelete, onApproveStation, onRejectStation }: AdminMapProps) {
+  const containerRef        = useRef<HTMLDivElement>(null)
+  const mapRef              = useRef<L.Map | null>(null)
+  const markersRef          = useRef<Map<string, L.Marker>>(new Map())
+  const stationMarkersRef   = useRef<Map<string, L.Marker>>(new Map())
+  const addModeRef          = useRef(addMode)
+  const onClickRef          = useRef(onMapClick)
+  const onDeleteRef         = useRef(onDelete)
+  const onApproveStationRef = useRef(onApproveStation)
+  const onRejectStationRef  = useRef(onRejectStation)
 
-  // Keep refs in sync (avoids stale cameras in Leaflet handlers)
-  addModeRef.current  = addMode
-  onClickRef.current  = onMapClick
-  onDeleteRef.current = onDelete
+  // Keep refs in sync (avoids stale closures in Leaflet handlers)
+  addModeRef.current          = addMode
+  onClickRef.current          = onMapClick
+  onDeleteRef.current         = onDelete
+  onApproveStationRef.current = onApproveStation
+  onRejectStationRef.current  = onRejectStation
 
   // Init map once
   useEffect(() => {
@@ -647,6 +658,7 @@ function AdminMap({ events, addMode, onMapClick, onDelete }: AdminMapProps) {
       mapRef.current?.remove()
       mapRef.current = null
       markersRef.current.clear()
+      stationMarkersRef.current.clear()
     }
   }, [])
 
@@ -713,6 +725,93 @@ function AdminMap({ events, addMode, onMapClick, onDelete }: AdminMapProps) {
       }
     })
   }, [events])
+
+  // Sync user-station markers (orange circles)
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+
+    void import('leaflet').then((Lm) => {
+      const L = Lm.default
+
+      const currentIds = new Set(userStations.map((s) => s.id))
+
+      // Remove stale station markers
+      for (const [id, marker] of stationMarkersRef.current) {
+        if (!currentIds.has(id)) {
+          marker.remove()
+          stationMarkersRef.current.delete(id)
+        }
+      }
+
+      // Add / update markers
+      for (const s of userStations) {
+        // Remove existing to re-render with latest approval status
+        const existing = stationMarkersRef.current.get(s.id)
+        if (existing) { existing.remove(); stationMarkersRef.current.delete(s.id) }
+
+        const isPending = s.approvalStatus === 'pending'
+        const icon = L.divIcon({
+          className: '',
+          html: `<div style="
+            width:34px;height:34px;border-radius:50%;
+            background:${isPending ? 'rgba(251,146,60,0.18)' : 'rgba(251,146,60,0.35)'};
+            border:2.5px solid #f97316;
+            display:flex;align-items:center;justify-content:center;
+            font-size:17px;line-height:1;cursor:pointer;
+            box-shadow:0 2px 8px rgba(249,115,22,0.5);
+          ">⚡</div>`,
+          iconSize:   [34, 34],
+          iconAnchor: [17, 17],
+        })
+
+        const marker = L.marker([s.lat, s.lng], { icon }).addTo(map)
+
+        const connStr = s.connectors.length
+          ? s.connectors.map((c) => `${c.type}${c.powerKw ? ` ${c.powerKw}kW` : ''} ×${c.count}`).join(', ')
+          : '—'
+        const statusColor = isPending ? '#fb923c' : '#4ade80'
+        const statusLabel = isPending ? 'НЕОДОБРЕНА' : 'ОДОБРЕНА'
+        const date = new Date(s.submittedAt).toLocaleString('bg-BG', { dateStyle: 'short', timeStyle: 'short' })
+
+        const popupHtml = `
+          <div style="font-family:system-ui,sans-serif;font-size:13px;min-width:190px;">
+            <div style="font-weight:700;font-size:15px;margin-bottom:4px;">${s.name}</div>
+            <div style="color:#888;font-size:11px;margin-bottom:4px;">${s.lat.toFixed(5)}, ${s.lng.toFixed(5)}</div>
+            <div style="font-size:11px;color:#94a3b8;margin-bottom:4px;">${connStr}</div>
+            <div style="margin-bottom:8px;">
+              <span style="font-size:10px;font-weight:700;padding:2px 7px;border-radius:8px;
+                background:${statusColor}22;color:${statusColor};border:1px solid ${statusColor}55;">
+                ${statusLabel}
+              </span>
+            </div>
+            <div style="color:#666;font-size:10px;margin-bottom:10px;">${date}</div>
+            <div style="display:flex;gap:6px;">
+              ${isPending ? `<button id="approve-${s.id}" style="flex:1;padding:6px 0;border-radius:7px;
+                background:#22c55e22;border:1px solid #22c55e55;color:#4ade80;
+                font-size:12px;font-weight:700;cursor:pointer;">✅ Одобри</button>` : ''}
+              <button id="reject-${s.id}" style="flex:1;padding:6px 0;border-radius:7px;
+                background:#ef444422;border:1px solid #f8717155;color:#f87171;
+                font-size:12px;font-weight:700;cursor:pointer;">🗑 Изтрий</button>
+            </div>
+          </div>`
+
+        marker.bindPopup(popupHtml, { maxWidth: 240 })
+        marker.on('popupopen', () => {
+          document.getElementById(`approve-${s.id}`)?.addEventListener('click', () => {
+            marker.closePopup()
+            onApproveStationRef.current(s.id)
+          })
+          document.getElementById(`reject-${s.id}`)?.addEventListener('click', () => {
+            marker.closePopup()
+            onRejectStationRef.current(s.id)
+          })
+        })
+
+        stationMarkersRef.current.set(s.id, marker)
+      }
+    })
+  }, [userStations])
 
   return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
 }
