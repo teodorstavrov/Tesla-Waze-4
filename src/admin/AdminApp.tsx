@@ -92,6 +92,16 @@ function LoginScreen({ onLogin }: { onLogin: (secret: string) => void }) {
 
 // ── Dashboard ────────────────────────────────────────────────────────────
 
+interface StationComment {
+  id:          string
+  stationId:   string
+  stationName: string
+  lat:         number
+  lng:         number
+  text:        string
+  submittedAt: string
+}
+
 interface UserStation {
   id:             string
   name:           string
@@ -112,6 +122,7 @@ function Dashboard({ secret }: { secret: string }) {
   const [stats,        setStats]        = useState<Stats | null>(null)
   const [events,       setEvents]       = useState<RoadEvent[]>([])
   const [userStations, setUserStations] = useState<UserStation[]>([])
+  const [comments,     setComments]     = useState<StationComment[]>([])
   const [syncing, setSyncing] = useState(false)
   const [syncMsg, setSyncMsg] = useState('')
   const [addMode, setAddMode] = useState(false)
@@ -120,14 +131,16 @@ function Dashboard({ secret }: { secret: string }) {
   const headers = { Authorization: `Bearer ${secret}` }
 
   const loadAll = useCallback(async () => {
-    const [sr, er, usr] = await Promise.all([
-      fetch('/api/admin/stats',         { headers }),
-      fetch('/api/admin/events',        { headers }),
-      fetch('/api/admin/user-stations', { headers }),
+    const [sr, er, usr, cr] = await Promise.all([
+      fetch('/api/admin/stats',             { headers }),
+      fetch('/api/admin/events',            { headers }),
+      fetch('/api/admin/user-stations',     { headers }),
+      fetch('/api/admin/station-comments',  { headers }),
     ])
     if (sr.ok)  setStats(await sr.json() as Stats)
     if (er.ok)  setEvents(((await er.json()) as { events: RoadEvent[] }).events)
     if (usr.ok) setUserStations(((await usr.json()) as { stations: UserStation[] }).stations)
+    if (cr.ok)  setComments(((await cr.json()) as { comments: StationComment[] }).comments)
   }, [secret]) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => { void loadAll() }, [loadAll])
@@ -337,6 +350,7 @@ function Dashboard({ secret }: { secret: string }) {
         <AdminMap
           events={events}
           userStations={userStations}
+          comments={comments}
           addMode={addMode}
           onMapClick={(lat, lng) => { void addEvent(lat, lng) }}
           onDelete={(id) => { void deleteEvent(id) }}
@@ -603,6 +617,7 @@ function Row({ label, count, total, color = '#e31937' }: { label: string; count:
 interface AdminMapProps {
   events:           RoadEvent[]
   userStations:     UserStation[]
+  comments:         StationComment[]
   addMode:          boolean
   onMapClick:       (lat: number, lng: number) => void
   onDelete:         (id: string) => void
@@ -610,11 +625,12 @@ interface AdminMapProps {
   onRejectStation:  (id: string) => void
 }
 
-function AdminMap({ events, userStations, addMode, onMapClick, onDelete, onApproveStation, onRejectStation }: AdminMapProps) {
+function AdminMap({ events, userStations, comments, addMode, onMapClick, onDelete, onApproveStation, onRejectStation }: AdminMapProps) {
   const containerRef        = useRef<HTMLDivElement>(null)
   const mapRef              = useRef<L.Map | null>(null)
   const markersRef          = useRef<Map<string, L.Marker>>(new Map())
   const stationMarkersRef   = useRef<Map<string, L.Marker>>(new Map())
+  const commentMarkersRef   = useRef<Map<string, L.Marker>>(new Map())
   const addModeRef          = useRef(addMode)
   const onClickRef          = useRef(onMapClick)
   const onDeleteRef         = useRef(onDelete)
@@ -659,6 +675,7 @@ function AdminMap({ events, userStations, addMode, onMapClick, onDelete, onAppro
       mapRef.current = null
       markersRef.current.clear()
       stationMarkersRef.current.clear()
+      commentMarkersRef.current.clear()
     }
   }, [])
 
@@ -812,6 +829,74 @@ function AdminMap({ events, userStations, addMode, onMapClick, onDelete, onAppro
       }
     })
   }, [userStations])
+
+  // Sync comment markers (teal speech-bubble circles, grouped by station)
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+
+    void import('leaflet').then((Lm) => {
+      const L = Lm.default
+
+      // Group comments by stationId
+      const byStation = new Map<string, StationComment[]>()
+      for (const c of comments) {
+        const arr = byStation.get(c.stationId) ?? []
+        arr.push(c)
+        byStation.set(c.stationId, arr)
+      }
+
+      // Remove markers for stations that no longer have comments
+      for (const [sid, marker] of commentMarkersRef.current) {
+        if (!byStation.has(sid)) { marker.remove(); commentMarkersRef.current.delete(sid) }
+      }
+
+      // Add / refresh one marker per station
+      for (const [sid, stComments] of byStation) {
+        const existing = commentMarkersRef.current.get(sid)
+        if (existing) { existing.remove(); commentMarkersRef.current.delete(sid) }
+
+        const first = stComments[0]!
+        const count = stComments.length
+
+        const icon = L.divIcon({
+          className: '',
+          html: `<div style="
+            width:34px;height:34px;border-radius:50%;
+            background:rgba(20,184,166,0.2);border:2.5px solid #14b8a6;
+            display:flex;align-items:center;justify-content:center;
+            font-size:15px;line-height:1;cursor:pointer;
+            box-shadow:0 2px 8px rgba(20,184,166,0.5);
+            position:relative;
+          ">
+            💬
+            ${count > 1 ? `<span style="position:absolute;top:-4px;right:-4px;background:#14b8a6;color:#fff;border-radius:99px;font-size:9px;font-weight:800;padding:1px 4px;line-height:1.4;">${count}</span>` : ''}
+          </div>`,
+          iconSize:   [34, 34],
+          iconAnchor: [17, 17],
+        })
+
+        const commentsHtml = stComments.map((c) => {
+          const date = new Date(c.submittedAt).toLocaleString('bg-BG', { dateStyle: 'short', timeStyle: 'short' })
+          return `<div style="padding:8px 0;border-bottom:1px solid #f0f0f0;">
+            <div style="font-size:13px;margin-bottom:3px;">${c.text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</div>
+            <div style="font-size:10px;color:#999;">${date}</div>
+          </div>`
+        }).join('')
+
+        const popupHtml = `
+          <div style="font-family:system-ui,sans-serif;min-width:210px;max-width:260px;">
+            <div style="font-weight:700;font-size:14px;margin-bottom:2px;color:#0f766e;">💬 ${first.stationName}</div>
+            <div style="font-size:10px;color:#999;margin-bottom:8px;">${first.lat.toFixed(5)}, ${first.lng.toFixed(5)}</div>
+            <div style="max-height:240px;overflow-y:auto;">${commentsHtml}</div>
+          </div>`
+
+        const marker = L.marker([first.lat, first.lng], { icon }).addTo(map)
+        marker.bindPopup(popupHtml, { maxWidth: 280 })
+        commentMarkersRef.current.set(sid, marker)
+      }
+    })
+  }, [comments])
 
   return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
 }

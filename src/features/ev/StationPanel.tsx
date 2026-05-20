@@ -4,7 +4,7 @@
 //
 // TESLA MODE: always in DOM, visibility-toggled (same rationale as EventPanel).
 
-import { useSyncExternalStore, useEffect, useState, useCallback } from 'react'
+import { useSyncExternalStore, useEffect, useState, useCallback, useRef } from 'react'
 import { evStore } from './evStore'
 import { addStationStore } from './addStationStore'
 import { getOwnerToken } from './userStationOwner'
@@ -191,6 +191,9 @@ export function StationPanel() {
               </div>
             )}
 
+            {/* Comment section */}
+            <CommentSection station={station} />
+
             {/* Actions */}
             <div style={{ display: 'flex', gap: 8 }}>
               <button
@@ -247,6 +250,114 @@ export function StationPanel() {
           </>
         )}
       </div>
+    </div>
+  )
+}
+
+// ── Comment section ───────────────────────────────────────────────
+
+function CommentSection({ station }: { station: NormalizedStation }) {
+  const [open,      setOpen]      = useState(false)
+  const [text,      setText]      = useState('')
+  const [state,     setState]     = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
+  const textareaRef = useRef<HTMLTextAreaElement>(null)
+
+  // Reset when station changes
+  useEffect(() => { setOpen(false); setText(''); setState('idle') }, [station.id])
+
+  async function handleSubmit() {
+    if (!text.trim() || state === 'sending') return
+    setState('sending')
+    try {
+      const res = await fetch('/api/ev/comment', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          stationId:   station.id,
+          stationName: station.name,
+          lat:         station.lat,
+          lng:         station.lng,
+          text:        text.trim(),
+        }),
+      })
+      setState(res.ok ? 'sent' : 'error')
+      if (res.ok) setText('')
+    } catch {
+      setState('error')
+    }
+  }
+
+  if (state === 'sent') {
+    return (
+      <div style={{
+        padding: '10px 14px', borderRadius: 10,
+        background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)',
+        fontSize: 13, color: '#4ade80', textAlign: 'center',
+      }}>
+        ✓ {t('station.commentSent')}
+      </div>
+    )
+  }
+
+  return (
+    <div>
+      {!open ? (
+        <button
+          onClick={() => { setOpen(true); setTimeout(() => textareaRef.current?.focus(), 50) }}
+          style={{
+            width: '100%', padding: '9px 0', borderRadius: 10, cursor: 'pointer',
+            background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+            color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: 600,
+            touchAction: 'manipulation', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+          }}
+        >
+          <span style={{ fontSize: 15 }}>💬</span>
+          {t('station.commentBtn')}
+        </button>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <textarea
+            ref={textareaRef}
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            placeholder={t('station.commentPlaceholder')}
+            rows={3}
+            style={{
+              background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)',
+              borderRadius: 10, color: '#fff', padding: '10px 12px', fontSize: 14,
+              outline: 'none', width: '100%', boxSizing: 'border-box', resize: 'none',
+              fontFamily: 'inherit',
+            }}
+          />
+          {state === 'error' && (
+            <div style={{ fontSize: 12, color: '#f87171' }}>{t('station.commentError')}</div>
+          )}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={() => { setOpen(false); setText(''); setState('idle') }}
+              style={{
+                flex: 1, padding: '9px 0', borderRadius: 10, cursor: 'pointer',
+                background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
+                color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: 600, touchAction: 'manipulation',
+              }}
+            >
+              ✕
+            </button>
+            <button
+              onClick={() => { void handleSubmit() }}
+              disabled={!text.trim() || state === 'sending'}
+              style={{
+                flex: 3, padding: '9px 0', borderRadius: 10, cursor: 'pointer',
+                background: text.trim() && state !== 'sending' ? 'rgba(249,115,22,0.85)' : 'rgba(249,115,22,0.2)',
+                border: 'none', color: text.trim() && state !== 'sending' ? '#fff' : 'rgba(255,255,255,0.3)',
+                fontSize: 14, fontWeight: 700, touchAction: 'manipulation',
+              }}
+            >
+              {state === 'sending' ? t('station.commentSending') : t('station.commentSubmit')}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
