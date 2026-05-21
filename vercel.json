@@ -90,12 +90,20 @@
       "schedule": "20 5 * * 0"
     },
     {
-      "path": "/api/cron/sync-cameras?country=NL-2",
+      "path": "/api/cron/sync-cameras?country=NL-2A",
       "schedule": "25 5 * * 0"
     },
     {
-      "path": "/api/cron/sync-cameras?country=NL-3",
+      "path": "/api/cron/sync-cameras?country=NL-2B",
       "schedule": "30 5 * * 0"
+    },
+    {
+      "path": "/api/cron/sync-cameras?country=NL-2C",
+      "schedule": "35 5 * * 0"
+    },
+    {
+      "path": "/api/cron/sync-cameras?country=NL-3",
+      "schedule": "40 5 * * 0"
     }
   ],
   "rewrites": [

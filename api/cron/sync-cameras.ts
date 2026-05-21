@@ -73,12 +73,16 @@ const REGIONS: Record<string, { bbox: BBox; redisCountry: string }> = {
   'FI-2':   { bbox: { minLat: 62.0,   minLng: 20.550, maxLat: 65.5,   maxLng: 31.587 }, redisCountry: 'FI' },
   'FI-3':   { bbox: { minLat: 65.5,   minLng: 20.550, maxLat: 70.093, maxLng: 31.587 }, redisCountry: 'FI' },
 
-  // ── Netherlands (3 lat bands, Redis key 'NL') ─────────────────────────
-  //   NL-1  50.750 – 52.000  (Zuid: Noord-Brabant, Zeeland, Limburg)
-  //   NL-2  52.000 – 52.800  (Midden: Rotterdam, Den Haag, Utrecht, Amsterdam south)
-  //   NL-3  52.800 – 53.560  (Noord: Noord-Holland, Friesland, Groningen)
+  // ── Netherlands (5 lat bands, Redis key 'NL') ─────────────────────────
+  //   NL-1   50.750 – 52.000  (Zuid: Noord-Brabant, Zeeland, Limburg)
+  //   NL-2A  52.000 – 52.350  (Rotterdam, Dordrecht area)
+  //   NL-2B  52.350 – 52.600  (Den Haag, Leiden, Utrecht area)
+  //   NL-2C  52.600 – 52.800  (Amsterdam area — split to avoid Overpass timeout)
+  //   NL-3   52.800 – 53.560  (Noord: Noord-Holland, Friesland, Groningen)
   'NL-1':   { bbox: { minLat: 50.750, minLng: 3.360, maxLat: 52.000, maxLng: 7.230 }, redisCountry: 'NL' },
-  'NL-2':   { bbox: { minLat: 52.000, minLng: 3.360, maxLat: 52.800, maxLng: 7.230 }, redisCountry: 'NL' },
+  'NL-2A':  { bbox: { minLat: 52.000, minLng: 3.360, maxLat: 52.350, maxLng: 7.230 }, redisCountry: 'NL' },
+  'NL-2B':  { bbox: { minLat: 52.350, minLng: 3.360, maxLat: 52.600, maxLng: 7.230 }, redisCountry: 'NL' },
+  'NL-2C':  { bbox: { minLat: 52.600, minLng: 3.360, maxLat: 52.800, maxLng: 7.230 }, redisCountry: 'NL' },
   'NL-3':   { bbox: { minLat: 52.800, minLng: 3.360, maxLat: 53.560, maxLng: 7.230 }, redisCountry: 'NL' },
 }
 
