@@ -91,19 +91,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     nlTeslaResult, nlOcmResult, nlOsmResult,
   ] = await Promise.allSettled([
     fetchTeslaStations(BULGARIA_BBOX),
-    fetchOCMStations(BULGARIA_BBOX),          // ~350  stations, 6 pages enough
+    fetchOCMStations(BULGARIA_BBOX),           // ~350   stations, 1 page
     fetchOverpassStations(BULGARIA_BBOX),
     fetchTeslaStations(NORWAY_BBOX),
-    fetchOCMStations(NORWAY_BBOX,  70),       // ~35 000 stations
+    fetchOCMStations(NORWAY_BBOX),             // 3 000  stations (6 pages)
     fetchOverpassStations(NORWAY_BBOX),
     fetchTeslaStations(SWEDEN_BBOX),
-    fetchOCMStations(SWEDEN_BBOX,  50),       // ~25 000 stations
+    fetchOCMStations(SWEDEN_BBOX),             // 3 000  stations (6 pages)
     fetchOverpassStations(SWEDEN_BBOX),
     fetchTeslaStations(FINLAND_BBOX),
-    fetchOCMStations(FINLAND_BBOX, 15),       // ~7 500 stations
+    fetchOCMStations(FINLAND_BBOX),            // 3 000  stations (6 pages)
     fetchOverpassStations(FINLAND_BBOX),
     fetchTeslaStations(NETHERLANDS_BBOX),
-    fetchOCMStations(NETHERLANDS_BBOX, 40),   // ~20 000 stations
+    fetchOCMStations(NETHERLANDS_BBOX),        // 3 000  stations (6 pages)
     fetchOverpassStations(NETHERLANDS_BBOX),
   ])
 
