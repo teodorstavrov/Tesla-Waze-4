@@ -14,6 +14,7 @@ import type { SpeedSection } from './sectionTypes'
 import { SPEED_SECTIONS_NO } from './sections_no'
 import { SPEED_SECTIONS_SE } from './sections_se'
 import { SPEED_SECTIONS_FI } from './sections_fi'
+import { SPEED_SECTIONS_NL } from './sections_nl'
 
 export const SPEED_SECTIONS: SpeedSection[] = [
 
@@ -867,6 +868,7 @@ export function getSectionsForCountry(code: string): SpeedSection[] {
     case 'NO': return SPEED_SECTIONS_NO
     case 'SE': return SPEED_SECTIONS_SE
     case 'FI': return SPEED_SECTIONS_FI
+    case 'NL': return SPEED_SECTIONS_NL
     default:   return SPEED_SECTIONS    // BG and unknown → Bulgarian sections
   }
 }
