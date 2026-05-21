@@ -226,6 +226,9 @@ export async function fetchOCMStations(bbox: BBox, maxPages = DEFAULT_MAX_PAGES)
     // like Bulgaria have 1000+ stations and the first page silently truncates them.
     const allRaw: OCMStation[] = []
     for (let page = 0; page < maxPages; page++) {
+      // Throttle between pages to stay within OCM rate limits for large countries
+      if (page > 0) await new Promise<void>((r) => setTimeout(r, 150))
+
       const params = new URLSearchParams({
         ...baseParams,
         startindex: String(page * PAGE_SIZE),
