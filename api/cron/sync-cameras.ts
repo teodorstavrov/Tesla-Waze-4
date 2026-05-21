@@ -30,7 +30,7 @@
 //   GET /api/cron/sync-cameras?secret=CRON_SECRET&country=SE-1  (etc.)
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { BULGARIA_BBOX } from '../_lib/utils/bbox.js'
+import { BULGARIA_BBOX } from '../_lib/utils/bbox.js' // NL uses inline bboxes below
 import type { BBox } from '../_lib/utils/bbox.js'
 import { fetchCamerasFromOverpass, redisKeyForCountry } from '../_lib/providers/cameras.js'
 import { cacheSet } from '../_lib/cache/memory.js'
@@ -72,10 +72,18 @@ const REGIONS: Record<string, { bbox: BBox; redisCountry: string }> = {
   'FI-1':   { bbox: { minLat: 59.808, minLng: 20.550, maxLat: 62.0,   maxLng: 31.587 }, redisCountry: 'FI' },
   'FI-2':   { bbox: { minLat: 62.0,   minLng: 20.550, maxLat: 65.5,   maxLng: 31.587 }, redisCountry: 'FI' },
   'FI-3':   { bbox: { minLat: 65.5,   minLng: 20.550, maxLat: 70.093, maxLng: 31.587 }, redisCountry: 'FI' },
+
+  // ── Netherlands (3 lat bands, Redis key 'NL') ─────────────────────────
+  //   NL-1  50.750 – 52.000  (Zuid: Noord-Brabant, Zeeland, Limburg)
+  //   NL-2  52.000 – 52.800  (Midden: Rotterdam, Den Haag, Utrecht, Amsterdam south)
+  //   NL-3  52.800 – 53.560  (Noord: Noord-Holland, Friesland, Groningen)
+  'NL-1':   { bbox: { minLat: 50.750, minLng: 3.360, maxLat: 52.000, maxLng: 7.230 }, redisCountry: 'NL' },
+  'NL-2':   { bbox: { minLat: 52.000, minLng: 3.360, maxLat: 52.800, maxLng: 7.230 }, redisCountry: 'NL' },
+  'NL-3':   { bbox: { minLat: 52.800, minLng: 3.360, maxLat: 53.560, maxLng: 7.230 }, redisCountry: 'NL' },
 }
 
 // Countries that split multiple regions into a single Redis key
-const MULTI_REGION_COUNTRIES = new Set(['NO', 'SE', 'FI'])
+const MULTI_REGION_COUNTRIES = new Set(['NO', 'SE', 'FI', 'NL'])
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   const secret = process.env['CRON_SECRET']

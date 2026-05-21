@@ -26,13 +26,13 @@
 import { DICTIONARY } from '@/config/i18n'
 import { countryStore } from '@/lib/countryStore'
 
-export type Lang = 'bg' | 'en' | 'no' | 'sv' | 'fi'
+export type Lang = 'bg' | 'en' | 'no' | 'sv' | 'fi' | 'nl'
 
 const STORAGE_KEY = 'teslaradar:lang'
 
 // ── Language resolution ──────────────────────────────────────────────
 
-const VALID_LANGS = new Set<Lang>(['bg', 'en', 'no', 'sv', 'fi'])
+const VALID_LANGS = new Set<Lang>(['bg', 'en', 'no', 'sv', 'fi', 'nl'])
 
 export function getLang(): Lang {
   try {

@@ -6,6 +6,10 @@
     "api/**/*.ts": {
       "memory": 128,
       "maxDuration": 60
+    },
+    "api/cron/sync-stations.ts": {
+      "memory": 256,
+      "maxDuration": 300
     }
   },
   "crons": [
@@ -84,6 +88,18 @@
     {
       "path": "/api/cron/sync-cameras?country=NO-8",
       "schedule": "15 5 * * 0"
+    },
+    {
+      "path": "/api/cron/sync-cameras?country=NL-1",
+      "schedule": "20 5 * * 0"
+    },
+    {
+      "path": "/api/cron/sync-cameras?country=NL-2",
+      "schedule": "25 5 * * 0"
+    },
+    {
+      "path": "/api/cron/sync-cameras?country=NL-3",
+      "schedule": "30 5 * * 0"
     }
   ],
   "rewrites": [

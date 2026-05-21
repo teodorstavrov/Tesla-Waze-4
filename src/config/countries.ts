@@ -10,7 +10,7 @@
 //   3. Add to COUNTRY_LIST so the picker shows it.
 //   That's it — no other files need touching for basic support.
 
-export type CountryCode = 'BG' | 'NO' | 'SE' | 'FI'
+export type CountryCode = 'BG' | 'NO' | 'SE' | 'FI' | 'NL'
 
 export interface CountryFeatures {
   /** Whether this country has average-speed camera section data. */
@@ -28,7 +28,7 @@ export interface CountryConfig {
   searchCode:  string                              // Nominatim countrycodes param
   searchLang:  string                              // Accept-Language for Nominatim + reverse geocode
   bounds:      [[number, number], [number, number]] // [[sw lat,lng], [ne lat,lng]]
-  locale:      'bg' | 'en' | 'no' | 'sv' | 'fi'   // default UI locale
+  locale:      'bg' | 'en' | 'no' | 'sv' | 'fi' | 'nl'   // default UI locale
   features:    CountryFeatures                     // which product features are active
 }
 
@@ -100,6 +100,23 @@ export const COUNTRIES: Record<CountryCode, CountryConfig> = {
       speedSections: true,   // Finnish jaksonopeudenvalvonta sections
     },
   },
+
+  NL: {
+    code:       'NL',
+    name:       'Netherlands',
+    nativeName: 'Nederland',
+    flag:       '🇳🇱',
+    center:     [52.3676, 4.9041],    // Amsterdam
+    zoom:       15,
+    minZoom:    6,
+    searchCode: 'nl',
+    searchLang: 'nl,en',
+    bounds:     [[50.750, 3.360], [53.560, 7.230]],
+    locale:     'nl',
+    features: {
+      speedSections: true,   // Dutch trajectcontrole average-speed sections
+    },
+  },
 }
 
 // Ordered list used by the country picker UI
@@ -108,4 +125,5 @@ export const COUNTRY_LIST: CountryConfig[] = [
   COUNTRIES.NO,
   COUNTRIES.SE,
   COUNTRIES.FI,
+  COUNTRIES.NL,
 ]

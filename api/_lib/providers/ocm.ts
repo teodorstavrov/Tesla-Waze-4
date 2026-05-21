@@ -18,8 +18,8 @@ import type { NormalizedStation, ProviderResult, Connector } from '../normalize/
 const CACHE_TTL_MS = 15 * 60 * 1000   // 15 minutes
 const FETCH_TIMEOUT_MS = 14_000
 const BASE_URL = 'https://api.openchargemap.io/v3/poi/'
-const PAGE_SIZE  = 500   // OCM max per request (free tier)
-const MAX_PAGES  = 6     // cap at 3000 results per country
+const PAGE_SIZE      = 500   // OCM max per request (free tier)
+const DEFAULT_MAX_PAGES = 6  // default cap; callers pass higher values for large countries
 
 // ── Raw OCM types ─────────────────────────────────────────────────
 
@@ -201,7 +201,7 @@ async function _fetchOCMText(params: URLSearchParams): Promise<string> {
 
 // ── Public API ────────────────────────────────────────────────────
 
-export async function fetchOCMStations(bbox: BBox): Promise<ProviderResult> {
+export async function fetchOCMStations(bbox: BBox, maxPages = DEFAULT_MAX_PAGES): Promise<ProviderResult> {
   const t0 = Date.now()
   const qbbox = quantizeBBox(bbox)
   const key = bboxCacheKey('ocm', qbbox)
@@ -225,7 +225,7 @@ export async function fetchOCMStations(bbox: BBox): Promise<ProviderResult> {
     // Without pagination OCM caps at PAGE_SIZE (500) per request — large countries
     // like Bulgaria have 1000+ stations and the first page silently truncates them.
     const allRaw: OCMStation[] = []
-    for (let page = 0; page < MAX_PAGES; page++) {
+    for (let page = 0; page < maxPages; page++) {
       const params = new URLSearchParams({
         ...baseParams,
         startindex: String(page * PAGE_SIZE),

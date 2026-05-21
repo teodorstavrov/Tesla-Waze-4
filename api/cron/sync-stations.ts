@@ -18,7 +18,7 @@
 // 5. Return sync stats as JSON
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { BULGARIA_BBOX, NORWAY_BBOX, SWEDEN_BBOX, FINLAND_BBOX } from '../_lib/utils/bbox.js'
+import { BULGARIA_BBOX, NORWAY_BBOX, SWEDEN_BBOX, FINLAND_BBOX, NETHERLANDS_BBOX } from '../_lib/utils/bbox.js'
 import { fetchTeslaStations } from '../_lib/providers/tesla.js'
 import { fetchOCMStations } from '../_lib/providers/ocm.js'
 import { fetchOverpassStations } from '../_lib/providers/overpass.js'
@@ -80,7 +80,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     // At least one provider failed last time — fall through to full sync
   }
 
-  // ── Fetch all providers for all 4 countries in parallel ──────────
+  // ── Fetch all providers for all 5 countries in parallel ──────────
   const t0 = Date.now()
 
   const [
@@ -88,19 +88,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     noTeslaResult, noOcmResult, noOsmResult,
     seTeslaResult, seOcmResult, seOsmResult,
     fiTeslaResult, fiOcmResult, fiOsmResult,
+    nlTeslaResult, nlOcmResult, nlOsmResult,
   ] = await Promise.allSettled([
     fetchTeslaStations(BULGARIA_BBOX),
-    fetchOCMStations(BULGARIA_BBOX),
+    fetchOCMStations(BULGARIA_BBOX),          // ~350  stations, 6 pages enough
     fetchOverpassStations(BULGARIA_BBOX),
     fetchTeslaStations(NORWAY_BBOX),
-    fetchOCMStations(NORWAY_BBOX),
+    fetchOCMStations(NORWAY_BBOX,  70),       // ~35 000 stations
     fetchOverpassStations(NORWAY_BBOX),
     fetchTeslaStations(SWEDEN_BBOX),
-    fetchOCMStations(SWEDEN_BBOX),
+    fetchOCMStations(SWEDEN_BBOX,  50),       // ~25 000 stations
     fetchOverpassStations(SWEDEN_BBOX),
     fetchTeslaStations(FINLAND_BBOX),
-    fetchOCMStations(FINLAND_BBOX),
+    fetchOCMStations(FINLAND_BBOX, 15),       // ~7 500 stations
     fetchOverpassStations(FINLAND_BBOX),
+    fetchTeslaStations(NETHERLANDS_BBOX),
+    fetchOCMStations(NETHERLANDS_BBOX, 40),   // ~20 000 stations
+    fetchOverpassStations(NETHERLANDS_BBOX),
   ])
 
   function unwrap(r: PromiseSettledResult<ProviderResult>): ProviderResult | null {
@@ -112,8 +116,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const noResults = [noTeslaResult, noOcmResult, noOsmResult].map(unwrap).filter((r): r is ProviderResult => r !== null)
   const seResults = [seTeslaResult, seOcmResult, seOsmResult].map(unwrap).filter((r): r is ProviderResult => r !== null)
   const fiResults = [fiTeslaResult, fiOcmResult, fiOsmResult].map(unwrap).filter((r): r is ProviderResult => r !== null)
+  const nlResults = [nlTeslaResult, nlOcmResult, nlOsmResult].map(unwrap).filter((r): r is ProviderResult => r !== null)
 
-  if (bgResults.length === 0 && noResults.length === 0 && seResults.length === 0 && fiResults.length === 0) {
+  if (bgResults.length === 0 && noResults.length === 0 && seResults.length === 0 && fiResults.length === 0 && nlResults.length === 0) {
     res.status(502).json({ error: 'All providers failed — nothing to store' })
     return
   }
@@ -122,9 +127,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const noMerge = noResults.length > 0 ? mergeStations(noResults) : { stations: [], deduplicated: 0 }
   const seMerge = seResults.length > 0 ? mergeStations(seResults) : { stations: [], deduplicated: 0 }
   const fiMerge = fiResults.length > 0 ? mergeStations(fiResults) : { stations: [], deduplicated: 0 }
+  const nlMerge = nlResults.length > 0 ? mergeStations(nlResults) : { stations: [], deduplicated: 0 }
 
-  const stations     = [...bgMerge.stations, ...noMerge.stations, ...seMerge.stations, ...fiMerge.stations]
-  const deduplicated = bgMerge.deduplicated + noMerge.deduplicated + seMerge.deduplicated + fiMerge.deduplicated
+  const stations     = [...bgMerge.stations, ...noMerge.stations, ...seMerge.stations, ...fiMerge.stations, ...nlMerge.stations]
+  const deduplicated = bgMerge.deduplicated + noMerge.deduplicated + seMerge.deduplicated + fiMerge.deduplicated + nlMerge.deduplicated
 
   // ── Load existing snapshot ────────────────────────────────────────
   const existing = await stationDb.getAll()
@@ -135,8 +141,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   // stations are re-injected so they NEVER disappear from the DB due
   // to temporary API downtime. Proximity-deduped (100m) against fresh
   // data so we don't create duplicates where OCM already covers the spot.
-  const teslaFailed = combinedMeta(bgTeslaResult, noTeslaResult, seTeslaResult, fiTeslaResult).status === 'error'
-  const osmFailed   = combinedMeta(bgOsmResult,   noOsmResult,   seOsmResult,   fiOsmResult).status === 'error'
+  const teslaFailed = combinedMeta(bgTeslaResult, noTeslaResult, seTeslaResult, fiTeslaResult, nlTeslaResult).status === 'error'
+  const osmFailed   = combinedMeta(bgOsmResult,   noOsmResult,   seOsmResult,   fiOsmResult,   nlOsmResult).status === 'error'
 
   if ((teslaFailed || osmFailed) && existing) {
     for (const old of existing) {
@@ -202,9 +208,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     count: stations.length,
     deduplicated,
     providers: {
-      tesla: combinedMeta(bgTeslaResult, noTeslaResult, seTeslaResult, fiTeslaResult),
-      ocm:   combinedMeta(bgOcmResult,   noOcmResult,   seOcmResult,   fiOcmResult),
-      osm:   combinedMeta(bgOsmResult,   noOsmResult,   seOsmResult,   fiOsmResult),
+      tesla: combinedMeta(bgTeslaResult, noTeslaResult, seTeslaResult, fiTeslaResult, nlTeslaResult),
+      ocm:   combinedMeta(bgOcmResult,   noOcmResult,   seOcmResult,   fiOcmResult,   nlOcmResult),
+      osm:   combinedMeta(bgOsmResult,   noOsmResult,   seOsmResult,   fiOsmResult,   nlOsmResult),
     },
   }
 
@@ -228,11 +234,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       NO: noMerge.stations.length,
       SE: seMerge.stations.length,
       FI: fiMerge.stations.length,
+      NL: nlMerge.stations.length,
     },
     providers: {
-      tesla: combinedMeta(bgTeslaResult, noTeslaResult, seTeslaResult, fiTeslaResult),
-      ocm:   combinedMeta(bgOcmResult,   noOcmResult,   seOcmResult,   fiOcmResult),
-      osm:   combinedMeta(bgOsmResult,   noOsmResult,   seOsmResult,   fiOsmResult),
+      tesla: combinedMeta(bgTeslaResult, noTeslaResult, seTeslaResult, fiTeslaResult, nlTeslaResult),
+      ocm:   combinedMeta(bgOcmResult,   noOcmResult,   seOcmResult,   fiOcmResult,   nlOcmResult),
+      osm:   combinedMeta(bgOsmResult,   noOsmResult,   seOsmResult,   fiOsmResult,   nlOsmResult),
     },
     elapsedMs: elapsed,
     syncedAt:  new Date().toISOString(),
