@@ -48,6 +48,25 @@ export const NETHERLANDS_BBOX: BBox = {
 }
 
 /**
+ * NL split into west/east for OCM fetching.
+ * OCM returns stations sorted by internal order — fetching the full NL bbox
+ * with 6 pages (3000 stations) misses western NL (Amsterdam/Rotterdam area).
+ * Splitting at lng 5.30 gives each half up to 3000 stations → full coverage.
+ */
+export const NETHERLANDS_WEST_BBOX: BBox = {
+  minLat: 50.750,
+  minLng:  3.360,
+  maxLat: 53.560,
+  maxLng:  5.300,   // Amsterdam, Rotterdam, Den Haag, Zeeland
+}
+export const NETHERLANDS_EAST_BBOX: BBox = {
+  minLat: 50.750,
+  minLng:  5.300,
+  maxLat: 53.560,
+  maxLng:  7.230,   // Utrecht, Eindhoven, Arnhem, Groningen
+}
+
+/**
  * Parse a comma-separated bbox string: "minLat,minLng,maxLat,maxLng".
  * Returns null if invalid.
  */

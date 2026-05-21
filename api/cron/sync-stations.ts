@@ -18,7 +18,7 @@
 // 5. Return sync stats as JSON
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { BULGARIA_BBOX, NORWAY_BBOX, SWEDEN_BBOX, FINLAND_BBOX, NETHERLANDS_BBOX } from '../_lib/utils/bbox.js'
+import { BULGARIA_BBOX, NORWAY_BBOX, SWEDEN_BBOX, FINLAND_BBOX, NETHERLANDS_BBOX, NETHERLANDS_WEST_BBOX, NETHERLANDS_EAST_BBOX } from '../_lib/utils/bbox.js'
 import { fetchTeslaStations } from '../_lib/providers/tesla.js'
 import { fetchOCMStations } from '../_lib/providers/ocm.js'
 import { fetchOverpassStations } from '../_lib/providers/overpass.js'
@@ -88,7 +88,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     noTeslaResult, noOcmResult, noOsmResult,
     seTeslaResult, seOcmResult, seOsmResult,
     fiTeslaResult, fiOcmResult, fiOsmResult,
-    nlTeslaResult, nlOcmResult, nlOsmResult,
+    nlTeslaResult, nlOcmWestResult, nlOcmEastResult, nlOsmResult,
   ] = await Promise.allSettled([
     fetchTeslaStations(BULGARIA_BBOX),
     fetchOCMStations(BULGARIA_BBOX),           // ~350   stations, 1 page
@@ -103,7 +103,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     fetchOCMStations(FINLAND_BBOX),            // 3 000  stations (6 pages)
     fetchOverpassStations(FINLAND_BBOX),
     fetchTeslaStations(NETHERLANDS_BBOX),
-    fetchOCMStations(NETHERLANDS_BBOX),        // 3 000  stations (6 pages)
+    fetchOCMStations(NETHERLANDS_WEST_BBOX),   // 3 000  west NL (Amsterdam/Rotterdam/Den Haag)
+    fetchOCMStations(NETHERLANDS_EAST_BBOX),   // 3 000  east NL (Utrecht/Eindhoven/Groningen)
     fetchOverpassStations(NETHERLANDS_BBOX),
   ])
 
@@ -116,7 +117,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const noResults = [noTeslaResult, noOcmResult, noOsmResult].map(unwrap).filter((r): r is ProviderResult => r !== null)
   const seResults = [seTeslaResult, seOcmResult, seOsmResult].map(unwrap).filter((r): r is ProviderResult => r !== null)
   const fiResults = [fiTeslaResult, fiOcmResult, fiOsmResult].map(unwrap).filter((r): r is ProviderResult => r !== null)
-  const nlResults = [nlTeslaResult, nlOcmResult, nlOsmResult].map(unwrap).filter((r): r is ProviderResult => r !== null)
+  const nlResults = [nlTeslaResult, nlOcmWestResult, nlOcmEastResult, nlOsmResult].map(unwrap).filter((r): r is ProviderResult => r !== null)
 
   if (bgResults.length === 0 && noResults.length === 0 && seResults.length === 0 && fiResults.length === 0 && nlResults.length === 0) {
     res.status(502).json({ error: 'All providers failed — nothing to store' })
@@ -209,7 +210,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     deduplicated,
     providers: {
       tesla: combinedMeta(bgTeslaResult, noTeslaResult, seTeslaResult, fiTeslaResult, nlTeslaResult),
-      ocm:   combinedMeta(bgOcmResult,   noOcmResult,   seOcmResult,   fiOcmResult,   nlOcmResult),
+      ocm:   combinedMeta(bgOcmResult,   noOcmResult,   seOcmResult,   fiOcmResult,   nlOcmWestResult, nlOcmEastResult),
       osm:   combinedMeta(bgOsmResult,   noOsmResult,   seOsmResult,   fiOsmResult,   nlOsmResult),
     },
   }
@@ -238,7 +239,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     },
     providers: {
       tesla: combinedMeta(bgTeslaResult, noTeslaResult, seTeslaResult, fiTeslaResult, nlTeslaResult),
-      ocm:   combinedMeta(bgOcmResult,   noOcmResult,   seOcmResult,   fiOcmResult,   nlOcmResult),
+      ocm:   combinedMeta(bgOcmResult,   noOcmResult,   seOcmResult,   fiOcmResult,   nlOcmWestResult, nlOcmEastResult),
       osm:   combinedMeta(bgOsmResult,   noOsmResult,   seOsmResult,   fiOsmResult,   nlOsmResult),
     },
     elapsedMs: elapsed,
