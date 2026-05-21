@@ -31,6 +31,7 @@ import { sectionEngine } from '@/features/cameras/sectionEngine'
 import { RouteLayer } from '@/features/route/RouteLayer'
 import { SavedPlacesLayer } from '@/features/places/SavedPlacesLayer'
 import { RoadworksLayer } from '@/features/roadworks/RoadworksLayer'
+import { CountryBoundsLayer } from '@/components/CountryBoundsLayer'
 import { RoutePanel } from '@/features/route/RoutePanel'
 import { TurnInstruction } from '@/features/route/TurnInstruction'
 import { AlertToast } from '@/features/audio/AlertToast'
@@ -122,6 +123,7 @@ export function App() {
       <RouteLayer />
       <SavedPlacesLayer />
       <RoadworksLayer />
+      <CountryBoundsLayer />
 
       {/* Layer 1: floating UI */}
       <NorwayBetaBanner />
