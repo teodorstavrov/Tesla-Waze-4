@@ -30,6 +30,15 @@ const GEORSS_PATTERN = /georss/i;
 
 export class WazePlaywrightClient {
   private browser: Browser | null = null;
+  // Georss response bodies collected during the last captureSession() call.
+  // captureSession navigates to Bulgaria at zoom=9 (full-country viewport) so
+  // these responses cover all 4 ingestion tiles.  WazeClient reads them in
+  // path-3 instead of opening a second browser instance per tile.
+  private _capturedResponses: unknown[] = [];
+
+  getCapturedResponses(): unknown[] {
+    return this._capturedResponses;
+  }
 
   async captureSession(): Promise<WazeSession> {
     logger.info('Playwright: starting session capture');
@@ -60,6 +69,24 @@ export class WazePlaywrightClient {
     await page.route('**/*.{png,jpg,jpeg,gif,svg,woff,woff2,ttf,mp4,webm}', (route) =>
       route.abort(),
     );
+
+    // Collect georss response bodies in the same authenticated session.
+    // The Bulgaria zoom-9 viewport covers the full country, so these responses
+    // contain all police markers without needing separate per-tile browser runs.
+    const responseBodies: unknown[] = [];
+    page.on('response', async (r) => {
+      if (!GEORSS_PATTERN.test(r.url())) return;
+      try {
+        const text = await r.text();
+        if (!text.trimStart().startsWith('{')) return;
+        const parsed = JSON.parse(text) as unknown;
+        responseBodies.push(parsed);
+        const count = (parsed as Record<string, unknown[]>)?.alerts?.length ?? 0;
+        logger.info({ url: r.url().slice(0, 100), alertCount: count }, 'Playwright: captured georss response body');
+      } catch (_e) {
+        // ignore — response body unavailable or not JSON
+      }
+    });
 
     let capturedSession: WazeSession | null = null;
     const sessionPromise = new Promise<WazeSession>((resolve, reject) => {
@@ -144,6 +171,9 @@ export class WazePlaywrightClient {
       }
 
       capturedSession = await sessionPromise;
+
+      // Give pending response handlers a moment to finish reading bodies
+      await page.waitForTimeout(2000);
     } finally {
       await page.close().catch(() => undefined);
       await context.close().catch(() => undefined);
@@ -151,9 +181,11 @@ export class WazePlaywrightClient {
       this.browser = null;
     }
 
+    this._capturedResponses = responseBodies;
+
     const elapsed = Date.now() - startTime;
     logger.info(
-      { elapsed_ms: elapsed, ua: capturedSession.userAgent.slice(0, 60) },
+      { elapsed_ms: elapsed, ua: capturedSession.userAgent.slice(0, 60), capturedResponses: responseBodies.length },
       'Playwright: session captured successfully',
     );
 

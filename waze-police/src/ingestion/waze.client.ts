@@ -86,7 +86,23 @@ export class WazeClient {
       }
     }
 
-    // ── Path 3: Playwright direct tile fetch (no HTTP) ────────────────────────
+    // ── Path 3: use georss responses captured during session acquisition ─────
+    // captureSession navigates to Bulgaria at zoom=9 (full-country viewport),
+    // so its response bodies cover all 4 ingestion tiles.  No extra browser needed.
+    const capturedResponses = this.playwright.getCapturedResponses();
+    if (capturedResponses.length > 0) {
+      logger.info({ count: capturedResponses.length }, 'WazeClient: using captured session responses for tile');
+      for (const raw of capturedResponses) {
+        const parsed = WazeResponseSchema.safeParse(raw);
+        if (parsed.success) {
+          return { response: parsed.data, strategy: 'playwright' };
+        }
+      }
+      logger.warn('WazeClient: captured responses did not match schema — returning empty');
+      return { response: { alerts: [] }, strategy: 'playwright' };
+    }
+
+    // ── Path 4: Playwright direct tile fetch (last resort) ───────────────────
     logger.info('WazeClient: falling back to Playwright direct tile fetch');
     try {
       const raw = await this.playwright.fetchTileWithPlaywright(bbox, this.capturedSession ?? undefined);
