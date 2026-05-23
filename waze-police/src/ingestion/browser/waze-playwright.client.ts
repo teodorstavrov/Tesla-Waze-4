@@ -169,8 +169,9 @@ export class WazePlaywrightClient {
    */
   async fetchTileWithPlaywright(
     bbox: { top: number; bottom: number; left: number; right: number },
+    session?: WazeSession,
   ): Promise<unknown | null> {
-    logger.info({ bbox }, 'Playwright: fetching tile via browser interception');
+    logger.info({ bbox, hasSession: !!session }, 'Playwright: fetching tile via browser interception');
 
     this.browser = await chromium.launch({
       headless: config.PLAYWRIGHT_HEADLESS,
@@ -180,7 +181,31 @@ export class WazePlaywrightClient {
     const context = await this.browser.newContext({
       locale: 'en-US',
       timezoneId: 'Europe/Sofia',
+      userAgent: session?.userAgent,
     });
+
+    // Inject captured session cookies so Waze serves real data (not 403)
+    if (session?.cookies) {
+      const cookies = session.cookies
+        .split('; ')
+        .map((pair) => pair.trim())
+        .filter((pair) => pair.includes('='))
+        .map((pair) => {
+          const eqIdx = pair.indexOf('=');
+          return {
+            name: pair.substring(0, eqIdx).trim(),
+            value: pair.substring(eqIdx + 1).trim(),
+            domain: '.waze.com',
+            path: '/',
+            secure: true,
+            httpOnly: false,
+            sameSite: 'None' as const,
+          };
+        });
+      if (cookies.length > 0) {
+        await context.addCookies(cookies);
+      }
+    }
 
     const page = await context.newPage();
     await page.route('**/*.{png,jpg,jpeg,gif,svg,woff,woff2,ttf}', (r) => r.abort());
@@ -197,9 +222,9 @@ export class WazePlaywrightClient {
 
       const tileUrl = `${WAZE_LIVE_MAP_URL}?zoom=12&lat=${centerLat}&lon=${centerLng}`;
 
-      // Start waiting for the georss response BEFORE the second navigation
+      // Accept any georss response (200 OR non-200) — filter later
       const responseWaiter = page.waitForResponse(
-        (r) => GEORSS_PATTERN.test(r.url()) && r.status() === 200,
+        (r) => GEORSS_PATTERN.test(r.url()),
         { timeout: 85_000 },
       );
 

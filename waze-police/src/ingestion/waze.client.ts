@@ -14,7 +14,7 @@ import {
   invalidateCachedSession,
   isSessionFresh,
 } from './http/session-manager.js';
-import { WazeResponseSchema, type WazeResponse } from '../types/waze.js';
+import { WazeResponseSchema, type WazeResponse, type WazeSession } from '../types/waze.js';
 import type { BoundingBox } from '../types/waze.js';
 import { logger } from '../monitoring/metrics.js';
 
@@ -29,6 +29,7 @@ export class WazeClient {
   private readonly http: WazeHttpClient;
   private readonly playwright: WazePlaywrightClient;
   private playwrightBusy = false;
+  private capturedSession: WazeSession | null = null;
 
   constructor() {
     this.http = new WazeHttpClient();
@@ -69,6 +70,7 @@ export class WazeClient {
       try {
         logger.info('WazeClient: capturing fresh session via Playwright');
         const freshSession = await this.playwright.captureSession();
+        this.capturedSession = freshSession;
 
         const result = await this.http.fetchTile(bbox, freshSession, false);
         if (result) {
@@ -87,7 +89,7 @@ export class WazeClient {
     // ── Path 3: Playwright direct tile fetch (no HTTP) ────────────────────────
     logger.info('WazeClient: falling back to Playwright direct tile fetch');
     try {
-      const raw = await this.playwright.fetchTileWithPlaywright(bbox);
+      const raw = await this.playwright.fetchTileWithPlaywright(bbox, this.capturedSession ?? undefined);
       const parsed = WazeResponseSchema.safeParse(raw);
       if (parsed.success) {
         return { response: parsed.data, strategy: 'playwright' };
