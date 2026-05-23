@@ -217,34 +217,42 @@ export class WazePlaywrightClient {
       const centerLng = (bbox.left + bbox.right) / 2;
       const tileUrl = `${WAZE_LIVE_MAP_URL}?zoom=12&lat=${centerLat}&lon=${centerLng}`;
 
-      // Set up the waiter BEFORE any navigation so we catch georss from either load.
-      // Only match XHR/fetch resource types — filters out document navigations that
-      // may happen to redirect through a URL containing "georss".
-      const responseWaiter = page.waitForResponse(
-        (r) =>
-          GEORSS_PATTERN.test(r.url()) &&
-          ['xhr', 'fetch'].includes(r.request().resourceType()),
-        { timeout: 85_000 },
-      );
+      // Listen for ALL responses matching the georss pattern; skip HTML responses
+      // and resolve on the first valid JSON one.  waitForResponse() with a single
+      // predicate resolves on the very first match — which can be an HTML page
+      // navigation that happens to redirect through a georss-like URL.
+      // Using page.on('response') lets us inspect the body and skip bad ones.
+      const jsonResponsePromise = new Promise<unknown>((resolve, reject) => {
+        const tid = setTimeout(
+          () => reject(new Error('Playwright: timeout waiting for georss JSON response')),
+          85_000,
+        );
+
+        page.on('response', async (r) => {
+          if (!GEORSS_PATTERN.test(r.url())) return;
+          try {
+            const text = await r.text();
+            if (!text.trimStart().startsWith('{')) {
+              logger.debug(
+                { url: r.url(), status: r.status(), preview: text.slice(0, 80) },
+                'Playwright: georss response is not JSON — skipping',
+              );
+              return;
+            }
+            clearTimeout(tid);
+            resolve(JSON.parse(text));
+          } catch {
+            // response body read error — skip
+          }
+        });
+      });
 
       // Two-step navigation: cold-start at base URL, then navigate to tile coordinates.
       await page.goto(WAZE_LIVE_MAP_URL, { waitUntil: 'domcontentloaded', timeout: 30_000 });
       await page.waitForTimeout(3000);
       await page.goto(tileUrl, { waitUntil: 'domcontentloaded', timeout: 30_000 });
 
-      const response = await responseWaiter;
-      const url = response.url();
-      const status = response.status();
-      const contentType = response.headers()['content-type'] ?? '';
-      logger.debug({ url, status, contentType }, 'Playwright: georss response received');
-
-      const text = await response.text();
-      if (!text.trimStart().startsWith('{')) {
-        logger.warn({ url, status, contentType, preview: text.slice(0, 120) }, 'Playwright: georss response is not JSON — skipping');
-        responseBody = null;
-      } else {
-        responseBody = JSON.parse(text);
-      }
+      responseBody = await jsonResponsePromise;
     } catch (err) {
       logger.warn({ err }, 'Playwright tile fetch failed');
       responseBody = null;
