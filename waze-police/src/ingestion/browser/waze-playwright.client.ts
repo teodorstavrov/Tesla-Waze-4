@@ -70,29 +70,49 @@ export class WazePlaywrightClient {
       route.abort(),
     );
 
-    // Intercept georss requests via page.route so we read the body BEFORE the
-    // browser processes the response.  page.on('response') + r.text() silently
-    // fails when the page navigates away while the async body read is in flight.
-    // route.fetch() makes the request on our behalf and returns a complete
-    // Response object whose body is always readable.
+    // Inject a browser-side XHR/fetch interceptor BEFORE any navigation.
+    // page.route() and page.on('response') both fail when georss requests go
+    // through a service worker (Playwright's interception layer doesn't reach
+    // inside service workers).  addInitScript() runs inside the browser itself,
+    // so it captures XHR response bodies regardless of how they are routed.
     const responseBodies: unknown[] = [];
-    await page.route(/georss/i, async (route) => {
-      try {
-        const response = await route.fetch();
-        const body = await response.text();
-        if (body.trimStart().startsWith('{')) {
-          const parsed = JSON.parse(body) as unknown;
-          responseBodies.push(parsed);
-          const count = (parsed as { alerts?: unknown[] })?.alerts?.length ?? 0;
-          logger.info({ alertCount: count }, 'Playwright: captured georss tile response via route intercept');
-        } else {
-          logger.debug({ preview: body.slice(0, 80) }, 'Playwright: georss response not JSON — skipping');
-        }
-        await route.fulfill({ response });
-      } catch (err) {
-        logger.warn({ err: String(err) }, 'Playwright: georss route fetch failed — passing through');
-        await route.continue();
-      }
+    await page.addInitScript(() => {
+      /* eslint-disable */
+      const w = window as any;
+      w.__georssData = w.__georssData || [];
+
+      // Patch XMLHttpRequest
+      const origOpen = XMLHttpRequest.prototype.open;
+      XMLHttpRequest.prototype.open = function (this: XMLHttpRequest) {
+        this.addEventListener('load', function (this: XMLHttpRequest) {
+          try {
+            if (!/georss/i.test(this.responseURL)) return;
+            const text = this.responseText;
+            if (text && text.trimStart().startsWith('{')) {
+              w.__georssData.push(text);
+            }
+          } catch (_) {}
+        });
+        return (origOpen as any).apply(this, arguments);
+      };
+
+      // Patch fetch()
+      const origFetch = window.fetch.bind(window);
+      window.fetch = async function (...args: Parameters<typeof fetch>) {
+        const res = await origFetch(...args);
+        try {
+          const url = typeof args[0] === 'string' ? args[0] : (args[0] as Request).url;
+          if (/georss/i.test(url)) {
+            res.clone().text().then((text: string) => {
+              if (text && text.trimStart().startsWith('{')) {
+                w.__georssData.push(text);
+              }
+            }).catch(() => {});
+          }
+        } catch (_) {}
+        return res;
+      };
+      /* eslint-enable */
     });
 
     let capturedSession: WazeSession | null = null;
@@ -179,8 +199,23 @@ export class WazePlaywrightClient {
 
       capturedSession = await sessionPromise;
 
-      // Give pending response handlers a moment to finish reading bodies
+      // Let any in-flight XHRs finish, then pull captured data from the browser
       await page.waitForTimeout(2000);
+      try {
+        const georssStrings = await page.evaluate(
+          () => ((window as Record<string, unknown>).__georssData ?? []) as string[],
+        );
+        for (const str of georssStrings) {
+          if (str && str.trimStart().startsWith('{')) {
+            const parsed = JSON.parse(str) as unknown;
+            responseBodies.push(parsed);
+            const count = (parsed as { alerts?: unknown[] })?.alerts?.length ?? 0;
+            logger.info({ alertCount: count }, 'Playwright: retrieved georss response from browser');
+          }
+        }
+      } catch (err) {
+        logger.warn({ err: String(err) }, 'Playwright: failed to retrieve georss data from page context');
+      }
     } finally {
       await page.close().catch(() => undefined);
       await context.close().catch(() => undefined);
