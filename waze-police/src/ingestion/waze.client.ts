@@ -37,6 +37,20 @@ export class WazeClient {
   }
 
   async fetchTile(bbox: BoundingBox): Promise<TileFetchResult> {
+    // ── Path 0: reuse georss responses already captured this run ──────────────
+    // captureSession() collects responses from the Bulgaria zoom-9 view (full
+    // country), so tiles 2-4 can skip all browser work once tile 1 has run it.
+    const preloaded = this.playwright.getCapturedResponses();
+    if (preloaded.length > 0) {
+      for (const raw of preloaded) {
+        const parsed = WazeResponseSchema.safeParse(raw);
+        if (parsed.success) {
+          logger.info({ alerts: parsed.data.alerts?.length ?? 0 }, 'WazeClient: reusing captured session responses');
+          return { response: parsed.data, strategy: 'playwright' };
+        }
+      }
+    }
+
     // ── Path 1: HTTP with cached session ─────────────────────────────────────
     const session = await getCurrentSession();
 
@@ -102,21 +116,8 @@ export class WazeClient {
       return { response: { alerts: [] }, strategy: 'playwright' };
     }
 
-    // ── Path 4: Playwright direct tile fetch (last resort) ───────────────────
-    logger.info('WazeClient: falling back to Playwright direct tile fetch');
-    try {
-      const raw = await this.playwright.fetchTileWithPlaywright(bbox, this.capturedSession ?? undefined);
-      const parsed = WazeResponseSchema.safeParse(raw);
-      if (parsed.success) {
-        return { response: parsed.data, strategy: 'playwright' };
-      }
-      logger.warn({ issues: parsed.error.issues.slice(0, 3) }, 'Playwright response parse failed');
-    } catch (err) {
-      logger.error({ err }, 'Playwright direct tile fetch failed');
-    }
-
-    // Give up — return empty response
-    logger.error({ bbox }, 'All fetch strategies exhausted for tile — returning empty');
+    // All strategies exhausted — return empty
+    logger.warn({ bbox }, 'WazeClient: no data available for tile — returning empty');
     return { response: { alerts: [] }, strategy: 'playwright' };
   }
 

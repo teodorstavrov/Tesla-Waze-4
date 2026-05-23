@@ -28,7 +28,9 @@ export async function runIngestionPipeline(): Promise<CycleMetrics> {
   let dominantStrategy: FetchStrategy = 'http';
 
   try {
-    const results = await client.fetchTiles(tiles, 2);
+    // concurrency=1: tile 1 runs captureSession and fills _capturedResponses;
+    // tiles 2-4 hit path-0 (reuse) and complete instantly without a new browser.
+    const results = await client.fetchTiles(tiles, 1);
 
     for (let i = 0; i < results.length; i++) {
       const result = results[i]!;
