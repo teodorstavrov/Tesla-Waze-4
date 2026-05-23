@@ -61,9 +61,8 @@ export class WazePlaywrightClient {
       geolocation: { latitude: BG_CENTER_LAT, longitude: BG_CENTER_LNG },
       permissions: ['geolocation'],
       userAgent: undefined, // use Playwright's default realistic UA
-      // Block service workers so georss requests go through the normal network
-      // stack where Playwright's page.route() can intercept them.
-      serviceWorkers: 'block',
+      // Do NOT block serviceWorkers: Waze's SW adds auth headers to georss
+      // requests. Without SW, every georss fetch returns 403.
     });
 
     const page = await context.newPage();
