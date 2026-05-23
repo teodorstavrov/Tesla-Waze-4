@@ -54,10 +54,7 @@ CREATE INDEX IF NOT EXISTS idx_police_markers_waze_uuid
 CREATE INDEX IF NOT EXISTS idx_police_markers_score
   ON police_markers (score DESC);
 
--- Partial index: only active (non-expired) markers for live API
-CREATE INDEX IF NOT EXISTS idx_police_markers_active
-  ON police_markers (expires_at)
-  WHERE expires_at > NOW();
+-- expires_at index covers active-marker queries (partial index with NOW() not allowed)
 
 -- ── Ingestion run audit log ──────────────────────────────────────────────────
 

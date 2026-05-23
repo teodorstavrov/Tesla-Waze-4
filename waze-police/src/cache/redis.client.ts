@@ -7,10 +7,13 @@ let _redis: Redis | null = null;
 
 export function getRedis(): Redis {
   if (!_redis) {
+    const isTLS = config.REDIS_URL.startsWith('rediss://');
     _redis = new Redis(config.REDIS_URL, {
       maxRetriesPerRequest: 3,
       enableReadyCheck: true,
       lazyConnect: false,
+      // Upstash and other managed Redis use rediss:// (TLS) — trust their cert
+      tls: isTLS ? { rejectUnauthorized: false } : undefined,
       retryStrategy(times) {
         if (times > 5) return null; // stop retrying
         return Math.min(times * 200, 2000);
@@ -76,8 +79,8 @@ export async function saveSession(session: WazeSession): Promise<void> {
       'Waze session saved to Redis',
     );
   } catch (err) {
-    logger.error({ err }, 'Failed to save Waze session to Redis');
-    throw err;
+    // Redis is a cache — failure is non-fatal, continue without it
+    logger.warn({ err }, 'Failed to save Waze session to Redis — continuing without cache');
   }
 }
 
