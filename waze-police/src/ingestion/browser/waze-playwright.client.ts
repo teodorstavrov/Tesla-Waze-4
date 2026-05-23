@@ -164,27 +164,19 @@ export class WazePlaywrightClient {
     });
 
     try {
-      // Navigate to live map
-      logger.info('Playwright: navigating to Waze live map');
-      await page.goto(WAZE_LIVE_MAP_URL, {
-        waitUntil: 'domcontentloaded',
-        timeout: 30_000,
-      });
-
-      // Wait for initial JS, SW init, and cookie setup to complete
-      await page.waitForTimeout(10_000);
-
-      // Manipulate the map URL hash to move to Bulgaria
-      // Waze uses ?zoom=N&lat=X&lon=Y format
+      // Navigate DIRECTLY to the Bulgaria-centred URL.  A prior base-URL load
+      // triggers georss requests for the runner's IP geolocation (San Jose, CA)
+      // which Waze flags as bot traffic, blocking every subsequent request in
+      // the same session — including Bulgarian tiles.
       const bgUrl = `${WAZE_LIVE_MAP_URL}?zoom=${BG_ZOOM}&lat=${BG_CENTER_LAT}&lon=${BG_CENTER_LNG}`;
-      logger.info({ bgUrl }, 'Playwright: navigating to Bulgaria view');
+      logger.info({ bgUrl }, 'Playwright: navigating directly to Bulgaria view');
       await page.goto(bgUrl, {
         waitUntil: 'domcontentloaded',
         timeout: 30_000,
       });
 
-      // Wait for the map to trigger a georss fetch
-      await page.waitForTimeout(5000);
+      // Wait for SW init, cookie setup, and initial tile fetches
+      await page.waitForTimeout(15_000);
 
       // If not triggered yet, scroll/move map slightly to force a tile request
       try {
