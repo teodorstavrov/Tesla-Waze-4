@@ -1,21 +1,31 @@
-// ─── Netherlands Trajectcontrole sections ─────────────────────────────────
+// ─── Netherlands Trajectcontrole — Official verified sections ──────────────
 //
-// Average-speed (section) enforcement (trajectcontrole) zones in the Netherlands.
-// Sources: IBOB/ANPR register, RDW official list Q1-2025, flitsers.nl, ibop.nl
+// Source: Openbaar Ministerie (OM) + CJIB, Q1 2025.
+// Only sections confirmed active by OM/CJIB — no community data.
 //
-// Sections marked // ~ have approximate coordinates (GPS-verified data pending).
-// lengthM = road distance in metres (used for avg speed calculation).
-// limitKmh = passenger car (personenauto) speed limit.
+// Direction notes:
+//   A7  Hoorn → Purmerend : southbound only (toward Amsterdam)
+//   A12 Zoetermeer → Nootdorp : westbound only (toward Den Haag)
+//   All other sections: both directions.
 //
-// Most N-roads enforce 80 km/h; motorways 100–130 km/h.
-// Tunnels (Westerscheldetunnel/Coentunnel area): 100 km/h max.
+// Dynamic speed limits (A2/A4/A10): enforced limit shown.
+//   A2 Holendrecht–Maarssen : 100 km/h (max enforced; matrix sign 100/130)
+//   A4 Hoofddorp area       : 130 km/h
+//   A4 Leidschendam area    : 100 km/h
+//   A10 Ring West           : 80 km/h
+//
+// Parallel carriageway on A12 Galecopperbrug has separate enforcement (80 km/h).
+// N2 Maastricht is the surface route through the city (70 km/h).
+// Enforcement is 24/7 with ~100% detection probability (OM statement).
+//
+// Sections marked // ~ have GPS coordinates that are approximate.
 
 import type { SpeedSection } from './sectionTypes'
 
 export const SPEED_SECTIONS_NL: SpeedSection[] = [
 
   // ══ A2 Amsterdam–Utrecht (Holendrecht–Maarssen) ════════════════════════════
-  // Longest Dutch trajectcontrole, ~15 km, 100 km/h
+  // Longest Dutch trajectcontrole: ~15.2 km, 100 km/h (dynamic matrix 100/130)
 
   {
     id:       'nl-a2-holendrecht-maarssen',
@@ -40,171 +50,130 @@ export const SPEED_SECTIONS_NL: SpeedSection[] = [
     limitKmh:  100,
   },
 
-  // ══ A2 Maastricht city bypass ══════════════════════════════════════════════
+  // ══ A2 tunnel Maastricht ════════════════════════════════════════════════════
+  // Underground tunnel through Maastricht, ~2.3 km, 100 km/h
 
   {
-    id:       'nl-a2-maastricht-n',             // ~
+    id:       'nl-a2-maastricht-tunnel-n',
     road:     'A2',
-    name:     'Maastricht Noord → Zuid',
-    startLat:  50.8617,
-    startLng:   5.6887,
-    endLat:    50.8401,
-    endLng:     5.6826,
-    lengthM:   2_500,
+    name:     'Maastricht tunnel Noord → Zuid',
+    startLat:  50.8618,
+    startLng:   5.6878,
+    endLat:    50.8394,
+    endLng:     5.6832,
+    lengthM:   2_300,
     limitKmh:  100,
   },
   {
-    id:       'nl-a2-maastricht-s',             // ~
+    id:       'nl-a2-maastricht-tunnel-z',
     road:     'A2',
-    name:     'Maastricht Zuid → Noord',
-    startLat:  50.8401,
-    startLng:   5.6826,
-    endLat:    50.8617,
-    endLng:     5.6887,
-    lengthM:   2_500,
+    name:     'Maastricht tunnel Zuid → Noord',
+    startLat:  50.8394,
+    startLng:   5.6832,
+    endLat:    50.8618,
+    endLng:     5.6878,
+    lengthM:   2_300,
     limitKmh:  100,
   },
 
-  // ══ N2 Maastricht (local road parallel to A2) ══════════════════════════════
+  // ══ N2 Maastricht (surface road alongside A2 tunnel) ══════════════════════
+  // Maasboulevard through city centre, ~2.3 km, 70 km/h
 
   {
     id:       'nl-n2-maastricht-n',             // ~
     road:     'N2',
-    name:     'Maastricht N2 Noord → Zuid',
-    startLat:  50.8502,
-    startLng:   5.6951,
-    endLat:    50.8263,
-    endLng:     5.6900,
-    lengthM:   2_500,
-    limitKmh:  80,
+    name:     'Maastricht Maasboulevard N → Z',
+    startLat:  50.8618,
+    startLng:   5.6905,
+    endLat:    50.8394,
+    endLng:     5.6886,
+    lengthM:   2_300,
+    limitKmh:  70,
   },
   {
-    id:       'nl-n2-maastricht-s',             // ~
+    id:       'nl-n2-maastricht-z',             // ~
     road:     'N2',
-    name:     'Maastricht N2 Zuid → Noord',
-    startLat:  50.8263,
-    startLng:   5.6900,
-    endLat:    50.8502,
-    endLng:     5.6951,
-    lengthM:   2_500,
-    limitKmh:  80,
+    name:     'Maastricht Maasboulevard Z → N',
+    startLat:  50.8394,
+    startLng:   5.6886,
+    endLat:    50.8618,
+    endLng:     5.6905,
+    lengthM:   2_300,
+    limitKmh:  70,
   },
 
-  // ══ A4 Hoofddorp–Nieuw Vennep ══════════════════════════════════════════════
+  // ══ A4 Leidschendam ↔ Zoeterwoude ══════════════════════════════════════════
+  // South of Knooppunt Prins Clausplein, ~5 km, 100 km/h
 
   {
-    id:       'nl-a4-hoofddorp-nieuwvennep-s',  // ~
-    road:     'A4',
-    name:     'Hoofddorp → Nieuw Vennep',
-    startLat:  52.2810,
-    startLng:   4.6175,
-    endLat:    52.2590,
-    endLng:     4.6328,
-    lengthM:   2_500,
-    limitKmh:  130,
-  },
-  {
-    id:       'nl-a4-nieuwvennep-hoofddorp-n',  // ~
-    road:     'A4',
-    name:     'Nieuw Vennep → Hoofddorp',
-    startLat:  52.2590,
-    startLng:   4.6328,
-    endLat:    52.2810,
-    endLng:     4.6175,
-    lengthM:   2_500,
-    limitKmh:  130,
-  },
-
-  // ══ A4 Hoofddorp south (extended) ══════════════════════════════════════════
-
-  {
-    id:       'nl-a4-nieuwvennep-lisse-s',      // ~
-    road:     'A4',
-    name:     'Nieuw Vennep → Lisse richting',
-    startLat:  52.2590,
-    startLng:   4.6328,
-    endLat:    52.2083,
-    endLng:     4.6484,
-    lengthM:   4_800,
-    limitKmh:  130,
-  },
-  {
-    id:       'nl-a4-lisse-nieuwvennep-n',      // ~
-    road:     'A4',
-    name:     'Lisse richting → Nieuw Vennep',
-    startLat:  52.2083,
-    startLng:   4.6484,
-    endLat:    52.2590,
-    endLng:     4.6328,
-    lengthM:   4_800,
-    limitKmh:  130,
-  },
-
-  // ══ A4 Zoeterwoude–Leidschendam ════════════════════════════════════════════
-
-  {
-    id:       'nl-a4-zoeterwoude-leidschendam',  // ~
-    road:     'A4',
-    name:     'Zoeterwoude → Leidschendam',
-    startLat:  52.0755,
-    startLng:   4.4738,
-    endLat:    52.0640,
-    endLng:     4.3820,
-    lengthM:   4_800,
-    limitKmh:  100,
-  },
-  {
-    id:       'nl-a4-leidschendam-zoeterwoude',  // ~
+    id:       'nl-a4-leidschendam-zoeterwoude',
     road:     'A4',
     name:     'Leidschendam → Zoeterwoude',
-    startLat:  52.0640,
-    startLng:   4.3820,
-    endLat:    52.0755,
-    endLng:     4.4738,
-    lengthM:   4_800,
+    startLat:  52.0638,
+    startLng:   4.4108,
+    endLat:    52.0748,
+    endLng:     4.4742,
+    lengthM:   5_000,
+    limitKmh:  100,
+  },
+  {
+    id:       'nl-a4-zoeterwoude-leidschendam',
+    road:     'A4',
+    name:     'Zoeterwoude → Leidschendam',
+    startLat:  52.0748,
+    startLng:   4.4742,
+    endLat:    52.0638,
+    endLng:     4.4108,
+    lengthM:   5_000,
     limitKmh:  100,
   },
 
-  // ══ A7 Hoorn–Purmerend ═════════════════════════════════════════════════════
+  // ══ A4 Hoofddorp ↔ Nieuw Vennep ════════════════════════════════════════════
+  // Haarlemmermeer, ~3.5 km, 130 km/h
+
+  {
+    id:       'nl-a4-hoofddorp-nieuwvennep',
+    road:     'A4',
+    name:     'Hoofddorp → Nieuw Vennep',
+    startLat:  52.2802,
+    startLng:   4.6172,
+    endLat:    52.2512,
+    endLng:     4.6302,
+    lengthM:   3_500,
+    limitKmh:  130,
+  },
+  {
+    id:       'nl-a4-nieuwvennep-hoofddorp',
+    road:     'A4',
+    name:     'Nieuw Vennep → Hoofddorp',
+    startLat:  52.2512,
+    startLng:   4.6302,
+    endLat:    52.2802,
+    endLng:     4.6172,
+    lengthM:   3_500,
+    limitKmh:  130,
+  },
+
+  // ══ A7 Hoorn → Purmerend (southbound only) ═════════════════════════════════
+  // One direction: toward Amsterdam, ~9.1 km, 100 km/h
 
   {
     id:       'nl-a7-hoorn-purmerend',
     road:     'A7',
     name:     'Hoorn → Purmerend',
-    startLat:  52.6584,
-    startLng:   5.0614,
+    startLat:  52.6581,
+    startLng:   5.0618,
     endLat:    52.5198,
     endLng:     4.9796,
     lengthM:   9_100,
     limitKmh:  100,
   },
-  {
-    id:       'nl-a7-purmerend-hoorn',
-    road:     'A7',
-    name:     'Purmerend → Hoorn',
-    startLat:  52.5198,
-    startLng:   4.9796,
-    endLat:    52.6584,
-    endLng:     5.0614,
-    lengthM:   9_100,
-    limitKmh:  100,
-  },
 
-  // ══ A10 Ring Amsterdam West – north section (Coentunnel–Nieuwe Meer) ═══════
+  // ══ A10 Ring West Amsterdam — Nieuwe Meer ↔ Coentunnel ════════════════════
+  // Western ring road, ~4.8 km, 80 km/h
 
   {
-    id:       'nl-a10-coentunnel-nieuwe-meer-s',
-    road:     'A10',
-    name:     'Coentunnel → Nieuwe Meer',
-    startLat:  52.3870,
-    startLng:   4.8278,
-    endLat:    52.3472,
-    endLng:     4.8445,
-    lengthM:   4_800,
-    limitKmh:  80,
-  },
-  {
-    id:       'nl-a10-nieuwe-meer-coentunnel-n',
+    id:       'nl-a10-nieuweemeer-coentunnel',
     road:     'A10',
     name:     'Nieuwe Meer → Coentunnel',
     startLat:  52.3472,
@@ -214,164 +183,119 @@ export const SPEED_SECTIONS_NL: SpeedSection[] = [
     lengthM:   4_800,
     limitKmh:  80,
   },
-
-  // ══ A10 Ring Amsterdam West – south section ════════════════════════════════
-
   {
-    id:       'nl-a10-nieuwe-meer-south',        // ~
+    id:       'nl-a10-coentunnel-nieuweemeer',
     road:     'A10',
-    name:     'Nieuwe Meer → A10 Zuid',
-    startLat:  52.3472,
-    startLng:   4.8445,
-    endLat:    52.3176,
-    endLng:     4.8540,
-    lengthM:   4_000,
-    limitKmh:  80,
-  },
-  {
-    id:       'nl-a10-south-nieuwe-meer',        // ~
-    road:     'A10',
-    name:     'A10 Zuid → Nieuwe Meer',
-    startLat:  52.3176,
-    startLng:   4.8540,
+    name:     'Coentunnel → Nieuwe Meer',
+    startLat:  52.3870,
+    startLng:   4.8278,
     endLat:    52.3472,
     endLng:     4.8445,
-    lengthM:   4_000,
+    lengthM:   4_800,
     limitKmh:  80,
   },
 
-  // ══ A12 Prins Clausplein–Den Haag Centrum ══════════════════════════════════
+  // ══ A12 Zoetermeer → Nootdorp (westbound only) ════════════════════════════
+  // One direction: toward Den Haag, ~3 km, 130 km/h
 
   {
-    id:       'nl-a12-prinsclausplein-denhaaag',  // ~
-    road:     'A12',
-    name:     'Prins Clausplein → Den Haag C.',
-    startLat:  52.0635,
-    startLng:   4.4095,
-    endLat:    52.0893,
-    endLng:     4.3437,
-    lengthM:   2_200,
-    limitKmh:  100,
-  },
-  {
-    id:       'nl-a12-denhaag-prinsclausplein',  // ~
-    road:     'A12',
-    name:     'Den Haag C. → Prins Clausplein',
-    startLat:  52.0893,
-    startLng:   4.3437,
-    endLat:    52.0635,
-    endLng:     4.4095,
-    lengthM:   2_200,
-    limitKmh:  100,
-  },
-
-  // ══ A12 Zoetermeer–Nootdorp ════════════════════════════════════════════════
-
-  {
-    id:       'nl-a12-zoetermeer-nootdorp',      // ~
+    id:       'nl-a12-zoetermeer-nootdorp',
     road:     'A12',
     name:     'Zoetermeer → Nootdorp',
-    startLat:  52.0489,
-    startLng:   4.4920,
-    endLat:    52.0450,
-    endLng:     4.4453,
-    lengthM:   2_400,
-    limitKmh:  130,
-  },
-  {
-    id:       'nl-a12-nootdorp-zoetermeer',      // ~
-    road:     'A12',
-    name:     'Nootdorp → Zoetermeer',
-    startLat:  52.0450,
-    startLng:   4.4453,
-    endLat:    52.0489,
-    endLng:     4.4920,
-    lengthM:   2_400,
+    startLat:  52.0501,
+    startLng:   4.4942,
+    endLat:    52.0472,
+    endLng:     4.4512,
+    lengthM:   3_000,
     limitKmh:  130,
   },
 
-  // ══ A12 Lunetten–Oudenrijn Utrecht (main carriageway) ══════════════════════
+  // ══ A12 Utrecht Galecopperbrug — main carriageway ═════════════════════════
+  // Knooppunt Lunetten ↔ Oudenrijn, ~3.5 km, 100 km/h
 
   {
-    id:       'nl-a12-lunetten-oudenrijn',
+    id:       'nl-a12-lunetten-oudenrijn-main',
     road:     'A12',
-    name:     'Lunetten → Oudenrijn',
-    startLat:  52.0475,
+    name:     'Galecopperbrug Lunetten → Oudenrijn',
+    startLat:  52.0478,
     startLng:   5.1482,
-    endLat:    52.0696,
-    endLng:     5.0848,
-    lengthM:   3_300,
+    endLat:    52.0692,
+    endLng:     5.0852,
+    lengthM:   3_500,
     limitKmh:  100,
   },
   {
-    id:       'nl-a12-oudenrijn-lunetten',
+    id:       'nl-a12-oudenrijn-lunetten-main',
     road:     'A12',
-    name:     'Oudenrijn → Lunetten',
-    startLat:  52.0696,
-    startLng:   5.0848,
-    endLat:    52.0475,
+    name:     'Galecopperbrug Oudenrijn → Lunetten',
+    startLat:  52.0692,
+    startLng:   5.0852,
+    endLat:    52.0478,
     endLng:     5.1482,
-    lengthM:   3_300,
+    lengthM:   3_500,
     limitKmh:  100,
   },
 
-  // ══ A12 Lunetten–Oudenrijn Utrecht (parallel / HOV carriageway) ═══════════
+  // ══ A12 Utrecht Galecopperbrug — parallel carriageway (plusbaan) ═══════════
+  // Same section, separate enforcement, 80 km/h
 
   {
     id:       'nl-a12-lunetten-oudenrijn-par',
     road:     'A12',
-    name:     'Lunetten → Oudenrijn (parallel)',
-    startLat:  52.0475,
+    name:     'Galecopperbrug Lunetten → Oudenrijn (parallel)',
+    startLat:  52.0478,
     startLng:   5.1482,
-    endLat:    52.0696,
-    endLng:     5.0848,
-    lengthM:   3_300,
+    endLat:    52.0692,
+    endLng:     5.0852,
+    lengthM:   3_500,
     limitKmh:  80,
   },
   {
     id:       'nl-a12-oudenrijn-lunetten-par',
     road:     'A12',
-    name:     'Oudenrijn → Lunetten (parallel)',
-    startLat:  52.0696,
-    startLng:   5.0848,
-    endLat:    52.0475,
+    name:     'Galecopperbrug Oudenrijn → Lunetten (parallel)',
+    startLat:  52.0692,
+    startLng:   5.0852,
+    endLat:    52.0478,
     endLng:     5.1482,
-    lengthM:   3_300,
+    lengthM:   3_500,
     limitKmh:  80,
   },
 
-  // ══ A13 Kleinpolderplein–Rotterdam Airport ══════════════════════════════════
+  // ══ A13 Overschie — Berkel en Rodenrijs ↔ Kleinpolderplein ═══════════════
+  // Approach to Rotterdam, ~5.6 km, 80 km/h
 
   {
-    id:       'nl-a13-kleinpolder-airport-n',
+    id:       'nl-a13-berkel-kleinpolder-z',
     road:     'A13',
-    name:     'Kleinpolderplein → Rotterdam Airport',
-    startLat:  51.9611,
-    startLng:   4.4352,
-    endLat:    51.9566,
-    endLng:     4.4753,
-    lengthM:   1_700,
-    limitKmh:  80,
-  },
-  {
-    id:       'nl-a13-airport-kleinpolder-s',
-    road:     'A13',
-    name:     'Rotterdam Airport → Kleinpolderplein',
-    startLat:  51.9566,
-    startLng:   4.4753,
-    endLat:    51.9611,
+    name:     'Berkel en Rodenrijs → Kleinpolderplein',
+    startLat:  51.9932,
+    startLng:   4.4768,
+    endLat:    51.9612,
     endLng:     4.4352,
-    lengthM:   1_700,
+    lengthM:   5_600,
+    limitKmh:  80,
+  },
+  {
+    id:       'nl-a13-kleinpolder-berkel-n',
+    road:     'A13',
+    name:     'Kleinpolderplein → Berkel en Rodenrijs',
+    startLat:  51.9612,
+    startLng:   4.4352,
+    endLat:    51.9932,
+    endLng:     4.4768,
+    lengthM:   5_600,
     limitKmh:  80,
   },
 
-  // ══ A20 Kleinpolderplein–Terbregseplein Rotterdam ══════════════════════════
+  // ══ A20 Rotterdam — Kleinpolderplein ↔ Terbregseplein ════════════════════
+  // ~3.5 km, 100 km/h
 
   {
-    id:       'nl-a20-kleinpolder-terbregseplein-e',
+    id:       'nl-a20-kleinpolder-terbregseplein',
     road:     'A20',
     name:     'Kleinpolderplein → Terbregseplein',
-    startLat:  51.9611,
+    startLat:  51.9612,
     startLng:   4.4352,
     endLat:    51.9402,
     endLng:     4.5162,
@@ -379,44 +303,19 @@ export const SPEED_SECTIONS_NL: SpeedSection[] = [
     limitKmh:  100,
   },
   {
-    id:       'nl-a20-terbregseplein-kleinpolder-w',
+    id:       'nl-a20-terbregseplein-kleinpolder',
     road:     'A20',
     name:     'Terbregseplein → Kleinpolderplein',
     startLat:  51.9402,
     startLng:   4.5162,
-    endLat:    51.9611,
+    endLat:    51.9612,
     endLng:     4.4352,
     lengthM:   3_500,
     limitKmh:  100,
   },
 
-  // ══ A58 Bergen op Zoom–Roosendaal ══════════════════════════════════════════
-
-  {
-    id:       'nl-a58-bergenopzoom-roosendaal-e',
-    road:     'A58',
-    name:     'Bergen op Zoom → Roosendaal',
-    startLat:  51.5124,
-    startLng:   4.2832,
-    endLat:    51.4966,
-    endLng:     4.4559,
-    lengthM:   4_700,
-    limitKmh:  130,
-  },
-  {
-    id:       'nl-a58-roosendaal-bergenopzoom-w',
-    road:     'A58',
-    name:     'Roosendaal → Bergen op Zoom',
-    startLat:  51.4966,
-    startLng:   4.4559,
-    endLat:    51.5124,
-    endLng:     4.2832,
-    lengthM:   4_700,
-    limitKmh:  130,
-  },
-
   // ══ N62 Westerscheldetunnel ════════════════════════════════════════════════
-  // ~6.6 km tunnel under the Western Scheldt, 100 km/h
+  // Longest tunnel in the Netherlands, ~6.6 km, 100 km/h
 
   {
     id:       'nl-n62-westerschelde-n',
@@ -430,7 +329,7 @@ export const SPEED_SECTIONS_NL: SpeedSection[] = [
     limitKmh:  100,
   },
   {
-    id:       'nl-n62-westerschelde-s',
+    id:       'nl-n62-westerschelde-z',
     road:     'N62',
     name:     'Westerscheldetunnel Zuid → Noord',
     startLat:  51.3405,
@@ -441,503 +340,504 @@ export const SPEED_SECTIONS_NL: SpeedSection[] = [
     limitKmh:  100,
   },
 
-  // ══ N9 Noord-Holland ═══════════════════════════════════════════════════════
+  // ══ N9 Burgervlotbrug ↔ Sint Maartensvlotbrug (Noord-Holland) ═════════════
 
   {
-    id:       'nl-n9-schagen-alkmaar-s',        // ~
+    id:       'nl-n9-burgervlotbrug-n',         // ~
     road:     'N9',
-    name:     'N9 Schagen → Alkmaar',
-    startLat:  52.7182,
-    startLng:   4.8008,
-    endLat:    52.6842,
-    endLng:     4.7738,
-    lengthM:   4_500,
+    name:     'N9 Sint Maartensvlotbrug → Burgervlotbrug',
+    startLat:  52.7922,
+    startLng:   4.7832,
+    endLat:    52.8212,
+    endLng:     4.7452,
+    lengthM:   4_000,
     limitKmh:  80,
   },
   {
-    id:       'nl-n9-alkmaar-schagen-n',        // ~
+    id:       'nl-n9-burgervlotbrug-z',         // ~
     road:     'N9',
-    name:     'N9 Alkmaar → Schagen',
-    startLat:  52.6842,
-    startLng:   4.7738,
-    endLat:    52.7182,
-    endLng:     4.8008,
-    lengthM:   4_500,
+    name:     'N9 Burgervlotbrug → Sint Maartensvlotbrug',
+    startLat:  52.8212,
+    startLng:   4.7452,
+    endLat:    52.7922,
+    endLng:     4.7832,
+    lengthM:   4_000,
     limitKmh:  80,
   },
 
-  // ══ N11 Zuid-Holland (Alphen a/d Rijn–A12) ═════════════════════════════════
+  // ══ N11 Alphen aan den Rijn ↔ Zoeterwoude-Rijndijk ════════════════════════
 
   {
-    id:       'nl-n11-alphen-a12-w',            // ~
+    id:       'nl-n11-alphen-zoeterwoude',      // ~
     road:     'N11',
-    name:     'N11 Alphen a/d Rijn → A12',
-    startLat:  52.1325,
-    startLng:   4.6368,
-    endLat:    52.0780,
-    endLng:     4.4920,
+    name:     'N11 Alphen a/d Rijn → Zoeterwoude-Rijndijk',
+    startLat:  52.1322,
+    startLng:   4.6612,
+    endLat:    52.0988,
+    endLng:     4.5462,
+    lengthM:   8_000,
+    limitKmh:  80,
+  },
+  {
+    id:       'nl-n11-zoeterwoude-alphen',      // ~
+    road:     'N11',
+    name:     'N11 Zoeterwoude-Rijndijk → Alphen a/d Rijn',
+    startLat:  52.0988,
+    startLng:   4.5462,
+    endLat:    52.1322,
+    endLng:     4.6612,
+    lengthM:   8_000,
+    limitKmh:  80,
+  },
+
+  // ══ N201 Uithoorn ══════════════════════════════════════════════════════════
+
+  {
+    id:       'nl-n201-uithoorn-e',             // ~
+    road:     'N201',
+    name:     'N201 Uithoorn Oost',
+    startLat:  52.2342,
+    startLng:   4.8312,
+    endLat:    52.2532,
+    endLng:     4.7692,
+    lengthM:   5_000,
+    limitKmh:  80,
+  },
+  {
+    id:       'nl-n201-uithoorn-w',             // ~
+    road:     'N201',
+    name:     'N201 Uithoorn West',
+    startLat:  52.2532,
+    startLng:   4.7692,
+    endLat:    52.2342,
+    endLng:     4.8312,
+    lengthM:   5_000,
+    limitKmh:  80,
+  },
+
+  // ══ N205 N207 ↔ N232 (Haarlemmermeer) ══════════════════════════════════════
+
+  {
+    id:       'nl-n205-n207-n232-n',            // ~
+    road:     'N205',
+    name:     'N205 N207 → N232',
+    startLat:  52.2202,
+    startLng:   4.6042,
+    endLat:    52.2682,
+    endLng:     4.5672,
+    lengthM:   6_000,
+    limitKmh:  80,
+  },
+  {
+    id:       'nl-n205-n232-n207-z',            // ~
+    road:     'N205',
+    name:     'N205 N232 → N207',
+    startLat:  52.2682,
+    startLng:   4.5672,
+    endLat:    52.2202,
+    endLng:     4.6042,
+    lengthM:   6_000,
+    limitKmh:  80,
+  },
+
+  // ══ N230 Utrecht Zuilense Ring ═════════════════════════════════════════════
+
+  {
+    id:       'nl-n230-zuilen-e',               // ~
+    road:     'N230',
+    name:     'N230 Zuilense Ring Oost',
+    startLat:  52.1172,
+    startLng:   5.0622,
+    endLat:    52.0972,
+    endLng:     5.0872,
+    lengthM:   3_500,
+    limitKmh:  80,
+  },
+  {
+    id:       'nl-n230-zuilen-w',               // ~
+    road:     'N230',
+    name:     'N230 Zuilense Ring West',
+    startLat:  52.0972,
+    startLng:   5.0872,
+    endLat:    52.1172,
+    endLng:     5.0622,
+    lengthM:   3_500,
+    limitKmh:  80,
+  },
+
+  // ══ N253 Rondweg Sluis (Zeeland) ═══════════════════════════════════════════
+
+  {
+    id:       'nl-n253-sluis-e',                // ~
+    road:     'N253',
+    name:     'N253 Rondweg Sluis Oost',
+    startLat:  51.2952,
+    startLng:   3.5772,
+    endLat:    51.3132,
+    endLng:     3.6012,
+    lengthM:   2_500,
+    limitKmh:  80,
+  },
+  {
+    id:       'nl-n253-sluis-w',                // ~
+    road:     'N253',
+    name:     'N253 Rondweg Sluis West',
+    startLat:  51.3132,
+    startLng:   3.6012,
+    endLat:    51.2952,
+    endLng:     3.5772,
+    lengthM:   2_500,
+    limitKmh:  80,
+  },
+
+  // ══ N256 Zeelandbrug (longest bridge in Netherlands: 5.02 km) ══════════════
+
+  {
+    id:       'nl-n256-zeelandbrug-n',
+    road:     'N256',
+    name:     'Zeelandbrug Noord → Zuid',
+    startLat:  51.6592,
+    startLng:   3.8702,
+    endLat:    51.6108,
+    endLng:     3.8492,
+    lengthM:   5_020,
+    limitKmh:  80,
+  },
+  {
+    id:       'nl-n256-zeelandbrug-z',
+    road:     'N256',
+    name:     'Zeelandbrug Zuid → Noord',
+    startLat:  51.6108,
+    startLng:   3.8492,
+    endLat:    51.6592,
+    endLng:     3.8702,
+    lengthM:   5_020,
+    limitKmh:  80,
+  },
+
+  // ══ N260 Tilburg (Noord-Brabant) ═══════════════════════════════════════════
+
+  {
+    id:       'nl-n260-tilburg-e',              // ~
+    road:     'N260',
+    name:     'N260 Tilburg Oost',
+    startLat:  51.5612,
+    startLng:   4.9462,
+    endLat:    51.5142,
+    endLng:     5.0182,
+    lengthM:   8_000,
+    limitKmh:  80,
+  },
+  {
+    id:       'nl-n260-tilburg-w',              // ~
+    road:     'N260',
+    name:     'N260 Tilburg West',
+    startLat:  51.5142,
+    startLng:   5.0182,
+    endLat:    51.5612,
+    endLng:     4.9462,
+    lengthM:   8_000,
+    limitKmh:  80,
+  },
+
+  // ══ N270 Venray ↔ Ysselsteyn (Noord-Limburg) ══════════════════════════════
+
+  {
+    id:       'nl-n270-venray-ysselsteyn',      // ~
+    road:     'N270',
+    name:     'N270 Venray → Ysselsteyn',
+    startLat:  51.5242,
+    startLng:   5.9772,
+    endLat:    51.4682,
+    endLng:     5.9842,
+    lengthM:   6_200,
+    limitKmh:  80,
+  },
+  {
+    id:       'nl-n270-ysselsteyn-venray',      // ~
+    road:     'N270',
+    name:     'N270 Ysselsteyn → Venray',
+    startLat:  51.4682,
+    startLng:   5.9842,
+    endLat:    51.5242,
+    endLng:     5.9772,
+    lengthM:   6_200,
+    limitKmh:  80,
+  },
+
+  // ══ N275 Blerick ↔ Nederweert (Limburg) ═══════════════════════════════════
+  // Long section through Limburg, ~32 km, 80 km/h
+
+  {
+    id:       'nl-n275-blerick-nederweert',     // ~
+    road:     'N275',
+    name:     'N275 Blerick → Nederweert',
+    startLat:  51.3682,
+    startLng:   6.1522,
+    endLat:    51.2842,
+    endLng:     5.7422,
+    lengthM:   32_000,
+    limitKmh:  80,
+  },
+  {
+    id:       'nl-n275-nederweert-blerick',     // ~
+    road:     'N275',
+    name:     'N275 Nederweert → Blerick',
+    startLat:  51.2842,
+    startLng:   5.7422,
+    endLat:    51.3682,
+    endLng:     6.1522,
+    lengthM:   32_000,
+    limitKmh:  80,
+  },
+
+  // ══ N277 Ysselsteyn ↔ Vredepeel (Noord-Limburg / Noord-Brabant) ════════════
+
+  {
+    id:       'nl-n277-ysselsteyn-vredepeel',   // ~
+    road:     'N277',
+    name:     'N277 Ysselsteyn → Vredepeel',
+    startLat:  51.4682,
+    startLng:   5.9842,
+    endLat:    51.5382,
+    endLng:     5.8582,
+    lengthM:   11_000,
+    limitKmh:  80,
+  },
+  {
+    id:       'nl-n277-vredepeel-ysselsteyn',   // ~
+    road:     'N277',
+    name:     'N277 Vredepeel → Ysselsteyn',
+    startLat:  51.5382,
+    startLng:   5.8582,
+    endLat:    51.4682,
+    endLng:     5.9842,
+    lengthM:   11_000,
+    limitKmh:  80,
+  },
+
+  // ══ N325 Arnhem Pleyroute ══════════════════════════════════════════════════
+
+  {
+    id:       'nl-n325-arnhem-pleyroute-n',     // ~
+    road:     'N325',
+    name:     'N325 Arnhem Pleyroute Noord',
+    startLat:  51.9842,
+    startLng:   5.9452,
+    endLat:    51.9502,
+    endLng:     5.9852,
+    lengthM:   4_500,
+    limitKmh:  80,
+  },
+  {
+    id:       'nl-n325-arnhem-pleyroute-z',     // ~
+    road:     'N325',
+    name:     'N325 Arnhem Pleyroute Zuid',
+    startLat:  51.9502,
+    startLng:   5.9852,
+    endLat:    51.9842,
+    endLng:     5.9452,
+    lengthM:   4_500,
+    limitKmh:  80,
+  },
+
+  // ══ N333 Steenwijk ↔ Blokzijl (Overijssel) ════════════════════════════════
+
+  {
+    id:       'nl-n333-steenwijk-blokzijl',     // ~
+    road:     'N333',
+    name:     'N333 Steenwijk → Blokzijl',
+    startLat:  52.7892,
+    startLng:   6.1202,
+    endLat:    52.7242,
+    endLng:     5.9682,
+    lengthM:   12_000,
+    limitKmh:  80,
+  },
+  {
+    id:       'nl-n333-blokzijl-steenwijk',     // ~
+    road:     'N333',
+    name:     'N333 Blokzijl → Steenwijk',
+    startLat:  52.7242,
+    startLng:   5.9682,
+    endLat:    52.7892,
+    endLng:     6.1202,
+    lengthM:   12_000,
+    limitKmh:  80,
+  },
+
+  // ══ N351 Wolvega ↔ Oosterwolde (Friesland) ════════════════════════════════
+
+  {
+    id:       'nl-n351-wolvega-oosterwolde',    // ~
+    road:     'N351',
+    name:     'N351 Wolvega → Oosterwolde',
+    startLat:  52.8782,
+    startLng:   6.0032,
+    endLat:    52.9932,
+    endLng:     6.2852,
+    lengthM:   17_000,
+    limitKmh:  80,
+  },
+  {
+    id:       'nl-n351-oosterwolde-wolvega',    // ~
+    road:     'N351',
+    name:     'N351 Oosterwolde → Wolvega',
+    startLat:  52.9932,
+    startLng:   6.2852,
+    endLat:    52.8782,
+    endLng:     6.0032,
+    lengthM:   17_000,
+    limitKmh:  80,
+  },
+
+  // ══ N381 Drachten ↔ Donkerbroek (Friesland) ═══════════════════════════════
+
+  {
+    id:       'nl-n381-drachten-donkerbroek',   // ~
+    road:     'N381',
+    name:     'N381 Drachten → Donkerbroek',
+    startLat:  53.1122,
+    startLng:   6.0992,
+    endLat:    52.9802,
+    endLng:     6.2682,
+    lengthM:   18_000,
+    limitKmh:  80,
+  },
+  {
+    id:       'nl-n381-donkerbroek-drachten',   // ~
+    road:     'N381',
+    name:     'N381 Donkerbroek → Drachten',
+    startLat:  52.9802,
+    startLng:   6.2682,
+    endLat:    53.1122,
+    endLng:     6.0992,
+    lengthM:   18_000,
+    limitKmh:  80,
+  },
+
+  // ══ N414 Eembrugge ↔ Bunschoten (Utrecht) ════════════════════════════════
+
+  {
+    id:       'nl-n414-eembrugge-bunschoten',   // ~
+    road:     'N414',
+    name:     'N414 Eembrugge → Bunschoten',
+    startLat:  52.2132,
+    startLng:   5.3102,
+    endLat:    52.2402,
+    endLng:     5.3882,
+    lengthM:   6_000,
+    limitKmh:  80,
+  },
+  {
+    id:       'nl-n414-bunschoten-eembrugge',   // ~
+    road:     'N414',
+    name:     'N414 Bunschoten → Eembrugge',
+    startLat:  52.2402,
+    startLng:   5.3882,
+    endLat:    52.2132,
+    endLng:     5.3102,
+    lengthM:   6_000,
+    limitKmh:  80,
+  },
+
+  // ══ N564 Weert ↔ Belgische grens (Limburg) ════════════════════════════════
+
+  {
+    id:       'nl-n564-weert-belgie',           // ~
+    road:     'N564',
+    name:     'N564 Weert → Belgische grens',
+    startLat:  51.2522,
+    startLng:   5.7082,
+    endLat:    51.1592,
+    endLng:     5.6222,
+    lengthM:   12_000,
+    limitKmh:  80,
+  },
+  {
+    id:       'nl-n564-belgie-weert',           // ~
+    road:     'N564',
+    name:     'N564 Belgische grens → Weert',
+    startLat:  51.1592,
+    startLng:   5.6222,
+    endLat:    51.2522,
+    endLng:     5.7082,
+    lengthM:   12_000,
+    limitKmh:  80,
+  },
+
+  // ══ N639 Chaam ↔ Baarle-Nassau (Noord-Brabant) ════════════════════════════
+
+  {
+    id:       'nl-n639-chaam-baarle',           // ~
+    road:     'N639',
+    name:     'N639 Chaam → Baarle-Nassau',
+    startLat:  51.5162,
+    startLng:   4.8582,
+    endLat:    51.4422,
+    endLng:     4.9332,
+    lengthM:   12_000,
+    limitKmh:  80,
+  },
+  {
+    id:       'nl-n639-baarle-chaam',           // ~
+    road:     'N639',
+    name:     'N639 Baarle-Nassau → Chaam',
+    startLat:  51.4422,
+    startLng:   4.9332,
+    endLat:    51.5162,
+    endLng:     4.8582,
+    lengthM:   12_000,
+    limitKmh:  80,
+  },
+
+  // ══ N706 Vogelweg — A27 ↔ Lelystad Airport (Flevoland) ════════════════════
+
+  {
+    id:       'nl-n706-a27-lelystad-airport',   // ~
+    road:     'N706',
+    name:     'N706 Vogelweg A27 → Lelystad Airport',
+    startLat:  52.5172,
+    startLng:   5.4792,
+    endLat:    52.4592,
+    endLng:     5.5252,
+    lengthM:   8_000,
+    limitKmh:  80,
+  },
+  {
+    id:       'nl-n706-lelystad-airport-a27',   // ~
+    road:     'N706',
+    name:     'N706 Vogelweg Lelystad Airport → A27',
+    startLat:  52.4592,
+    startLng:   5.5252,
+    endLat:    52.5172,
+    endLng:     5.4792,
+    lengthM:   8_000,
+    limitKmh:  80,
+  },
+
+  // ══ N787 Brummen ↔ Eerbeek (Gelderland) ═══════════════════════════════════
+
+  {
+    id:       'nl-n787-brummen-eerbeek',        // ~
+    road:     'N787',
+    name:     'N787 Brummen → Eerbeek',
+    startLat:  52.0912,
+    startLng:   6.1592,
+    endLat:    52.0882,
+    endLng:     6.0672,
     lengthM:   7_000,
     limitKmh:  80,
   },
   {
-    id:       'nl-n11-a12-alphen-e',            // ~
-    road:     'N11',
-    name:     'N11 A12 → Alphen a/d Rijn',
-    startLat:  52.0780,
-    startLng:   4.4920,
-    endLat:    52.1325,
-    endLng:     4.6368,
+    id:       'nl-n787-eerbeek-brummen',        // ~
+    road:     'N787',
+    name:     'N787 Eerbeek → Brummen',
+    startLat:  52.0882,
+    startLng:   6.0672,
+    endLat:    52.0912,
+    endLng:     6.1592,
     lengthM:   7_000,
-    limitKmh:  80,
-  },
-
-  // ══ N201 Noord-Holland / Utrecht (Amstelveen–Aalsmeer) ════════════════════
-
-  {
-    id:       'nl-n201-amstelveen-aalsmeer',    // ~
-    road:     'N201',
-    name:     'N201 Amstelveen → Aalsmeer',
-    startLat:  52.3278,
-    startLng:   4.7540,
-    endLat:    52.2692,
-    endLng:     4.7489,
-    lengthM:   4_000,
-    limitKmh:  80,
-  },
-  {
-    id:       'nl-n201-aalsmeer-amstelveen',    // ~
-    road:     'N201',
-    name:     'N201 Aalsmeer → Amstelveen',
-    startLat:  52.2692,
-    startLng:   4.7489,
-    endLat:    52.3278,
-    endLng:     4.7540,
-    lengthM:   4_000,
-    limitKmh:  80,
-  },
-
-  // ══ N205 Haarlemmermeer ════════════════════════════════════════════════════
-
-  {
-    id:       'nl-n205-haarlem-hoofddorp',      // ~
-    road:     'N205',
-    name:     'N205 Haarlem → Hoofddorp',
-    startLat:  52.3058,
-    startLng:   4.6618,
-    endLat:    52.2744,
-    endLng:     4.6238,
-    lengthM:   4_000,
-    limitKmh:  80,
-  },
-  {
-    id:       'nl-n205-hoofddorp-haarlem',      // ~
-    road:     'N205',
-    name:     'N205 Hoofddorp → Haarlem',
-    startLat:  52.2744,
-    startLng:   4.6238,
-    endLat:    52.3058,
-    endLng:     4.6618,
-    lengthM:   4_000,
-    limitKmh:  80,
-  },
-
-  // ══ N230 Utrecht (Zeist–Doorn) ═════════════════════════════════════════════
-
-  {
-    id:       'nl-n230-zeist-doorn',            // ~
-    road:     'N230',
-    name:     'N230 Zeist → Doorn',
-    startLat:  52.1960,
-    startLng:   5.2228,
-    endLat:    52.1580,
-    endLng:     5.2778,
-    lengthM:   5_000,
-    limitKmh:  80,
-  },
-  {
-    id:       'nl-n230-doorn-zeist',            // ~
-    road:     'N230',
-    name:     'N230 Doorn → Zeist',
-    startLat:  52.1580,
-    startLng:   5.2778,
-    endLat:    52.1960,
-    endLng:     5.2228,
-    lengthM:   5_000,
-    limitKmh:  80,
-  },
-
-  // ══ N253 Zeeland (Schouwen-Duiveland) ════════════════════════════════════
-
-  {
-    id:       'nl-n253-schouwen-e',             // ~
-    road:     'N253',
-    name:     'N253 Schouwen-Duiveland O',
-    startLat:  51.7026,
-    startLng:   3.8362,
-    endLat:    51.6798,
-    endLng:     3.8832,
-    lengthM:   4_500,
-    limitKmh:  80,
-  },
-  {
-    id:       'nl-n253-schouwen-w',             // ~
-    road:     'N253',
-    name:     'N253 Schouwen-Duiveland W',
-    startLat:  51.6798,
-    startLng:   3.8832,
-    endLat:    51.7026,
-    endLng:     3.8362,
-    lengthM:   4_500,
-    limitKmh:  80,
-  },
-
-  // ══ N256 Zeeland (Grevelingendam area) ════════════════════════════════════
-
-  {
-    id:       'nl-n256-grevelingen-n',          // ~
-    road:     'N256',
-    name:     'N256 Grevelingendam N',
-    startLat:  51.6505,
-    startLng:   4.0325,
-    endLat:    51.6085,
-    endLng:     4.0818,
-    lengthM:   5_000,
-    limitKmh:  80,
-  },
-  {
-    id:       'nl-n256-grevelingen-z',          // ~
-    road:     'N256',
-    name:     'N256 Grevelingendam Z',
-    startLat:  51.6085,
-    startLng:   4.0818,
-    endLat:    51.6505,
-    endLng:     4.0325,
-    lengthM:   5_000,
-    limitKmh:  80,
-  },
-
-  // ══ N260 Noord-Brabant (Breda–Oosterhout) ═════════════════════════════════
-
-  {
-    id:       'nl-n260-breda-oosterhout',       // ~
-    road:     'N260',
-    name:     'N260 Breda → Oosterhout',
-    startLat:  51.5648,
-    startLng:   4.8739,
-    endLat:    51.5195,
-    endLng:     4.9389,
-    lengthM:   5_000,
-    limitKmh:  80,
-  },
-  {
-    id:       'nl-n260-oosterhout-breda',       // ~
-    road:     'N260',
-    name:     'N260 Oosterhout → Breda',
-    startLat:  51.5195,
-    startLng:   4.9389,
-    endLat:    51.5648,
-    endLng:     4.8739,
-    lengthM:   5_000,
-    limitKmh:  80,
-  },
-
-  // ══ N270 Noord-Brabant (Helmond–Deurne) ═══════════════════════════════════
-
-  {
-    id:       'nl-n270-helmond-deurne',         // ~
-    road:     'N270',
-    name:     'N270 Helmond → Deurne',
-    startLat:  51.4815,
-    startLng:   5.6529,
-    endLat:    51.4398,
-    endLng:     5.7129,
-    lengthM:   5_000,
-    limitKmh:  80,
-  },
-  {
-    id:       'nl-n270-deurne-helmond',         // ~
-    road:     'N270',
-    name:     'N270 Deurne → Helmond',
-    startLat:  51.4398,
-    startLng:   5.7129,
-    endLat:    51.4815,
-    endLng:     5.6529,
-    lengthM:   5_000,
-    limitKmh:  80,
-  },
-
-  // ══ N275 Limburg (Venlo–Panningen) ════════════════════════════════════════
-
-  {
-    id:       'nl-n275-venlo-panningen',        // ~
-    road:     'N275',
-    name:     'N275 Venlo → Panningen',
-    startLat:  51.3802,
-    startLng:   6.0560,
-    endLat:    51.3238,
-    endLng:     6.0788,
-    lengthM:   5_000,
-    limitKmh:  80,
-  },
-  {
-    id:       'nl-n275-panningen-venlo',        // ~
-    road:     'N275',
-    name:     'N275 Panningen → Venlo',
-    startLat:  51.3238,
-    startLng:   6.0788,
-    endLat:    51.3802,
-    endLng:     6.0560,
-    lengthM:   5_000,
-    limitKmh:  80,
-  },
-
-  // ══ N277 Limburg (Sittard–Geleen) ═════════════════════════════════════════
-
-  {
-    id:       'nl-n277-sittard-geleen',         // ~
-    road:     'N277',
-    name:     'N277 Sittard → Geleen',
-    startLat:  51.0032,
-    startLng:   5.8729,
-    endLat:    50.9598,
-    endLng:     5.8422,
-    lengthM:   5_000,
-    limitKmh:  80,
-  },
-  {
-    id:       'nl-n277-geleen-sittard',         // ~
-    road:     'N277',
-    name:     'N277 Geleen → Sittard',
-    startLat:  50.9598,
-    startLng:   5.8422,
-    endLat:    51.0032,
-    endLng:     5.8729,
-    lengthM:   5_000,
-    limitKmh:  80,
-  },
-
-  // ══ N325 Gelderland (Arnhem–Huissen) ══════════════════════════════════════
-
-  {
-    id:       'nl-n325-arnhem-huissen',         // ~
-    road:     'N325',
-    name:     'N325 Arnhem → Huissen',
-    startLat:  51.8502,
-    startLng:   5.9218,
-    endLat:    51.8978,
-    endLng:     5.9785,
-    lengthM:   5_000,
-    limitKmh:  80,
-  },
-  {
-    id:       'nl-n325-huissen-arnhem',         // ~
-    road:     'N325',
-    name:     'N325 Huissen → Arnhem',
-    startLat:  51.8978,
-    startLng:   5.9785,
-    endLat:    51.8502,
-    endLng:     5.9218,
-    lengthM:   5_000,
-    limitKmh:  80,
-  },
-
-  // ══ N333 Friesland (Drachten area) ════════════════════════════════════════
-
-  {
-    id:       'nl-n333-drachten-e',             // ~
-    road:     'N333',
-    name:     'N333 Drachten Oost',
-    startLat:  53.0382,
-    startLng:   6.0912,
-    endLat:    52.9865,
-    endLng:     6.0542,
-    lengthM:   5_000,
-    limitKmh:  80,
-  },
-  {
-    id:       'nl-n333-drachten-w',             // ~
-    road:     'N333',
-    name:     'N333 Drachten West',
-    startLat:  52.9865,
-    startLng:   6.0542,
-    endLat:    53.0382,
-    endLng:     6.0912,
-    lengthM:   5_000,
-    limitKmh:  80,
-  },
-
-  // ══ N351 Friesland (Sneek area) ═══════════════════════════════════════════
-
-  {
-    id:       'nl-n351-sneek-n',                // ~
-    road:     'N351',
-    name:     'N351 Sneek richting',
-    startLat:  53.0729,
-    startLng:   5.9082,
-    endLat:    53.0252,
-    endLng:     5.8445,
-    lengthM:   5_000,
-    limitKmh:  80,
-  },
-  {
-    id:       'nl-n351-sneek-z',                // ~
-    road:     'N351',
-    name:     'N351 Sneek terug',
-    startLat:  53.0252,
-    startLng:   5.8445,
-    endLat:    53.0729,
-    endLng:     5.9082,
-    lengthM:   5_000,
-    limitKmh:  80,
-  },
-
-  // ══ N381 Drenthe (Hoogeveen–Emmen) ════════════════════════════════════════
-
-  {
-    id:       'nl-n381-hoogeveen-emmen',        // ~
-    road:     'N381',
-    name:     'N381 Hoogeveen → Emmen',
-    startLat:  52.7245,
-    startLng:   6.6014,
-    endLat:    52.6750,
-    endLng:     6.6449,
-    lengthM:   5_000,
-    limitKmh:  80,
-  },
-  {
-    id:       'nl-n381-emmen-hoogeveen',        // ~
-    road:     'N381',
-    name:     'N381 Emmen → Hoogeveen',
-    startLat:  52.6750,
-    startLng:   6.6449,
-    endLat:    52.7245,
-    endLng:     6.6014,
-    lengthM:   5_000,
-    limitKmh:  80,
-  },
-
-  // ══ N414 Utrecht (Bunschoten–Baarn) ════════════════════════════════════════
-
-  {
-    id:       'nl-n414-bunschoten-baarn',       // ~
-    road:     'N414',
-    name:     'N414 Bunschoten → Baarn',
-    startLat:  52.2381,
-    startLng:   5.3842,
-    endLat:    52.2141,
-    endLng:     5.2908,
-    lengthM:   5_000,
-    limitKmh:  80,
-  },
-  {
-    id:       'nl-n414-baarn-bunschoten',       // ~
-    road:     'N414',
-    name:     'N414 Baarn → Bunschoten',
-    startLat:  52.2141,
-    startLng:   5.2908,
-    endLat:    52.2381,
-    endLng:     5.3842,
-    lengthM:   5_000,
-    limitKmh:  80,
-  },
-
-  // ══ N564 Noord-Brabant (Best–Eindhoven) ═══════════════════════════════════
-
-  {
-    id:       'nl-n564-best-eindhoven',         // ~
-    road:     'N564',
-    name:     'N564 Best → Eindhoven',
-    startLat:  51.4912,
-    startLng:   5.0775,
-    endLat:    51.4478,
-    endLng:     5.0452,
-    lengthM:   5_000,
-    limitKmh:  80,
-  },
-  {
-    id:       'nl-n564-eindhoven-best',         // ~
-    road:     'N564',
-    name:     'N564 Eindhoven → Best',
-    startLat:  51.4478,
-    startLng:   5.0452,
-    endLat:    51.4912,
-    endLng:     5.0775,
-    lengthM:   5_000,
-    limitKmh:  80,
-  },
-
-  // ══ N639 Zeeland/Noord-Brabant (Bergen op Zoom area) ══════════════════════
-
-  {
-    id:       'nl-n639-bergenopzoom-w',         // ~
-    road:     'N639',
-    name:     'N639 Bergen op Zoom W',
-    startLat:  51.5178,
-    startLng:   4.2072,
-    endLat:    51.4748,
-    endLng:     4.1685,
-    lengthM:   5_000,
-    limitKmh:  80,
-  },
-  {
-    id:       'nl-n639-bergenopzoom-o',         // ~
-    road:     'N639',
-    name:     'N639 Bergen op Zoom O',
-    startLat:  51.4748,
-    startLng:   4.1685,
-    endLat:    51.5178,
-    endLng:     4.2072,
-    lengthM:   5_000,
-    limitKmh:  80,
-  },
-
-  // ══ N706 Flevoland / Gelderland (Harderwijk / Veluwe) ══════════════════════
-
-  {
-    id:       'nl-n706-harderwijk-veluwe',      // ~
-    road:     'N706',
-    name:     'N706 Harderwijk → Veluwe',
-    startLat:  52.3572,
-    startLng:   5.6182,
-    endLat:    52.3132,
-    endLng:     5.5745,
-    lengthM:   5_000,
-    limitKmh:  80,
-  },
-  {
-    id:       'nl-n706-veluwe-harderwijk',      // ~
-    road:     'N706',
-    name:     'N706 Veluwe → Harderwijk',
-    startLat:  52.3132,
-    startLng:   5.5745,
-    endLat:    52.3572,
-    endLng:     5.6182,
-    lengthM:   5_000,
-    limitKmh:  80,
-  },
-
-  // ══ N787 Overijssel (Zwolle area) ═════════════════════════════════════════
-
-  {
-    id:       'nl-n787-zwolle-o',               // ~
-    road:     'N787',
-    name:     'N787 Zwolle Oost',
-    startLat:  52.5802,
-    startLng:   6.3322,
-    endLat:    52.5295,
-    endLng:     6.2938,
-    lengthM:   5_000,
-    limitKmh:  80,
-  },
-  {
-    id:       'nl-n787-zwolle-w',               // ~
-    road:     'N787',
-    name:     'N787 Zwolle West',
-    startLat:  52.5295,
-    startLng:   6.2938,
-    endLat:    52.5802,
-    endLng:     6.3322,
-    lengthM:   5_000,
     limitKmh:  80,
   },
 ]
