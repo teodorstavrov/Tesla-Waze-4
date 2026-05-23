@@ -9,7 +9,8 @@
     "build": "tsc -p tsconfig.json",
     "dev": "tsx watch src/index.ts",
     "migrate": "tsx src/db/migrate.ts",
-    "discover": "tsx src/ingestion/browser/waze-playwright.client.ts"
+    "discover": "tsx src/ingestion/browser/waze-playwright.client.ts",
+    "ingest": "tsx src/ingestion/run-once.ts"
   },
   "dependencies": {
     "axios": "^1.7.0",

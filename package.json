@@ -11,6 +11,7 @@
     "test": "npx tsx --test api/_lib/merge/stations.test.ts api/_lib/providers/ocm.test.ts api/_lib/providers/overpass.test.ts api/_lib/tesla/normalize.test.ts"
   },
   "dependencies": {
+    "pg": "^8.11.0",
     "@sentry/node": "^10.46.0",
     "@sentry/react": "^10.46.0",
     "@tailwindcss/vite": "^4.2.2",
@@ -27,6 +28,7 @@
   "devDependencies": {
     "@eslint/js": "^9.39.4",
     "@types/node": "^24.12.0",
+    "@types/pg": "^8.11.0",
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "@vercel/node": "^5.6.18",
