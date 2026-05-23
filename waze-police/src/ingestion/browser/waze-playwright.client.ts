@@ -215,24 +215,36 @@ export class WazePlaywrightClient {
     try {
       const centerLat = (bbox.top + bbox.bottom) / 2;
       const centerLng = (bbox.left + bbox.right) / 2;
-
-      // Two-step navigation — required to get Waze to issue georss XHRs
-      await page.goto(WAZE_LIVE_MAP_URL, { waitUntil: 'domcontentloaded', timeout: 30_000 });
-      await page.waitForTimeout(2000);
-
       const tileUrl = `${WAZE_LIVE_MAP_URL}?zoom=12&lat=${centerLat}&lon=${centerLng}`;
 
-      // Accept any georss response (200 OR non-200) — filter later
+      // Set up the waiter BEFORE any navigation so we catch georss from either load.
+      // Only match XHR/fetch resource types — filters out document navigations that
+      // may happen to redirect through a URL containing "georss".
       const responseWaiter = page.waitForResponse(
-        (r) => GEORSS_PATTERN.test(r.url()),
+        (r) =>
+          GEORSS_PATTERN.test(r.url()) &&
+          ['xhr', 'fetch'].includes(r.request().resourceType()),
         { timeout: 85_000 },
       );
 
+      // Two-step navigation: cold-start at base URL, then navigate to tile coordinates.
+      await page.goto(WAZE_LIVE_MAP_URL, { waitUntil: 'domcontentloaded', timeout: 30_000 });
+      await page.waitForTimeout(3000);
       await page.goto(tileUrl, { waitUntil: 'domcontentloaded', timeout: 30_000 });
 
       const response = await responseWaiter;
+      const url = response.url();
+      const status = response.status();
+      const contentType = response.headers()['content-type'] ?? '';
+      logger.debug({ url, status, contentType }, 'Playwright: georss response received');
+
       const text = await response.text();
-      responseBody = JSON.parse(text);
+      if (!text.trimStart().startsWith('{')) {
+        logger.warn({ url, status, contentType, preview: text.slice(0, 120) }, 'Playwright: georss response is not JSON — skipping');
+        responseBody = null;
+      } else {
+        responseBody = JSON.parse(text);
+      }
     } catch (err) {
       logger.warn({ err }, 'Playwright tile fetch failed');
       responseBody = null;
