@@ -122,7 +122,7 @@ export class WazePlaywrightClient {
     const sessionPromise = new Promise<WazeSession>((resolve, reject) => {
       const timeout = setTimeout(
         () => reject(new Error('Playwright: timeout waiting for georss XHR')),
-        60_000,
+        90_000,
       );
 
       let firstGeoRSSLogged = false;
@@ -178,7 +178,7 @@ export class WazePlaywrightClient {
       logger.info({ bgUrl }, 'Playwright: navigating directly to Bulgaria view');
       await page.goto(bgUrl, {
         waitUntil: 'domcontentloaded',
-        timeout: 30_000,
+        timeout: 60_000, // longer timeout for proxy connections
       });
 
       // Wait for SW init, cookie setup, and initial tile fetches
