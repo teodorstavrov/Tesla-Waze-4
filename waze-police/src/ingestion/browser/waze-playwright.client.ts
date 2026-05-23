@@ -74,31 +74,32 @@ export class WazePlaywrightClient {
     );
 
     // With serviceWorkers: 'block', georss requests go through the normal
-    // network stack where page.route() can intercept them.  route.fetch()
-    // forwards the request to the Waze server with all original headers intact,
-    // so auth tokens / custom headers are preserved.  page.on('request') is
-    // kept as a passive observer for session extraction only.
+    // Chromium network stack.  page.on('response') observes the BROWSER's
+    // actual response (full Chrome TLS fingerprint, live cookies) — unlike
+    // route.fetch() which makes a separate Node.js HTTP request that Waze
+    // bot-detection rejects.  page.on('request') is kept for session extraction.
     const responseBodies: unknown[] = [];
 
-    await page.route(/georss/i, async (route) => {
+    page.on('response', async (response) => {
+      if (!GEORSS_PATTERN.test(response.url())) return;
       try {
-        const response = await route.fetch();
         const text = await response.text();
         if (text.trimStart().startsWith('{')) {
           const parsed = JSON.parse(text) as unknown;
           responseBodies.push(parsed);
           const count = (parsed as { alerts?: unknown[] })?.alerts?.length ?? 0;
-          logger.info({ url: route.request().url().slice(0, 80), alertCount: count }, 'Playwright: captured georss via route intercept');
+          logger.info(
+            { url: response.url().slice(0, 80), alertCount: count },
+            'Playwright: captured georss response',
+          );
         } else {
           logger.warn(
-            { status: response.status(), preview: text.slice(0, 80) },
-            'Playwright: georss route response not JSON',
+            { url: response.url().slice(0, 80), status: response.status(), preview: text.slice(0, 80) },
+            'Playwright: georss response not JSON',
           );
         }
-        await route.fulfill({ response });
       } catch (err) {
-        logger.warn({ err: String(err) }, 'Playwright: georss route intercept failed');
-        await route.continue();
+        logger.debug({ err: String(err) }, 'Playwright: failed to read georss response body');
       }
     });
 
