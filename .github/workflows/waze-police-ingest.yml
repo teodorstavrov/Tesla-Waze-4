@@ -37,3 +37,4 @@ jobs:
           LOG_LEVEL: info
           LOG_PRETTY: 'true'
           PLAYWRIGHT_HEADLESS: 'true'
+          WAZE_PROXY_URL: ${{ secrets.WAZE_PROXY_URL }}
