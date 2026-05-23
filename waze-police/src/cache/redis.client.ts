@@ -37,7 +37,11 @@ export function getRedis(): Redis {
 
 export async function closeRedis(): Promise<void> {
   if (_redis) {
-    await _redis.quit();
+    try {
+      await _redis.quit();
+    } catch {
+      _redis.disconnect(); // connection was already closed — just force-disconnect
+    }
     _redis = null;
     logger.info('Redis connection closed');
   }
