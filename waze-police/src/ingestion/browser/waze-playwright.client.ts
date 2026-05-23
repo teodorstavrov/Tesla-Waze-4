@@ -73,14 +73,34 @@ export class WazePlaywrightClient {
       route.abort(),
     );
 
-    // page.route(), page.on('response'), and addInitScript() all fail to capture
-    // georss response bodies because Waze issues those requests from a Web Worker,
-    // which lives outside the main page context.  page.on('request') does see
-    // worker requests (as a passive observer), so we use it to capture the exact
-    // georss URL, then re-fetch it from the MAIN page via page.evaluate() — a
-    // fetch() call that runs inside the browser with live cookies.
+    // With serviceWorkers: 'block', georss requests go through the normal
+    // network stack where page.route() can intercept them.  route.fetch()
+    // forwards the request to the Waze server with all original headers intact,
+    // so auth tokens / custom headers are preserved.  page.on('request') is
+    // kept as a passive observer for session extraction only.
     const responseBodies: unknown[] = [];
-    const capturedGeoRSSUrls: string[] = [];
+
+    await page.route(/georss/i, async (route) => {
+      try {
+        const response = await route.fetch();
+        const text = await response.text();
+        if (text.trimStart().startsWith('{')) {
+          const parsed = JSON.parse(text) as unknown;
+          responseBodies.push(parsed);
+          const count = (parsed as { alerts?: unknown[] })?.alerts?.length ?? 0;
+          logger.info({ url: route.request().url().slice(0, 80), alertCount: count }, 'Playwright: captured georss via route intercept');
+        } else {
+          logger.warn(
+            { status: response.status(), preview: text.slice(0, 80) },
+            'Playwright: georss route response not JSON',
+          );
+        }
+        await route.fulfill({ response });
+      } catch (err) {
+        logger.warn({ err: String(err) }, 'Playwright: georss route intercept failed');
+        await route.continue();
+      }
+    });
 
     let capturedSession: WazeSession | null = null;
     const sessionPromise = new Promise<WazeSession>((resolve, reject) => {
@@ -92,11 +112,6 @@ export class WazePlaywrightClient {
       page.on('request', async (request) => {
         const url = request.url();
         if (!GEORSS_PATTERN.test(url)) return;
-
-        // Collect all georss URLs for later browser-side re-fetch
-        if (!capturedGeoRSSUrls.includes(url)) {
-          capturedGeoRSSUrls.push(url);
-        }
 
         logger.debug({ url }, 'Playwright: intercepted georss request');
 
@@ -171,30 +186,9 @@ export class WazePlaywrightClient {
 
       capturedSession = await sessionPromise;
 
-      // Re-fetch the captured georss URLs from inside the browser (main page
-      // context) so we use the browser's live cookies.  This avoids all service-
-      // worker / Playwright interception-layer issues.
-      await page.waitForTimeout(500);
-      for (const georssUrl of capturedGeoRSSUrls.slice(0, 4)) {
-        try {
-          const text = await page.evaluate(async (url: string) => {
-            const res = await fetch(url, { credentials: 'include' });
-            if (!res.ok) return null;
-            return res.text();
-          }, georssUrl);
-
-          if (text && text.trimStart().startsWith('{')) {
-            const parsed = JSON.parse(text) as unknown;
-            responseBodies.push(parsed);
-            const count = (parsed as { alerts?: unknown[] })?.alerts?.length ?? 0;
-            logger.info({ url: georssUrl.slice(0, 80), alertCount: count }, 'Playwright: re-fetched georss via page.evaluate');
-          } else {
-            logger.warn({ url: georssUrl.slice(0, 80), preview: (text ?? '').slice(0, 60) }, 'Playwright: evaluate georss response not JSON');
-          }
-        } catch (err) {
-          logger.warn({ err: String(err), url: georssUrl.slice(0, 80) }, 'Playwright: page.evaluate georss fetch failed');
-        }
-      }
+      // Wait for the route interceptor to collect more tile responses after
+      // the first georss request resolved the session promise.
+      await page.waitForTimeout(5000);
     } finally {
       await page.close().catch(() => undefined);
       await context.close().catch(() => undefined);
