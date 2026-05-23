@@ -44,15 +44,21 @@ export class WazePlaywrightClient {
     logger.info('Playwright: starting session capture');
     const startTime = Date.now();
 
+    if (config.WAZE_PROXY_URL) {
+      logger.info({ proxy: config.WAZE_PROXY_URL.replace(/:[^:@]*@/, ':***@') }, 'Playwright: using proxy');
+    } else {
+      logger.warn('Playwright: no WAZE_PROXY_URL set — Waze blocks GitHub Actions Azure IPs');
+    }
+
     this.browser = await chromium.launch({
       headless: config.PLAYWRIGHT_HEADLESS,
+      proxy: config.WAZE_PROXY_URL ? { server: config.WAZE_PROXY_URL } : undefined,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
         '--disable-dev-shm-usage',
         '--disable-gpu',
         '--lang=en-US',
-        // Hide automation fingerprint from Waze bot-detection
         '--disable-blink-features=AutomationControlled',
         '--window-size=1920,1080',
       ],

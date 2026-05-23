@@ -37,6 +37,10 @@ const ConfigSchema = z.object({
 
   // Playwright
   PLAYWRIGHT_HEADLESS: z.string().transform((v) => v !== 'false').default('true'),
+  // Optional HTTP/SOCKS proxy for Playwright — required when running on
+  // datacenter IPs (GitHub Actions Azure) that Waze blocks.
+  // Format: http://user:pass@host:port  or  socks5://host:port
+  WAZE_PROXY_URL: z.string().url().optional(),
 
   // Logging
   LOG_LEVEL: z.enum(['trace', 'debug', 'info', 'warn', 'error', 'fatal']).default('info'),
