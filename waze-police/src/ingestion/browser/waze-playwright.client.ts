@@ -186,44 +186,28 @@ export class WazePlaywrightClient {
     await page.route('**/*.{png,jpg,jpeg,gif,svg,woff,woff2,ttf}', (r) => r.abort());
 
     let responseBody: unknown = null;
-    let resolved = false;
-
-    const responsePromise = new Promise<unknown>((resolve, reject) => {
-      const t = setTimeout(() => reject(new Error('Playwright tile fetch timeout')), 90_000);
-
-      // Use route interception: more reliable than page.on('response') + response.json()
-      // which silently fails when the body is gzip-encoded or can't be parsed inline.
-      page.route((url) => GEORSS_PATTERN.test(url), async (route) => {
-        if (resolved) { await route.continue(); return; }
-        try {
-          const res = await route.fetch();
-          const text = await res.text();
-          const data = JSON.parse(text);
-          resolved = true;
-          clearTimeout(t);
-          resolve(data);
-          await route.fulfill({ response: res });
-        } catch (err) {
-          logger.warn({ err }, 'Playwright tile route: failed to capture georss response');
-          await route.continue();
-        }
-      }).catch(() => undefined);
-    });
 
     try {
       const centerLat = (bbox.top + bbox.bottom) / 2;
       const centerLng = (bbox.left + bbox.right) / 2;
 
-      // Two-step navigation: base page load first, then tile-specific URL
-      // (same pattern as captureSession — direct parameterised nav doesn't always trigger georss)
+      // Two-step navigation — required to get Waze to issue georss XHRs
       await page.goto(WAZE_LIVE_MAP_URL, { waitUntil: 'domcontentloaded', timeout: 30_000 });
       await page.waitForTimeout(2000);
 
-      const url = `${WAZE_LIVE_MAP_URL}?zoom=12&lat=${centerLat}&lon=${centerLng}`;
-      await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 30_000 });
-      await page.waitForTimeout(8000);
+      const tileUrl = `${WAZE_LIVE_MAP_URL}?zoom=12&lat=${centerLat}&lon=${centerLng}`;
 
-      responseBody = await responsePromise;
+      // Start waiting for the georss response BEFORE the second navigation
+      const responseWaiter = page.waitForResponse(
+        (r) => GEORSS_PATTERN.test(r.url()) && r.status() === 200,
+        { timeout: 85_000 },
+      );
+
+      await page.goto(tileUrl, { waitUntil: 'domcontentloaded', timeout: 30_000 });
+
+      const response = await responseWaiter;
+      const text = await response.text();
+      responseBody = JSON.parse(text);
     } catch (err) {
       logger.warn({ err }, 'Playwright tile fetch failed');
       responseBody = null;
