@@ -52,6 +52,9 @@ export class WazePlaywrightClient {
         '--disable-dev-shm-usage',
         '--disable-gpu',
         '--lang=en-US',
+        // Hide automation fingerprint from Waze bot-detection
+        '--disable-blink-features=AutomationControlled',
+        '--window-size=1920,1080',
       ],
     });
 
@@ -61,8 +64,15 @@ export class WazePlaywrightClient {
       geolocation: { latitude: BG_CENTER_LAT, longitude: BG_CENTER_LNG },
       permissions: ['geolocation'],
       userAgent: undefined, // use Playwright's default realistic UA
+      viewport: { width: 1920, height: 1080 },
       // Do NOT block serviceWorkers: Waze's SW adds auth headers to georss
       // requests. Without SW, every georss fetch returns 403.
+    });
+
+    // Mask automation fingerprint: navigator.webdriver triggers Waze's bot
+    // detection and causes all georss requests to return 403.
+    await context.addInitScript(() => {
+      Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
     });
 
     const page = await context.newPage();
@@ -109,13 +119,22 @@ export class WazePlaywrightClient {
         60_000,
       );
 
+      let firstGeoRSSLogged = false;
       page.on('request', async (request) => {
         const url = request.url();
         if (!GEORSS_PATTERN.test(url)) return;
 
-        logger.debug({ url }, 'Playwright: intercepted georss request');
-
         const headers = request.headers();
+
+        // Log full headers on first georss request to diagnose auth/CSRF tokens
+        if (!firstGeoRSSLogged) {
+          firstGeoRSSLogged = true;
+          logger.info(
+            { url: url.slice(0, 100), headers: JSON.stringify(headers).slice(0, 400) },
+            'Playwright: first georss request headers',
+          );
+        }
+
         const cookieHeader = headers['cookie'] ?? '';
         const ua = headers['user-agent'] ?? '';
         const referer = headers['referer'] ?? WAZE_LIVE_MAP_URL;
@@ -152,8 +171,8 @@ export class WazePlaywrightClient {
         timeout: 30_000,
       });
 
-      // Wait for initial JS to settle
-      await page.waitForTimeout(3000);
+      // Wait for initial JS, SW init, and cookie setup to complete
+      await page.waitForTimeout(10_000);
 
       // Manipulate the map URL hash to move to Bulgaria
       // Waze uses ?zoom=N&lat=X&lon=Y format
