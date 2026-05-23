@@ -70,21 +70,28 @@ export class WazePlaywrightClient {
       route.abort(),
     );
 
-    // Collect georss response bodies in the same authenticated session.
-    // The Bulgaria zoom-9 viewport covers the full country, so these responses
-    // contain all police markers without needing separate per-tile browser runs.
+    // Intercept georss requests via page.route so we read the body BEFORE the
+    // browser processes the response.  page.on('response') + r.text() silently
+    // fails when the page navigates away while the async body read is in flight.
+    // route.fetch() makes the request on our behalf and returns a complete
+    // Response object whose body is always readable.
     const responseBodies: unknown[] = [];
-    page.on('response', async (r) => {
-      if (!GEORSS_PATTERN.test(r.url())) return;
+    await page.route(/georss/i, async (route) => {
       try {
-        const text = await r.text();
-        if (!text.trimStart().startsWith('{')) return;
-        const parsed = JSON.parse(text) as unknown;
-        responseBodies.push(parsed);
-        const count = (parsed as Record<string, unknown[]>)?.alerts?.length ?? 0;
-        logger.info({ url: r.url().slice(0, 100), alertCount: count }, 'Playwright: captured georss response body');
-      } catch (_e) {
-        // ignore — response body unavailable or not JSON
+        const response = await route.fetch();
+        const body = await response.text();
+        if (body.trimStart().startsWith('{')) {
+          const parsed = JSON.parse(body) as unknown;
+          responseBodies.push(parsed);
+          const count = (parsed as { alerts?: unknown[] })?.alerts?.length ?? 0;
+          logger.info({ alertCount: count }, 'Playwright: captured georss tile response via route intercept');
+        } else {
+          logger.debug({ preview: body.slice(0, 80) }, 'Playwright: georss response not JSON — skipping');
+        }
+        await route.fulfill({ response });
+      } catch (err) {
+        logger.warn({ err: String(err) }, 'Playwright: georss route fetch failed — passing through');
+        await route.continue();
       }
     });
 
