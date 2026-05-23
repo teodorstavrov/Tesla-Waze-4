@@ -8,7 +8,9 @@ on:
 jobs:
   ingest:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 15
+    container:
+      image: mcr.microsoft.com/playwright:v1.44.0-jammy
 
     defaults:
       run:
@@ -23,17 +25,8 @@ jobs:
           cache: 'npm'
           cache-dependency-path: waze-police/package-lock.json
 
-      - name: Cache Playwright browsers
-        uses: actions/cache@v4
-        with:
-          path: ~/.cache/ms-playwright
-          key: playwright-chromium-${{ hashFiles('waze-police/package-lock.json') }}
-
       - name: Install dependencies
         run: npm ci
-
-      - name: Install Playwright Chromium
-        run: npx playwright install --with-deps chromium
 
       - name: Run ingestion
         run: npm run ingest
