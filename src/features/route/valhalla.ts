@@ -12,7 +12,7 @@
 
 import type { Route, RouteStep } from './types.js'
 
-const VALHALLA_BASE      = 'https://valhalla1.openstreetmap.de'
+const VALHALLA_BASE      = '/api/route'  // proxy — avoids CORS/connection issues on Tesla browser
 const ROUTE_CACHE_TTL_MS = 30 * 60 * 1000
 
 // ── Client-side cache ──────────────────────────────────────────────────
@@ -215,7 +215,7 @@ export async function fetchRoute(
     ? (AbortSignal as unknown as { any: (s: AbortSignal[]) => AbortSignal }).any([signal, timeoutSignal])
     : signal ?? timeoutSignal
 
-  const res = await fetch(`${VALHALLA_BASE}/route`, {
+  const res = await fetch(VALHALLA_BASE, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body,
@@ -266,7 +266,7 @@ export async function fetchRouteViaHemus(
     ? (AbortSignal as unknown as { any: (s: AbortSignal[]) => AbortSignal }).any([signal, timeoutSignal])
     : signal ?? timeoutSignal
 
-  const res = await fetch(`${VALHALLA_BASE}/route`, {
+  const res = await fetch(VALHALLA_BASE, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body,

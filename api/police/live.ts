@@ -13,7 +13,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(503).json({ error: 'Police markers database not configured' })
   }
 
-  const client = new Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } })
+  const client = new Client({
+    connectionString: dbUrl,
+    ssl: { rejectUnauthorized: false },
+    connectionTimeoutMillis: 10_000,
+    statement_timeout: 8_000,
+  })
 
   try {
     await client.connect()
@@ -35,8 +40,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     res.setHeader('Cache-Control', 'public, s-maxage=120, stale-while-revalidate=60')
     return res.status(200).json({ markers: rows, count: rows.length })
   } catch (err) {
-    console.error('[police/live] db error:', err)
-    return res.status(500).json({ error: 'Failed to fetch markers' })
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[police/live] db error:', msg)
+    return res.status(500).json({ error: 'Failed to fetch markers', detail: msg })
   } finally {
     await client.end().catch(() => undefined)
   }
