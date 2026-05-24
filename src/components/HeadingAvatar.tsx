@@ -36,13 +36,6 @@ const ICON_ANCHOR: L.PointExpression = [28, 28]
 
 // ── Icon HTML builders ────────────────────────────────────────────
 
-function dotHtml(): string {
-  return `<div class="gps-avatar-dot">
-    <div class="gps-avatar-halo"></div>
-    <div class="gps-avatar-circle"></div>
-  </div>`
-}
-
 function arrowHtml(heading: number): string {
   return `<div class="gps-avatar-arrow" style="transform:rotate(${Math.round(heading)}deg)">
     <svg width="${ICON_SIZE}" height="${ICON_SIZE}" viewBox="0 0 28 28" fill="none" aria-hidden="true">

@@ -314,7 +314,7 @@ function SectionHistoryBar({
         {reversed.map((exit) => {
           const ok        = exit.avgKmh <= exit.limitKmh
           const isNew     = exit.timestamp === lastExitTs
-          const bg        = ok ? 'rgba(34,197,94,0.18)'   : 'rgba(239,68,68,0.18)'
+          const background = ok ? 'rgba(34,197,94,0.18)'   : 'rgba(239,68,68,0.18)'
           const border    = ok ? 'rgba(34,197,94,0.55)'   : 'rgba(239,68,68,0.55)'
           const textColor = ok ? '#4ade80' : '#f87171'
           return (

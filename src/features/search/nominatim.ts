@@ -19,7 +19,7 @@
 // Results from multiple requests are deduplicated by coordinate proximity (~110m).
 
 import { countryStore } from '@/lib/countryStore'
-import { generateQueryVariants, normalizeText, latinToCyrillic, cyrillicToLatin, stripStreetPrefix } from './normalizeQuery.js'
+import { generateQueryVariants, normalizeText, latinToCyrillic, stripStreetPrefix } from './normalizeQuery.js'
 
 const _searchCache = new Map<string, { results: GeoResult[]; expiresAt: number }>()
 const SEARCH_CACHE_TTL_MS = 10 * 60 * 1000  // 10 minutes

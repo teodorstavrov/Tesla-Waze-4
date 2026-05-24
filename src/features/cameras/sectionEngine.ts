@@ -222,6 +222,7 @@ function _onPosition(pos: GpsPosition): void {
         },
         lastExit: null,
         preWarn:  null,
+        history:  _state.history,
       }
       _prevPos = pos
       _emit()

@@ -121,7 +121,7 @@ export function CameraMarkerLayer() {
       }
 
       function syncMarkers(): void {
-        const { cameras, country } = cameraStore.getState()
+        const { cameras } = cameraStore.getState()
 
         // Hide all cameras when zoomed out
         if (zoomRef.current < MIN_ZOOM) {

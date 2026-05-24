@@ -55,7 +55,7 @@ const STRINGS = {
 
 export function RatingModal() {
   const lang = useSyncExternalStore(langStore.subscribe.bind(langStore), getLang, getLang)
-  const s = STRINGS[lang]
+  const s = STRINGS[lang as keyof typeof STRINGS] ?? STRINGS.en
 
   const [open,    setOpen]    = useState(false)
   const [shown,   setShown]   = useState(false)

@@ -5,7 +5,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { getSession } from '../_lib/tesla/session.js'
-import { getValidAccessToken, getVehicles, TESLA_API_BASE } from '../_lib/tesla/client.js'
+import { getValidAccessToken, TESLA_API_BASE } from '../_lib/tesla/client.js'
 import { getCachedState } from '../_lib/tesla/vehicleCache.js'
 import { parseCookie } from '../_lib/utils/cookies.js'
 import { isRedisConfigured } from '../_lib/db/redis.js'

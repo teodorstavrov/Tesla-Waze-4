@@ -1,3 +1,4 @@
+/// <reference types="node" />
 // ─── sectionEngine unit tests ──────────────────────────────────────────
 //
 // Tests entry detection, exit detection, avg speed calculation,
