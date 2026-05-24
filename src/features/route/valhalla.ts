@@ -210,11 +210,16 @@ export async function fetchRoute(
     alternates: alternatives,
   })
 
+  const timeoutSignal = AbortSignal.timeout(12_000)
+  const combinedSignal: AbortSignal = signal && 'any' in AbortSignal
+    ? (AbortSignal as unknown as { any: (s: AbortSignal[]) => AbortSignal }).any([signal, timeoutSignal])
+    : signal ?? timeoutSignal
+
   const res = await fetch(`${VALHALLA_BASE}/route`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body,
-    signal,
+    signal: combinedSignal,
   })
   if (!res.ok) {
     const txt = await res.text().catch(() => '')
@@ -256,11 +261,16 @@ export async function fetchRouteViaHemus(
     alternates: 0,
   })
 
+  const timeoutSignal = AbortSignal.timeout(12_000)
+  const combinedSignal: AbortSignal = signal && 'any' in AbortSignal
+    ? (AbortSignal as unknown as { any: (s: AbortSignal[]) => AbortSignal }).any([signal, timeoutSignal])
+    : signal ?? timeoutSignal
+
   const res = await fetch(`${VALHALLA_BASE}/route`, {
     method:  'POST',
     headers: { 'Content-Type': 'application/json' },
     body,
-    signal,
+    signal: combinedSignal,
   })
   if (!res.ok) {
     const txt = await res.text().catch(() => '')

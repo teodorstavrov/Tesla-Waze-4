@@ -152,6 +152,7 @@ export const DICTIONARY = {
     offline: {
       offline: 'Офлайн — картата и станциите са кеширани',
       online:  'Връзката е възстановена',
+      routeServiceUnavailable: 'Маршрутната услуга е недостъпна — опитайте отново',
     },
 
     controls: {
@@ -422,6 +423,7 @@ export const DICTIONARY = {
     offline: {
       offline: 'Offline — map and stations are cached',
       online:  'Connection restored',
+      routeServiceUnavailable: 'Routing service unavailable — try again',
     },
 
     controls: {
@@ -692,6 +694,7 @@ export const DICTIONARY = {
     offline: {
       offline: 'Frakoblet — kart og stasjoner er bufret',
       online:  'Tilkobling gjenopprettet',
+      routeServiceUnavailable: 'Rutetjeneste utilgjengelig — prøv igjen',
     },
 
     controls: {
@@ -963,6 +966,7 @@ export const DICTIONARY = {
     offline: {
       offline: 'Offline — karta och stationer är cachade',
       online:  'Anslutning återställd',
+      routeServiceUnavailable: 'Rutttjänsten är otillgänglig — försök igen',
     },
 
     controls: {
@@ -1234,6 +1238,7 @@ export const DICTIONARY = {
     offline: {
       offline: 'Offline — kartta ja asemat on tallennettu välimuistiin',
       online:  'Yhteys palautettu',
+      routeServiceUnavailable: 'Reitityspalvelu ei saatavilla — yritä uudelleen',
     },
 
     controls: {
@@ -1504,6 +1509,7 @@ export const DICTIONARY = {
     offline: {
       offline: 'Offline — kaart en laadpalen zijn opgeslagen',
       online:  'Verbinding hersteld',
+      routeServiceUnavailable: 'Routeservice niet beschikbaar — probeer opnieuw',
     },
 
     controls: {

@@ -364,10 +364,34 @@ export const routeStore = {
       // GPS tracking and voice start only when user explicitly presses Старт
     } catch (err) {
       if ((err as Error).name === 'AbortError') return
-      const isOffline = !navigator.onLine || (err as Error).message.toLowerCase().includes('fetch')
+      const isOffline = !navigator.onLine
+      const msg = (err as Error).message
+      const isFetchError = !isOffline && (
+        msg.toLowerCase().includes('fetch') ||
+        msg.toLowerCase().includes('network') ||
+        msg.includes('timeout') ||
+        msg.includes('408') || msg.includes('503') || msg.includes('504')
+      )
+      const _lang = getLang()
+      const offlineMsg: Record<string, string> = {
+        bg: 'Без интернет — маршрутът не може да се изчисли',
+        no: 'Ingen internett — kan ikke beregne rute',
+        sv: 'Ingen internet — kan inte beräkna rutt',
+        fi: 'Ei internetyhteyttä — reittiä ei voi laskea',
+        nl: 'Geen internet — route kan niet worden berekend',
+      }
+      const serviceMsg: Record<string, string> = {
+        bg: 'Маршрутната услуга е недостъпна — опитайте отново',
+        no: 'Rutetjeneste utilgjengelig — prøv igjen',
+        sv: 'Rutttjänsten är otillgänglig — försök igen',
+        fi: 'Reitityspalvelu ei saatavilla — yritä uudelleen',
+        nl: 'Routeservice niet beschikbaar — probeer opnieuw',
+      }
       const errorMsg = isOffline
-        ? (getLang() === 'bg' ? 'Без интернет — маршрутът не може да се изчисли' : 'No internet — route cannot be calculated')
-        : (err as Error).message
+        ? (offlineMsg[_lang] ?? 'No internet — route cannot be calculated')
+        : isFetchError
+          ? (serviceMsg[_lang] ?? 'Routing service unavailable — try again')
+          : msg
       _state = { ..._state, status: 'error', error: errorMsg }
       logger.route.warn('Route failed', { err: String(err), offline: isOffline })
       _emit()

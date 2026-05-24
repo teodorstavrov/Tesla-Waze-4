@@ -13,7 +13,11 @@
  *   npx tsx src/ingestion/browser/waze-playwright.client.ts
  */
 
-import { chromium, type Browser } from 'playwright';
+import { chromium } from 'playwright-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
+import type { Browser } from 'playwright';
+
+chromium.use(StealthPlugin());
 import { config } from '../../config/index.js';
 import { logger } from '../../monitoring/metrics.js';
 import type { WazeSession } from '../../types/waze.js';
@@ -59,7 +63,6 @@ export class WazePlaywrightClient {
         '--disable-dev-shm-usage',
         '--disable-gpu',
         '--lang=en-US',
-        '--disable-blink-features=AutomationControlled',
         '--window-size=1920,1080',
       ],
     });
@@ -73,12 +76,6 @@ export class WazePlaywrightClient {
       viewport: { width: 1920, height: 1080 },
       // Do NOT block serviceWorkers: Waze's SW adds auth headers to georss
       // requests. Without SW, every georss fetch returns 403.
-    });
-
-    // Mask automation fingerprint: navigator.webdriver triggers Waze's bot
-    // detection and causes all georss requests to return 403.
-    await context.addInitScript(() => {
-      Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
     });
 
     const page = await context.newPage();
