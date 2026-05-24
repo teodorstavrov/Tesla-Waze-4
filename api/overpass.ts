@@ -6,9 +6,16 @@ const OVERPASS_FALLBACK = 'https://overpass.kumi.systems/api/interpreter'
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).end()
 
-  // Read raw body (Vercel provides it as Buffer when Content-Type is form-encoded)
-  const raw = req.body as string | Buffer | undefined
-  const body = raw instanceof Buffer ? raw.toString() : (raw ?? '')
+  // Vercel auto-parses application/x-www-form-urlencoded as an object.
+  // Re-serialize so Overpass receives the correct form body.
+  let body: string
+  if (typeof req.body === 'object' && req.body !== null) {
+    body = new URLSearchParams(req.body as Record<string, string>).toString()
+  } else if (req.body instanceof Buffer) {
+    body = req.body.toString()
+  } else {
+    body = String(req.body ?? '')
+  }
 
   for (const url of [OVERPASS_PRIMARY, OVERPASS_FALLBACK]) {
     try {
