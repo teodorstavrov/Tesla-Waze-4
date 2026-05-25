@@ -4,7 +4,8 @@
 // Tracks live remaining distance, deviation, step-by-step navigation,
 // voice announcements and arrival detection via GPS.
 
-import { fetchOSRMRoute, fetchRouteViaHemus } from './valhalla.js'
+import { fetchOSRMRoute as fetchValhalla, fetchRouteViaHemus } from './valhalla.js'
+import { fetchOSRMRoute as fetchOSRM } from './osrm.js'
 import { maneuverVoiceText } from './maneuver.js'
 import { gpsStore } from '@/features/gps/gpsStore'
 import { audioManager } from '@/features/audio/audioManager'
@@ -344,7 +345,8 @@ export const routeStore = {
     try {
       const routes = viaHemus
         ? await fetchRouteViaHemus([gps.lat, gps.lng], [dest.lat, dest.lng], _abort.signal)
-        : await fetchOSRMRoute([gps.lat, gps.lng], [dest.lat, dest.lng], _abort.signal)
+        : await fetchValhalla([gps.lat, gps.lng], [dest.lat, dest.lng], _abort.signal)
+            .catch(() => fetchOSRM([gps.lat, gps.lng], [dest.lat, dest.lng], _abort.signal))
       const primary = routes[0]!
       _state = {
         ..._state,

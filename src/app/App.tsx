@@ -31,7 +31,6 @@ import { sectionEngine } from '@/features/cameras/sectionEngine'
 import { RouteLayer } from '@/features/route/RouteLayer'
 import { SavedPlacesLayer } from '@/features/places/SavedPlacesLayer'
 import { RoadworksLayer } from '@/features/roadworks/RoadworksLayer'
-import { WazePoliceLayer } from '@/features/waze/WazePoliceLayer'
 import { CountryBoundsLayer } from '@/components/CountryBoundsLayer'
 import { RoutePanel } from '@/features/route/RoutePanel'
 import { TurnInstruction } from '@/features/route/TurnInstruction'
@@ -124,7 +123,6 @@ export function App() {
       <RouteLayer />
       <SavedPlacesLayer />
       <RoadworksLayer />
-      <WazePoliceLayer />
       <CountryBoundsLayer />
 
       {/* Layer 1: floating UI */}
