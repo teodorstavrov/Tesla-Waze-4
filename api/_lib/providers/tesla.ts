@@ -26,8 +26,11 @@ import type { NormalizedStation, ProviderResult, Connector } from '../normalize/
 const CACHE_TTL_MS = 2 * 60 * 60 * 1000   // 2 hours
 // 14s HTTP timeout > 10s query timeout — Overpass sends a clean error before HTTP fires
 const FETCH_TIMEOUT_MS = 14_000
-const OVERPASS_URL = 'https://overpass-api.de/api/interpreter'
-const OVERPASS_FALLBACK = 'https://overpass.kumi.systems/api/interpreter'
+const OVERPASS_URLS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter',
+]
 
 // ── Raw Overpass types ────────────────────────────────────────────
 
@@ -169,7 +172,10 @@ function buildTeslaQuery(bboxStr: string): string {
 async function queryOverpass(query: string, url: string): Promise<OverpassResponse> {
   const res = await fetchWithTimeout(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'User-Agent': 'TesRadar/1.0 (https://tesradar.tech; EV charging station map; contact@tesradar.tech)',
+    },
     body: `data=${encodeURIComponent(query)}`,
   }, FETCH_TIMEOUT_MS)
   if (!res.ok) throw new Error(`Overpass HTTP ${res.status}`)
@@ -192,12 +198,11 @@ export async function fetchTeslaStations(bbox: BBox): Promise<ProviderResult> {
     const bboxStr = toOverpassBBox(qbbox)
     const query = buildTeslaQuery(bboxStr)
 
-    let data: OverpassResponse
-    try {
-      data = await queryOverpass(query, OVERPASS_URL)
-    } catch {
-      data = await queryOverpass(query, OVERPASS_FALLBACK)
+    let data: OverpassResponse | null = null
+    for (const url of OVERPASS_URLS) {
+      try { data = await queryOverpass(query, url); break } catch { /* try next */ }
     }
+    if (!data) throw new Error('All Overpass mirrors failed')
 
     const stations: NormalizedStation[] = []
     for (const el of data.elements) {

@@ -18,8 +18,11 @@ const CACHE_TTL_MS = 30 * 60 * 1000  // 30 minutes
 // 24s per attempt: primary(24s) + fallback(24s) = 48s max, well within Vercel's 60s limit.
 // Query [timeout:22] lets the server respond with a clean error before HTTP fires.
 const FETCH_TIMEOUT_MS = 24_000
-const OVERPASS_URL = 'https://overpass-api.de/api/interpreter'
-const OVERPASS_FALLBACK = 'https://overpass.kumi.systems/api/interpreter'
+const OVERPASS_URLS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.private.coffee/api/interpreter',
+]
 
 // ── Raw Overpass types ────────────────────────────────────────────
 
@@ -198,7 +201,10 @@ async function queryOverpass(query: string, url: string): Promise<OverpassRespon
     url,
     {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'TesRadar/1.0 (https://tesradar.tech; EV charging station map; contact@tesradar.tech)',
+      },
       body: `data=${encodeURIComponent(query)}`,
     },
     FETCH_TIMEOUT_MS,
@@ -224,13 +230,11 @@ export async function fetchOverpassStations(bbox: BBox): Promise<ProviderResult>
     const bboxStr = toOverpassBBox(qbbox)
     const query = buildQuery(bboxStr)
 
-    // Try primary, fallback to mirror on error
-    let data: OverpassResponse
-    try {
-      data = await queryOverpass(query, OVERPASS_URL)
-    } catch {
-      data = await queryOverpass(query, OVERPASS_FALLBACK)
+    let data: OverpassResponse | null = null
+    for (const url of OVERPASS_URLS) {
+      try { data = await queryOverpass(query, url); break } catch { /* try next */ }
     }
+    if (!data) throw new Error('All Overpass mirrors failed')
 
     const stations: NormalizedStation[] = []
     for (const el of data.elements) {

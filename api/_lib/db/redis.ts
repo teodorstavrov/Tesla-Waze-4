@@ -1,14 +1,31 @@
 // ─── Upstash Redis REST client ─────────────────────────────────────────
 //
 // Minimal client using only the Upstash HTTP REST API — no SDK.
-// All values are JSON-serialized before storing and deserialized on read.
+// All values are JSON-serialized + gzip-compressed before storing.
+// Compressed values are prefixed with "gz:" for backward compatibility
+// with any uncompressed values still in Redis.
 //
 // Required env vars:
 //   UPSTASH_REDIS_REST_URL   — e.g. https://eu1-xxx.upstash.io
 //   UPSTASH_REDIS_REST_TOKEN — REST token from Upstash console
 
+import { gzipSync, gunzipSync } from 'zlib'
+
 const _url   = process.env['UPSTASH_REDIS_REST_URL']
 const _token = process.env['UPSTASH_REDIS_REST_TOKEN']
+
+function compress(value: unknown): string {
+  const json = JSON.stringify(value)
+  return 'gz:' + gzipSync(Buffer.from(json, 'utf8')).toString('base64')
+}
+
+function decompress<T>(raw: string): T {
+  if (raw.startsWith('gz:')) {
+    const json = gunzipSync(Buffer.from(raw.slice(3), 'base64')).toString('utf8')
+    return JSON.parse(json) as T
+  }
+  return JSON.parse(raw) as T
+}
 
 export function isRedisConfigured(): boolean {
   return Boolean(_url && _token)
@@ -38,15 +55,15 @@ export const redis = {
 
   async get<T>(key: string): Promise<T | null> {
     const raw = await _cmd(['GET', key]) as string | null
-    return raw ? (JSON.parse(raw) as T) : null
+    return raw ? decompress<T>(raw) : null
   },
 
   async set(key: string, value: unknown): Promise<void> {
-    await _cmd(['SET', key, JSON.stringify(value)])
+    await _cmd(['SET', key, compress(value)])
   },
 
   async setWithExpiry(key: string, value: unknown, ttlSeconds: number): Promise<void> {
-    await _cmd(['SET', key, JSON.stringify(value), 'EX', ttlSeconds])
+    await _cmd(['SET', key, compress(value), 'EX', ttlSeconds])
   },
 
   async del(key: string): Promise<void> {
