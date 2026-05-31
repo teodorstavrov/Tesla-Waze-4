@@ -3,4 +3,4 @@ Allow: /
 Disallow: /admin
 Disallow: /api/
 
-Sitemap: https://teslaradar.tech/sitemap.xml
+Sitemap: https://tesradar.tech/sitemap.xml

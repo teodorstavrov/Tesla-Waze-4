@@ -10,7 +10,7 @@ jobs:
     runs-on: ubuntu-latest
     environment:
       name: production
-      url: https://teslaradar.tech
+      url: https://tesradar.tech
 
     steps:
       - uses: actions/checkout@v4
