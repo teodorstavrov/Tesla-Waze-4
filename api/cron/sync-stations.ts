@@ -137,25 +137,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const existing = await stationDb.getAll()
   const existingCount = existing?.length ?? 0
 
-  // ── Fallback: preserve stations from failed providers ─────────────
-  // If a provider fails entirely for all countries, its last-known
-  // stations are re-injected so they NEVER disappear from the DB due
-  // to temporary API downtime. Proximity-deduped (100m) against fresh
-  // data so we don't create duplicates where OCM already covers the spot.
-  const teslaFailed = combinedMeta(bgTeslaResult, noTeslaResult, seTeslaResult, fiTeslaResult, nlTeslaResult).status === 'error'
-  const osmFailed   = combinedMeta(bgOsmResult,   noOsmResult,   seOsmResult,   fiOsmResult,   nlOsmResult).status === 'error'
-
-  if ((teslaFailed || osmFailed) && existing) {
+  // ── Fallback: always preserve existing stations not covered by fresh data ──
+  // Sync adds/updates stations but NEVER deletes them due to provider downtime.
+  // Any existing station that has no fresh replacement within 100m is kept.
+  // This ensures the map stays populated even when OCM/Tesla/OSM are unavailable.
+  if (existing) {
+    let fallbackAdded = 0
     for (const old of existing) {
-      const shouldFallback =
-        (old.source === 'tesla' && teslaFailed) ||
-        (old.source === 'osm'   && osmFailed)
-      if (!shouldFallback) continue
       const alreadyCovered = stations.some(
         (s) => haversineMeters([s.lat, s.lng], [old.lat, old.lng]) < 100,
       )
-      if (!alreadyCovered) stations.push(old)
+      if (!alreadyCovered) { stations.push(old); fallbackAdded++ }
     }
+    if (fallbackAdded > 0) console.log(`[SYNC] Fallback preserved ${fallbackAdded} stations from previous snapshot`)
   }
 
   // ── Safety guard: never overwrite with dramatically fewer stations ─
