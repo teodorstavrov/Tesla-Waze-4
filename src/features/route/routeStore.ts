@@ -194,7 +194,7 @@ function _onGpsUpdate(): void {
   const idx         = closestPointIndex(gps.lat, gps.lng, route.polyline)
   const distFromRoute = distToPolylineM(gps.lat, gps.lng, route.polyline)
 
-  const deviated  = distFromRoute > 200
+  const deviated  = distFromRoute > 50
   const remaining = remainingDistanceM(idx)
 
   // ── Arrival detection ───────────────────────────────────────────
@@ -457,7 +457,8 @@ export const routeStore = {
       // Single route — no alternatives popup on reroute
       const routes = viaHemus
         ? await fetchRouteViaHemus([gps.lat, gps.lng], [dest.lat, dest.lng], _abort.signal)
-        : await fetchOSRMRoute([gps.lat, gps.lng], [dest.lat, dest.lng], _abort.signal, 0)
+        : await fetchValhalla([gps.lat, gps.lng], [dest.lat, dest.lng], _abort.signal)
+            .catch(() => fetchOSRM([gps.lat, gps.lng], [dest.lat, dest.lng], _abort.signal))
       const primary = routes[0]!
       _state = {
         ..._state,
