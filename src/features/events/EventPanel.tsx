@@ -183,7 +183,7 @@ export function EventPanel() {
               </button>
             </div>
 
-            {event.description && (
+            {event.description && !event.description.startsWith('wazesync:') && (
               <div style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.5 }}>
                 {event.description}
               </div>
