@@ -205,7 +205,11 @@ export async function fetchRoute(
     ],
     costing: 'auto',
     costing_options: {
-      auto: { use_highways: 1.0 },  // prefer motorways
+      auto: {
+        use_highways:       0.8,   // prefer motorways but don't avoid local streets
+        use_living_streets: 0.6,   // allow residential/living streets (default 0.1 blocks them)
+        service_penalty:    15,    // light penalty for service roads (driveways etc.)
+      },
     },
     alternates: alternatives,
   })
@@ -257,7 +261,13 @@ export async function fetchRouteViaHemus(
       { lat: dest[0],           lon: dest[1],            type: 'break' },
     ],
     costing: 'auto',
-    costing_options: { auto: { use_highways: 1.0 } },
+    costing_options: {
+      auto: {
+        use_highways:       0.8,
+        use_living_streets: 0.6,
+        service_penalty:    15,
+      },
+    },
     alternates: 0,
   })
 
