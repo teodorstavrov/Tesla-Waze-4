@@ -80,7 +80,7 @@ function getLabels() {
     batteryKwh:      isBg ? 'Батерия'                                           : 'Battery',
     drive:           isBg ? 'Задвижване'                                        : 'Drive',
     battery:         isBg ? 'Текущ заряд'                                       : 'Current charge',
-    batteryHint:     isBg ? 'нужен за планиране при пътуване'                  : 'needed for trip planning',
+    batteryHint:     isBg ? 'нужен за планиране при пътуване. Посочи ръчно или свържи Tesla акаунт за живи данни' : 'needed for trip planning. Set manually or connect Tesla account for live data',
     degradation:     isBg ? 'Деградация (незадължително)'                       : 'Degradation (optional)',
     degradationHint: isBg ? 'Остави празно — ще се изчисли по годината.'        : 'Leave blank — will be estimated by year.',
     privacy:         isBg ? 'Данните се съхраняват локално на устройството. Не се изпращат никъде.' : 'Your data is stored locally. Nothing is shared.',
