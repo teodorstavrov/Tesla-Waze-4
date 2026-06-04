@@ -6,8 +6,33 @@
 // File changes daily. Cached in Redis for 30 min to avoid hammering the source.
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import https from 'node:https'
 import { XMLParser } from 'fast-xml-parser'
 import { redis, isRedisConfigured } from './_lib/db/redis.js'
+
+// datasheet.api.bg runs Apache + OpenSSL 1.0.2k (TLS 1.0/1.1).
+// Node.js 20 rejects it by default — use a legacy-friendly agent.
+const _legacyAgent = new https.Agent({
+  secureOptions: 0x4,  // SSL_OP_LEGACY_SERVER_CONNECT
+  minVersion: 'TLSv1' as 'TLSv1',
+  rejectUnauthorized: true,
+})
+
+function fetchXml(url: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const req = https.get(url, {
+      agent: _legacyAgent,
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; TesRadar/1.0; +https://tesradar.tech)' },
+    }, (res) => {
+      if (res.statusCode !== 200) { reject(new Error(`HTTP ${res.statusCode}`)); return }
+      const chunks: Buffer[] = []
+      res.on('data', (c: Buffer) => chunks.push(c))
+      res.on('end', () => resolve(Buffer.concat(chunks).toString('utf8')))
+    })
+    req.setTimeout(25_000, () => { req.destroy(new Error('Timeout')) })
+    req.on('error', reject)
+  })
+}
 
 const CACHE_KEY = 'roadworks:bg:v1'
 const CACHE_TTL = 30 * 60  // 30 min
@@ -144,18 +169,7 @@ export default async function handler(_req: VercelRequest, res: VercelResponse):
 
   for (const url of urls) {
     try {
-      const r = await fetch(url, {
-        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; TesRadar/1.0; +https://tesradar.tech)' },
-        signal: AbortSignal.timeout(25_000),
-      })
-
-      if (!r.ok) {
-        console.warn(`[ROADWORKS] ${r.status} for ${url} — trying next`)
-        lastError = `HTTP ${r.status}`
-        continue  // try yesterday's file
-      }
-
-      const xml  = await r.text()
+      const xml  = await fetchXml(url)
       const data = parseXml(xml)
 
       if (isRedisConfigured() && data.length > 0) {
