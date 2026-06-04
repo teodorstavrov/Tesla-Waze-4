@@ -7,6 +7,7 @@ export interface RoadworkRecord {
   id:        string
   lat:       number
   lng:       number
+  points:    [number, number][]   // full polyline of the closed section
   descBg:    string
   descEn:    string
   startTime: string | null

@@ -61,51 +61,61 @@ export function RoadworksLayer() {
     roadworksStore.getState,
   )
 
-  // Map from record id → Leaflet marker (so we can remove individually)
-  const markersRef = useRef<Map<string, L.Marker>>(new Map())
+  const markersRef   = useRef<Map<string, L.Marker>>(new Map())
+  const polylinesRef = useRef<Map<string, L.Polyline>>(new Map())
 
   useEffect(() => {
     const map = getMap()
     if (!map) return
 
     if (!visible) {
-      // Remove all markers
       markersRef.current.forEach((m) => map.removeLayer(m))
       markersRef.current.clear()
+      polylinesRef.current.forEach((p) => map.removeLayer(p))
+      polylinesRef.current.clear()
       return
     }
 
-    // Add new markers, skip already-rendered ids
-    const existing = markersRef.current
     const incoming = new Set(records.map((r) => r.id))
 
     // Remove stale
-    existing.forEach((m, id) => {
-      if (!incoming.has(id)) {
-        map.removeLayer(m)
-        existing.delete(id)
-      }
+    markersRef.current.forEach((m, id) => {
+      if (!incoming.has(id)) { map.removeLayer(m); markersRef.current.delete(id) }
+    })
+    polylinesRef.current.forEach((p, id) => {
+      if (!incoming.has(id)) { map.removeLayer(p); polylinesRef.current.delete(id) }
     })
 
     // Add new
     for (const rw of records) {
-      if (existing.has(rw.id)) continue
-      const marker = L.marker([rw.lat, rw.lng], { icon: ICON })
-        .bindPopup(buildPopup(rw), {
-          maxWidth: 300,
-          className: 'roadwork-popup',
+      if (!markersRef.current.has(rw.id)) {
+        const marker = L.marker([rw.lat, rw.lng], { icon: ICON })
+          .bindPopup(buildPopup(rw), { maxWidth: 300, className: 'roadwork-popup' })
+        marker.addTo(map)
+        markersRef.current.set(rw.id, marker)
+      }
+
+      if (!polylinesRef.current.has(rw.id) && rw.points?.length >= 2) {
+        const line = L.polyline(rw.points as [number, number][], {
+          color:     '#ef4444',
+          weight:    5,
+          opacity:   0.85,
+          dashArray: '10, 6',
         })
-      marker.addTo(map)
-      existing.set(rw.id, marker)
+        line.bindPopup(buildPopup(rw), { maxWidth: 300, className: 'roadwork-popup' })
+        line.addTo(map)
+        polylinesRef.current.set(rw.id, line)
+      }
     }
   }, [records, visible])
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       const map = getMap()
       markersRef.current.forEach((m) => { if (map) map.removeLayer(m) })
       markersRef.current.clear()
+      polylinesRef.current.forEach((p) => { if (map) map.removeLayer(p) })
+      polylinesRef.current.clear()
     }
   }, [])
 
