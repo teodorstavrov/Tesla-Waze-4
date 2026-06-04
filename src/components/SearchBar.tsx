@@ -589,33 +589,34 @@ function SavedPlaceContent({ type, name }: { type: PlaceType; name: string | nul
   const color   = isHome ? '#22c55e' : '#3b82f6'
   const emoji   = isHome ? '🏠' : '💼'
   const label   = isHome ? t('map.home') : t('map.work')
-  const setLabel = isHome ? t('map.setHome') : t('map.setWork')
+  const noLabel = isHome ? t('map.noHome') : t('map.noWork')
   return (
     <>
       <div style={{
         width: 28, height: 28, borderRadius: '50%', flexShrink: 0,
         background: isSet ? `${color}20` : 'rgba(255,255,255,0.05)',
-        border: `1.5px solid ${isSet ? color : 'rgba(255,255,255,0.15)'}`,
+        border: `1.5px solid ${isSet ? color : 'rgba(255,255,255,0.2)'}`,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 14, opacity: isSet ? 1 : 0.5,
+        fontSize: 14, opacity: isSet ? 1 : 0.45,
       }}>
         {emoji}
       </div>
       <div style={{ minWidth: 0, flex: 1 }}>
         <div style={{
           fontSize: 13, fontWeight: 700,
-          color: isSet ? 'var(--text-primary)' : 'var(--text-secondary)',
+          color: isSet ? 'var(--text-primary)' : 'rgba(255,180,50,0.85)',
           whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
         }}>
-          {label}
+          {isSet ? label : noLabel}
         </div>
-        <div style={{
-          fontSize: 11, color: isSet ? 'var(--text-secondary)' : 'rgba(255,255,255,0.3)',
-          marginTop: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-          fontStyle: isSet ? 'normal' : 'italic',
-        }}>
-          {isSet ? name : setLabel}
-        </div>
+        {isSet && (
+          <div style={{
+            fontSize: 11, color: 'var(--text-secondary)', marginTop: 1,
+            whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+          }}>
+            {name}
+          </div>
+        )}
       </div>
       {isSet && (
         <div style={{ fontSize: 11, color: color, fontWeight: 600, flexShrink: 0 }}>
