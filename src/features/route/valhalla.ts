@@ -200,15 +200,15 @@ export async function fetchRoute(
 
   const body = JSON.stringify({
     locations: [
-      { lat: origin[0], lon: origin[1], type: 'break' },
-      { lat: dest[0],   lon: dest[1],   type: 'break' },
+      { lat: origin[0], lon: origin[1], type: 'break',                   search_cutoff: 500 },
+      { lat: dest[0],   lon: dest[1],   type: 'break', street_side_tolerance: 50, search_cutoff: 1000 },
     ],
     costing: 'auto',
     costing_options: {
       auto: {
-        use_highways:       0.8,   // prefer motorways but don't avoid local streets
-        use_living_streets: 0.6,   // allow residential/living streets (default 0.1 blocks them)
-        service_penalty:    15,    // light penalty for service roads (driveways etc.)
+        use_highways:       0.8,
+        use_living_streets: 0.6,
+        service_penalty:    15,
       },
     },
     alternates: alternatives,
@@ -256,9 +256,9 @@ export async function fetchRouteViaHemus(
 
   const body = JSON.stringify({
     locations: [
-      { lat: origin[0],         lon: origin[1],         type: 'break' },
+      { lat: origin[0],         lon: origin[1],         type: 'break',   search_cutoff: 500 },
       { lat: HEMUS_WAYPOINT[0], lon: HEMUS_WAYPOINT[1], type: 'through' },
-      { lat: dest[0],           lon: dest[1],            type: 'break' },
+      { lat: dest[0],           lon: dest[1],            type: 'break',  street_side_tolerance: 50, search_cutoff: 1000 },
     ],
     costing: 'auto',
     costing_options: {

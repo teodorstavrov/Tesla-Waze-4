@@ -43,6 +43,8 @@ interface NominatimItem {
   class?: string
   type?: string
   place_rank?: number
+  importance?: number
+  osm_type?: string  // 'N' node | 'W' way | 'R' relation
   address?: {
     city?: string
     town?: string
@@ -54,12 +56,21 @@ interface NominatimItem {
   }
 }
 
-const PLACE_TYPES = new Set(['place', 'highway', 'amenity', 'shop', 'tourism', 'leisure'])
+const PLACE_TYPES   = new Set(['place', 'highway', 'amenity', 'shop', 'tourism', 'leisure'])
+// OSM types with precise coordinates (nodes/ways) ranked over relations (boundary centroids)
+const PRECISE_TYPES = new Set(['N', 'W'])
 
 // ─── Result parsing & sorting ──────────────────────────────────────────────
 
-function _parseResults(data: NominatimItem[]): Array<GeoResult & { _class: string }> {
-  return data.map((r): GeoResult & { _class: string } => {
+interface ParsedResult extends GeoResult {
+  _class:      string
+  _placeRank:  number
+  _importance: number
+  _osmType:    string
+}
+
+function _parseResults(data: NominatimItem[]): ParsedResult[] {
+  return data.map((r): ParsedResult => {
     const addr     = r.address ?? {}
     const road     = addr.road
     const houseNum = addr.house_number
@@ -77,22 +88,34 @@ function _parseResults(data: NominatimItem[]): Array<GeoResult & { _class: strin
       category:    r.addresstype ?? r.category ?? 'place',
       lat: parseFloat(r.lat),
       lng: parseFloat(r.lon),
-      _class: r.class ?? '',
+      _class:      r.class      ?? '',
+      _placeRank:  r.place_rank ?? 0,
+      _importance: r.importance ?? 0,
+      _osmType:    r.osm_type   ?? '',
     }
   })
 }
 
-function _sortResults(raw: Array<GeoResult & { _class: string }>): GeoResult[] {
-  // Place nodes (class=place/highway/amenity) before administrative boundaries.
-  // Boundary centroids can be km away from the actual city centre.
+function _sortResults(raw: ParsedResult[]): GeoResult[] {
+  // Priority rules (descending):
+  //  1. class=place/highway/amenity > boundary (boundary centroids can be km away)
+  //  2. osm_type N/W (precise point) > R (relation/polygon centroid)
+  //  3. place_rank DESC — higher rank = more specific settlement (city > county)
+  //  4. importance DESC
   raw.sort((a, b) => {
-    const aIsPlace = PLACE_TYPES.has(a._class)
-    const bIsPlace = PLACE_TYPES.has(b._class)
-    if (aIsPlace && !bIsPlace) return -1
-    if (!aIsPlace && bIsPlace) return  1
+    const aIsPlace  = PLACE_TYPES.has(a._class)
+    const bIsPlace  = PLACE_TYPES.has(b._class)
+    if (aIsPlace !== bIsPlace) return aIsPlace ? -1 : 1
+
+    const aPrecise  = PRECISE_TYPES.has(a._osmType)
+    const bPrecise  = PRECISE_TYPES.has(b._osmType)
+    if (aPrecise !== bPrecise) return aPrecise ? -1 : 1
+
+    if (b._placeRank  !== a._placeRank)  return b._placeRank  - a._placeRank
+    if (b._importance !== a._importance) return b._importance - a._importance
     return 0
   })
-  return raw.map(({ _class: _c, ...rest }) => rest as GeoResult)
+  return raw.map(({ _class: _c, _placeRank: _pr, _importance: _im, _osmType: _ot, ...rest }) => rest as GeoResult)
 }
 
 // ─── Address parsing ───────────────────────────────────────────────────────
@@ -192,6 +215,7 @@ async function _fetchFreeText(
     countrycodes:      searchCode,
     limit:             '10',
     addressdetails:    '1',
+    extratags:         '0',
     'accept-language': searchLang,
   })
 
