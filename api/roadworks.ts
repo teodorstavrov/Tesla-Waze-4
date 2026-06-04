@@ -145,8 +145,8 @@ export default async function handler(_req: VercelRequest, res: VercelResponse):
   for (const url of urls) {
     try {
       const r = await fetch(url, {
-        headers: { 'User-Agent': 'TesRadar/1.0 (tesradar.tech)' },
-        signal: AbortSignal.timeout(10_000),
+        headers: { 'User-Agent': 'Mozilla/5.0 (compatible; TesRadar/1.0; +https://tesradar.tech)' },
+        signal: AbortSignal.timeout(25_000),
       })
 
       if (!r.ok) {
