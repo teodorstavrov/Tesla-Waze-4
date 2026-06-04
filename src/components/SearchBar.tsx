@@ -125,7 +125,7 @@ export function SearchBar() {
         const stationMatches = searchStations(query)
         const geoMatches = geoSettled.status === 'fulfilled' ? geoSettled.value : []
 
-        setResults([...stationMatches, ...geoMatches])
+        setResults([...geoMatches, ...stationMatches])
         setFocused(-1)
       } catch {
         // AbortError or network — silently clear
@@ -358,38 +358,18 @@ export function SearchBar() {
                   borderRadius: 12, padding: '4px 0',
                 }}
               >
-                {/* Station results */}
-                {results.filter((r) => r.type === 'station').length > 0 && (
-                  <>
-                    <SectionLabel label={t('search.stations')} />
-                    {results
-                      .filter((r): r is StationResult => r.type === 'station')
-                      .map((r, i) => (
-                        <ResultRow
-                          key={r.station.id}
-                          focused={focused === i}
-                          onClick={() => selectResult(r)}
-                        >
-                          <StationResultContent result={r} />
-                        </ResultRow>
-                      ))
-                    }
-                  </>
-                )}
-
-                {/* Geo results */}
+                {/* Geo results — first */}
                 {results.filter((r) => r.type === 'geo').length > 0 && (
                   <>
                     <SectionLabel label={t('search.places')} />
                     {results
                       .filter((r): r is GeoResult & { _city?: string } => r.type === 'geo')
                       .map((r, i) => {
-                        const idx = results.filter((x) => x.type === 'station').length + i
                         const starred = isFavorite(r.lat, r.lng)
                         return (
                           <ResultRow
                             key={`${r.lat},${r.lng}`}
-                            focused={focused === idx}
+                            focused={focused === i}
                             onClick={() => selectResult(r)}
                           >
                             <GeoResultContent
@@ -397,6 +377,28 @@ export function SearchBar() {
                               starred={starred}
                               onStar={(e) => handleResultStarToggle(e, r)}
                             />
+                          </ResultRow>
+                        )
+                      })
+                    }
+                  </>
+                )}
+
+                {/* Station results — second */}
+                {results.filter((r) => r.type === 'station').length > 0 && (
+                  <>
+                    <SectionLabel label={t('search.stations')} />
+                    {results
+                      .filter((r): r is StationResult => r.type === 'station')
+                      .map((r, i) => {
+                        const idx = results.filter((x) => x.type === 'geo').length + i
+                        return (
+                          <ResultRow
+                            key={r.station.id}
+                            focused={focused === idx}
+                            onClick={() => selectResult(r)}
+                          >
+                            <StationResultContent result={r} />
                           </ResultRow>
                         )
                       })
