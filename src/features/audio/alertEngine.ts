@@ -26,6 +26,38 @@ function _ttsLang(): string { return LANG_TO_TTS[getLang()] ?? 'en-US' }
 
 // ── Config ────────────────────────────────────────────────────────
 
+// Max angular difference (degrees) for police alerts to fire.
+// ±75° covers a wide forward cone — police beside/behind the user is ignored.
+const POLICE_HEADING_TOLERANCE_DEG = 75
+
+/**
+ * Calculate bearing (degrees 0–360) from point A to point B.
+ * Used to check if an event is in the driver's direction of travel.
+ */
+function _bearingTo(fromLat: number, fromLng: number, toLat: number, toLng: number): number {
+  const toRad = (d: number) => d * Math.PI / 180
+  const dLng  = toRad(toLng - fromLng)
+  const fLat  = toRad(fromLat)
+  const tLat  = toRad(toLat)
+  const y = Math.sin(dLng) * Math.cos(tLat)
+  const x = Math.cos(fLat) * Math.sin(tLat) - Math.sin(fLat) * Math.cos(tLat) * Math.cos(dLng)
+  return (Math.atan2(y, x) * 180 / Math.PI + 360) % 360
+}
+
+/**
+ * Returns true if the event bearing is within tolerance degrees of the driver's heading.
+ * Always returns true when heading is unknown (< 5 km/h or GPS heading unavailable).
+ */
+function _isInDirectionOfTravel(
+  pos:   { lat: number; lng: number; heading: number | null },
+  event: { lat: number; lng: number },
+): boolean {
+  if (pos.heading == null) return true   // heading unknown — don't suppress
+  const bearing = _bearingTo(pos.lat, pos.lng, event.lat, event.lng)
+  const diff    = Math.abs(((bearing - pos.heading + 540) % 360) - 180)
+  return diff <= POLICE_HEADING_TOLERANCE_DEG
+}
+
 const THRESHOLDS_M: Record<EventType, number> = {
   police:        700,
   accident:      600,
@@ -124,19 +156,26 @@ function _onPosition(): void {
     // Fires exactly once when crossing inward. Auto-resets when driver
     // moves back beyond the threshold — no time-based cooldown needed.
     // Skip for events the user just reported themselves (90s window).
+    // Police: additionally skip if the marker is NOT in the direction of travel.
     if (prevDist > threshold && distM <= threshold && !eventStore.isSelfReported(event.id)) {
-      const text = _alertText(event.type)
-      logger.audio.info('Proximity alert (zone entry)', { type: event.type, distM: Math.round(distM) })
-      audioManager.beep(880, event.type === 'police' ? 150 : 100)
-      if (!isTeslaBrowser) setTimeout(() => audioManager.speak(text, _ttsLang()), 200)
-      _showToast(event.type, event.id, text, Math.round(distM))
+      if (event.type === 'police' && !_isInDirectionOfTravel(pos, event)) {
+        // Police marker is behind or beside the driver — suppress alert
+      } else {
+        const text = _alertText(event.type)
+        logger.audio.info('Proximity alert (zone entry)', { type: event.type, distM: Math.round(distM) })
+        audioManager.beep(880, event.type === 'police' ? 150 : 100)
+        if (!isTeslaBrowser) setTimeout(() => audioManager.speak(text, _ttsLang()), 200)
+        _showToast(event.type, event.id, text, Math.round(distM))
+      }
     }
 
     // ── Police siren at 200m — zone-entry only ────────────────────
     // Fires exactly once when crossing into 200m zone. Resets automatically
     // when driver moves back beyond 200m (prevDist will be > POLICE_CLOSE_M again).
     // Skip for events the user just reported themselves.
-    if (event.type === 'police' && prevDist > POLICE_CLOSE_M && distM <= POLICE_CLOSE_M && !eventStore.isSelfReported(event.id)) {
+    // Skip if police marker is not in direction of travel.
+    if (event.type === 'police' && prevDist > POLICE_CLOSE_M && distM <= POLICE_CLOSE_M
+        && !eventStore.isSelfReported(event.id) && _isInDirectionOfTravel(pos, event)) {
       const text = t('alerts.policeClose')
       logger.audio.info('Police close warning (zone entry)', { distM: Math.round(distM) })
       audioManager.siren(3)
