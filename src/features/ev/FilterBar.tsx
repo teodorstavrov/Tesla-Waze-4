@@ -34,16 +34,19 @@ export function FilterBar() {
 
   if (!markersVisible || routeStatus !== 'idle') return null
 
-  const { connector, minPowerKw, onlyAvailable, filtersVisible } = filterState
+  const { connector, minPowerKw, onlyAvailable, filtersBarEnabled, filtersExpanded } = filterState
+
+  // Settings toggle is OFF — hide everything including the collapsed button
+  if (!filtersBarEnabled) return null
 
   // ── Collapsed: show only "⚡ Филтри" button ──────────────────────────
-  if (!filtersVisible) {
+  if (!filtersExpanded) {
     return (
       <div style={{ position: 'absolute', bottom: 144, left: '50%', transform: 'translateX(-50%)', zIndex: 400 }}>
         <Chip
           label={t('filter.showFilters')}
           active={false}
-          onClick={() => filterStore.toggleFiltersVisible()}
+          onClick={() => filterStore.toggleFiltersExpanded()}
         />
       </div>
     )
@@ -94,7 +97,7 @@ export function FilterBar() {
       <Divider />
 
       {/* Hide filters */}
-      <Chip label={t('filter.hideFilters')} active={false} muted onClick={() => filterStore.toggleFiltersVisible()} />
+      <Chip label={t('filter.hideFilters')} active={false} muted onClick={() => filterStore.toggleFiltersExpanded()} />
     </div>
   )
 }

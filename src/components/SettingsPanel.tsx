@@ -58,7 +58,7 @@ function PanelContent() {
     evStore.getState,
     evStore.getState,
   )
-  const { filtersVisible: showEVFilters } = useSyncExternalStore(
+  const { filtersBarEnabled: showEVFilters } = useSyncExternalStore(
     filterStore.subscribe,
     filterStore.getState,
     filterStore.getState,
@@ -140,7 +140,7 @@ function PanelContent() {
         label={t('settings.evFilters')}
         state={showEVFilters}
         stateColor="#22c55e"
-        onToggle={() => filterStore.toggleFiltersVisible()}
+        onToggle={() => filterStore.toggleFiltersBarEnabled()}
       />
 
       {/* Roadworks */}
