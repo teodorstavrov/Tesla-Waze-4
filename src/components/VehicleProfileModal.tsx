@@ -12,6 +12,8 @@ import type { TeslaModel } from '@/features/planning/types'
 import { isTeslaBrowser } from '@/lib/browser'
 import { getLang, langStore } from '@/lib/locale'
 import { TeslaConnect } from '@/features/tesla/TeslaConnect'
+import { teslaStore } from '@/features/tesla/teslaStore'
+import { teslaVehicleStore } from '@/features/tesla/teslaVehicleStore'
 import { settingsStore } from '@/features/settings/settingsStore'
 import type { PerformanceMode } from '@/config/performanceProfiles'
 
@@ -287,6 +289,26 @@ export function VehicleProfileModal() {
     () => settingsStore.get().performanceMode
   )
 
+  // Live Tesla battery — subscribe so slider updates when poller gets fresh data
+  const teslaSnap = useSyncExternalStore(
+    teslaVehicleStore.subscribe,
+    teslaVehicleStore.getSnapshot,
+    teslaVehicleStore.getSnapshot,
+  )
+  const teslaConnected = useSyncExternalStore(
+    teslaStore.subscribe,
+    () => teslaStore.getState().connected,
+    () => false,
+  )
+  const isBg = getLang() === 'bg'
+
+  // When Tesla is connected and live data arrives, keep slider in sync
+  useEffect(() => {
+    if (open && teslaConnected && teslaSnap?.batteryPercent != null && !teslaSnap.sleeping) {
+      setBattery(Math.round(teslaSnap.batteryPercent))
+    }
+  }, [open, teslaConnected, teslaSnap?.batteryPercent, teslaSnap?.sleeping])
+
   // ── Model S 3-step state ──────────────────────────────────────────────
   const [msGroup, setMsGroup] = useState<MSYearGroup | null>(null)
   const [msBat,   setMsBat]   = useState<number | null>(null)
@@ -324,9 +346,13 @@ export function VehicleProfileModal() {
 
   function doOpen() {
     const p = vehicleProfileStore.get()
+    // Prefer live Tesla battery over saved profile value
+    const livePct = teslaConnected && teslaSnap?.batteryPercent != null && !teslaSnap.sleeping
+      ? Math.round(teslaSnap.batteryPercent)
+      : null
     if (p) {
       setModel(p.model); setYear(p.year); setTrim(p.trim)
-      setBattery(p.currentBatteryPercent)
+      setBattery(livePct ?? p.currentBatteryPercent)
       setDegrad(p.degradationPercent != null ? String(p.degradationPercent) : '')
       if (p.model === 'Model S') {
         const rev = MS_REVERSE[p.trim]
@@ -340,7 +366,7 @@ export function VehicleProfileModal() {
       const dy = new Date().getFullYear() - 1
       setModel(dm); setYear(dy)
       setTrim(getTrimsForYear(dm, dy)[0]?.id ?? '')
-      setBattery(80); setDegrad('')
+      setBattery(livePct ?? 80); setDegrad('')
       setMsGroup(null); setMsBat(null); setMsDrv(null)
     }
     setPerfMode(settingsStore.get().performanceMode)
@@ -633,11 +659,58 @@ export function VehicleProfileModal() {
 
           {/* Battery — slider + fine controls */}
           <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12 }}>
-              <div style={SECTION_LABEL}>{labels.battery} <span style={{ fontWeight: 400, opacity: 0.85, textTransform: 'none', letterSpacing: 0, fontSize: 12 }}>({labels.batteryHint})</span></div>
-              <div style={{ fontSize: 26, fontWeight: 800, color: col, letterSpacing: '-0.03em', lineHeight: 1 }}>
-                {Math.round(battery)}%
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                <span style={SECTION_LABEL}>{labels.battery}</span>
+                {/* LIVE badge — shown when Tesla is connected and has fresh battery data */}
+                {teslaConnected && teslaSnap?.batteryPercent != null && !teslaSnap.sleeping && (
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 4,
+                    padding: '2px 8px', borderRadius: 20,
+                    background: 'rgba(34,197,94,0.15)',
+                    border: '1px solid rgba(34,197,94,0.35)',
+                    fontSize: 11, fontWeight: 700, color: '#22c55e',
+                  }}>
+                    <span style={{
+                      width: 5, height: 5, borderRadius: '50%', background: '#22c55e',
+                      animation: 'pulse 2s infinite',
+                    }} />
+                    LIVE
+                  </span>
+                )}
+                {teslaConnected && teslaSnap?.sleeping && (
+                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
+                    💤 {isBg ? 'Колата спи' : 'Car sleeping'}
+                  </span>
+                )}
               </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                {/* Refresh from Tesla button */}
+                {teslaConnected && (
+                  <button
+                    onClick={() => {
+                      if (teslaSnap?.batteryPercent != null && !teslaSnap.sleeping) {
+                        setBattery(Math.round(teslaSnap.batteryPercent))
+                      }
+                    }}
+                    style={{
+                      fontSize: 11, padding: '3px 8px', borderRadius: 6,
+                      background: 'rgba(34,197,94,0.12)',
+                      border: '1px solid rgba(34,197,94,0.3)',
+                      color: '#22c55e', cursor: 'pointer', touchAction: 'manipulation',
+                      fontWeight: 600,
+                    }}
+                  >
+                    ↺ {isBg ? 'Tesla' : 'Tesla'}
+                  </button>
+                )}
+                <div style={{ fontSize: 26, fontWeight: 800, color: col, letterSpacing: '-0.03em', lineHeight: 1 }}>
+                  {Math.round(battery)}%
+                </div>
+              </div>
+            </div>
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 10 }}>
+              {labels.batteryHint}
             </div>
 
             {/* Slider row */}
