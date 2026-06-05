@@ -38,69 +38,74 @@ function getSteps(country: CountryConfig): Step[] {
   // BG: standard single-paragraph welcome
 
   const step1: Step = isBg ? {
-    icon:  '⚡',
-    title: 'Добре дошли в TesRadar',
-    body:  'Навигационен асистент за шофьори — EV зарядни станции, камери за средна скорост и пътни инциденти в реално време.',
-    hint:  null,
+    icon:    '⚡',
+    title:   'Добре дошли в TesRadar',
+    body:    'Всичко нужно за пътя — в един екран.',
+    bullets: [
+      '⚡  1 400+ зарядни станции в България',
+      '📷  47 отсечки за средна скорост с live bar',
+      '🚨  Репорти за полиция от общността в реално време',
+      '🚧  Пътни затваряния от официален държавен фийд',
+      '🗺️  Гласова навигация с пренасочване',
+    ],
+    hint: null,
   } : {
     icon:    '⚡',
     title:   'TesRadar',
-    body:    'Smarter driving for Tesla owners.',
+    body:    'Smarter driving — built for Tesla.',
     bullets: [
-      '⚡  EV charging stations — find available chargers',
-      '🚨  Live alerts — police, hazards, accidents',
-      '🗺️  Route planning with real-time ETA',
-      '🔊  Audio alerts — never miss what matters',
+      '⚡  17 000+ EV chargers across Europe',
+      '📷  Average-speed camera alerts with live bar',
+      '🚨  Community police & hazard reports',
+      '🚧  Live road closures — official DATEX II feed',
+      '🗺️  Voice navigation with live rerouting',
     ],
-    note:  'Early release · Data coverage growing · Built for Tesla drivers',
-    hint:  null,
+    hint: null,
   }
 
   // ── Step 2: Feature highlight ─────────────────────────────────────────
-  // BG with speedSections: camera/section step
-  // NO (no speedSections): EV-focused step
 
   const step2: Step = country.features.speedSections
     ? (isBg ? {
         icon:  '📷',
-        title: 'Камери и средна скорост',
-        body:  'Системата следи 47 отсечки за средна скорост в България. При наближаване виждате предупреждение и progress bar с текущата ви средна скорост.',
+        title: 'Камери, полиция и средна скорост',
+        body:  'Системата следи 47 отсечки за средна скорост. Репорти за полиция и катастрофи от общността достигат до теб секунди след подаването им. Пътните затваряния се зареждат от официалния DATEX II фийд на АПИ.',
         hint:  '⚠️  Предупреждение 2 км преди зоната',
       } : {
         icon:  '📷',
-        title: 'Average Speed Cameras',
-        body:  'The system monitors average-speed camera sections. You get a warning 2 km before the zone, with your live average speed on a progress bar.',
-        hint:  '⚠️  Warning 2 km before the zone',
+        title: 'Speed Cameras & Police Reports',
+        body:  'Average-speed camera sections monitored in real time. Community police reports alert you to controls on your route within seconds of being submitted.',
+        hint:  '⚠️  Warning 2 km before each zone',
       })
     : (isBg ? {
-        icon:  '⚡',
-        title: 'EV зарядни станции',
-        body:  'Виждайте зарядни станции наоколо в реално време. Филтрирайте по свободни места, тип конектор и мощност.',
-        hint:  null,
+        icon:    '⚡',
+        title:   'EV зарядни станции',
+        body:    'Над 1 400 зарядни станции в България от Tesla, OCM и OpenStreetMap. Филтрирай по конектор и мощност.',
+        hint:    null,
       } : {
         icon:    '⚡',
         title:   'EV Charging Network',
-        body:    'Every public charger near you — updated live.',
+        body:    'Every public charger near you — Tesla Superchargers, CCS, CHAdeMO and Type 2.',
         bullets: [
-          '🔌  Filter by connector (CCS, CHAdeMO, Type 2)',
+          '🔌  Filter by connector type',
           '⚡  Filter by speed (50 kW, 150 kW+)',
-          '✅  See real-time availability',
+          '📍  Tap any charger for details',
         ],
         hint:    null,
       })
 
-  // ── Step 3: Routes, events, reporting ────────────────────────────────
+  // ── Step 3: Navigation, saving places, reporting ──────────────────────
 
   const step3: Step = isBg ? {
     icon:  '🗺️',
-    title: 'Станции, маршрути и репортване',
-    body:  'Намерете зарядна станция, планирайте маршрут с ETA. Докоснете Report за да споделите полиция, катастрофа или опасност.',
+    title: 'Навигация и репортване',
+    body:  'Гласово навигиране с автоматично пренасочване при отклонение. Запази Дом и Работа за бърз старт. Натисни Report за да споделиш полиция, катастрофа или опасност — репортът достига до всички шофьори наблизо.',
     hint:  '🔊  Докоснете екрана за да активирате звука',
   } : {
     icon:  '🗺️',
-    title: 'Routes, Events & Reporting',
-    body:  'Plan a route with ETA. Tap Report to share a police sighting, accident or road hazard — your alerts help every Tesla driver nearby.',
-    hint:  '🔊  Tap the screen to enable sound alerts',
+    title: 'Navigation & Reporting',
+    body:  'Voice-guided routing with live rerouting. Save Home & Work for one-tap navigation. Tap Report to share a police sighting, accident or hazard — your alert reaches every driver nearby.',
+    hint:  '🔊  Tap the screen to enable audio alerts',
   }
 
   return [step1, step2, step3]
