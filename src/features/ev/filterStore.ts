@@ -15,12 +15,20 @@ interface FilterState {
   connector: ConnectorFilter
   minPowerKw: PowerFilter
   onlyAvailable: boolean
+  filtersVisible: boolean
+}
+
+const _LS_KEY = 'teslaradar:ev-filters-visible'
+
+function _loadVisible(): boolean {
+  try { return localStorage.getItem(_LS_KEY) !== '0' } catch { return true }
 }
 
 let _state: FilterState = {
-  connector:     null,
-  minPowerKw:    null,
-  onlyAvailable: false,
+  connector:      null,
+  minPowerKw:     null,
+  onlyAvailable:  false,
+  filtersVisible: _loadVisible(),
 }
 
 type Listener = () => void
@@ -94,7 +102,14 @@ export const filterStore = {
   },
 
   reset(): void {
-    _state = { connector: null, minPowerKw: null, onlyAvailable: false }
+    _state = { ..._state, connector: null, minPowerKw: null, onlyAvailable: false }
+    _emit()
+  },
+
+  toggleFiltersVisible(): void {
+    const next = !_state.filtersVisible
+    _state = { ..._state, filtersVisible: next }
+    try { localStorage.setItem(_LS_KEY, next ? '1' : '0') } catch { /* ignore */ }
     _emit()
   },
 }

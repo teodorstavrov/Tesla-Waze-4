@@ -8,6 +8,7 @@ import { useThemeStore } from '@/features/theme/store'
 import { settingsStore } from '@/features/settings/settingsStore'
 import { roadworksStore } from '@/features/roadworks/roadworksStore'
 import { evStore } from '@/features/ev/evStore'
+import { filterStore } from '@/features/ev/filterStore'
 import { openCountryPicker } from '@/components/CountryPicker'
 import { countryStore } from '@/lib/countryStore'
 import { langStore, getLang, t } from '@/lib/locale'
@@ -56,6 +57,11 @@ function PanelContent() {
     evStore.subscribe,
     evStore.getState,
     evStore.getState,
+  )
+  const { filtersVisible: showEVFilters } = useSyncExternalStore(
+    filterStore.subscribe,
+    filterStore.getState,
+    filterStore.getState,
   )
   const { theme, mapMode, toggleNight, toggleSatellite } = useThemeStore()
   const isNight     = theme === 'dark' && mapMode === 'normal'
@@ -126,6 +132,15 @@ function PanelContent() {
         state={showEV}
         stateColor="#22c55e"
         onToggle={() => evStore.toggleMarkersVisible()}
+      />
+
+      {/* EV Filters visibility */}
+      <Row
+        icon={<FilterIcon active={showEVFilters} />}
+        label={t('settings.evFilters')}
+        state={showEVFilters}
+        stateColor="#22c55e"
+        onToggle={() => filterStore.toggleFiltersVisible()}
       />
 
       {/* Roadworks */}
@@ -353,6 +368,16 @@ function EVIcon({ active }: { active: boolean }) {
         fill={active ? '#22c55e18' : 'none'} />
       <line x1="23" y1="13" x2="23" y2="11" />
       <polyline points="11 6 7 12 13 12 9 18" stroke={c} strokeWidth="2.2" />
+    </svg>
+  )
+}
+
+function FilterIcon({ active }: { active: boolean }) {
+  const c = active ? '#22c55e' : 'currentColor'
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+      stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" fill={active ? '#22c55e18' : 'none'} />
     </svg>
   )
 }

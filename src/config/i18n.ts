@@ -114,9 +114,11 @@ export const DICTIONARY = {
     },
 
     filter: {
-      available:  'Свободни',
-      clear:      '✕ Изчисти',
+      available:   'Свободни',
+      clear:       '✕ Изчисти',
       filterLabel: 'Филтри за зарядни станции',
+      showFilters: '⚡ Филтри',
+      hideFilters: 'Скрии',
     },
 
     route: {
@@ -282,6 +284,7 @@ export const DICTIONARY = {
       traffic:        'Трафик',
       roadworks:      'Пътни ремонти',
       evStations:     'Зарядни станции',
+      evFilters:      'Филтри за станции',
       nightMode:      'Нощен режим',
       dayMode:        'Дневен режим',
       satellite:      'Сателитна карта',
@@ -391,6 +394,8 @@ export const DICTIONARY = {
       available:   'Available',
       clear:       '✕ Clear',
       filterLabel: 'EV station filters',
+      showFilters: '⚡ Filters',
+      hideFilters: 'Hide',
     },
 
     route: {
@@ -556,6 +561,7 @@ export const DICTIONARY = {
       traffic:        'Traffic',
       roadworks:      'Road works',
       evStations:     'Charging stations',
+      evFilters:      'Station filters',
       nightMode:      'Night mode',
       dayMode:        'Day mode',
       satellite:      'Satellite view',
@@ -665,6 +671,8 @@ export const DICTIONARY = {
       available:   'Ledig',
       clear:       '✕ Tøm',
       filterLabel: 'Elbil-stasjonsfiltre',
+      showFilters: '⚡ Filtrer',
+      hideFilters: 'Skjul',
     },
 
     route: {
@@ -830,6 +838,7 @@ export const DICTIONARY = {
       traffic:        'Trafikk',
       roadworks:      'Veiarbeid',
       evStations:     'Ladestasjoner',
+      evFilters:      'Stasjonsfiltre',
       nightMode:      'Nattmodus',
       dayMode:        'Dagmodus',
       satellite:      'Satellittkart',
@@ -940,6 +949,8 @@ export const DICTIONARY = {
       available:   'Tillgänglig',
       clear:       '✕ Rensa',
       filterLabel: 'Elbilsstationsfilter',
+      showFilters: '⚡ Filter',
+      hideFilters: 'Dölj',
     },
 
     route: {
@@ -1105,6 +1116,7 @@ export const DICTIONARY = {
       traffic:        'Trafik',
       roadworks:      'Vägarbete',
       evStations:     'Laddstationer',
+      evFilters:      'Stationsfilter',
       nightMode:      'Nattläge',
       dayMode:        'Dagläge',
       satellite:      'Satellittkarta',
@@ -1215,6 +1227,8 @@ export const DICTIONARY = {
       available:   'Saatavilla',
       clear:       '✕ Tyhjennä',
       filterLabel: 'Sähköautoasemasuodattimet',
+      showFilters: '⚡ Suodattimet',
+      hideFilters: 'Piilota',
     },
 
     route: {
@@ -1380,6 +1394,7 @@ export const DICTIONARY = {
       traffic:        'Liikenne',
       roadworks:      'Tietyöt',
       evStations:     'Latauspisteet',
+      evFilters:      'Asemasuodattimet',
       nightMode:      'Yötila',
       dayMode:        'Päivätila',
       satellite:      'Satelliittikartta',
@@ -1489,6 +1504,8 @@ export const DICTIONARY = {
       available:   'Beschikbaar',
       clear:       '✕ Wissen',
       filterLabel: 'EV-laadpaalfilters',
+      showFilters: '⚡ Filters',
+      hideFilters: 'Verbergen',
     },
 
     route: {
@@ -1654,6 +1671,7 @@ export const DICTIONARY = {
       traffic:        'Verkeer',
       roadworks:      'Wegwerkzaamheden',
       evStations:     'Laadstations',
+      evFilters:      'Stationfilters',
       nightMode:      'Nachtmodus',
       dayMode:        'Dagmodus',
       satellite:      'Satellietkaart',

@@ -34,7 +34,20 @@ export function FilterBar() {
 
   if (!markersVisible || routeStatus !== 'idle') return null
 
-  const { connector, minPowerKw, onlyAvailable } = filterState
+  const { connector, minPowerKw, onlyAvailable, filtersVisible } = filterState
+
+  // ── Collapsed: show only "⚡ Филтри" button ──────────────────────────
+  if (!filtersVisible) {
+    return (
+      <div style={{ position: 'absolute', bottom: 144, left: '50%', transform: 'translateX(-50%)', zIndex: 400 }}>
+        <Chip
+          label={t('filter.showFilters')}
+          active={false}
+          onClick={() => filterStore.toggleFiltersVisible()}
+        />
+      </div>
+    )
+  }
 
   return (
     <div
@@ -57,62 +70,31 @@ export function FilterBar() {
       aria-label={t('filter.filterLabel')}
     >
       {/* Connector chips */}
-      <Chip
-        label="Tesla"
-        color="#e31937"
-        active={connector === 'Tesla'}
-        onClick={() => filterStore.setConnector('Tesla')}
-      />
-      <Chip
-        label="CCS"
-        active={connector === 'CCS'}
-        onClick={() => filterStore.setConnector('CCS')}
-      />
-      <Chip
-        label="CHAdeMO"
-        active={connector === 'CHAdeMO'}
-        onClick={() => filterStore.setConnector('CHAdeMO')}
-      />
-      <Chip
-        label="Type 2"
-        active={connector === 'Type2'}
-        onClick={() => filterStore.setConnector('Type2' as ConnectorFilter)}
-      />
+      <Chip label="Tesla"   color="#e31937" active={connector === 'Tesla'}   onClick={() => filterStore.setConnector('Tesla')} />
+      <Chip label="CCS"                     active={connector === 'CCS'}     onClick={() => filterStore.setConnector('CCS')} />
+      <Chip label="CHAdeMO"                 active={connector === 'CHAdeMO'} onClick={() => filterStore.setConnector('CHAdeMO')} />
+      <Chip label="Type 2"                  active={connector === 'Type2'}   onClick={() => filterStore.setConnector('Type2' as ConnectorFilter)} />
 
       <Divider />
 
       {/* Power chips */}
-      <Chip
-        label="50kW+"
-        color="#22c55e"
-        active={minPowerKw === 50}
-        onClick={() => filterStore.setMinPower(50 as PowerFilter)}
-      />
-      <Chip
-        label="150kW+"
-        color="#F59E0B"
-        active={minPowerKw === 150}
-        onClick={() => filterStore.setMinPower(150 as PowerFilter)}
-      />
+      <Chip label="50kW+"  color="#22c55e" active={minPowerKw === 50}  onClick={() => filterStore.setMinPower(50 as PowerFilter)} />
+      <Chip label="150kW+" color="#F59E0B" active={minPowerKw === 150} onClick={() => filterStore.setMinPower(150 as PowerFilter)} />
 
       <Divider />
 
       {/* Availability */}
-      <Chip
-        label={t('filter.available')}
-        active={onlyAvailable}
-        onClick={() => filterStore.toggleAvailable()}
-      />
+      <Chip label={t('filter.available')} active={onlyAvailable} onClick={() => filterStore.toggleAvailable()} />
 
       {/* Reset */}
       {filterStore.isActive() && (
-        <Chip
-          label={t('filter.clear')}
-          active={false}
-          muted
-          onClick={() => filterStore.reset()}
-        />
+        <Chip label={t('filter.clear')} active={false} muted onClick={() => filterStore.reset()} />
       )}
+
+      <Divider />
+
+      {/* Hide filters */}
+      <Chip label={t('filter.hideFilters')} active={false} muted onClick={() => filterStore.toggleFiltersVisible()} />
     </div>
   )
 }
