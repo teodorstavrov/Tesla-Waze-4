@@ -7,6 +7,7 @@ import { uiStore } from '@/features/settings/uiStore'
 import { useThemeStore } from '@/features/theme/store'
 import { settingsStore } from '@/features/settings/settingsStore'
 import { roadworksStore } from '@/features/roadworks/roadworksStore'
+import { evStore } from '@/features/ev/evStore'
 import { openCountryPicker } from '@/components/CountryPicker'
 import { countryStore } from '@/lib/countryStore'
 import { langStore, getLang, t } from '@/lib/locale'
@@ -50,6 +51,11 @@ function PanelContent() {
     roadworksStore.subscribe,
     roadworksStore.getState,
     roadworksStore.getState,
+  )
+  const { markersVisible: showEV } = useSyncExternalStore(
+    evStore.subscribe,
+    evStore.getState,
+    evStore.getState,
   )
   const { theme, mapMode, toggleNight, toggleSatellite } = useThemeStore()
   const isNight     = theme === 'dark' && mapMode === 'normal'
@@ -111,6 +117,15 @@ function PanelContent() {
         label={t('settings.traffic')}
         state={showTraffic}
         onToggle={() => settingsStore.toggleTraffic()}
+      />
+
+      {/* EV Stations */}
+      <Row
+        icon={<EVIcon active={showEV} />}
+        label={t('settings.evStations')}
+        state={showEV}
+        stateColor="#22c55e"
+        onToggle={() => evStore.toggleMarkersVisible()}
       />
 
       {/* Roadworks */}
@@ -325,6 +340,19 @@ function PanelIcon() {
       stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <rect x="2" y="3" width="20" height="18" rx="2" />
       <line x1="16" y1="3" x2="16" y2="21" />
+    </svg>
+  )
+}
+
+function EVIcon({ active }: { active: boolean }) {
+  const c = active ? '#22c55e' : 'currentColor'
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+      stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M5 18H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h3.19M15 6h2a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-3.19"
+        fill={active ? '#22c55e18' : 'none'} />
+      <line x1="23" y1="13" x2="23" y2="11" />
+      <polyline points="11 6 7 12 13 12 9 18" stroke={c} strokeWidth="2.2" />
     </svg>
   )
 }
