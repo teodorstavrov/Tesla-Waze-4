@@ -1,7 +1,7 @@
 {
   "name": "tesla-waze-4",
   "private": true,
-  "version": "0.0.0",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,7 +11,6 @@
     "test": "npx tsx --test api/_lib/merge/stations.test.ts api/_lib/providers/ocm.test.ts api/_lib/providers/overpass.test.ts api/_lib/tesla/normalize.test.ts"
   },
   "dependencies": {
-    "pg": "^8.11.0",
     "@sentry/node": "^10.46.0",
     "@sentry/react": "^10.46.0",
     "@tailwindcss/vite": "^4.2.2",
@@ -20,6 +19,8 @@
     "@vercel/speed-insights": "^2.0.0",
     "fast-xml-parser": "^5.7.1",
     "leaflet": "^1.9.4",
+    "pg": "^8.11.0",
+    "playwright": "^1.60.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "tailwindcss": "^4.2.2",

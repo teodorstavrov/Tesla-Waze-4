@@ -269,8 +269,8 @@ export function Onboarding() {
 
       <div style={{ marginTop: 10, fontSize: 10, color: 'rgba(255,255,255,0.15)', maxWidth: 340, lineHeight: 1.4 }}>
         {isBg
-          ? 'Независим проект — не е свързан с Tesla, Inc.'
-          : 'This is an independent project not affiliated with Tesla.'}
+          ? 'TesRadar е независим проект, който не е обвързан с Tesla или други компании.'
+          : 'TesRadar is an independent project not affiliated with Tesla or any other company.'}
       </div>
     </div>
   )

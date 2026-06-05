@@ -223,7 +223,10 @@ export function SupportModal({ qrImageUrl, donationLink }: SupportModalProps) {
 
             {/* Version label */}
             <div style={{ textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.25)', letterSpacing: '0.08em' }}>
-              v0.3
+              v2.0
+            </div>
+            <div style={{ textAlign: 'center', fontSize: 11, color: 'rgba(255,255,255,0.18)', marginTop: 4, lineHeight: 1.5, maxWidth: 260, margin: '4px auto 0' }}>
+              TesRadar е независим проект, който не е обвързан с Tesla или други компании.
             </div>
           </>
         ) : (
