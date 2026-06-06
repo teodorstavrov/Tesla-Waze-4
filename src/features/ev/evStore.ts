@@ -11,9 +11,10 @@ import type { NormalizedStation, StationsApiResponse } from './types'
 import { logger } from '@/lib/logger'
 import { countryStore } from '@/lib/countryStore'
 
-const STALE_MS  = 30 * 60 * 1000       // re-fetch after 30 min
-const LS_PREFIX = 'ev-stations-cache'
-const LS_TTL    = 24 * 60 * 60 * 1000  // discard localStorage after 24 h
+const STALE_MS      = 30 * 60 * 1000       // re-fetch after 30 min
+const LS_PREFIX     = 'ev-stations-cache'
+const LS_TTL        = 24 * 60 * 60 * 1000  // discard localStorage after 24 h
+const LS_MAX_STATIONS = 5_000              // cap stored stations to prevent Tesla browser OOM
 
 // ── localStorage persistence (country-keyed) ─────────────────────
 
@@ -23,8 +24,10 @@ function _lsKey(country: string): string {
 
 function _saveToLocalStorage(country: string, stations: NormalizedStation[]): void {
   if (stations.length === 0) return  // never overwrite a good cache with empty
+  // Cap stored stations — Tesla browser OOM with > ~6000 Leaflet markers
+  const toStore = stations.length > LS_MAX_STATIONS ? stations.slice(0, LS_MAX_STATIONS) : stations
   try {
-    localStorage.setItem(_lsKey(country), JSON.stringify({ stations, savedAt: Date.now() }))
+    localStorage.setItem(_lsKey(country), JSON.stringify({ stations: toStore, savedAt: Date.now() }))
   } catch { /* quota exceeded — non-fatal */ }
 }
 
@@ -99,6 +102,11 @@ function _countryBbox() {
 
 function _mergeStations(incoming: NormalizedStation[]): NormalizedStation[] {
   if (incoming.length === 0) return _state.stations  // never shrink with empty response
+  // If incoming is a substantial full-country response (> 200 stations),
+  // use it as the authoritative base — prevents unbounded accumulation across
+  // sessions that crashes the Tesla browser (OOM with 30k+ markers).
+  if (incoming.length > 200) return incoming
+  // Small incoming (partial bbox top-up) — merge with existing
   const map = new Map(_state.stations.map((s) => [s.id, s]))
   for (const s of incoming) map.set(s.id, s)
   return [...map.values()]

@@ -250,21 +250,35 @@ export function EvMarkerLayer() {
 
         // Use clusters at low zoom
         if (zoomRef.current < CLUSTER_ZOOM) {
-          // Remove individual markers if any
           for (const m of registry.values()) m.remove()
           registry.clear()
           syncClusters()
           return
         }
 
-        // Remove cluster markers if any
         for (const m of clusterRegistry.values()) m.remove()
         clusterRegistry.clear()
 
-        const stations  = filterStore.getFilteredStations()
-        const nearRoute = nearRouteRef.current
-        const incoming  = new Set(stations.map((s) => s.id))
+        const allStations = filterStore.getFilteredStations()
+        const nearRoute   = nearRouteRef.current
 
+        // ── Viewport culling — only render markers in the visible map area ──
+        // Prevents Tesla browser OOM when a country has thousands of stations.
+        // Padding of 0.2° keeps markers ready just outside the edge so they
+        // appear immediately on small pans without a re-render round-trip.
+        const bounds  = map.getBounds()
+        const pad     = 0.2
+        const minLat  = bounds.getSouth() - pad
+        const maxLat  = bounds.getNorth() + pad
+        const minLng  = bounds.getWest()  - pad
+        const maxLng  = bounds.getEast()  + pad
+        const stations = allStations.filter(
+          (s) => s.lat >= minLat && s.lat <= maxLat && s.lng >= minLng && s.lng <= maxLng,
+        )
+
+        const incoming = new Set(stations.map((s) => s.id))
+
+        // Remove markers no longer in viewport
         for (const [id, marker] of registry) {
           if (!incoming.has(id)) { marker.remove(); registry.delete(id) }
         }

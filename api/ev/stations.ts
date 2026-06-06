@@ -104,7 +104,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
     if (allStations !== null && allStations.length > 0) {
       const syncMeta = await stationDb.getMeta()
-      const providerStations = allStations.filter((s) => inBBox(s.lat, s.lng, qbbox))
+      // Cap provider stations at 6000 per request — Tesla browser OOM with more markers.
+      // Priority: tesla > ocm > osm (most specific sources first).
+      const filtered = allStations.filter((s) => inBBox(s.lat, s.lng, qbbox))
+      const providerStations = filtered.length > 6000
+        ? [
+            ...filtered.filter((s) => s.source === 'tesla'),
+            ...filtered.filter((s) => s.source === 'ocm'),
+            ...filtered.filter((s) => s.source === 'osm'),
+          ].slice(0, 6000)
+        : filtered
       const stations = [...providerStations, ...userInBBox]
 
       const response: StationsApiResponse = {
