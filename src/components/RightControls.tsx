@@ -2,7 +2,7 @@
 // Theme toggle + satellite toggle + country picker.
 // Gear button (always visible) opens the settings panel.
 // The 6 action buttons can be hidden via the settings panel.
-import { useSyncExternalStore } from 'react'
+import { useSyncExternalStore, useState, useCallback, useRef } from 'react'
 import { ThemeToggle } from '@/components/ThemeToggle'
 import { SatelliteButton } from '@/components/SatelliteButton'
 import { openCountryPicker } from '@/components/CountryPicker'
@@ -44,6 +44,34 @@ export function RightControls() {
     uiStore.getState,
   )
 
+  // Transient labels — show for 3s after toggle
+  const [trafficLabel, setTrafficLabel]   = useState<string | null>(null)
+  const [roadworksLabel, setRoadworksLabel] = useState<string | null>(null)
+  const trafficTimer   = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const roadworksTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const isBg = getLang() === 'bg'
+
+  const handleTraffic = useCallback(() => {
+    settingsStore.toggleTraffic()
+    const next = !showTraffic
+    setTrafficLabel(next
+      ? (isBg ? 'Трафик показан'  : 'Traffic shown')
+      : (isBg ? 'Трафик скрит'   : 'Traffic hidden'))
+    if (trafficTimer.current) clearTimeout(trafficTimer.current)
+    trafficTimer.current = setTimeout(() => setTrafficLabel(null), 3000)
+  }, [showTraffic, isBg])
+
+  const handleRoadworks = useCallback(() => {
+    roadworksStore.toggle()
+    const next = !showRoadworks
+    setRoadworksLabel(next
+      ? (isBg ? 'Затворени пътища показани' : 'Road closures shown')
+      : (isBg ? 'Затворени пътища скрити'   : 'Road closures hidden'))
+    if (roadworksTimer.current) clearTimeout(roadworksTimer.current)
+    roadworksTimer.current = setTimeout(() => setRoadworksLabel(null), 3000)
+  }, [showRoadworks, isBg])
+
   return (
     <div
       className="right-controls"
@@ -62,26 +90,53 @@ export function RightControls() {
       {/* Action buttons — conditionally visible */}
       {showRightControls && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, opacity: 0.5 }}>
-          <button
-            className="icon-btn"
-            onClick={() => settingsStore.toggleTraffic()}
-            title={showTraffic ? 'Hide traffic' : 'Show traffic'}
-            aria-label={showTraffic ? 'Hide traffic' : 'Show traffic'}
-            aria-pressed={showTraffic}
-            style={{ width: 63, height: 63, color: showTraffic ? '#22c55e' : undefined }}
-          >
-            <TrafficIcon active={showTraffic} />
-          </button>
-          <button
-            className="icon-btn"
-            onClick={() => roadworksStore.toggle()}
-            title={showRoadworks ? 'Hide road closures' : 'Show road closures'}
-            aria-label={showRoadworks ? 'Hide road closures' : 'Show road closures'}
-            aria-pressed={showRoadworks}
-            style={{ width: 63, height: 63, color: showRoadworks ? '#f97316' : undefined }}
-          >
-            {rwStatus === 'loading' ? <RoadworksLoadingIcon /> : <RoadworksIcon active={showRoadworks} />}
-          </button>
+          <div style={{ position: 'relative' }}>
+            <button
+              className="icon-btn"
+              onClick={handleTraffic}
+              title={showTraffic ? 'Hide traffic' : 'Show traffic'}
+              aria-label={showTraffic ? 'Hide traffic' : 'Show traffic'}
+              aria-pressed={showTraffic}
+              style={{ width: 63, height: 63, color: showTraffic ? '#22c55e' : undefined }}
+            >
+              <TrafficIcon active={showTraffic} />
+            </button>
+            {trafficLabel && (
+              <div style={{
+                position: 'absolute', right: 71, top: '50%', transform: 'translateY(-50%)',
+                background: 'rgba(12,12,20,0.93)', border: '1px solid rgba(255,255,255,0.15)',
+                borderRadius: 8, padding: '5px 10px',
+                fontSize: 12, fontWeight: 600, color: '#22c55e',
+                whiteSpace: 'nowrap', pointerEvents: 'none',
+              }}>
+                {trafficLabel}
+              </div>
+            )}
+          </div>
+
+          <div style={{ position: 'relative' }}>
+            <button
+              className="icon-btn"
+              onClick={handleRoadworks}
+              title={showRoadworks ? 'Hide road closures' : 'Show road closures'}
+              aria-label={showRoadworks ? 'Hide road closures' : 'Show road closures'}
+              aria-pressed={showRoadworks}
+              style={{ width: 63, height: 63, color: showRoadworks ? '#f97316' : undefined }}
+            >
+              {rwStatus === 'loading' ? <RoadworksLoadingIcon /> : <ClosedRoadIcon active={showRoadworks} />}
+            </button>
+            {roadworksLabel && (
+              <div style={{
+                position: 'absolute', right: 71, top: '50%', transform: 'translateY(-50%)',
+                background: 'rgba(12,12,20,0.93)', border: '1px solid rgba(255,255,255,0.15)',
+                borderRadius: 8, padding: '5px 10px',
+                fontSize: 12, fontWeight: 600, color: '#f97316',
+                whiteSpace: 'nowrap', pointerEvents: 'none',
+              }}>
+                {roadworksLabel}
+              </div>
+            )}
+          </div>
           <ThemeToggle />
           <SatelliteButton />
           <button
@@ -126,15 +181,21 @@ export function RightControls() {
   )
 }
 
-function RoadworksIcon({ active }: { active: boolean }) {
-  const c = active ? '#f97316' : 'currentColor'
+function ClosedRoadIcon({ active }: { active: boolean }) {
+  const c  = active ? '#f97316' : 'currentColor'
+  const bg = active ? '#f9731622' : 'none'
   return (
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
-      stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"
-        fill={active ? '#f9731622' : 'none'} />
-      <line x1="12" y1="9" x2="12" y2="13" strokeWidth="2.5" stroke={c} />
-      <circle cx="12" cy="17" r="0.5" fill={c} stroke={c} strokeWidth="1.5" />
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      {/* Road surface */}
+      <rect x="2" y="10" width="20" height="6" rx="1"
+        fill={bg} stroke={c} strokeWidth="1.6" />
+      {/* Center dashes */}
+      <line x1="5" y1="13" x2="7" y2="13" stroke={c} strokeWidth="1.2" strokeDasharray="2 1.5" />
+      <line x1="10" y1="13" x2="14" y2="13" stroke={c} strokeWidth="1.2" strokeDasharray="2 1.5" />
+      <line x1="17" y1="13" x2="19" y2="13" stroke={c} strokeWidth="1.2" strokeDasharray="2 1.5" />
+      {/* Barrier — red/orange X across the road */}
+      <line x1="3" y1="8" x2="21" y2="18" stroke={c} strokeWidth="2.2" strokeLinecap="round" />
+      <line x1="21" y1="8" x2="3" y2="18" stroke={c} strokeWidth="2.2" strokeLinecap="round" />
     </svg>
   )
 }
