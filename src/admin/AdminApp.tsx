@@ -400,6 +400,7 @@ function Dashboard({ secret }: { secret: string }) {
           events={events}
           userStations={userStations}
           comments={comments}
+          meetups={meetups}
           addMode={addMode}
           editingEventId={editingEvent?.id ?? null}
           onMapClick={(lat, lng) => { void addEvent(lat, lng) }}
@@ -407,6 +408,7 @@ function Dashboard({ secret }: { secret: string }) {
           onEdit={setEditingEvent}
           onApproveStation={(id) => { void approveUserStation(id) }}
           onRejectStation={(id)  => { void rejectUserStation(id) }}
+          onDeleteMeetup={(id) => { void deleteMeetup(id) }}
         />
 
         {/* Edit panel overlay */}
@@ -678,6 +680,7 @@ interface AdminMapProps {
   events:           RoadEvent[]
   userStations:     UserStation[]
   comments:         StationComment[]
+  meetups:          AdminMeetup[]
   addMode:          boolean
   editingEventId:   string | null
   onMapClick:       (lat: number, lng: number) => void
@@ -685,21 +688,24 @@ interface AdminMapProps {
   onEdit:           (event: RoadEvent) => void
   onApproveStation: (id: string) => void
   onRejectStation:  (id: string) => void
+  onDeleteMeetup:   (id: string) => void
 }
 
-function AdminMap({ events, userStations, comments, addMode, editingEventId, onMapClick, onDelete, onEdit, onApproveStation, onRejectStation }: AdminMapProps) {
+function AdminMap({ events, userStations, comments, meetups, addMode, editingEventId, onMapClick, onDelete, onEdit, onApproveStation, onRejectStation, onDeleteMeetup }: AdminMapProps) {
   const containerRef        = useRef<HTMLDivElement>(null)
   const mapRef              = useRef<L.Map | null>(null)
   const markersRef          = useRef<Map<string, L.Marker>>(new Map())
   const markerRevisionRef   = useRef<Map<string, string>>(new Map())
   const stationMarkersRef   = useRef<Map<string, L.Marker>>(new Map())
   const commentMarkersRef   = useRef<Map<string, L.Marker>>(new Map())
+  const meetupMarkersRef    = useRef<Map<string, L.Marker>>(new Map())
   const addModeRef          = useRef(addMode)
   const onClickRef          = useRef(onMapClick)
   const onDeleteRef         = useRef(onDelete)
   const onEditRef           = useRef(onEdit)
   const onApproveStationRef = useRef(onApproveStation)
   const onRejectStationRef  = useRef(onRejectStation)
+  const onDeleteMeetupRef   = useRef(onDeleteMeetup)
 
   // Keep refs in sync (avoids stale closures in Leaflet handlers)
   addModeRef.current          = addMode
@@ -708,6 +714,7 @@ function AdminMap({ events, userStations, comments, addMode, editingEventId, onM
   onEditRef.current           = onEdit
   onApproveStationRef.current = onApproveStation
   onRejectStationRef.current  = onRejectStation
+  onDeleteMeetupRef.current   = onDeleteMeetup
 
   // Init map once
   useEffect(() => {
@@ -820,6 +827,47 @@ function AdminMap({ events, userStations, comments, addMode, editingEventId, onM
       }
     })
   }, [events, editingEventId])
+
+  // Community event (meetup) markers
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    void import('leaflet').then((Lm) => {
+      const L = Lm.default
+      const ids = new Set(meetups.map((m) => m.id))
+      for (const [id, marker] of meetupMarkersRef.current) {
+        if (!ids.has(id)) { marker.remove(); meetupMarkersRef.current.delete(id) }
+      }
+      for (const m of meetups) {
+        if (meetupMarkersRef.current.has(m.id) || m.lat == null || m.lng == null) continue
+        const icon = L.divIcon({
+          className: '',
+          html: `<div style="width:30px;height:30px;border-radius:50%;
+            background:#6366f1;border:2px solid rgba(255,255,255,0.9);
+            display:flex;align-items:center;justify-content:center;font-size:15px;
+            box-shadow:0 2px 8px rgba(99,102,241,0.6);cursor:pointer;">📅</div>`,
+          iconSize: [30, 30], iconAnchor: [15, 15],
+        })
+        const marker = L.marker([m.lat, m.lng], { icon }).addTo(map)
+        const esc = (s: string) => String(s ?? '').replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c] ?? c))
+        const when = new Date(m.date).toLocaleString('bg-BG', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+        marker.bindPopup(
+          `<div style="min-width:170px">
+            <div style="font-weight:800;margin-bottom:4px">📅 ${esc(m.title)}</div>
+            <div style="font-size:12px;color:#555">${esc(when)}</div>
+            ${m.organizer ? `<div style="font-size:12px;color:#555">👤 ${esc(m.organizer)}</div>` : ''}
+            ${m.organizerPhone ? `<div style="font-size:12px;color:#555">📞 ${esc(m.organizerPhone)}</div>` : ''}
+            <button id="delm-${m.id}" style="margin-top:8px;background:#ef4444;color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:12px;cursor:pointer">Изтрий</button>
+          </div>`, { maxWidth: 240 })
+        marker.on('popupopen', () => {
+          document.getElementById(`delm-${m.id}`)?.addEventListener('click', () => {
+            marker.closePopup(); onDeleteMeetupRef.current(m.id)
+          })
+        })
+        meetupMarkersRef.current.set(m.id, marker)
+      }
+    })
+  }, [meetups])
 
   // Sync user-station markers (orange circles)
   useEffect(() => {
