@@ -141,6 +141,7 @@ function Dashboard({ secret }: { secret: string }) {
   const [syncMsg, setSyncMsg] = useState('')
   const [addMode, setAddMode] = useState(false)
   const [selType, setSelType] = useState<EventType>('police')
+  const [editingEvent, setEditingEvent] = useState<RoadEvent | null>(null)
 
   const headers = { Authorization: `Bearer ${secret}` }
 
@@ -183,6 +184,20 @@ function Dashboard({ secret }: { secret: string }) {
   async function deleteEvent(id: string) {
     await fetch(`/api/admin/events?id=${id}`, { method: 'DELETE', headers })
     setEvents((prev) => prev.filter((e) => e.id !== id))
+    if (editingEvent?.id === id) setEditingEvent(null)
+  }
+
+  async function updateEvent(id: string, patch: Partial<Pick<RoadEvent, 'type' | 'lat' | 'lng' | 'description' | 'permanent'>>) {
+    const r = await fetch('/api/admin/events', {
+      method: 'PATCH',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, ...patch }),
+    })
+    if (r.ok) {
+      const { event } = await r.json() as { event: RoadEvent }
+      setEvents((prev) => prev.map((e) => e.id === id ? event : e))
+      setEditingEvent(null)
+    }
   }
 
   async function approveUserStation(id: string) {
@@ -358,6 +373,14 @@ function Dashboard({ secret }: { secret: string }) {
 
         {/* Community events (meetups) */}
         <MeetupsPanel meetups={meetups} onDelete={(id) => { void deleteMeetup(id) }} />
+
+        {/* Road events list */}
+        <EventsListPanel
+          events={events}
+          editingId={editingEvent?.id ?? null}
+          onEdit={setEditingEvent}
+          onDelete={(id) => { void deleteEvent(id) }}
+        />
       </div>
 
       {/* ── Map ── */}
@@ -378,11 +401,22 @@ function Dashboard({ secret }: { secret: string }) {
           userStations={userStations}
           comments={comments}
           addMode={addMode}
+          editingEventId={editingEvent?.id ?? null}
           onMapClick={(lat, lng) => { void addEvent(lat, lng) }}
           onDelete={(id) => { void deleteEvent(id) }}
+          onEdit={setEditingEvent}
           onApproveStation={(id) => { void approveUserStation(id) }}
           onRejectStation={(id)  => { void rejectUserStation(id) }}
         />
+
+        {/* Edit panel overlay */}
+        {editingEvent && (
+          <EventEditPanel
+            event={editingEvent}
+            onSave={(patch) => { void updateEvent(editingEvent.id, patch) }}
+            onCancel={() => setEditingEvent(null)}
+          />
+        )}
       </div>
     </div>
   )
@@ -645,21 +679,25 @@ interface AdminMapProps {
   userStations:     UserStation[]
   comments:         StationComment[]
   addMode:          boolean
+  editingEventId:   string | null
   onMapClick:       (lat: number, lng: number) => void
   onDelete:         (id: string) => void
+  onEdit:           (event: RoadEvent) => void
   onApproveStation: (id: string) => void
   onRejectStation:  (id: string) => void
 }
 
-function AdminMap({ events, userStations, comments, addMode, onMapClick, onDelete, onApproveStation, onRejectStation }: AdminMapProps) {
+function AdminMap({ events, userStations, comments, addMode, editingEventId, onMapClick, onDelete, onEdit, onApproveStation, onRejectStation }: AdminMapProps) {
   const containerRef        = useRef<HTMLDivElement>(null)
   const mapRef              = useRef<L.Map | null>(null)
   const markersRef          = useRef<Map<string, L.Marker>>(new Map())
+  const markerRevisionRef   = useRef<Map<string, string>>(new Map())
   const stationMarkersRef   = useRef<Map<string, L.Marker>>(new Map())
   const commentMarkersRef   = useRef<Map<string, L.Marker>>(new Map())
   const addModeRef          = useRef(addMode)
   const onClickRef          = useRef(onMapClick)
   const onDeleteRef         = useRef(onDelete)
+  const onEditRef           = useRef(onEdit)
   const onApproveStationRef = useRef(onApproveStation)
   const onRejectStationRef  = useRef(onRejectStation)
 
@@ -667,6 +705,7 @@ function AdminMap({ events, userStations, comments, addMode, onMapClick, onDelet
   addModeRef.current          = addMode
   onClickRef.current          = onMapClick
   onDeleteRef.current         = onDelete
+  onEditRef.current           = onEdit
   onApproveStationRef.current = onApproveStation
   onRejectStationRef.current  = onRejectStation
 
@@ -712,7 +751,7 @@ function AdminMap({ events, userStations, comments, addMode, onMapClick, onDelet
     el.style.cursor = addMode ? 'crosshair' : ''
   }, [addMode])
 
-  // Sync markers when events change
+  // Sync markers when events change — revision tracking so edits re-render
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
@@ -727,27 +766,36 @@ function AdminMap({ events, userStations, comments, addMode, onMapClick, onDelet
         if (!currentIds.has(id)) {
           marker.remove()
           markersRef.current.delete(id)
+          markerRevisionRef.current.delete(id)
         }
       }
 
-      // Add new markers
+      // Add / update markers
       for (const ev of events) {
-        if (markersRef.current.has(ev.id)) continue
+        const revision = `${ev.type}|${ev.lat}|${ev.lng}|${String(ev.permanent)}`
+        if (markerRevisionRef.current.get(ev.id) === revision) continue
 
+        // Remove existing marker so we can re-create it with updated data
+        const existing = markersRef.current.get(ev.id)
+        if (existing) { existing.remove(); markersRef.current.delete(ev.id) }
+
+        const isEditing = editingEventId === ev.id
         const icon = L.divIcon({
           className: '',
           html: ev.permanent
             ? `<div style="
                 width:34px;height:34px;border-radius:50%;
-                background:rgba(227,25,55,0.18);border:2.5px solid #e31937;
+                background:rgba(227,25,55,0.18);border:${isEditing ? '3px solid #facc15' : '2.5px solid #e31937'};
                 display:flex;align-items:center;justify-content:center;
                 font-size:17px;line-height:1;cursor:pointer;
-                box-shadow:0 2px 8px rgba(227,25,55,0.5);
+                box-shadow:0 2px 8px ${isEditing ? 'rgba(250,204,21,0.7)' : 'rgba(227,25,55,0.5)'};
               ">${eventEmoji(ev.type)}</div>`
             : `<div style="
                 font-size:24px;line-height:1;
                 filter:drop-shadow(0 1px 3px rgba(0,0,0,0.8));
                 cursor:pointer;
+                outline:${isEditing ? '2px solid #facc15' : 'none'};
+                border-radius:4px;
               ">${eventEmoji(ev.type)}</div>`,
           iconSize:   [34, 34],
           iconAnchor: [17, 17],
@@ -755,19 +803,23 @@ function AdminMap({ events, userStations, comments, addMode, onMapClick, onDelet
 
         const marker = L.marker([ev.lat, ev.lng], { icon }).addTo(map)
 
-        marker.bindPopup(buildPopup(ev), { maxWidth: 220 })
+        marker.bindPopup(buildPopup(ev), { maxWidth: 240 })
         marker.on('popupopen', () => {
-          const btn = document.getElementById(`del-${ev.id}`)
-          btn?.addEventListener('click', () => {
+          document.getElementById(`del-${ev.id}`)?.addEventListener('click', () => {
             marker.closePopup()
             onDeleteRef.current(ev.id)
+          })
+          document.getElementById(`edit-${ev.id}`)?.addEventListener('click', () => {
+            marker.closePopup()
+            onEditRef.current(ev)
           })
         })
 
         markersRef.current.set(ev.id, marker)
+        markerRevisionRef.current.set(ev.id, revision)
       }
     })
-  }, [events])
+  }, [events, editingEventId])
 
   // Sync user-station markers (orange circles)
   useEffect(() => {
@@ -958,7 +1010,7 @@ function MeetupsPanel({ meetups, onDelete }: { meetups: AdminMeetup[]; onDelete:
               <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
                 🕒 {new Date(m.date).toLocaleString('bg-BG', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                 {m.organizer ? ` · 👤 ${m.organizer}` : ''}
-                {` · 🔔 ${m.followers.length}`}
+                {` · 🔔 ${m.followers?.length ?? 0}`}
               </div>
               {(m.organizerPhone || m.organizerEmail || m.facebook) && (
                 <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
@@ -1098,6 +1150,313 @@ function UserStationsPanel({
   )
 }
 
+// ── EventEditPanel ─────────────────────────────────────────────────────────
+// Floating overlay on the map for editing a road event.
+
+function EventEditPanel({
+  event,
+  onSave,
+  onCancel,
+}: {
+  event:    RoadEvent
+  onSave:   (patch: Partial<Pick<RoadEvent, 'type' | 'lat' | 'lng' | 'description' | 'permanent'>>) => void
+  onCancel: () => void
+}) {
+  const [type,        setType]        = useState<EventType>(event.type)
+  const [lat,         setLat]         = useState(String(event.lat))
+  const [lng,         setLng]         = useState(String(event.lng))
+  const [description, setDescription] = useState(event.description ?? '')
+  const [permanent,   setPermanent]   = useState(event.permanent ?? false)
+  const [saving,      setSaving]      = useState(false)
+
+  // Reset form when switching to a different event
+  useEffect(() => {
+    setType(event.type)
+    setLat(String(event.lat))
+    setLng(String(event.lng))
+    setDescription(event.description ?? '')
+    setPermanent(event.permanent ?? false)
+    setSaving(false)
+  }, [event.id]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function handleSave() {
+    const parsedLat = parseFloat(lat)
+    const parsedLng = parseFloat(lng)
+    if (!isFinite(parsedLat) || !isFinite(parsedLng)) { alert('Невалидни координати'); return }
+    setSaving(true)
+    onSave({
+      type,
+      lat: parsedLat,
+      lng: parsedLng,
+      description: description.trim() || null,
+      permanent,
+    })
+  }
+
+  const inputStyle: React.CSSProperties = {
+    background: 'rgba(255,255,255,0.07)',
+    border: '1px solid rgba(255,255,255,0.15)',
+    borderRadius: 7,
+    color: '#f2f2f2',
+    padding: '8px 10px',
+    fontSize: 13,
+    outline: 'none',
+    fontFamily: 'system-ui, sans-serif',
+    width: '100%',
+    boxSizing: 'border-box',
+  }
+
+  return (
+    <div style={{
+      position:   'absolute',
+      top:        12,
+      right:      12,
+      zIndex:     1000,
+      width:      290,
+      background: 'rgba(14,14,22,0.97)',
+      border:     '1px solid rgba(250,204,21,0.5)',
+      borderRadius: 12,
+      padding:    16,
+      boxShadow:  '0 8px 32px rgba(0,0,0,0.7)',
+      display:    'flex',
+      flexDirection: 'column',
+      gap:        10,
+    }}>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+        <div style={{ fontSize: 14, fontWeight: 700, color: '#facc15' }}>✏️ Редактирай събитие</div>
+        <button onClick={onCancel} style={{
+          background: 'none', border: 'none', color: '#888', fontSize: 18, cursor: 'pointer', lineHeight: 1, padding: 2,
+        }}>✕</button>
+      </div>
+
+      <div style={{ fontSize: 10, color: '#555', fontFamily: 'monospace', marginTop: -8 }}>
+        ID: {event.id.slice(0, 16)}…
+      </div>
+
+      {/* Type */}
+      <div>
+        <div style={{ fontSize: 11, color: '#888', marginBottom: 5 }}>Тип</div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+          {EVENT_TYPES.map((t) => (
+            <button key={t} onClick={() => setType(t)}
+              style={{
+                padding: '5px 9px', borderRadius: 7, cursor: 'pointer', fontSize: 11,
+                border: `1px solid ${type === t ? 'rgba(250,204,21,0.7)' : 'rgba(255,255,255,0.1)'}`,
+                background: type === t ? 'rgba(250,204,21,0.18)' : 'rgba(255,255,255,0.04)',
+                color: type === t ? '#facc15' : '#aaa', fontWeight: type === t ? 700 : 400,
+              }}>
+              {EVENT_LABELS[t]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Coordinates */}
+      <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 11, color: '#888', marginBottom: 4 }}>Lat</div>
+          <input value={lat} onChange={(e) => setLat(e.target.value)} style={inputStyle} />
+        </div>
+        <div style={{ flex: 1 }}>
+          <div style={{ fontSize: 11, color: '#888', marginBottom: 4 }}>Lng</div>
+          <input value={lng} onChange={(e) => setLng(e.target.value)} style={inputStyle} />
+        </div>
+      </div>
+
+      {/* Description */}
+      <div>
+        <div style={{ fontSize: 11, color: '#888', marginBottom: 4 }}>Описание (не задължително)</div>
+        <textarea
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          rows={2}
+          style={{ ...inputStyle, resize: 'vertical', minHeight: 54 }}
+          placeholder="Допълнително описание…"
+        />
+      </div>
+
+      {/* Permanent toggle */}
+      <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
+        <div
+          onClick={() => setPermanent((v) => !v)}
+          style={{
+            width: 36, height: 20, borderRadius: 10, position: 'relative', flexShrink: 0,
+            background: permanent ? '#e31937' : 'rgba(255,255,255,0.18)',
+            cursor: 'pointer', transition: 'background 0.15s',
+          }}
+        >
+          <span style={{
+            position: 'absolute', top: 3, left: permanent ? 19 : 3,
+            width: 14, height: 14, borderRadius: '50%', background: '#fff',
+            transition: 'left 0.15s',
+          }} />
+        </div>
+        <span style={{ fontSize: 12, color: '#ccc' }}>Служебен (admin) маркер</span>
+      </label>
+
+      {/* Actions */}
+      <div style={{ display: 'flex', gap: 8, marginTop: 4 }}>
+        <button
+          onClick={onCancel}
+          style={{
+            flex: 1, padding: '9px 0', borderRadius: 8, cursor: 'pointer',
+            background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.15)',
+            color: '#aaa', fontSize: 13, fontWeight: 600,
+          }}
+        >
+          Отказ
+        </button>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          style={{
+            flex: 2, padding: '9px 0', borderRadius: 8, cursor: saving ? 'default' : 'pointer',
+            background: saving ? 'rgba(250,204,21,0.3)' : 'rgba(250,204,21,0.2)',
+            border: '1px solid rgba(250,204,21,0.6)',
+            color: '#facc15', fontSize: 13, fontWeight: 700,
+            opacity: saving ? 0.7 : 1,
+          }}
+        >
+          {saving ? 'Запазва…' : '💾 Запази'}
+        </button>
+      </div>
+    </div>
+  )
+}
+
+// ── EventsListPanel ────────────────────────────────────────────────────────
+// Collapsible sidebar panel listing all road events with edit/delete actions.
+
+function EventsListPanel({
+  events,
+  editingId,
+  onEdit,
+  onDelete,
+}: {
+  events:    RoadEvent[]
+  editingId: string | null
+  onEdit:    (event: RoadEvent) => void
+  onDelete:  (id: string) => void
+}) {
+  const [open, setOpen] = useState(false)
+
+  const sorted = [...events].sort((a, b) =>
+    new Date(b.reportedAt).getTime() - new Date(a.reportedAt).getTime()
+  )
+  const permanent = sorted.filter((e) => e.permanent)
+  const user      = sorted.filter((e) => !e.permanent)
+
+  function fmt(iso: string) {
+    return new Date(iso).toLocaleString('bg-BG', { dateStyle: 'short', timeStyle: 'short' })
+  }
+
+  return (
+    <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          width: '100%', padding: '12px 18px', background: 'none', border: 'none',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          color: '#e2e8f0', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+        }}
+      >
+        <span>🗺 Пътни събития ({events.length})</span>
+        <span style={{ color: '#666', fontSize: 12 }}>{open ? '▲' : '▼'}</span>
+      </button>
+
+      {open && (
+        <div style={{ padding: '0 14px 14px', maxHeight: 420, overflowY: 'auto' }}>
+          {events.length === 0 && (
+            <div style={{ fontSize: 12, color: '#555', padding: '8px 4px' }}>Няма активни събития</div>
+          )}
+
+          {permanent.length > 0 && (
+            <div style={{ fontSize: 10, color: '#e31937', fontWeight: 700, marginBottom: 6, marginTop: 4, letterSpacing: '0.08em' }}>
+              СЛУЖЕБНИ ({permanent.length})
+            </div>
+          )}
+          {permanent.map((ev) => (
+            <EventRow key={ev.id} ev={ev} isEditing={editingId === ev.id} fmt={fmt} onEdit={onEdit} onDelete={onDelete} />
+          ))}
+
+          {user.length > 0 && (
+            <div style={{ fontSize: 10, color: '#888', fontWeight: 700, marginBottom: 6, marginTop: 10, letterSpacing: '0.08em' }}>
+              ПОТРЕБИТЕЛСКИ ({user.length})
+            </div>
+          )}
+          {user.map((ev) => (
+            <EventRow key={ev.id} ev={ev} isEditing={editingId === ev.id} fmt={fmt} onEdit={onEdit} onDelete={onDelete} />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function EventRow({
+  ev, isEditing, fmt, onEdit, onDelete,
+}: {
+  ev:        RoadEvent
+  isEditing: boolean
+  fmt:       (iso: string) => string
+  onEdit:    (event: RoadEvent) => void
+  onDelete:  (id: string) => void
+}) {
+  return (
+    <div style={{
+      padding:      '8px 10px',
+      marginBottom: 5,
+      borderRadius: 8,
+      background:   isEditing ? 'rgba(250,204,21,0.08)' : 'rgba(255,255,255,0.03)',
+      border:       `1px solid ${isEditing ? 'rgba(250,204,21,0.4)' : 'rgba(255,255,255,0.07)'}`,
+    }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
+        <span style={{ fontSize: 15 }}>{eventEmoji(ev.type)}</span>
+        <span style={{ flex: 1, fontSize: 12, fontWeight: 600, color: '#e2e8f0' }}>
+          {EVENT_LABELS[ev.type] ?? ev.type}
+        </span>
+        {ev.permanent && (
+          <span style={{
+            fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 4,
+            background: 'rgba(227,25,55,0.2)', color: '#f87171', border: '1px solid rgba(227,25,55,0.4)',
+          }}>СЛУЖ.</span>
+        )}
+      </div>
+      <div style={{ fontSize: 10, color: '#555', marginBottom: 6 }}>
+        {fmt(ev.reportedAt)} · {ev.lat.toFixed(4)}, {ev.lng.toFixed(4)}
+      </div>
+      {ev.description && (
+        <div style={{ fontSize: 10, color: '#64748b', fontStyle: 'italic', marginBottom: 5 }}>
+          "{ev.description}"
+        </div>
+      )}
+      <div style={{ display: 'flex', gap: 5 }}>
+        <button
+          onClick={() => onEdit(ev)}
+          style={{
+            flex: 1, padding: '5px 0', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 600,
+            background: isEditing ? 'rgba(250,204,21,0.2)' : 'rgba(59,130,246,0.15)',
+            border: `1px solid ${isEditing ? 'rgba(250,204,21,0.5)' : 'rgba(96,165,250,0.4)'}`,
+            color: isEditing ? '#facc15' : '#93c5fd',
+          }}
+        >
+          {isEditing ? '✏️ Редактира се' : '✏️ Редактирай'}
+        </button>
+        <button
+          onClick={() => onDelete(ev.id)}
+          style={{
+            flex: 1, padding: '5px 0', borderRadius: 6, cursor: 'pointer', fontSize: 11, fontWeight: 600,
+            background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.35)', color: '#f87171',
+          }}
+        >
+          🗑 Изтрий
+        </button>
+      </div>
+    </div>
+  )
+}
+
 function eventEmoji(type: string): string {
   const map: Record<string, string> = {
     police: '🚔', accident: '💥', hazard: '⚠️',
@@ -1109,16 +1468,27 @@ function eventEmoji(type: string): string {
 function buildPopup(ev: RoadEvent): string {
   const label = EVENT_LABELS[ev.type] ?? ev.type
   const date  = new Date(ev.reportedAt).toLocaleString('bg-BG', { dateStyle: 'short', timeStyle: 'short' })
+  const exp   = new Date(ev.expiresAt).toLocaleString('bg-BG', { dateStyle: 'short', timeStyle: 'short' })
   return `
-    <div style="font-family:system-ui,sans-serif;font-size:13px;min-width:160px;">
+    <div style="font-family:system-ui,sans-serif;font-size:13px;min-width:180px;">
       <div style="font-weight:700;font-size:15px;margin-bottom:4px;">${label}</div>
-      <div style="color:#888;margin-bottom:2px;">${ev.lat.toFixed(5)}, ${ev.lng.toFixed(5)}</div>
-      <div style="color:#888;margin-bottom:10px;">${date}</div>
-      <button id="del-${ev.id}" style="
-        width:100%;padding:7px 0;border-radius:7px;
-        background:#ef444422;border:1px solid #f8717155;
-        color:#f87171;font-size:13px;font-weight:600;cursor:pointer;
-      ">🗑️ Изтрий</button>
+      <div style="color:#888;margin-bottom:2px;font-size:11px;">${ev.lat.toFixed(5)}, ${ev.lng.toFixed(5)}</div>
+      <div style="color:#888;margin-bottom:1px;font-size:11px;">📅 ${date}</div>
+      <div style="color:#aaa;margin-bottom:8px;font-size:11px;">⏱ ${exp}</div>
+      ${ev.description ? `<div style="color:#666;font-size:11px;margin-bottom:8px;font-style:italic;">"${ev.description}"</div>` : ''}
+      ${ev.permanent ? '<div style="font-size:10px;color:#e31937;font-weight:700;margin-bottom:8px;">🔴 СЛУЖЕБЕН</div>' : ''}
+      <div style="display:flex;gap:6px;">
+        <button id="edit-${ev.id}" style="
+          flex:1;padding:7px 0;border-radius:7px;
+          background:#3b82f622;border:1px solid #60a5fa55;
+          color:#93c5fd;font-size:12px;font-weight:600;cursor:pointer;
+        ">✏️ Редактирай</button>
+        <button id="del-${ev.id}" style="
+          flex:1;padding:7px 0;border-radius:7px;
+          background:#ef444422;border:1px solid #f8717155;
+          color:#f87171;font-size:12px;font-weight:600;cursor:pointer;
+        ">🗑️ Изтрий</button>
+      </div>
     </div>
   `
 }

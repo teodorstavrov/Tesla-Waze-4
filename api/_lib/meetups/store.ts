@@ -33,7 +33,7 @@ export function meetupToPublic(m: Meetup): PublicMeetup {
   return {
     id: m.id, lat: m.lat, lng: m.lng, title: m.title, date: m.date,
     organizer: m.organizer, organizerPhone: m.organizerPhone, organizerEmail: m.organizerEmail,
-    facebook: m.facebook, createdAt: m.createdAt, followers: m.followers,
+    facebook: m.facebook, createdAt: m.createdAt, followers: m.followers ?? [],
   }
 }
 
@@ -101,6 +101,7 @@ export const meetupStore = {
     const all = _prune(await _readAll())
     const m = all.find((x) => x.id === id)
     if (!m) return false
+    if (!Array.isArray(m.followers)) m.followers = []
     if (!m.followers.includes(email)) m.followers.push(email)
     await _write(all)
     return true

@@ -42,7 +42,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         eventsToday++
         const tag = `today:${m.id}:${todayKey}`
         if (!(await meetupStore.wasReminded(tag))) {
-          const recipients = [...new Set([...m.followers, ...subscribers])]
+          const recipients = [...new Set([...(m.followers ?? []), ...subscribers])]
           const html = `
             <h2>📅 Днес има събитие</h2>
             <p><b>${m.title}</b></p><p>🕒 ${fmt(d)}</p>

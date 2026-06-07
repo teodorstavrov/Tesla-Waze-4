@@ -49,3 +49,4 @@ chrome-profile/
 waze-sync.mjs
 *-task.xml
 create-tasks.ps1
+event-finder/

@@ -293,6 +293,7 @@ export const DICTIONARY = {
       facebook:       'Facebook група',
       showRightPanel: 'Десен панел',
       showClock:      'Часовник',
+      terms:          'Общи условия и поверителност',
     },
   },
 
@@ -570,6 +571,7 @@ export const DICTIONARY = {
       facebook:       'Facebook group',
       showRightPanel: 'Right panel',
       showClock:      'Clock',
+      terms:          'Terms & Privacy Policy',
     },
   },
   // ─── Norwegian (Bokmål) ────────────────────────────────────────────────

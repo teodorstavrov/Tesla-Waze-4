@@ -38,7 +38,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         void sendMeetupEmail(meetup.organizerEmail, `Някой следи събитието ти: ${meetup.title}`, `
           <h2>🔔 Нов интерес към събитието ти</h2>
           <p><b>${meetup.title}</b></p>
-          <p>Потребител (${email}) се записа да следи събитието. Общо последователи: ${meetup.followers.length}.</p>
+          <p>Потребител (${email}) се записа да следи събитието. Общо последователи: ${meetup.followers?.length ?? 0}.</p>
           <p><a href="${SITE_URL}">Отвори TesRadar</a></p>`, email)
       }
     } catch { /* non-fatal */ }

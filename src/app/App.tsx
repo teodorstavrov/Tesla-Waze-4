@@ -43,6 +43,7 @@ import { AlertToast } from '@/features/audio/AlertToast'
 const OfflineToast = lazy(() => import('@/components/OfflineToast').then(m => ({ default: m.OfflineToast })))
 import { SettingsPanel } from '@/components/SettingsPanel'
 import { SupportModal } from '@/components/SupportModal'
+import { TermsModal } from '@/components/TermsModal'
 import { DonationNudge } from '@/components/DonationNudge'
 import { RatingModal } from '@/components/RatingModal'
 import { VehicleProfileModal } from '@/components/VehicleProfileModal'
@@ -194,6 +195,9 @@ export function App() {
         qrImageUrl="/stripe-qr.png"
         donationLink="https://buy.stripe.com/14AaEXfak7HT744daj8g001"
       />
+
+      {/* Terms of Service + Privacy Policy modal */}
+      <TermsModal />
     </div>
   )
 }

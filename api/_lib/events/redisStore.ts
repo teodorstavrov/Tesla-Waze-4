@@ -103,6 +103,16 @@ export const eventRedisStore = {
     await _write([])
   },
 
+  /** Partially update a single event. Returns the updated event or null if not found. */
+  async update(id: string, patch: Partial<Pick<RoadEvent, 'type' | 'lat' | 'lng' | 'description' | 'permanent' | 'expiresAt'>>): Promise<RoadEvent | null> {
+    const all = _pruneExpired(await _readAll())
+    const idx = all.findIndex((e) => e.id === id)
+    if (idx === -1) return null
+    all[idx] = { ...all[idx]!, ...patch }
+    await _write(all)
+    return all[idx]!
+  },
+
   async deny(id: string): Promise<RoadEvent | null | 'deleted'> {
     const all = _pruneExpired(await _readAll())
     const idx = all.findIndex((e) => e.id === id)

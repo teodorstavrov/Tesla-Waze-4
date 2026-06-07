@@ -10,6 +10,7 @@ import { roadworksStore } from '@/features/roadworks/roadworksStore'
 import { evStore } from '@/features/ev/evStore'
 import { filterStore } from '@/features/ev/filterStore'
 import { openCountryPicker } from '@/components/CountryPicker'
+import { openTermsModal } from '@/components/TermsModal'
 import { countryStore } from '@/lib/countryStore'
 import { langStore, getLang, t } from '@/lib/locale'
 
@@ -208,6 +209,16 @@ function PanelContent() {
         state={showClock}
         onToggle={uiStore.toggleClock}
       />
+
+      {/* Divider */}
+      <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '4px 0' }} />
+
+      {/* Terms & Privacy */}
+      <Row
+        icon={<TermsIcon />}
+        label={t('settings.terms')}
+        onToggle={() => { uiStore.closeSettings(); openTermsModal() }}
+      />
     </div>
   )
 }
@@ -388,6 +399,19 @@ function ClockIcon() {
       stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="10" />
       <polyline points="12 6 12 12 16 14" />
+    </svg>
+  )
+}
+
+function TermsIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
+      <polyline points="14 2 14 8 20 8" />
+      <line x1="9" y1="13" x2="15" y2="13" />
+      <line x1="9" y1="17" x2="15" y2="17" />
+      <line x1="9" y1="9" x2="11" y2="9" />
     </svg>
   )
 }

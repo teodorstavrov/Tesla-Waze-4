@@ -19,7 +19,7 @@ const VALID_TYPES = new Set<EventType>([
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   res.setHeader('Access-Control-Allow-Origin', '*')
-  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,OPTIONS')
+  res.setHeader('Access-Control-Allow-Methods', 'GET,POST,DELETE,PATCH,PUT,OPTIONS')
   res.setHeader('Access-Control-Allow-Headers', 'Authorization,Content-Type')
 
   if (req.method === 'OPTIONS') { res.status(204).end(); return }
@@ -80,6 +80,46 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       ? await eventRedisStore.remove(id)
       : false
     res.status(removed ? 200 : 404).json({ removed })
+    return
+  }
+
+  // PATCH → update a single event's fields
+  if (req.method === 'PATCH') {
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body
+    const id = String(body?.id ?? '')
+    if (!id) { res.status(400).json({ error: 'id required' }); return }
+
+    const patch: Parameters<typeof eventRedisStore.update>[1] = {}
+
+    if (body.type !== undefined) {
+      if (!VALID_TYPES.has(body.type as EventType)) { res.status(400).json({ error: 'Invalid type' }); return }
+      patch.type = body.type as EventType
+      // Recalculate expiry when type changes
+      patch.expiresAt = new Date(Date.now() + ttlMs(body.type as EventType)).toISOString()
+    }
+    if (body.lat !== undefined) {
+      const lat = Number(body.lat)
+      if (!isFinite(lat)) { res.status(400).json({ error: 'Invalid lat' }); return }
+      patch.lat = lat
+    }
+    if (body.lng !== undefined) {
+      const lng = Number(body.lng)
+      if (!isFinite(lng)) { res.status(400).json({ error: 'Invalid lng' }); return }
+      patch.lng = lng
+    }
+    if (body.description !== undefined) {
+      patch.description = body.description
+        ? String(body.description).replace(/<[^>]*>/g, '').trim().slice(0, 200)
+        : null
+    }
+    if (body.permanent !== undefined) {
+      patch.permanent = Boolean(body.permanent)
+    }
+
+    if (!useRedis) { res.status(501).json({ error: 'Redis not configured' }); return }
+    const updated = await eventRedisStore.update(id, patch)
+    if (!updated) { res.status(404).json({ error: 'Event not found' }); return }
+    res.status(200).json({ event: updated })
     return
   }
 
