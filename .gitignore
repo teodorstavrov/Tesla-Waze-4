@@ -35,3 +35,17 @@ npm-debug.log*
 .vercel
 .env*.local
 .env*
+waze-sync.bat
+roadworks-sync.mjs
+
+# Local Waze→TesRadar sync tooling — contains secrets (API keys) and a Chrome
+# profile. NEVER commit these to the public repo.
+waze-police-sync/
+WazeSync/
+chrome-profile/
+.claude/
+*.bat
+*.log
+waze-sync.mjs
+*-task.xml
+create-tasks.ps1

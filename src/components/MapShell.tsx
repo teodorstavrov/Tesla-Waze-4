@@ -35,6 +35,7 @@ import { gpsStore } from '@/features/gps/gpsStore'
 import { routeStore } from '@/features/route/routeStore'
 import { savedPlacesStore } from '@/features/places/savedPlacesStore'
 import { addStationStore } from '@/features/ev/addStationStore'
+import { meetupStore } from '@/features/meetups/meetupStore'
 import { settingsStore } from '@/features/settings/settingsStore'
 import { isTeslaBrowser } from '@/lib/browser'
 import { t } from '@/lib/locale'
@@ -400,10 +401,27 @@ export function MapShell() {
         addStationStore.open(lat, lng, addr.textContent ?? `${lat.toFixed(5)}, ${lng.toFixed(5)}`)
       })
 
+      const addEventBtn = document.createElement('button')
+      addEventBtn.textContent = '📅 Добави събитие'
+      addEventBtn.style.cssText = [
+        'background:rgba(99,102,241,0.14)',
+        'color:#a5b4fc',
+        'border:1.5px solid rgba(99,102,241,0.45)',
+        'border-radius:10px', 'padding:10px 0',
+        'font-size:13px', 'font-weight:700',
+        'cursor:pointer', 'touch-action:manipulation', 'width:100%',
+        'letter-spacing:0.04em',
+      ].join(';')
+      addEventBtn.addEventListener('click', () => {
+        map.closePopup()
+        meetupStore.openForm(lat, lng, addr.textContent ?? `${lat.toFixed(5)}, ${lng.toFixed(5)}`)
+      })
+
       wrap.appendChild(addr)
       wrap.appendChild(btn)
       wrap.appendChild(placeRow)
       wrap.appendChild(addStationBtn)
+      wrap.appendChild(addEventBtn)
 
       L.popup({
         className:    'nav-popup',

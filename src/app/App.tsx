@@ -31,6 +31,9 @@ import { sectionEngine } from '@/features/cameras/sectionEngine'
 import { RouteLayer } from '@/features/route/RouteLayer'
 import { SavedPlacesLayer } from '@/features/places/SavedPlacesLayer'
 import { RoadworksLayer } from '@/features/roadworks/RoadworksLayer'
+import { MeetupLayer } from '@/features/meetups/MeetupLayer'
+import { MeetupForm } from '@/features/meetups/MeetupForm'
+import { MeetupList } from '@/features/meetups/MeetupList'
 import { CountryBoundsLayer } from '@/components/CountryBoundsLayer'
 import { RoutePanel } from '@/features/route/RoutePanel'
 import { TurnInstruction } from '@/features/route/TurnInstruction'
@@ -123,6 +126,7 @@ export function App() {
       <RouteLayer />
       <SavedPlacesLayer />
       <RoadworksLayer />
+      <MeetupLayer />
       <CountryBoundsLayer />
 
       {/* Layer 1: floating UI */}
@@ -147,6 +151,8 @@ export function App() {
 
       {/* Layer 3: modal overlays */}
       <AddStationForm />
+      <MeetupForm />
+      <MeetupList />
       <Suspense fallback={null}><ReportModal /></Suspense>
 
       {/* Layer 4: alert toast (above everything) */}
