@@ -346,7 +346,7 @@ export const routeStore = {
       const routes = viaHemus
         ? await fetchRouteViaHemus([gps.lat, gps.lng], [dest.lat, dest.lng], _abort.signal)
         : await fetchValhalla([gps.lat, gps.lng], [dest.lat, dest.lng], _abort.signal)
-            .catch(() => fetchOSRM([gps.lat, gps.lng], [dest.lat, dest.lng], _abort.signal))
+            .catch(() => fetchOSRM([gps.lat, gps.lng], [dest.lat, dest.lng], _abort!.signal))
       const primary = routes[0]!
       _state = {
         ..._state,
@@ -458,7 +458,7 @@ export const routeStore = {
       const routes = viaHemus
         ? await fetchRouteViaHemus([gps.lat, gps.lng], [dest.lat, dest.lng], _abort.signal)
         : await fetchValhalla([gps.lat, gps.lng], [dest.lat, dest.lng], _abort.signal)
-            .catch(() => fetchOSRM([gps.lat, gps.lng], [dest.lat, dest.lng], _abort.signal))
+            .catch(() => fetchOSRM([gps.lat, gps.lng], [dest.lat, dest.lng], _abort!.signal))
       const primary = routes[0]!
       _state = {
         ..._state,

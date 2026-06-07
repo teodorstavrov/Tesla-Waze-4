@@ -425,25 +425,6 @@ export function VehicleProfileModal() {
     ? Boolean(msTrimId)
     : Boolean(model && year && (trim || trims.length === 0))
 
-  const SELECT_STYLE: React.CSSProperties = {
-    width: '100%',
-    padding: '11px 36px 11px 14px',
-    borderRadius: 10,
-    background: 'rgba(255,255,255,0.06)',
-    border: '1px solid rgba(255,255,255,0.14)',
-    color: '#f2f2f2',
-    fontSize: 16,
-    outline: 'none',
-    boxSizing: 'border-box',
-    fontFamily: 'inherit',
-    appearance: 'none',
-    WebkitAppearance: 'none',
-    cursor: 'pointer',
-    backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.8' fill='none' stroke-linecap='round'/%3E%3C/svg%3E")`,
-    backgroundRepeat: 'no-repeat',
-    backgroundPosition: 'right 12px center',
-  }
-
   const SECTION_LABEL: React.CSSProperties = {
     fontSize: 12,
     fontWeight: 700,

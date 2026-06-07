@@ -221,8 +221,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     stations:    stations.length,
     deduplicated,
     fallback: {
-      tesla: teslaFailed,
-      osm:   osmFailed,
+      tesla: combinedMeta(bgTeslaResult, noTeslaResult, seTeslaResult, fiTeslaResult, nlTeslaResult).status === 'error',
+      osm:   combinedMeta(bgOsmResult,   noOsmResult,   seOsmResult,   fiOsmResult,   nlOsmResult).status === 'error',
     },
     countries: {
       BG: bgMerge.stations.length,
