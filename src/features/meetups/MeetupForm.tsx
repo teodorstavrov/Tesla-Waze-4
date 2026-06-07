@@ -1,9 +1,18 @@
-// ─── Add Community Event (Meetup) form ──────────────────────────────────
-// Opened from the map long-press ("📅 Добави събитие"). POSTs to /api/meetups.
+// ─── Add / Edit Community Event (Meetup) form ───────────────────────────
+// Add  → POST /api/meetups        → saves ownerToken to localStorage
+// Edit → POST /api/meetups/edit   → requires ownerToken (creator only)
 
 import { useState, useSyncExternalStore } from 'react'
 import { meetupStore } from './meetupStore'
+import { saveMeetupToken, getMeetupToken } from './userMeetupOwner'
 import type { Meetup } from './types'
+
+function toLocalInput(iso: string): string {
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return ''
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
 
 export function MeetupForm() {
   const state = useSyncExternalStore(
@@ -14,20 +23,25 @@ export function MeetupForm() {
   if (!state.formOpen) return null
   return (
     <MeetupModal
-      key={`${state.formLat}-${state.formLng}`}
+      key={state.editing?.id ?? `add-${state.formLat}-${state.formLng}`}
       lat={state.formLat}
       lng={state.formLng}
       address={state.formAddress}
+      editing={state.editing}
     />
   )
 }
 
-function MeetupModal({ lat, lng, address }: { lat: number; lng: number; address: string }) {
-  const [title, setTitle]         = useState('')
-  const [date, setDate]           = useState('')
-  const [organizer, setOrganizer] = useState('')
-  const [facebookUrl, setFb]      = useState('')
-  const [email, setEmail]         = useState('')
+function MeetupModal({ lat, lng, address, editing }: {
+  lat: number; lng: number; address: string; editing: Meetup | null
+}) {
+  const isEdit = editing != null
+  const [title, setTitle]         = useState(editing?.title ?? '')
+  const [date, setDate]           = useState(editing ? toLocalInput(editing.date) : '')
+  const [organizer, setOrganizer] = useState(editing?.organizer ?? '')
+  const [phone, setPhone]         = useState(editing?.organizerPhone ?? '')
+  const [email, setEmail]         = useState(editing?.organizerEmail ?? '')
+  const [facebook, setFacebook]   = useState(editing?.facebook ?? '')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError]         = useState<string | null>(null)
   const [done, setDone]           = useState(false)
@@ -37,15 +51,28 @@ function MeetupModal({ lat, lng, address }: { lat: number; lng: number; address:
     if (!title.trim() || !date) return
     setSubmitting(true); setError(null)
     try {
-      const res = await fetch('/api/meetups', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lat, lng, title, date, organizer, facebookUrl, email }),
-      })
-      const data = await res.json()
-      if (!res.ok) { setError(data.error ?? 'Грешка при запис'); setSubmitting(false); return }
-      meetupStore.upsertLocal(data.meetup as Meetup)
-      setDone(true)
+      if (isEdit && editing) {
+        const token = getMeetupToken(editing.id)
+        if (!token) { setError('Само създателят може да редактира'); setSubmitting(false); return }
+        const res = await fetch('/api/meetups/edit', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: editing.id, ownerToken: token, title, date, organizer, organizerPhone: phone, organizerEmail: email, facebook }),
+        })
+        const data = await res.json()
+        if (!res.ok) { setError(data.error ?? 'Грешка'); setSubmitting(false); return }
+        meetupStore.upsertLocal(data.meetup as Meetup)
+        setDone(true)
+      } else {
+        const res = await fetch('/api/meetups', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lat, lng, title, date, organizer, organizerPhone: phone, organizerEmail: email, facebook }),
+        })
+        const data = await res.json()
+        if (!res.ok) { setError(data.error ?? 'Грешка при запис'); setSubmitting(false); return }
+        if (data.ownerToken) saveMeetupToken(data.meetup.id, data.ownerToken)
+        meetupStore.upsertLocal(data.meetup as Meetup)
+        setDone(true)
+      }
     } catch {
       setError('Няма връзка'); setSubmitting(false)
     }
@@ -56,10 +83,7 @@ function MeetupModal({ lat, lng, address }: { lat: number; lng: number; address:
       <div style={overlayStyle} onClick={() => meetupStore.closeForm()}>
         <div style={{ ...cardStyle, alignItems: 'center', padding: '40px 32px', textAlign: 'center' }}>
           <div style={{ fontSize: 52, marginBottom: 16 }}>📅</div>
-          <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 10 }}>Събитието е добавено!</div>
-          <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.55)', lineHeight: 1.6, marginBottom: 24 }}>
-            Появи се на картата. Благодарим!
-          </div>
+          <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 10 }}>{isEdit ? 'Запазено!' : 'Събитието е добавено!'}</div>
           <button onClick={() => meetupStore.closeForm()} style={primaryBtn}>Затвори</button>
         </div>
       </div>
@@ -69,39 +93,34 @@ function MeetupModal({ lat, lng, address }: { lat: number; lng: number; address:
   return (
     <div style={overlayStyle}>
       <div style={cardStyle} onClick={(e) => e.stopPropagation()}>
-        {/* Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-          <div style={{ fontSize: 17, fontWeight: 800 }}>📅 Добави събитие</div>
+          <div style={{ fontSize: 17, fontWeight: 800 }}>📅 {isEdit ? 'Редактирай събитие' : 'Добави събитие'}</div>
           <div style={{ display: 'flex', gap: 8 }}>
             <button title="Всички събития" onClick={() => meetupStore.openList()} style={listBtn}>📋</button>
             <button onClick={() => meetupStore.closeForm()} style={closeBtn}>✕</button>
           </div>
         </div>
 
-        <div style={{ padding: '6px 18px 4px', fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
-          {address || `${lat.toFixed(5)}, ${lng.toFixed(5)}`}
-        </div>
+        {!isEdit && (
+          <div style={{ padding: '6px 18px 4px', fontSize: 12, color: 'rgba(255,255,255,0.45)' }}>
+            {address || `${lat.toFixed(5)}, ${lng.toFixed(5)}`}
+          </div>
+        )}
 
-        <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '12px 18px 18px' }}>
-          <Field label="Описание *">
-            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="напр. Tesla среща Варна" style={inputStyle} />
-          </Field>
-          <Field label="Дата и час *">
-            <input type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} style={inputStyle} />
-          </Field>
-          <Field label="Организатор">
-            <input value={organizer} onChange={(e) => setOrganizer(e.target.value)} placeholder="Име / клуб" style={inputStyle} />
-          </Field>
-          <Field label="Facebook група (линк)">
-            <input value={facebookUrl} onChange={(e) => setFb(e.target.value)} placeholder="https://facebook.com/groups/..." style={inputStyle} />
-          </Field>
-          <Field label="Твой имейл (по желание — за да следиш събитието)">
-            <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" style={inputStyle} />
-          </Field>
+        <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 13, padding: '12px 18px 18px' }}>
+          <Field label="Описание *"><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="напр. Tesla среща Варна" style={inputStyle} /></Field>
+          <Field label="Дата и час *"><input type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} style={inputStyle} /></Field>
+          <Field label="Организатор"><input value={organizer} onChange={(e) => setOrganizer(e.target.value)} placeholder="Име / клуб" style={inputStyle} /></Field>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <Field label="Телефон за връзка" style={{ flex: 1 }}><input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+359..." style={inputStyle} /></Field>
+            <Field label="Имейл за връзка" style={{ flex: 1 }}><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="org@example.com" style={inputStyle} /></Field>
+          </div>
+          <Field label="Facebook група (линк или текст)"><input value={facebook} onChange={(e) => setFacebook(e.target.value)} placeholder="https://facebook.com/... или име на групата" style={inputStyle} /></Field>
 
-          {error && (
-            <div style={{ fontSize: 13, color: '#f87171', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, padding: '8px 12px' }}>{error}</div>
+          {email && !isEdit && (
+            <div style={{ fontSize: 11, color: 'rgba(165,180,252,0.85)' }}>ℹ️ На този имейл ще получаваш напомняния за това и за всяко следващо събитие.</div>
           )}
+          {error && <div style={{ fontSize: 13, color: '#f87171', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, padding: '8px 12px' }}>{error}</div>}
 
           <button type="submit" disabled={submitting || !title.trim() || !date} style={{
             ...primaryBtn,
@@ -109,7 +128,7 @@ function MeetupModal({ lat, lng, address }: { lat: number; lng: number; address:
             color: submitting || !title.trim() || !date ? 'rgba(255,255,255,0.4)' : '#fff',
             cursor: submitting || !title.trim() || !date ? 'default' : 'pointer',
           }}>
-            {submitting ? 'Запис…' : 'Добави събитие'}
+            {submitting ? 'Запис…' : isEdit ? 'Запази промените' : 'Добави събитие'}
           </button>
         </form>
       </div>
@@ -117,7 +136,6 @@ function MeetupModal({ lat, lng, address }: { lat: number; lng: number; address:
   )
 }
 
-// ── Shared styles ──────────────────────────────────────────────────────
 const overlayStyle: React.CSSProperties = {
   position: 'fixed', inset: 0, zIndex: 1200, background: 'rgba(0,0,0,0.72)',
   display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12,
@@ -150,6 +168,6 @@ const closeBtn: React.CSSProperties = {
   fontSize: 18, cursor: 'pointer', padding: '4px 8px',
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return <div><div style={labelStyle}>{label}</div>{children}</div>
+function Field({ label, children, style }: { label: string; children: React.ReactNode; style?: React.CSSProperties }) {
+  return <div style={style}><div style={labelStyle}>{label}</div>{children}</div>
 }

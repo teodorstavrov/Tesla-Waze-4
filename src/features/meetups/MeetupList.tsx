@@ -72,8 +72,9 @@ function Row({ m }: { m: Meetup }) {
       {m.organizer && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 4 }}>👤 {m.organizer}</div>}
       <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
         <button onClick={goToMap} style={smallBtn}>📍 На картата</button>
-        {m.facebookUrl && (
-          <a href={m.facebookUrl} target="_blank" rel="noopener noreferrer" style={{ ...smallBtn, textDecoration: 'none', display: 'inline-block' }}>f Facebook</a>
+        <button onClick={() => { meetupStore.select(m); meetupStore.closeList() }} style={smallBtn}>ℹ️ Детайли</button>
+        {m.facebook && /^https?:\/\//i.test(m.facebook) && (
+          <a href={m.facebook} target="_blank" rel="noopener noreferrer" style={{ ...smallBtn, textDecoration: 'none', display: 'inline-block' }}>f Facebook</a>
         )}
         <button onClick={follow} disabled={following} style={{ ...smallBtn, color: following ? '#22c55e' : '#a5b4fc', borderColor: following ? 'rgba(34,197,94,0.4)' : 'rgba(165,180,252,0.4)' }}>
           {following ? '✓ Следиш' : '🔔 Следи'}

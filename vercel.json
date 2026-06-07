@@ -104,6 +104,10 @@
     {
       "path": "/api/cron/sync-cameras?country=NL-3",
       "schedule": "40 5 * * 0"
+    },
+    {
+      "path": "/api/cron/event-reminders",
+      "schedule": "0 7 * * *"
     }
   ],
   "rewrites": [

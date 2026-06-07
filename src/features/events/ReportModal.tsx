@@ -6,6 +6,8 @@ import { useSyncExternalStore, useState, useEffect } from 'react'
 import { eventStore } from './eventStore.js'
 import { gpsStore } from '@/features/gps/gpsStore'
 import { addStationStore } from '@/features/ev/addStationStore'
+import { meetupStore } from '@/features/meetups/meetupStore'
+import { savedPlacesStore } from '@/features/places/savedPlacesStore'
 import { audioManager } from '@/features/audio/audioManager'
 import { getMap } from '@/components/MapShell'
 import { EVENT_EMOJI, EVENT_COLORS } from './types.js'
@@ -128,28 +130,29 @@ export function ReportModal() {
           ))}
         </div>
 
-        <button
-          onClick={() => {
+        {/* Secondary actions — 4 equal small buttons (station / event / home / work) */}
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 8, marginBottom: 10 }}>
+          <SmallAction emoji="⚡" label={t('map.addStation')} color="#fbbf24" onClick={() => {
             eventStore.closeReportModal()
             const pos = gpsStore.getPosition() ?? getMap()?.getCenter()
             if (pos) addStationStore.open(pos.lat, pos.lng, '')
-          }}
-          style={{
-            width: '100%',
-            padding: '13px',
-            borderRadius: 10,
-            background: 'rgba(251,191,36,0.12)',
-            border: '1px solid rgba(251,191,36,0.4)',
-            color: '#fbbf24',
-            fontSize: 15,
-            fontWeight: 700,
-            cursor: 'pointer',
-            touchAction: 'manipulation',
-            marginBottom: 10,
-          }}
-        >
-          ⚡ {t('map.addStation')}
-        </button>
+          }} />
+          <SmallAction emoji="📅" label="Събитие" color="#a5b4fc" onClick={() => {
+            eventStore.closeReportModal()
+            const pos = gpsStore.getPosition() ?? getMap()?.getCenter()
+            if (pos) meetupStore.openForm(pos.lat, pos.lng, '')
+          }} />
+          <SmallAction emoji="🏠" label="Дом" color="#22c55e" onClick={() => {
+            eventStore.closeReportModal()
+            const pos = gpsStore.getPosition() ?? getMap()?.getCenter()
+            if (pos) savedPlacesStore.set({ type: 'home', lat: pos.lat, lng: pos.lng, name: `${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}` })
+          }} />
+          <SmallAction emoji="💼" label="Работа" color="#3b82f6" onClick={() => {
+            eventStore.closeReportModal()
+            const pos = gpsStore.getPosition() ?? getMap()?.getCenter()
+            if (pos) savedPlacesStore.set({ type: 'work', lat: pos.lat, lng: pos.lng, name: `${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}` })
+          }} />
+        </div>
 
         <button
           onClick={() => eventStore.closeReportModal()}
@@ -215,6 +218,26 @@ function TypeButton({
     >
       <span style={{ fontSize: 39 }}>{emoji}</span>
       <span style={{ fontSize: 16, fontWeight: 600, letterSpacing: '0.02em', color }}>{label}</span>
+    </button>
+  )
+}
+
+function SmallAction({ emoji, label, color, onClick }: {
+  emoji: string; label: string; color: string; onClick: () => void
+}) {
+  return (
+    <button
+      onClick={onClick}
+      title={label}
+      style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4,
+        padding: '10px 4px', borderRadius: 12,
+        background: `${color}1A`, border: `1px solid ${color}55`,
+        color: 'var(--text-primary)', cursor: 'pointer', touchAction: 'manipulation',
+      }}
+    >
+      <span style={{ fontSize: 22 }}>{emoji}</span>
+      <span style={{ fontSize: 11, fontWeight: 600, color, textAlign: 'center', lineHeight: 1.1 }}>{label}</span>
     </button>
   )
 }

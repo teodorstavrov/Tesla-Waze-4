@@ -34,6 +34,8 @@ import { RoadworksLayer } from '@/features/roadworks/RoadworksLayer'
 import { MeetupLayer } from '@/features/meetups/MeetupLayer'
 import { MeetupForm } from '@/features/meetups/MeetupForm'
 import { MeetupList } from '@/features/meetups/MeetupList'
+import { MeetupDetail } from '@/features/meetups/MeetupDetail'
+import { MeetupTodayToast } from '@/features/meetups/MeetupTodayToast'
 import { CountryBoundsLayer } from '@/components/CountryBoundsLayer'
 import { RoutePanel } from '@/features/route/RoutePanel'
 import { TurnInstruction } from '@/features/route/TurnInstruction'
@@ -153,6 +155,8 @@ export function App() {
       <AddStationForm />
       <MeetupForm />
       <MeetupList />
+      <MeetupDetail />
+      <MeetupTodayToast />
       <Suspense fallback={null}><ReportModal /></Suspense>
 
       {/* Layer 4: alert toast (above everything) */}

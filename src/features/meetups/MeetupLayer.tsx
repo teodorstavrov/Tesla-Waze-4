@@ -6,7 +6,6 @@ import { useEffect, useRef } from 'react'
 import { L } from '@/lib/leaflet'
 import { getMap } from '@/components/MapShell'
 import { meetupStore } from './meetupStore'
-import type { Meetup } from './types'
 
 function icon(): L.DivIcon {
   return L.divIcon({
@@ -18,20 +17,6 @@ function icon(): L.DivIcon {
     iconAnchor: [22, 22],
     popupAnchor: [0, -18],
   })
-}
-
-function popupHtml(m: Meetup): string {
-  const d = new Date(m.date)
-  const when = isNaN(d.getTime()) ? m.date
-    : d.toLocaleString('bg-BG', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
-  const esc = (s: string) => s.replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c] ?? c))
-  const lines = [
-    `<div style="font-weight:800;font-size:15px;margin-bottom:4px">${esc(m.title)}</div>`,
-    `<div style="font-size:12px;color:#a5b4fc;margin-bottom:6px">📅 ${esc(when)}</div>`,
-  ]
-  if (m.organizer)   lines.push(`<div style="font-size:12px;color:rgba(255,255,255,0.7)">👤 ${esc(m.organizer)}</div>`)
-  if (m.facebookUrl) lines.push(`<a href="${esc(m.facebookUrl)}" target="_blank" rel="noopener noreferrer" style="font-size:12px;color:#60a5fa">Facebook група</a>`)
-  return `<div style="min-width:160px;max-width:240px">${lines.join('')}</div>`
 }
 
 export function MeetupLayer() {
@@ -51,7 +36,11 @@ export function MeetupLayer() {
         let mk = markers.current.get(m.id)
         if (!mk) {
           mk = L.marker([m.lat, m.lng], { icon: icon() })
-          mk.bindPopup(popupHtml(m), { className: 'meetup-popup', maxWidth: 260 })
+          const id = m.id
+          mk.on('click', () => {
+            const latest = meetupStore.getState().meetups.find((x) => x.id === id)
+            if (latest) meetupStore.select(latest)
+          })
           mk.addTo(map)
           markers.current.set(m.id, mk)
         }

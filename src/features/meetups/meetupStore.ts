@@ -1,6 +1,5 @@
 // ─── Community meetup store ─────────────────────────────────────────────
-// Holds the meetup list + UI flags (add-form open, list-panel open).
-// Module-level signal store (same pattern as evStore / addStationStore).
+// Holds the meetup list + UI flags (add/edit form, list panel, detail modal).
 
 import type { Meetup } from './types'
 
@@ -14,13 +13,15 @@ interface MeetupState {
   formLat:     number
   formLng:     number
   formAddress: string
+  editing:     Meetup | null   // non-null → form is in edit mode
   listOpen:    boolean
+  selected:    Meetup | null   // detail modal
 }
 
 let _state: MeetupState = {
   meetups: [], status: 'idle',
-  formOpen: false, formLat: 0, formLng: 0, formAddress: '',
-  listOpen: false,
+  formOpen: false, formLat: 0, formLng: 0, formAddress: '', editing: null,
+  listOpen: false, selected: null,
 }
 
 const _listeners = new Set<Listener>()
@@ -48,17 +49,28 @@ export const meetupStore = {
     }
   },
 
-  /** Insert/replace a meetup locally (after a successful create). */
   upsertLocal(m: Meetup): void {
     const rest = _state.meetups.filter((x) => x.id !== m.id)
-    _set({ meetups: [...rest, m].sort((a, b) => a.date.localeCompare(b.date)) })
+    const meetups = [...rest, m].sort((a, b) => a.date.localeCompare(b.date))
+    // keep selected/editing in sync if it's the same event
+    const patch: Partial<MeetupState> = { meetups }
+    if (_state.selected?.id === m.id) patch.selected = m
+    _set(patch)
   },
 
+  // ── Add form ──
   openForm(lat: number, lng: number, address: string): void {
-    _set({ formOpen: true, formLat: lat, formLng: lng, formAddress: address })
+    _set({ formOpen: true, formLat: lat, formLng: lng, formAddress: address, editing: null })
   },
-  closeForm(): void { _set({ formOpen: false }) },
+  // ── Edit form ──
+  openEdit(m: Meetup): void {
+    _set({ formOpen: true, formLat: m.lat, formLng: m.lng, formAddress: '', editing: m, selected: null })
+  },
+  closeForm(): void { _set({ formOpen: false, editing: null }) },
 
   openList(): void { _set({ listOpen: true }) },
   closeList(): void { _set({ listOpen: false }) },
+
+  select(m: Meetup): void { _set({ selected: m }) },
+  closeDetail(): void { _set({ selected: null }) },
 }

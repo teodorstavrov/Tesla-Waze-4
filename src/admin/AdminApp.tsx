@@ -118,11 +118,25 @@ interface UserStation {
   connectors:     Array<{ type: string; powerKw: number | null; count: number }>
 }
 
+interface AdminMeetup {
+  id:             string
+  title:          string
+  date:           string
+  lat:            number
+  lng:            number
+  organizer:      string | null
+  organizerPhone: string | null
+  organizerEmail: string | null
+  facebook:       string | null
+  followers:      string[]
+}
+
 function Dashboard({ secret }: { secret: string }) {
   const [stats,        setStats]        = useState<Stats | null>(null)
   const [events,       setEvents]       = useState<RoadEvent[]>([])
   const [userStations, setUserStations] = useState<UserStation[]>([])
   const [comments,     setComments]     = useState<StationComment[]>([])
+  const [meetups,      setMeetups]      = useState<AdminMeetup[]>([])
   const [syncing, setSyncing] = useState(false)
   const [syncMsg, setSyncMsg] = useState('')
   const [addMode, setAddMode] = useState(false)
@@ -131,17 +145,25 @@ function Dashboard({ secret }: { secret: string }) {
   const headers = { Authorization: `Bearer ${secret}` }
 
   const loadAll = useCallback(async () => {
-    const [sr, er, usr, cr] = await Promise.all([
+    const [sr, er, usr, cr, mr] = await Promise.all([
       fetch('/api/admin/stats',             { headers }),
       fetch('/api/admin/events',            { headers }),
       fetch('/api/admin/user-stations',     { headers }),
       fetch('/api/admin/station-comments',  { headers }),
+      fetch('/api/admin/meetups',           { headers }),
     ])
     if (sr.ok)  setStats(await sr.json() as Stats)
     if (er.ok)  setEvents(((await er.json()) as { events: RoadEvent[] }).events)
     if (usr.ok) setUserStations(((await usr.json()) as { stations: UserStation[] }).stations)
     if (cr.ok)  setComments(((await cr.json()) as { comments: StationComment[] }).comments)
+    if (mr.ok)  setMeetups(((await mr.json()) as { meetups: AdminMeetup[] }).meetups)
   }, [secret]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function deleteMeetup(id: string) {
+    if (!confirm('Изтрий събитието?')) return
+    await fetch(`/api/admin/meetups?id=${encodeURIComponent(id)}`, { method: 'DELETE', headers })
+    setMeetups((prev) => prev.filter((m) => m.id !== id))
+  }
 
   useEffect(() => { void loadAll() }, [loadAll])
 
@@ -261,6 +283,7 @@ function Dashboard({ secret }: { secret: string }) {
               <StatBox label="Redis"   value={<span style={S.badge(stats.redis)}>{stats.redis ? 'OK' : 'Offline'}</span>} />
               <StatBox label="Stations" value={stats.stationCount ?? '—'} />
               <StatBox label="Events"  value={events.length} />
+              <StatBox label="Събития" value={meetups.length} />
               <StatBox label="Last Sync" value={stats.lastSync ? fmt(stats.lastSync) : '—'} small />
             </div>
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
@@ -332,6 +355,9 @@ function Dashboard({ secret }: { secret: string }) {
           onApprove={(id) => { void approveUserStation(id) }}
           onReject={(id)  => { void rejectUserStation(id) }}
         />
+
+        {/* Community events (meetups) */}
+        <MeetupsPanel meetups={meetups} onDelete={(id) => { void deleteMeetup(id) }} />
       </div>
 
       {/* ── Map ── */}
@@ -902,6 +928,52 @@ function AdminMap({ events, userStations, comments, addMode, onMapClick, onDelet
 }
 
 // ── User-submitted stations panel ────────────────────────────────────────
+
+function MeetupsPanel({ meetups, onDelete }: { meetups: AdminMeetup[]; onDelete: (id: string) => void }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          width: '100%', padding: '12px 18px', background: 'none', border: 'none',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          color: '#e2e8f0', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+        }}
+      >
+        <span>📅 Събития ({meetups.length})</span>
+        <span style={{ color: '#666', fontSize: 12 }}>{open ? '▲' : '▼'}</span>
+      </button>
+      {open && (
+        <div style={{ padding: '0 14px 14px' }}>
+          {meetups.length === 0 && (
+            <div style={{ fontSize: 12, color: '#555', padding: '8px 4px' }}>Няма събития</div>
+          )}
+          {meetups.map((m) => (
+            <div key={m.id} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '10px 12px', marginBottom: 8 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                <span style={{ fontWeight: 700, color: '#e2e8f0', fontSize: 13 }}>{m.title}</span>
+                <button onClick={() => onDelete(m.id)} style={{ background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.4)', borderRadius: 6, padding: '2px 8px', fontSize: 11, cursor: 'pointer' }}>Изтрий</button>
+              </div>
+              <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
+                🕒 {new Date(m.date).toLocaleString('bg-BG', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                {m.organizer ? ` · 👤 ${m.organizer}` : ''}
+                {` · 🔔 ${m.followers.length}`}
+              </div>
+              {(m.organizerPhone || m.organizerEmail || m.facebook) && (
+                <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+                  {m.organizerPhone ? `📞 ${m.organizerPhone}  ` : ''}
+                  {m.organizerEmail ? `✉️ ${m.organizerEmail}  ` : ''}
+                  {m.facebook ? `f ${m.facebook}` : ''}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function UserStationsPanel({
   stations, onApprove, onReject,
