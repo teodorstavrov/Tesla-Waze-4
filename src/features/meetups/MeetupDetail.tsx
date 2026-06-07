@@ -4,6 +4,7 @@
 import { useState, useSyncExternalStore } from 'react'
 import { meetupStore } from './meetupStore'
 import { getMeetupToken } from './userMeetupOwner'
+import { routeStore } from '@/features/route/routeStore'
 
 function fmt(iso: string): string {
   const d = new Date(iso)
@@ -52,12 +53,24 @@ export function MeetupDetail() {
           {m.organizerEmail && <Row icon="✉️" text={<a href={`mailto:${m.organizerEmail}`} style={link}>{m.organizerEmail}</a>} />}
           {m.facebook && <Row icon="f" text={isUrl(m.facebook) ? <a href={m.facebook} target="_blank" rel="noopener noreferrer" style={link}>Facebook група</a> : m.facebook} />}
 
+          {/* Navigate — available to everyone */}
+          <button
+            onClick={() => { if (m) { void routeStore.navigateTo({ lat: m.lat, lng: m.lng, name: m.title }); meetupStore.closeDetail() } }}
+            style={{ ...btn, marginTop: 8, width: '100%', background: '#e31937', border: 'none', fontWeight: 800, fontSize: 15 }}
+          >
+            🧭 Навигирай до локацията
+          </button>
+
           <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-            <button onClick={follow} disabled={following} style={{ ...btn, flex: 1, background: following ? 'rgba(34,197,94,0.15)' : '#6366f1', color: following ? '#22c55e' : '#fff', border: 'none' }}>
-              {following ? '✓ Следиш' : '🔔 Следи'}
-            </button>
+            {/* Follow — for other users, not the organizer */}
+            {!isOwner && (
+              <button onClick={follow} disabled={following} style={{ ...btn, flex: 1, background: following ? 'rgba(34,197,94,0.15)' : '#6366f1', color: following ? '#22c55e' : '#fff', border: 'none' }}>
+                {following ? '✓ Следиш' : '🔔 Следи'}
+              </button>
+            )}
+            {/* Edit — only the creator */}
             {isOwner && (
-              <button onClick={() => meetupStore.openEdit(m)} style={{ ...btn, background: 'rgba(255,255,255,0.08)' }}>✏️ Редактирай</button>
+              <button onClick={() => meetupStore.openEdit(m)} style={{ ...btn, flex: 1, background: 'rgba(255,255,255,0.08)' }}>✏️ Редактирай</button>
             )}
           </div>
         </div>
