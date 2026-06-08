@@ -402,7 +402,7 @@ export function MapShell() {
       })
 
       const addEventBtn = document.createElement('button')
-      addEventBtn.textContent = '📅 Добави събитие'
+      addEventBtn.textContent = `📅 ${t('meetup.formAdd')}`
       addEventBtn.style.cssText = [
         'background:rgba(99,102,241,0.14)',
         'color:#a5b4fc',

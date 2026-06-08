@@ -137,17 +137,17 @@ export function ReportModal() {
             const pos = gpsStore.getPosition() ?? getMap()?.getCenter()
             if (pos) addStationStore.open(pos.lat, pos.lng, '')
           }} />
-          <SmallAction emoji="📅" label="Събитие" color="#a5b4fc" onClick={() => {
+          <SmallAction emoji="📅" label={t('meetup.eventBtn')} color="#a5b4fc" onClick={() => {
             eventStore.closeReportModal()
             const pos = gpsStore.getPosition() ?? getMap()?.getCenter()
             if (pos) meetupStore.openForm(pos.lat, pos.lng, '')
           }} />
-          <SmallAction emoji="🏠" label="Дом" color="#22c55e" onClick={() => {
+          <SmallAction emoji="🏠" label={t('map.home')} color="#22c55e" onClick={() => {
             eventStore.closeReportModal()
             const pos = gpsStore.getPosition() ?? getMap()?.getCenter()
             if (pos) savedPlacesStore.set({ type: 'home', lat: pos.lat, lng: pos.lng, name: `${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}` })
           }} />
-          <SmallAction emoji="💼" label="Работа" color="#3b82f6" onClick={() => {
+          <SmallAction emoji="💼" label={t('map.work')} color="#3b82f6" onClick={() => {
             eventStore.closeReportModal()
             const pos = gpsStore.getPosition() ?? getMap()?.getCenter()
             if (pos) savedPlacesStore.set({ type: 'work', lat: pos.lat, lng: pos.lng, name: `${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)}` })

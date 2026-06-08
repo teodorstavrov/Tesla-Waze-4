@@ -4,25 +4,7 @@
 
 import { useSyncExternalStore } from 'react'
 import { teslaStore } from './teslaStore.js'
-import { getLang, langStore } from '@/lib/locale'
-
-function _labels() {
-  const isBg = getLang() === 'bg'
-  return {
-    sectionTitle: isBg ? 'Tesla акаунт'           : 'Tesla account',
-    connect:      isBg ? 'Свържи Tesla акаунт'    : 'Connect Tesla',
-    connected:    isBg ? 'Свързан'                : 'Connected',
-    liveData:     isBg ? 'Живи данни'             : 'Live data',
-    disconnect:   isBg ? 'Прекъсни'              : 'Disconnect',
-    connecting:   isBg ? 'Зареждане...'           : 'Loading...',
-    hint:         isBg
-      ? 'Свържи Tesla за да се вижда реалният заряд на батерията в приложението.'
-      : 'Connect your Tesla to show real battery data in the app.',
-    errDenied:    isBg ? 'Достъпът беше отказан от Tesla.' : 'Access was denied by Tesla.',
-    errGeneric:   isBg ? 'Грешка при свързване. Опитай отново.'
-                       : 'Connection error. Please try again.',
-  }
-}
+import { t, langStore } from '@/lib/locale'
 
 // ── Tesla "T" wordmark SVG (simplified) ─────────────────────────────────
 
@@ -38,19 +20,18 @@ function TeslaT() {
 // ── Component ────────────────────────────────────────────────────────────
 
 export function TeslaConnect() {
-  useSyncExternalStore(langStore.subscribe.bind(langStore), getLang, getLang)
+  useSyncExternalStore(langStore.subscribe.bind(langStore), langStore.getLang, langStore.getLang)
   const state = useSyncExternalStore(
     teslaStore.subscribe,
     teslaStore.getState,
     teslaStore.getState,
   )
-  const L = _labels()
 
   // ── Loading (only when not yet connected — avoids layout jump) ──────
   if (state.loading && !state.connected) {
     return (
       <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.45)', padding: '8px 0' }}>
-        {L.connecting}
+        {t('tesla.connecting')}
       </div>
     )
   }
@@ -79,7 +60,7 @@ export function TeslaConnect() {
               borderRadius: '50%',
               background:   '#22c55e',
             }} />
-            {L.liveData}
+            {t('tesla.liveData')}
           </span>
           {state.vehicleName && (
             <span style={{ fontSize: 14, color: 'rgba(255,255,255,0.65)' }}>
@@ -102,7 +83,7 @@ export function TeslaConnect() {
             touchAction:    'manipulation',
           }}
         >
-          {L.disconnect}
+          {t('tesla.disconnect')}
         </button>
       </div>
     )
@@ -114,14 +95,14 @@ export function TeslaConnect() {
       {/* Error message */}
       {state.error && (
         <div style={{ fontSize: 13, color: '#ef4444', lineHeight: 1.4 }}>
-          {state.error === 'denied' ? L.errDenied : L.errGeneric}
+          {state.error === 'denied' ? t('tesla.errDenied') : t('tesla.errGeneric')}
         </div>
       )}
 
       {/* Hint text */}
       {!state.error && (
         <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', lineHeight: 1.5 }}>
-          {L.hint}
+          {t('tesla.hint')}
         </div>
       )}
 
@@ -146,7 +127,7 @@ export function TeslaConnect() {
         }}
       >
         <TeslaT />
-        {L.connect}
+        {t('tesla.connect')}
       </button>
     </div>
   )

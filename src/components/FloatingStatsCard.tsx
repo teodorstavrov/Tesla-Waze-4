@@ -203,13 +203,11 @@ function BatteryStat({
     : level > 20 ? '#eab308'
     :              '#ef4444'
 
-  const bg = getLang() === 'bg'
-
   const label =
-    isAuthError ? (bg ? 'свържи ↺' : 'reconnect')
-    : isWaking    ? (bg ? 'буди…' : 'waking…')
+    isAuthError ? t('stats.reconnect')
+    : isWaking    ? t('stats.waking')
     : isPolling   ? 'Tesla…'
-    : isSleeping  ? (bg ? 'спи ↺' : 'asleep ↺')
+    : isSleeping  ? t('stats.sleeping')
     : hasTeslaData ? 'Tesla'
     : teslaConnected
       ? (fallbackSource === 'user_entered' ? t('stats.manual') : '~')
@@ -327,12 +325,3 @@ function Stat({
   )
 }
 
-// ── Locale helper ────────────────────────────────────────────────────────
-
-function getLang(): string {
-  try {
-    const override = localStorage.getItem('teslaradar:lang')
-    if (override) return override
-  } catch { /* ignore */ }
-  return 'bg'
-}

@@ -7,7 +7,7 @@ import { ThemeToggle } from '@/components/ThemeToggle'
 import { SatelliteButton } from '@/components/SatelliteButton'
 import { openCountryPicker } from '@/components/CountryPicker'
 import { countryStore } from '@/lib/countryStore'
-import { langStore, getLang } from '@/lib/locale'
+import { t, langStore, getLang } from '@/lib/locale'
 import { settingsStore } from '@/features/settings/settingsStore'
 import { roadworksStore } from '@/features/roadworks/roadworksStore'
 import { uiStore } from '@/features/settings/uiStore'
@@ -50,27 +50,21 @@ export function RightControls() {
   const trafficTimer   = useRef<ReturnType<typeof setTimeout> | null>(null)
   const roadworksTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  const isBg = getLang() === 'bg'
-
   const handleTraffic = useCallback(() => {
     settingsStore.toggleTraffic()
     const next = !showTraffic
-    setTrafficLabel(next
-      ? (isBg ? 'Трафик показан'  : 'Traffic shown')
-      : (isBg ? 'Трафик скрит'   : 'Traffic hidden'))
+    setTrafficLabel(next ? t('settings.trafficShown') : t('settings.trafficHidden'))
     if (trafficTimer.current) clearTimeout(trafficTimer.current)
     trafficTimer.current = setTimeout(() => setTrafficLabel(null), 3000)
-  }, [showTraffic, isBg])
+  }, [showTraffic])
 
   const handleRoadworks = useCallback(() => {
     roadworksStore.toggle()
     const next = !showRoadworks
-    setRoadworksLabel(next
-      ? (isBg ? 'Затворени пътища показани' : 'Road closures shown')
-      : (isBg ? 'Затворени пътища скрити'   : 'Road closures hidden'))
+    setRoadworksLabel(next ? t('settings.roadworksShown') : t('settings.roadworksHidden'))
     if (roadworksTimer.current) clearTimeout(roadworksTimer.current)
     roadworksTimer.current = setTimeout(() => setRoadworksLabel(null), 3000)
-  }, [showRoadworks, isBg])
+  }, [showRoadworks])
 
   return (
     <div

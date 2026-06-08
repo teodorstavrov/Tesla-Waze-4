@@ -10,7 +10,7 @@ import { batteryStore } from '@/features/planning/batteryStore'
 import { TESLA_MODELS, getYearsForModel, getTrimsForYear } from '@/features/planning/vehicleConfig'
 import type { TeslaModel } from '@/features/planning/types'
 import { isTeslaBrowser } from '@/lib/browser'
-import { getLang, langStore } from '@/lib/locale'
+import { t, getLang, langStore } from '@/lib/locale'
 import { TeslaConnect } from '@/features/tesla/TeslaConnect'
 import { teslaStore } from '@/features/tesla/teslaStore'
 import { teslaVehicleStore } from '@/features/tesla/teslaVehicleStore'
@@ -67,39 +67,6 @@ const MS_REVERSE: Record<string, [MSYearGroup, number, string]> = {
   'LR_AWD_19': ['2019–2021', 100, 'AWD'],
   'LR_AWD':    ['2021+',     100, 'AWD'],
   'PLAID':     ['2021+',     100, 'Plaid'],
-}
-
-// ── Locale-aware label map ─────────────────────────────────────────────
-// Re-computed on every render — caller must subscribe to langStore.
-function getLabels() {
-  const isBg = getLang() === 'bg'
-  return {
-    title:           isBg ? 'Профил на автомобила'                             : 'Vehicle Setup',
-    model:           isBg ? 'Модел'                                             : 'Model',
-    trim:            isBg ? 'Версия'                                            : 'Version',
-    year:            isBg ? 'Година'                                            : 'Year',
-    generation:      isBg ? 'Поколение'                                         : 'Generation',
-    batteryKwh:      isBg ? 'Батерия'                                           : 'Battery',
-    drive:           isBg ? 'Задвижване'                                        : 'Drive',
-    battery:         isBg ? 'Текущ заряд'                                       : 'Current charge',
-    batteryHint:     isBg ? 'нужен за планиране при пътуване. Посочи ръчно или свържи Tesla акаунт за живи данни' : 'needed for trip planning. Set manually or connect Tesla account for live data',
-    degradation:     isBg ? 'Деградация (незадължително)'                       : 'Degradation (optional)',
-    degradationHint: isBg ? 'Остави празно — ще се изчисли по годината.'        : 'Leave blank — will be estimated by year.',
-    privacy:         isBg ? 'Данните се съхраняват локално на устройството. Не се изпращат никъде.' : 'Your data is stored locally. Nothing is shared.',
-    placeholder:     isBg ? 'напр. 8'                                           : 'e.g. 8',
-    teslaSection:    isBg ? 'Tesla акаунт'                                      : 'Tesla account',
-    later:           isBg ? 'По-късно'                                          : 'Later',
-    save:            isBg ? 'Запази'                                            : 'Save',
-    close:           isBg ? 'Затвори'                                           : 'Close',
-    dialogLabel:     isBg ? 'Профил на автомобила'                             : 'Vehicle Setup',
-    perfModeLabel:   isBg ? 'Компютър / производителност'                      : 'Computer / Performance mode',
-    perfModeHint:    isBg ? 'Промяната влиза в сила след презареждане'          : 'Change takes effect after reload',
-    perfAuto:        isBg ? 'Автоматично'                                       : 'Auto',
-    perfNormal:      isBg ? 'Нормален'                                          : 'Normal',
-    perfAmd:         isBg ? 'AMD Lite — по-малко визуални ефекти'               : 'AMD Lite — reduced visual load',
-    perfIntel:       isBg ? 'Intel / Стар MCU — минимален режим'               : 'Intel / Legacy MCU — minimal mode',
-    perfHigh:        isBg ? 'Висока производителност'                           : 'High Performance',
-  }
 }
 
 // ── Imperative opener ──────────────────────────────────────────────────
@@ -300,8 +267,6 @@ export function VehicleProfileModal() {
     () => teslaStore.getState().connected,
     () => false,
   )
-  const isBg = getLang() === 'bg'
-
   // When Tesla is connected and live data arrives, keep slider in sync
   useEffect(() => {
     if (open && teslaConnected && teslaSnap?.batteryPercent != null && !teslaSnap.sleeping) {
@@ -341,8 +306,6 @@ export function VehicleProfileModal() {
     const ts = getTrimsForYear(model, y)
     if (!ts.find((t) => t.id === trim)) setTrim(ts[0]?.id ?? '')
   }
-
-  const labels = getLabels()
 
   function doOpen() {
     const p = vehicleProfileStore.get()
@@ -447,7 +410,7 @@ export function VehicleProfileModal() {
 
       {/* Modal card — wide split layout */}
       <div
-        role="dialog" aria-modal="true" aria-label={labels.dialogLabel}
+        role="dialog" aria-modal="true" aria-label={t('vehicleProfile.dialogLabel')}
         style={{
           position: 'relative', zIndex: 1,
           width: 'min(860px, calc(100vw - 24px))',
@@ -480,7 +443,7 @@ export function VehicleProfileModal() {
               TesRadar
             </div>
             <div style={{ fontSize: 22, fontWeight: 700, color: '#f2f2f2', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
-              {labels.title}
+              {t('vehicleProfile.title')}
             </div>
           </div>
 
@@ -497,7 +460,7 @@ export function VehicleProfileModal() {
 
           {/* Model pills — 2+3 grid */}
           <div>
-            <div style={SECTION_LABEL}>{labels.model}</div>
+            <div style={SECTION_LABEL}>{t('vehicleProfile.model')}</div>
             {/* Row 1: 3 */}
             <div style={{ display: 'flex', gap: 6, marginBottom: 6 }}>
               {(TESLA_MODELS.slice(0, 3) as TeslaModel[]).map((m) => (
@@ -534,12 +497,11 @@ export function VehicleProfileModal() {
               }}
               onDrv={setMsDrv}
               sectionLabel={SECTION_LABEL}
-              labels={labels}
             />
           ) : (
             trims.length > 0 && (
               <div>
-                <div style={SECTION_LABEL}>{labels.trim}</div>
+                <div style={SECTION_LABEL}>{t('vehicleProfile.trim')}</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                   {trims.map((t) => {
                     const sel = trim === t.id
@@ -574,7 +536,7 @@ export function VehicleProfileModal() {
 
           {/* Subtitle note */}
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.6, marginTop: 'auto' }}>
-            {labels.privacy}
+            {t('vehicleProfile.privacy')}
           </div>
         </div>
 
@@ -589,7 +551,7 @@ export function VehicleProfileModal() {
         }}>
           {/* Close button */}
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <button onClick={close} aria-label={labels.close} style={{
+            <button onClick={close} aria-label={t('vehicleProfile.close')} style={{
               width: 32, height: 32,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               borderRadius: 8,
@@ -604,7 +566,7 @@ export function VehicleProfileModal() {
 
           {/* Year — hidden for Model S (year is derived from year group) */}
           {!isMS && <div>
-            <div style={SECTION_LABEL}>{labels.year}</div>
+            <div style={SECTION_LABEL}>{t('vehicleProfile.year')}</div>
             <div style={{
               display: 'flex',
               flexWrap: 'wrap',
@@ -642,7 +604,7 @@ export function VehicleProfileModal() {
           <div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                <span style={SECTION_LABEL}>{labels.battery}</span>
+                <span style={SECTION_LABEL}>{t('vehicleProfile.battery')}</span>
                 {/* LIVE badge — shown when Tesla is connected and has fresh battery data */}
                 {teslaConnected && teslaSnap?.batteryPercent != null && !teslaSnap.sleeping && (
                   <span style={{
@@ -661,7 +623,7 @@ export function VehicleProfileModal() {
                 )}
                 {teslaConnected && teslaSnap?.sleeping && (
                   <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
-                    💤 {isBg ? 'Колата спи' : 'Car sleeping'}
+                    💤 {t('vehicleProfile.carSleeping')}
                   </span>
                 )}
               </div>
@@ -682,7 +644,7 @@ export function VehicleProfileModal() {
                       fontWeight: 600,
                     }}
                   >
-                    ↺ {isBg ? 'Tesla' : 'Tesla'}
+                    ↺ Tesla
                   </button>
                 )}
                 <div style={{ fontSize: 26, fontWeight: 800, color: col, letterSpacing: '-0.03em', lineHeight: 1 }}>
@@ -691,7 +653,7 @@ export function VehicleProfileModal() {
               </div>
             </div>
             <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 10 }}>
-              {labels.batteryHint}
+              {t('vehicleProfile.batteryHint')}
             </div>
 
             {/* Slider row */}
@@ -748,11 +710,11 @@ export function VehicleProfileModal() {
 
           {/* Degradation */}
           <div>
-            <div style={SECTION_LABEL}>{labels.degradation}</div>
+            <div style={SECTION_LABEL}>{t('vehicleProfile.degradation')}</div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <input
                 type="number" min={0} max={30} step={1}
-                placeholder={labels.placeholder}
+                placeholder={t('vehicleProfile.placeholder')}
                 value={degrad}
                 onChange={(e) => setDegrad(e.target.value)}
                 style={{
@@ -770,25 +732,25 @@ export function VehicleProfileModal() {
               <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>%</div>
             </div>
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 6, lineHeight: 1.5 }}>
-              {labels.degradationHint}
+              {t('vehicleProfile.degradationHint')}
             </div>
           </div>
 
           {/* Tesla account */}
           <div>
-            <div style={SECTION_LABEL}>{labels.teslaSection}</div>
+            <div style={SECTION_LABEL}>{t('vehicleProfile.teslaSection')}</div>
             <TeslaConnect />
           </div>
 
           {/* Performance mode */}
           <div>
-            <div style={SECTION_LABEL}>{labels.perfModeLabel}</div>
+            <div style={SECTION_LABEL}>{t('vehicleProfile.perfModeLabel')}</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
               {([
-                { value: 'auto',               label: labels.perfAuto },
-                { value: 'tesla_amd_lite',      label: labels.perfAmd },
-                { value: 'tesla_intel_legacy',  label: labels.perfIntel },
-                { value: 'high_performance',    label: labels.perfHigh },
+                { value: 'auto',               label: t('vehicleProfile.perfAuto') },
+                { value: 'tesla_amd_lite',      label: t('vehicleProfile.perfAmd') },
+                { value: 'tesla_intel_legacy',  label: t('vehicleProfile.perfIntel') },
+                { value: 'high_performance',    label: t('vehicleProfile.perfHigh') },
               ] as { value: PerformanceMode; label: string }[]).map(({ value, label }) => {
                 const sel = perfMode === value
                 return (
@@ -814,7 +776,7 @@ export function VehicleProfileModal() {
               })}
             </div>
             <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 6 }}>
-              {labels.perfModeHint}
+              {t('vehicleProfile.perfModeHint')}
             </div>
           </div>
 
@@ -836,7 +798,7 @@ export function VehicleProfileModal() {
                 whiteSpace: 'nowrap',
               }}
             >
-              {labels.later}
+              {t('vehicleProfile.later')}
             </button>
             <button
               onClick={handleSave}
@@ -854,7 +816,7 @@ export function VehicleProfileModal() {
                 letterSpacing: '0.02em',
               }}
             >
-              {labels.save}
+              {t('vehicleProfile.save')}
             </button>
           </div>
         </div>
@@ -902,7 +864,7 @@ function ModelPill({
 function ModelSConfigurator({
   msGroup, msBat, msDrv,
   onGroup, onBat, onDrv,
-  sectionLabel, labels,
+  sectionLabel,
 }: {
   msGroup: MSYearGroup | null
   msBat:   number | null
@@ -911,7 +873,6 @@ function ModelSConfigurator({
   onBat:   (b: number) => void
   onDrv:   (d: string) => void
   sectionLabel: React.CSSProperties
-  labels: ReturnType<typeof getLabels>
 }) {
   const CHIP = (sel: boolean): React.CSSProperties => ({
     padding: '9px 14px',
@@ -935,7 +896,7 @@ function ModelSConfigurator({
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       {/* Step 1 — Year group */}
       <div>
-        <div style={sectionLabel}>{labels.generation}</div>
+        <div style={sectionLabel}>{t('vehicleProfile.generation')}</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
           {MS_YEAR_GROUPS.map((g) => (
             <button key={g} onClick={() => onGroup(g)} style={CHIP(msGroup === g)}>
@@ -948,7 +909,7 @@ function ModelSConfigurator({
       {/* Step 2 — Battery */}
       {msGroup && (
         <div>
-          <div style={sectionLabel}>{labels.batteryKwh}</div>
+          <div style={sectionLabel}>{t('vehicleProfile.batteryKwh')}</div>
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
             {batteries.map((b) => (
               <button key={b} onClick={() => onBat(b)} style={{ ...CHIP(msBat === b), flex: 'none', minWidth: 52 }}>
@@ -962,7 +923,7 @@ function ModelSConfigurator({
       {/* Step 3 — Drive */}
       {msGroup && msBat && (
         <div>
-          <div style={sectionLabel}>{labels.drive}</div>
+          <div style={sectionLabel}>{t('vehicleProfile.drive')}</div>
           <div style={{ display: 'flex', gap: 6 }}>
             {drives.map((d) => (
               <button key={d} onClick={() => onDrv(d)} style={CHIP(msDrv === d)}>
