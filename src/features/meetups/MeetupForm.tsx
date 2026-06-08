@@ -5,6 +5,7 @@
 import { useState, useSyncExternalStore } from 'react'
 import { meetupStore } from './meetupStore'
 import { saveMeetupToken, getMeetupToken } from './userMeetupOwner'
+import { t, langStore } from '@/lib/locale'
 import type { Meetup } from './types'
 
 function toLocalInput(iso: string): string {
@@ -20,6 +21,7 @@ export function MeetupForm() {
     () => meetupStore.getState(),
     () => meetupStore.getState(),
   )
+  useSyncExternalStore(langStore.subscribe, langStore.getLang)
   if (!state.formOpen) return null
   return (
     <MeetupModal
@@ -53,13 +55,13 @@ function MeetupModal({ lat, lng, address, editing }: {
     try {
       if (isEdit && editing) {
         const token = getMeetupToken(editing.id)
-        if (!token) { setError('Само създателят може да редактира'); setSubmitting(false); return }
+        if (!token) { setError(t('meetup.onlyCreator')); setSubmitting(false); return }
         const res = await fetch('/api/meetups/edit', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ id: editing.id, ownerToken: token, title, date, organizer, organizerPhone: phone, organizerEmail: email, facebook }),
         })
         const data = await res.json()
-        if (!res.ok) { setError(data.error ?? 'Грешка'); setSubmitting(false); return }
+        if (!res.ok) { setError(data.error ?? t('meetup.errorSave')); setSubmitting(false); return }
         meetupStore.upsertLocal(data.meetup as Meetup)
         setDone(true)
       } else {
@@ -68,13 +70,13 @@ function MeetupModal({ lat, lng, address, editing }: {
           body: JSON.stringify({ lat, lng, title, date, organizer, organizerPhone: phone, organizerEmail: email, facebook }),
         })
         const data = await res.json()
-        if (!res.ok) { setError(data.error ?? 'Грешка при запис'); setSubmitting(false); return }
+        if (!res.ok) { setError(data.error ?? t('meetup.errorSave')); setSubmitting(false); return }
         if (data.ownerToken) saveMeetupToken(data.meetup.id, data.ownerToken)
         meetupStore.upsertLocal(data.meetup as Meetup)
         setDone(true)
       }
     } catch {
-      setError('Няма връзка'); setSubmitting(false)
+      setError(t('meetup.noConn')); setSubmitting(false)
     }
   }
 
@@ -83,8 +85,8 @@ function MeetupModal({ lat, lng, address, editing }: {
       <div style={overlayStyle} onClick={() => meetupStore.closeForm()}>
         <div style={{ ...cardStyle, alignItems: 'center', padding: '40px 32px', textAlign: 'center' }}>
           <div style={{ fontSize: 52, marginBottom: 16 }}>📅</div>
-          <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 10 }}>{isEdit ? 'Запазено!' : 'Събитието е добавено!'}</div>
-          <button onClick={() => meetupStore.closeForm()} style={primaryBtn}>Затвори</button>
+          <div style={{ fontSize: 20, fontWeight: 700, marginBottom: 10 }}>{isEdit ? t('meetup.savedMsg') : t('meetup.addedMsg')}</div>
+          <button onClick={() => meetupStore.closeForm()} style={primaryBtn}>{t('common.close')}</button>
         </div>
       </div>
     )
@@ -94,9 +96,9 @@ function MeetupModal({ lat, lng, address, editing }: {
     <div style={overlayStyle}>
       <div style={cardStyle} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-          <div style={{ fontSize: 17, fontWeight: 800 }}>📅 {isEdit ? 'Редактирай събитие' : 'Добави събитие'}</div>
+          <div style={{ fontSize: 17, fontWeight: 800 }}>📅 {isEdit ? t('meetup.formEdit') : t('meetup.formAdd')}</div>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button title="Всички събития" onClick={() => meetupStore.openList()} style={listBtn}>📋</button>
+            <button title={t('meetup.eventsTitle')} onClick={() => meetupStore.openList()} style={listBtn}>📋</button>
             <button onClick={() => meetupStore.closeForm()} style={closeBtn}>✕</button>
           </div>
         </div>
@@ -108,17 +110,17 @@ function MeetupModal({ lat, lng, address, editing }: {
         )}
 
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 13, padding: '12px 18px 18px' }}>
-          <Field label="Описание *"><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="напр. Tesla среща Варна" style={inputStyle} /></Field>
-          <Field label="Дата и час *"><input type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} style={inputStyle} /></Field>
-          <Field label="Организатор"><input value={organizer} onChange={(e) => setOrganizer(e.target.value)} placeholder="Име / клуб" style={inputStyle} /></Field>
+          <Field label={t('meetup.descLabel')}><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t('meetup.descPlaceholder')} style={inputStyle} /></Field>
+          <Field label={t('meetup.dateLabel')}><input type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} style={inputStyle} /></Field>
+          <Field label={t('meetup.organizerLabel')}><input value={organizer} onChange={(e) => setOrganizer(e.target.value)} placeholder={t('meetup.organizerPlaceholder')} style={inputStyle} /></Field>
           <div style={{ display: 'flex', gap: 10 }}>
-            <Field label="Телефон за връзка" style={{ flex: 1 }}><input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+359..." style={inputStyle} /></Field>
-            <Field label="Имейл за връзка" style={{ flex: 1 }}><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="org@example.com" style={inputStyle} /></Field>
+            <Field label={t('meetup.phoneLabel')} style={{ flex: 1 }}><input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+..." style={inputStyle} /></Field>
+            <Field label={t('meetup.emailLabel')} style={{ flex: 1 }}><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="org@example.com" style={inputStyle} /></Field>
           </div>
-          <Field label="Facebook група (линк или текст)"><input value={facebook} onChange={(e) => setFacebook(e.target.value)} placeholder="https://facebook.com/... или име на групата" style={inputStyle} /></Field>
+          <Field label={t('meetup.facebookLabel')}><input value={facebook} onChange={(e) => setFacebook(e.target.value)} placeholder={t('meetup.facebookPlaceholder')} style={inputStyle} /></Field>
 
           {email && !isEdit && (
-            <div style={{ fontSize: 11, color: 'rgba(165,180,252,0.85)' }}>ℹ️ На този имейл ще получаваш напомняния за това и за всяко следващо събитие.</div>
+            <div style={{ fontSize: 11, color: 'rgba(165,180,252,0.85)' }}>{t('meetup.emailHint')}</div>
           )}
           {error && <div style={{ fontSize: 13, color: '#f87171', background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: 8, padding: '8px 12px' }}>{error}</div>}
 
@@ -128,7 +130,7 @@ function MeetupModal({ lat, lng, address, editing }: {
             color: submitting || !title.trim() || !date ? 'rgba(255,255,255,0.4)' : '#fff',
             cursor: submitting || !title.trim() || !date ? 'default' : 'pointer',
           }}>
-            {submitting ? 'Запис…' : isEdit ? 'Запази промените' : 'Добави събитие'}
+            {submitting ? t('meetup.saving') : isEdit ? t('meetup.saveChanges') : t('meetup.formAdd')}
           </button>
         </form>
       </div>

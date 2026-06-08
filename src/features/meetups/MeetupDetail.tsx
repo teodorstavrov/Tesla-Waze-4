@@ -5,11 +5,17 @@ import { useState, useSyncExternalStore } from 'react'
 import { meetupStore } from './meetupStore'
 import { getMeetupToken } from './userMeetupOwner'
 import { routeStore } from '@/features/route/routeStore'
+import { t, langStore, getLang } from '@/lib/locale'
+
+const LANG_LOCALE: Record<string, string> = {
+  bg: 'bg-BG', en: 'en-GB', no: 'nb-NO', sv: 'sv-SE', fi: 'fi-FI', nl: 'nl-NL',
+}
 
 function fmt(iso: string): string {
   const d = new Date(iso)
   if (isNaN(d.getTime())) return iso
-  return d.toLocaleString('bg-BG', { weekday: 'short', day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' })
+  const locale = LANG_LOCALE[getLang()] ?? 'en-GB'
+  return d.toLocaleString(locale, { weekday: 'short', day: '2-digit', month: 'long', hour: '2-digit', minute: '2-digit' })
 }
 const isUrl = (s: string) => /^https?:\/\//i.test(s)
 
@@ -38,6 +44,7 @@ export function MeetupDetail() {
     () => meetupStore.getState(),
     () => meetupStore.getState(),
   )
+  useSyncExternalStore(langStore.subscribe, langStore.getLang)
   const m = state.selected
   const [following, setFollowing] = useState(false)
   const [copied,    setCopied]    = useState(false)
@@ -54,7 +61,7 @@ export function MeetupDetail() {
 
   async function follow() {
     if (!m) return
-    const email = window.prompt('Имейл за следене на събитието:')
+    const email = window.prompt(t('meetup.followPrompt'))
     if (!email) return
     try {
       const res = await fetch('/api/meetups/interest', {
@@ -62,7 +69,7 @@ export function MeetupDetail() {
         body: JSON.stringify({ id: m.id, email }),
       })
       if (res.ok) setFollowing(true)
-      else { const d = await res.json(); alert(d.error ?? 'Грешка') }
+      else { const d = await res.json(); alert(d.error ?? t('meetup.errorSave')) }
     } catch { /* ignore */ }
   }
 
@@ -78,21 +85,21 @@ export function MeetupDetail() {
           {m.organizer && <Row icon="👤" text={m.organizer} />}
           {m.organizerPhone && <Row icon="📞" text={<a href={`tel:${m.organizerPhone}`} style={link}>{m.organizerPhone}</a>} />}
           {m.organizerEmail && <Row icon="✉️" text={<a href={`mailto:${m.organizerEmail}`} style={link}>{m.organizerEmail}</a>} />}
-          {m.facebook && <Row icon="f" text={isUrl(m.facebook) ? <a href={m.facebook} target="_blank" rel="noopener noreferrer" style={link}>Facebook група</a> : m.facebook} />}
+          {m.facebook && <Row icon="f" text={isUrl(m.facebook) ? <a href={m.facebook} target="_blank" rel="noopener noreferrer" style={link}>{t('meetup.facebookGroup')}</a> : m.facebook} />}
 
           {/* Navigate — available to everyone */}
           <button
             onClick={() => { if (m) { void routeStore.navigateTo({ lat: m.lat, lng: m.lng, name: m.title }); meetupStore.closeDetail() } }}
             style={{ ...btn, marginTop: 8, width: '100%', background: '#e31937', border: 'none', fontWeight: 800, fontSize: 15 }}
           >
-            🧭 Навигирай до локацията
+            {t('meetup.navigate')}
           </button>
 
           <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
             {/* Follow — for non-owners */}
             {!isOwner && (
               <button onClick={follow} disabled={following} style={{ ...btn, flex: 1, background: following ? 'rgba(34,197,94,0.15)' : '#6366f1', color: following ? '#22c55e' : '#fff', border: 'none' }}>
-                {following ? '✓ Следиш' : '🔔 Следи'}
+                {following ? t('meetup.following') : t('meetup.follow')}
               </button>
             )}
             {/* Edit — always visible; server validates ownership */}
@@ -100,14 +107,14 @@ export function MeetupDetail() {
               onClick={() => meetupStore.openEdit(m)}
               style={{ ...btn, flex: 1, background: isOwner ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.07)', color: isOwner ? '#a5b4fc' : 'rgba(255,255,255,0.7)', border: `1px solid ${isOwner ? 'rgba(99,102,241,0.45)' : 'rgba(255,255,255,0.15)'}` }}
             >
-              ✏️ Редактирай
+              {t('meetup.edit')}
             </button>
             {/* Share link — available to everyone */}
             <button
               onClick={shareLink}
               style={{ ...btn, flex: 1, background: copied ? 'rgba(34,197,94,0.15)' : 'rgba(99,102,241,0.12)', color: copied ? '#4ade80' : '#a5b4fc', border: `1px solid ${copied ? 'rgba(34,197,94,0.4)' : 'rgba(99,102,241,0.35)'}` }}
             >
-              {copied ? '✅ Копирано!' : '🔗 Сподели'}
+              {copied ? t('meetup.copied') : t('meetup.share')}
             </button>
           </div>
         </div>

@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react'
 import { meetupStore } from './meetupStore'
 import { gpsStore } from '@/features/gps/gpsStore'
+import { t } from '@/lib/locale'
 import type { Meetup } from './types'
 
 function isToday(iso: string): boolean {
@@ -66,7 +67,7 @@ export function MeetupTodayToast() {
     >
       <span style={{ fontSize: 20 }}>📅</span>
       <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25, minWidth: 0 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, opacity: 0.85 }}>Днес има събитие{dist}</span>
+        <span style={{ fontSize: 12, fontWeight: 700, opacity: 0.85 }}>{t('meetup.todayEvent')}{dist}</span>
         <span style={{ fontSize: 14, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '70vw' }}>{event.title}</span>
       </div>
       <button onClick={dismiss} style={{ background: 'rgba(255,255,255,0.18)', color: '#fff', border: 'none', borderRadius: 8, width: 26, height: 26, fontSize: 14, cursor: 'pointer', flexShrink: 0 }}>✕</button>

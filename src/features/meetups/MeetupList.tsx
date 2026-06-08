@@ -4,12 +4,18 @@
 import { useState, useSyncExternalStore } from 'react'
 import { meetupStore } from './meetupStore'
 import { getMap } from '@/components/MapShell'
+import { t, langStore, getLang } from '@/lib/locale'
 import type { Meetup } from './types'
+
+const LANG_LOCALE: Record<string, string> = {
+  bg: 'bg-BG', en: 'en-GB', no: 'nb-NO', sv: 'sv-SE', fi: 'fi-FI', nl: 'nl-NL',
+}
 
 function fmtDate(iso: string): string {
   const d = new Date(iso)
   if (isNaN(d.getTime())) return iso
-  return d.toLocaleString('bg-BG', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
+  const locale = LANG_LOCALE[getLang()] ?? 'en-GB'
+  return d.toLocaleString(locale, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })
 }
 
 export function MeetupList() {
@@ -18,6 +24,7 @@ export function MeetupList() {
     () => meetupStore.getState(),
     () => meetupStore.getState(),
   )
+  useSyncExternalStore(langStore.subscribe, langStore.getLang)
   if (!state.listOpen) return null
 
   const meetups = state.meetups
@@ -26,14 +33,14 @@ export function MeetupList() {
     <div style={overlayStyle} onClick={() => meetupStore.closeList()}>
       <div style={cardStyle} onClick={(e) => e.stopPropagation()}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 18px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-          <div style={{ fontSize: 17, fontWeight: 800 }}>📅 Събития ({meetups.length})</div>
+          <div style={{ fontSize: 17, fontWeight: 800 }}>📅 {t('meetup.eventsTitle')} ({meetups.length})</div>
           <button onClick={() => meetupStore.closeList()} style={closeBtn}>✕</button>
         </div>
 
         <div style={{ overflowY: 'auto', padding: '8px 12px 14px' }}>
           {meetups.length === 0 && (
             <div style={{ textAlign: 'center', padding: '32px 16px', color: 'rgba(255,255,255,0.45)', fontSize: 14 }}>
-              Няма събития още. Задръж пръст върху картата, за да добавиш.
+              {t('meetup.noEvents')}
             </div>
           )}
           {meetups.map((m) => <Row key={m.id} m={m} />)}
@@ -74,7 +81,7 @@ function Row({ m }: { m: Meetup }) {
   }
 
   async function follow() {
-    const email = window.prompt('Имейл за следене на събитието:')
+    const email = window.prompt(t('meetup.followPrompt'))
     if (!email) return
     try {
       const res = await fetch('/api/meetups/interest', {
@@ -93,16 +100,16 @@ function Row({ m }: { m: Meetup }) {
       </div>
       {m.organizer && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 4 }}>👤 {m.organizer}</div>}
       <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
-        <button onClick={goToMap} style={smallBtn}>📍 На картата</button>
-        <button onClick={() => { meetupStore.select(m); meetupStore.closeList() }} style={smallBtn}>ℹ️ Детайли</button>
+        <button onClick={goToMap} style={smallBtn}>{t('meetup.toMap')}</button>
+        <button onClick={() => { meetupStore.select(m); meetupStore.closeList() }} style={smallBtn}>{t('meetup.details')}</button>
         {m.facebook && /^https?:\/\//i.test(m.facebook) && (
           <a href={m.facebook} target="_blank" rel="noopener noreferrer" style={{ ...smallBtn, textDecoration: 'none', display: 'inline-block' }}>f Facebook</a>
         )}
         <button onClick={follow} disabled={following} style={{ ...smallBtn, color: following ? '#22c55e' : '#a5b4fc', borderColor: following ? 'rgba(34,197,94,0.4)' : 'rgba(165,180,252,0.4)' }}>
-          {following ? '✓ Следиш' : '🔔 Следи'}
+          {following ? t('meetup.following') : t('meetup.follow')}
         </button>
         <button onClick={shareLink} style={{ ...smallBtn, color: copied ? '#4ade80' : '#a5b4fc', borderColor: copied ? 'rgba(34,197,94,0.4)' : 'rgba(99,102,241,0.4)' }}>
-          {copied ? '✅ Копирано!' : '🔗 Сподели'}
+          {copied ? t('meetup.copied') : t('meetup.share')}
         </button>
       </div>
     </div>
