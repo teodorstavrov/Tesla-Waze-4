@@ -13,6 +13,25 @@ function fmt(iso: string): string {
 }
 const isUrl = (s: string) => /^https?:\/\//i.test(s)
 
+const SITE = 'https://tesradar.tech'
+
+function copyToClipboard(text: string): Promise<void> {
+  if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(text)
+  // Fallback for Tesla browser
+  return new Promise((resolve) => {
+    const el = document.createElement('textarea')
+    el.value = text
+    el.style.position = 'fixed'
+    el.style.opacity = '0'
+    document.body.appendChild(el)
+    el.focus()
+    el.select()
+    document.execCommand('copy')
+    document.body.removeChild(el)
+    resolve()
+  })
+}
+
 export function MeetupDetail() {
   const state = useSyncExternalStore(
     meetupStore.subscribe.bind(meetupStore),
@@ -21,9 +40,17 @@ export function MeetupDetail() {
   )
   const m = state.selected
   const [following, setFollowing] = useState(false)
+  const [copied,    setCopied]    = useState(false)
   if (!m) return null
 
   const isOwner = getMeetupToken(m.id) != null
+
+  function shareLink() {
+    void copyToClipboard(`${SITE}/?meetup=${m!.id}`).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2500)
+    })
+  }
 
   async function follow() {
     if (!m) return
@@ -72,6 +99,13 @@ export function MeetupDetail() {
             {isOwner && (
               <button onClick={() => meetupStore.openEdit(m)} style={{ ...btn, flex: 1, background: 'rgba(255,255,255,0.08)' }}>✏️ Редактирай</button>
             )}
+            {/* Share link — available to everyone */}
+            <button
+              onClick={shareLink}
+              style={{ ...btn, flex: 1, background: copied ? 'rgba(34,197,94,0.15)' : 'rgba(99,102,241,0.12)', color: copied ? '#4ade80' : '#a5b4fc', border: `1px solid ${copied ? 'rgba(34,197,94,0.4)' : 'rgba(99,102,241,0.35)'}` }}
+            >
+              {copied ? '✅ Копирано!' : '🔗 Сподели'}
+            </button>
           </div>
         </div>
       </div>

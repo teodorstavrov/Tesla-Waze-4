@@ -43,12 +43,34 @@ export function MeetupList() {
   )
 }
 
+const SITE = 'https://tesradar.tech'
+
+function copyToClipboard(text: string): Promise<void> {
+  if (navigator.clipboard?.writeText) return navigator.clipboard.writeText(text)
+  return new Promise((resolve) => {
+    const el = document.createElement('textarea')
+    el.value = text
+    el.style.position = 'fixed'; el.style.opacity = '0'
+    document.body.appendChild(el); el.focus(); el.select()
+    document.execCommand('copy'); document.body.removeChild(el)
+    resolve()
+  })
+}
+
 function Row({ m }: { m: Meetup }) {
   const [following, setFollowing] = useState(false)
+  const [copied,    setCopied]    = useState(false)
 
   function goToMap() {
     const map = getMap()
     if (map) { map.setView([m.lat, m.lng], 14); meetupStore.closeList() }
+  }
+
+  function shareLink() {
+    void copyToClipboard(`${SITE}/?meetup=${m.id}`).then(() => {
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2500)
+    })
   }
 
   async function follow() {
@@ -78,6 +100,9 @@ function Row({ m }: { m: Meetup }) {
         )}
         <button onClick={follow} disabled={following} style={{ ...smallBtn, color: following ? '#22c55e' : '#a5b4fc', borderColor: following ? 'rgba(34,197,94,0.4)' : 'rgba(165,180,252,0.4)' }}>
           {following ? '✓ Следиш' : '🔔 Следи'}
+        </button>
+        <button onClick={shareLink} style={{ ...smallBtn, color: copied ? '#4ade80' : '#a5b4fc', borderColor: copied ? 'rgba(34,197,94,0.4)' : 'rgba(99,102,241,0.4)' }}>
+          {copied ? '✅ Копирано!' : '🔗 Сподели'}
         </button>
       </div>
     </div>

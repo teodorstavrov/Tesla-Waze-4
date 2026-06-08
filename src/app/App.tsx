@@ -36,6 +36,7 @@ import { MeetupForm } from '@/features/meetups/MeetupForm'
 import { MeetupList } from '@/features/meetups/MeetupList'
 import { MeetupDetail } from '@/features/meetups/MeetupDetail'
 import { MeetupTodayToast } from '@/features/meetups/MeetupTodayToast'
+import { meetupStore } from '@/features/meetups/meetupStore'
 import { CountryBoundsLayer } from '@/components/CountryBoundsLayer'
 import { RoutePanel } from '@/features/route/RoutePanel'
 import { TurnInstruction } from '@/features/route/TurnInstruction'
@@ -89,6 +90,19 @@ export function App() {
 
     // Always check backend status (restores connection after page reload too)
     void teslaStore.checkStatus()
+  }, [])  // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Deep-link: ?meetup=<id> → open detail modal for that meetup
+  useEffect(() => {
+    const params   = new URLSearchParams(window.location.search)
+    const meetupId = params.get('meetup')
+    if (!meetupId) return
+    // Clean the URL immediately so it doesn't persist on refresh
+    window.history.replaceState(null, '', window.location.pathname)
+    void meetupStore.fetch(true).then(() => {
+      const m = meetupStore.getState().meetups.find((x) => x.id === meetupId)
+      if (m) meetupStore.select(m)
+    })
   }, [])  // eslint-disable-line react-hooks/exhaustive-deps
 
   // Get the audio unlock trigger

@@ -1031,6 +1031,25 @@ function AdminMap({ events, userStations, comments, meetups, addMode, editingEve
 
 function MeetupsPanel({ meetups, onDelete }: { meetups: AdminMeetup[]; onDelete: (id: string) => void }) {
   const [open, setOpen] = useState(false)
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+
+  function copyLink(id: string) {
+    const url = `https://tesradar.tech/?meetup=${id}`
+    const write = navigator.clipboard?.writeText
+      ? navigator.clipboard.writeText(url)
+      : new Promise<void>((resolve) => {
+          const el = document.createElement('textarea')
+          el.value = url; el.style.position = 'fixed'; el.style.opacity = '0'
+          document.body.appendChild(el); el.focus(); el.select()
+          document.execCommand('copy'); document.body.removeChild(el)
+          resolve()
+        })
+    void write.then(() => {
+      setCopiedId(id)
+      setTimeout(() => setCopiedId((c) => (c === id ? null : c)), 2500)
+    })
+  }
+
   return (
     <div style={{ borderTop: '1px solid rgba(255,255,255,0.07)' }}>
       <button
@@ -1067,6 +1086,24 @@ function MeetupsPanel({ meetups, onDelete }: { meetups: AdminMeetup[]; onDelete:
                   {m.facebook ? `f ${m.facebook}` : ''}
                 </div>
               )}
+              {/* Shareable link */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 8 }}>
+                <div style={{ flex: 1, fontSize: 10, color: '#475569', fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  tesradar.tech/?meetup={m.id.slice(0, 8)}…
+                </div>
+                <button
+                  onClick={() => copyLink(m.id)}
+                  style={{
+                    flexShrink: 0, padding: '3px 10px', borderRadius: 6, cursor: 'pointer',
+                    fontSize: 11, fontWeight: 600,
+                    background: copiedId === m.id ? 'rgba(34,197,94,0.15)' : 'rgba(99,102,241,0.12)',
+                    border: `1px solid ${copiedId === m.id ? 'rgba(34,197,94,0.4)' : 'rgba(99,102,241,0.35)'}`,
+                    color: copiedId === m.id ? '#4ade80' : '#a5b4fc',
+                  }}
+                >
+                  {copiedId === m.id ? '✅ Копирано' : '🔗 Копирай линк'}
+                </button>
+              </div>
             </div>
           ))}
         </div>
