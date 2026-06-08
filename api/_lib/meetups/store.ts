@@ -107,6 +107,18 @@ export const meetupStore = {
     return true
   },
 
+  /** Admin update — bypasses ownerToken check, full field access. */
+  async adminUpdate(id: string, patch: Partial<Pick<Meetup,
+    'title' | 'date' | 'organizer' | 'organizerPhone' | 'organizerEmail' | 'facebook' | 'lat' | 'lng'>>
+  ): Promise<PublicMeetup | null> {
+    const all = _prune(await _readAll())
+    const m = all.find((x) => x.id === id)
+    if (!m) return null
+    Object.assign(m, patch)
+    await _write(all)
+    return meetupToPublic(m)
+  },
+
   async remove(id: string): Promise<boolean> {
     const all = _prune(await _readAll())
     const filtered = all.filter((m) => m.id !== id)

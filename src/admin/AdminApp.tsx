@@ -141,7 +141,8 @@ function Dashboard({ secret }: { secret: string }) {
   const [syncMsg, setSyncMsg] = useState('')
   const [addMode, setAddMode] = useState(false)
   const [selType, setSelType] = useState<EventType>('police')
-  const [editingEvent, setEditingEvent] = useState<RoadEvent | null>(null)
+  const [editingEvent,  setEditingEvent]  = useState<RoadEvent | null>(null)
+  const [editingMeetup, setEditingMeetup] = useState<AdminMeetup | null>(null)
 
   const headers = { Authorization: `Bearer ${secret}` }
 
@@ -164,6 +165,20 @@ function Dashboard({ secret }: { secret: string }) {
     if (!confirm('Изтрий събитието?')) return
     await fetch(`/api/admin/meetups?id=${encodeURIComponent(id)}`, { method: 'DELETE', headers })
     setMeetups((prev) => prev.filter((m) => m.id !== id))
+    if (editingMeetup?.id === id) setEditingMeetup(null)
+  }
+
+  async function updateMeetup(id: string, patch: Partial<AdminMeetup>) {
+    const r = await fetch('/api/admin/meetups', {
+      method: 'PATCH',
+      headers: { ...headers, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, ...patch }),
+    })
+    if (r.ok) {
+      const { meetup } = await r.json() as { meetup: AdminMeetup }
+      setMeetups((prev) => prev.map((m) => m.id === id ? { ...m, ...meetup } : m))
+      setEditingMeetup(null)
+    }
   }
 
   useEffect(() => { void loadAll() }, [loadAll])
@@ -372,7 +387,11 @@ function Dashboard({ secret }: { secret: string }) {
         />
 
         {/* Community events (meetups) */}
-        <MeetupsPanel meetups={meetups} onDelete={(id) => { void deleteMeetup(id) }} />
+        <MeetupsPanel
+          meetups={meetups}
+          onDelete={(id) => { void deleteMeetup(id) }}
+          onEdit={setEditingMeetup}
+        />
 
         {/* Road events list */}
         <EventsListPanel
@@ -420,6 +439,15 @@ function Dashboard({ secret }: { secret: string }) {
           />
         )}
       </div>
+
+      {/* Meetup edit modal — full-screen overlay above everything */}
+      {editingMeetup && (
+        <MeetupEditModal
+          meetup={editingMeetup}
+          onSave={(patch) => { void updateMeetup(editingMeetup.id, patch) }}
+          onCancel={() => setEditingMeetup(null)}
+        />
+      )}
     </div>
   )
 }
@@ -1029,7 +1057,7 @@ function AdminMap({ events, userStations, comments, meetups, addMode, editingEve
 
 // ── User-submitted stations panel ────────────────────────────────────────
 
-function MeetupsPanel({ meetups, onDelete }: { meetups: AdminMeetup[]; onDelete: (id: string) => void }) {
+function MeetupsPanel({ meetups, onDelete, onEdit }: { meetups: AdminMeetup[]; onDelete: (id: string) => void; onEdit: (m: AdminMeetup) => void }) {
   const [open, setOpen] = useState(false)
   const [copiedId, setCopiedId] = useState<string | null>(null)
 
@@ -1070,9 +1098,10 @@ function MeetupsPanel({ meetups, onDelete }: { meetups: AdminMeetup[]; onDelete:
           )}
           {meetups.map((m) => (
             <div key={m.id} style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 8, padding: '10px 12px', marginBottom: 8 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
-                <span style={{ fontWeight: 700, color: '#e2e8f0', fontSize: 13 }}>{m.title}</span>
-                <button onClick={() => onDelete(m.id)} style={{ background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.4)', borderRadius: 6, padding: '2px 8px', fontSize: 11, cursor: 'pointer' }}>Изтрий</button>
+              <div style={{ display: 'flex', justifyContent: 'space-between', gap: 6 }}>
+                <span style={{ fontWeight: 700, color: '#e2e8f0', fontSize: 13, flex: 1, minWidth: 0 }}>{m.title}</span>
+                <button onClick={() => onEdit(m)} style={{ background: 'rgba(99,102,241,0.15)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.4)', borderRadius: 6, padding: '2px 8px', fontSize: 11, cursor: 'pointer', flexShrink: 0 }}>✏️ Редактирай</button>
+                <button onClick={() => onDelete(m.id)} style={{ background: 'rgba(239,68,68,0.15)', color: '#f87171', border: '1px solid rgba(239,68,68,0.4)', borderRadius: 6, padding: '2px 8px', fontSize: 11, cursor: 'pointer', flexShrink: 0 }}>Изтрий</button>
               </div>
               <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
                 🕒 {new Date(m.date).toLocaleString('bg-BG', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
@@ -1585,6 +1614,121 @@ function StatBox({ label, value, small = false }: { label: string; value: React.
     <div>
       <div style={{ fontSize: 11, color: '#666', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 2 }}>{label}</div>
       <div style={{ fontSize: small ? 13 : 20, fontWeight: 700, color: '#fff' }}>{value}</div>
+    </div>
+  )
+}
+
+// ── Meetup edit modal ─────────────────────────────────────────────────────
+
+function toLocalInput(iso: string): string {
+  const d = new Date(iso)
+  if (isNaN(d.getTime())) return ''
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+function MeetupEditModal({ meetup, onSave, onCancel }: {
+  meetup:   AdminMeetup
+  onSave:   (patch: Partial<AdminMeetup>) => void
+  onCancel: () => void
+}) {
+  const [title,     setTitle]     = useState(meetup.title)
+  const [date,      setDate]      = useState(toLocalInput(meetup.date))
+  const [organizer, setOrganizer] = useState(meetup.organizer ?? '')
+  const [phone,     setPhone]     = useState(meetup.organizerPhone ?? '')
+  const [email,     setEmail]     = useState(meetup.organizerEmail ?? '')
+  const [facebook,  setFacebook]  = useState(meetup.facebook ?? '')
+  const [lat,       setLat]       = useState(String(meetup.lat))
+  const [lng,       setLng]       = useState(String(meetup.lng))
+  const [saving,    setSaving]    = useState(false)
+
+  function handleSave() {
+    if (!title.trim() || !date) return
+    setSaving(true)
+    onSave({
+      title:          title.trim(),
+      date:           new Date(date).toISOString(),
+      organizer:      organizer.trim() || null,
+      organizerPhone: phone.trim()     || null,
+      organizerEmail: email.trim()     || null,
+      facebook:       facebook.trim()  || null,
+      lat:            isFinite(Number(lat)) ? Number(lat) : meetup.lat,
+      lng:            isFinite(Number(lng)) ? Number(lng) : meetup.lng,
+    })
+  }
+
+  const inp: React.CSSProperties = {
+    background: '#0d0d14', border: '1px solid rgba(255,255,255,0.15)',
+    borderRadius: 7, color: '#fff', padding: '9px 12px', fontSize: 14,
+    outline: 'none', width: '100%', boxSizing: 'border-box',
+  }
+  const lbl: React.CSSProperties = {
+    fontSize: 11, fontWeight: 700, color: 'rgba(255,255,255,0.4)',
+    textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 5, display: 'block',
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.88)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+      <div style={{ background: '#161622', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16, width: '100%', maxWidth: 520, maxHeight: '90vh', overflowY: 'auto', color: '#fff' }}>
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '16px 20px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+          <div style={{ fontSize: 16, fontWeight: 700 }}>✏️ Редактирай събитие</div>
+          <button onClick={onCancel} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 20, cursor: 'pointer', padding: '2px 6px' }}>✕</button>
+        </div>
+
+        {/* Form */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '20px' }}>
+          <div>
+            <label style={lbl}>Описание *</label>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} style={inp} placeholder="напр. Tesla среща Варна" />
+          </div>
+          <div>
+            <label style={lbl}>Дата и час *</label>
+            <input type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} style={inp} />
+          </div>
+          <div>
+            <label style={lbl}>Организатор</label>
+            <input value={organizer} onChange={(e) => setOrganizer(e.target.value)} style={inp} placeholder="Име / клуб" />
+          </div>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <div style={{ flex: 1 }}>
+              <label style={lbl}>Телефон</label>
+              <input value={phone} onChange={(e) => setPhone(e.target.value)} style={inp} placeholder="+359..." />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={lbl}>Имейл</label>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} style={inp} placeholder="org@example.com" />
+            </div>
+          </div>
+          <div>
+            <label style={lbl}>Facebook група</label>
+            <input value={facebook} onChange={(e) => setFacebook(e.target.value)} style={inp} placeholder="https://facebook.com/... или текст" />
+          </div>
+          <div style={{ display: 'flex', gap: 12 }}>
+            <div style={{ flex: 1 }}>
+              <label style={lbl}>Latitude</label>
+              <input value={lat} onChange={(e) => setLat(e.target.value)} style={inp} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <label style={lbl}>Longitude</label>
+              <input value={lng} onChange={(e) => setLng(e.target.value)} style={inp} />
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
+            <button
+              onClick={handleSave}
+              disabled={saving || !title.trim() || !date}
+              style={{ flex: 1, ...S.btn, background: saving ? 'rgba(99,102,241,0.3)' : '#6366f1', color: '#fff', opacity: !title.trim() || !date ? 0.5 : 1 }}
+            >
+              {saving ? 'Запис…' : 'Запази промените'}
+            </button>
+            <button onClick={onCancel} style={{ ...S.btn, background: 'rgba(255,255,255,0.07)', color: '#ccc' }}>
+              Отказ
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

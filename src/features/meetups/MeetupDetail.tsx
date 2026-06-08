@@ -89,16 +89,19 @@ export function MeetupDetail() {
           </button>
 
           <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-            {/* Follow — for other users, not the organizer */}
+            {/* Follow — for non-owners */}
             {!isOwner && (
               <button onClick={follow} disabled={following} style={{ ...btn, flex: 1, background: following ? 'rgba(34,197,94,0.15)' : '#6366f1', color: following ? '#22c55e' : '#fff', border: 'none' }}>
                 {following ? '✓ Следиш' : '🔔 Следи'}
               </button>
             )}
-            {/* Edit — only the creator */}
-            {isOwner && (
-              <button onClick={() => meetupStore.openEdit(m)} style={{ ...btn, flex: 1, background: 'rgba(255,255,255,0.08)' }}>✏️ Редактирай</button>
-            )}
+            {/* Edit — always visible; server validates ownership */}
+            <button
+              onClick={() => meetupStore.openEdit(m)}
+              style={{ ...btn, flex: 1, background: isOwner ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.07)', color: isOwner ? '#a5b4fc' : 'rgba(255,255,255,0.7)', border: `1px solid ${isOwner ? 'rgba(99,102,241,0.45)' : 'rgba(255,255,255,0.15)'}` }}
+            >
+              ✏️ Редактирай
+            </button>
             {/* Share link — available to everyone */}
             <button
               onClick={shareLink}
