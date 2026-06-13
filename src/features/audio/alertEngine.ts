@@ -7,7 +7,7 @@
 // COOLDOWN: each event is alerted at most once per 5 minutes so the
 // driver isn't spammed if they drive slowly past it.
 //
-// THRESHOLDS: police 700m, traffic 800m, camera/accident 600m, hazard/construction 300-500m.
+// THRESHOLDS: police 500m, traffic 800m, camera/accident 600m, hazard/construction 300-500m.
 
 import { gpsStore } from '@/features/gps/gpsStore'
 import { eventStore } from '@/features/events/eventStore'
@@ -59,7 +59,7 @@ function _isInDirectionOfTravel(
 }
 
 const THRESHOLDS_M: Record<EventType, number> = {
-  police:        700,
+  police:        500,
   accident:      600,
   hazard:        300,
   traffic:       800,
