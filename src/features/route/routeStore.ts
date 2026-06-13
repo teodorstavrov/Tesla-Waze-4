@@ -61,7 +61,7 @@ function _segDistM(
  * WHY: closestPointIndex gives the nearest *vertex*.  On highways OSRM
  * emits sparse polylines (vertices every 200–500 m on long straights).
  * A car driving perfectly on-route can be 300 m from the nearest vertex,
- * incorrectly triggering the 200 m deviation threshold and forcing a reroute.
+ * incorrectly triggering the 80 m deviation threshold and forcing a reroute.
  */
 function distToPolylineM(lat: number, lng: number, polyline: [number, number][]): number {
   const idx = closestPointIndex(lat, lng, polyline)
@@ -148,7 +148,11 @@ const _listeners = new Set<Listener>()
 let _abort: AbortController | null = null
 let _unsubGps: (() => void) | null = null
 let _lastRerouteAt = 0
-const REROUTE_COOLDOWN_MS = 20000  // 20s cooldown — prevents OSRM hammering on GPS jitter
+const REROUTE_COOLDOWN_MS    = 8000  // 8s — allows retry after transient network failure
+const DEVIATION_THRESHOLD_M  = 80    // metres from polyline before considering off-route
+const DEVIATION_CONFIRM_TICKS = 2    // consecutive GPS ticks above threshold → auto-reroute (~2 s)
+let _deviationTicks = 0
+let _isRerouting    = false          // true while reroute fetch is in-flight
 
 // ── Post-turn advance buffer ──────────────────────────────────────
 // The navigator must NOT advance to the next step the moment GPS enters
@@ -175,6 +179,7 @@ function _resetAnnouncements(): void {
   _announced50.clear()
   _arrivedAnnounced = false
   _pendingAdvance = null
+  _deviationTicks = 0
   _cumPolylineRef = null  // force cumulative distance rebuild for the new route
 }
 
@@ -184,7 +189,9 @@ function _emit(): void { _listeners.forEach((fn) => fn()) }
 
 function _onGpsUpdate(): void {
   const route = _state.routes[_state.activeRouteIndex]
-  if (!route || _state.status !== 'ok' || _state.mode !== 'navigating') return
+  // Continue processing during rerouting (status='loading') so HUD stays live.
+  // Also allow processing after failed reroute (status='error') so auto-retry can trigger.
+  if (!route || _state.mode !== 'navigating') return
 
   const gps = gpsStore.getPosition()
   if (!gps) return
@@ -194,7 +201,15 @@ function _onGpsUpdate(): void {
   const idx         = closestPointIndex(gps.lat, gps.lng, route.polyline)
   const distFromRoute = distToPolylineM(gps.lat, gps.lng, route.polyline)
 
-  const deviated  = distFromRoute > 50
+  // Require DEVIATION_CONFIRM_TICKS consecutive GPS ticks above DEVIATION_THRESHOLD_M
+  // before flagging as off-route. This eliminates false reroutes from GPS jitter.
+  const rawDeviated = distFromRoute > DEVIATION_THRESHOLD_M
+  if (rawDeviated) {
+    _deviationTicks = Math.min(_deviationTicks + 1, DEVIATION_CONFIRM_TICKS)
+  } else {
+    _deviationTicks = 0
+  }
+  const deviated = _deviationTicks >= DEVIATION_CONFIRM_TICKS
   const remaining = remainingDistanceM(idx)
 
   // ── Arrival detection ───────────────────────────────────────────
@@ -265,8 +280,8 @@ function _onGpsUpdate(): void {
     distToNextStepM = (_pendingAdvance?.targetStepIdx === newStep) ? null : Math.round(d)
 
     // Far announcement: 80–350m
-    // Skip if we just advanced this tick (stepChanged) or are mid-turn (pending).
-    if (!stepChanged && !_pendingAdvance && d < 350 && d > 80 && !_announced300.has(newStep)) {
+    // Skip if we just advanced this tick (stepChanged), are mid-turn (pending), or rerouting.
+    if (!stepChanged && !_pendingAdvance && !_isRerouting && d < 350 && d > 80 && !_announced300.has(newStep)) {
       _announced300.add(newStep)
       const distVoice = fmtDistForVoice(d, lang)
       const prefix: Record<string,string> = {
@@ -278,8 +293,8 @@ function _onGpsUpdate(): void {
       speak(`${prefix[lang] ?? `In ${distVoice}, `}${maneuverVoiceText(nextStep)}`)
     }
 
-    // Imminent announcement: 20–80m (skip if mid-turn pending)
-    if (!_pendingAdvance && d < 80 && d > 20 && !_announced50.has(newStep)) {
+    // Imminent announcement: 20–80m (skip if mid-turn pending or rerouting)
+    if (!_pendingAdvance && !_isRerouting && d < 80 && d > 20 && !_announced50.has(newStep)) {
       _announced50.add(newStep)
       speak(maneuverVoiceText(nextStep))
     }
@@ -289,11 +304,11 @@ function _onGpsUpdate(): void {
   const changed =
     deviated !== _state.deviated ||
     stepChanged ||
-    Math.abs(remaining - (_state.remainingM ?? 0)) > 50 ||
-    distDelta > 20   // update HUD counter every ~20m
+    Math.abs(remaining - (_state.remainingM ?? 0)) > 20 ||
+    distDelta > 10   // update HUD every ~10m (at 60 km/h GPS gives ~17m/tick)
 
   if (changed) {
-    const justDeviated = !_state.deviated && deviated
+    const justDeviated = !_state.deviated && deviated && !_isRerouting
     _state = { ..._state, deviated, remainingM: remaining, currentStepIndex: newStep, distToNextStepM }
     _emit()
     if (justDeviated) void routeStore.reroute()
@@ -445,12 +460,11 @@ export const routeStore = {
 
     _abort?.abort()
     _abort = new AbortController()
-    _stopGpsTracking()
-    _resetAnnouncements()
+    _isRerouting = true  // GPS tracking stays live; HUD keeps updating with old route
 
     const dest     = _state.destination
     const viaHemus = _state.viaHemus
-    _state = { ..._state, status: 'loading', deviated: false, remainingM: null, currentStepIndex: 1, distToNextStepM: null }
+    _state = { ..._state, status: 'loading', deviated: false }
     _emit()
 
     try {
@@ -460,6 +474,7 @@ export const routeStore = {
         : await fetchValhalla([gps.lat, gps.lng], [dest.lat, dest.lng], _abort.signal)
             .catch(() => fetchOSRM([gps.lat, gps.lng], [dest.lat, dest.lng], _abort!.signal))
       const primary = routes[0]!
+      _resetAnnouncements()  // clear old-route tracking before switching to new route
       _state = {
         ..._state,
         routes,
@@ -474,8 +489,9 @@ export const routeStore = {
         arrived:          false,
         deviated:         false,
       }
+      _isRerouting = false
       _emit()
-      _startGpsTracking()
+      _startGpsTracking()  // re-subscribe to ensure clean state after abort
 
       const firstStep = primary.steps[1]
       if (firstStep) {
@@ -488,6 +504,7 @@ export const routeStore = {
       }
     } catch (err) {
       if ((err as Error).name === 'AbortError') return
+      _isRerouting = false
       _state = { ..._state, status: 'error', error: (err as Error).message }
       logger.route.warn('Reroute failed', { err: String(err) })
       _emit()
