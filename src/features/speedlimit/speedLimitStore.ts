@@ -19,10 +19,12 @@ import { gpsStore } from '@/features/gps/gpsStore'
 import { countryStore } from '@/lib/countryStore'
 
 // ── Constants ────────────────────────────────────────────────────────────
-const FETCH_THRESHOLD_M  = 50    // re-fetch after 50 m movement
-const SEARCH_RADIUS_M    = 40    // query radius around GPS position
-const OVERPASS_URL       = '/api/overpass'  // proxy — avoids CORS + handles fallback
-const REQUEST_TIMEOUT    = 10_000 // ms
+const FETCH_THRESHOLD_M   = 50    // re-fetch after 50 m movement
+const MIN_SEARCH_RADIUS_M = 50    // minimum query radius (m) around GPS position
+const MAX_SEARCH_RADIUS_M = 120   // cap radius — avoids picking up wrong roads
+const OVERPASS_URL        = '/api/overpass'  // proxy — avoids CORS + handles fallback
+const REQUEST_TIMEOUT     = 10_000 // ms
+const RETRY_WHEN_NULL_MS  = 10_000 // retry every 10 s while limit is still unknown
 
 // ── Highway priority (lower = more important road) ────────────────────────
 const HIGHWAY_PRIORITY: Record<string, number> = {
@@ -75,6 +77,14 @@ const HIGHWAY_DEFAULTS: Record<string, Partial<Record<string, number>>> = {
     primary: 80,   secondary: 80,
     tertiary: 80,  residential: 50,
     living_street: 20, service: 30, unclassified: 70,
+  },
+  NL: {
+    motorway: 100, motorway_link: 70,
+    trunk: 100,    trunk_link: 70,
+    primary: 70,   primary_link: 50,
+    secondary: 70, secondary_link: 50,
+    tertiary: 50,  residential: 30,
+    living_street: 15, service: 15, unclassified: 50,
   },
 }
 
@@ -179,30 +189,43 @@ type Listener = () => void
 class SpeedLimitStore {
   private limit: number | null = null
   private lastFetchPos: { lat: number; lng: number } | null = null
+  private lastFetchAt = 0
   private fetching = false
   private readonly listeners = new Set<Listener>()
 
   constructor() {
     gpsStore.onPosition((pos) => {
-      if (
-        this.lastFetchPos &&
-        distanceM(this.lastFetchPos, pos) < FETCH_THRESHOLD_M
-      ) return
+      const movedEnough = !this.lastFetchPos ||
+        distanceM(this.lastFetchPos, pos) >= FETCH_THRESHOLD_M
+      // Retry every RETRY_WHEN_NULL_MS while limit is still unknown —
+      // handles poor GPS accuracy on first fix and stationary vehicles.
+      const nullRetry = this.limit === null &&
+        Date.now() - this.lastFetchAt >= RETRY_WHEN_NULL_MS
+
+      if (!movedEnough && !nullRetry) return
       if (this.fetching) return
 
       this.lastFetchPos = { lat: pos.lat, lng: pos.lng }
-      void this.fetchLimit(pos.lat, pos.lng)
+      void this.fetchLimit(pos.lat, pos.lng, pos.accuracy)
     })
   }
 
-  private async fetchLimit(lat: number, lng: number): Promise<void> {
+  private async fetchLimit(lat: number, lng: number, gpsAccuracy: number): Promise<void> {
     this.fetching = true
+    this.lastFetchAt = Date.now()
+
+    // Scale search radius with GPS accuracy so a 60m accuracy fix still finds
+    // the road. Cap at MAX_SEARCH_RADIUS_M to avoid picking up parallel roads.
+    const radius = Math.max(
+      MIN_SEARCH_RADIUS_M,
+      Math.min(Math.ceil(gpsAccuracy) + 30, MAX_SEARCH_RADIUS_M),
+    )
 
     // Query ALL road ways within radius — no maxspeed filter.
     // We apply road-type defaults for untagged ways in bestLimit().
     const query =
       `[out:json][timeout:7];` +
-      `way(around:${SEARCH_RADIUS_M},${lat},${lng})[highway~"^(motorway|motorway_link|trunk|trunk_link|primary|primary_link|secondary|secondary_link|tertiary|tertiary_link|residential|living_street|unclassified|service|road)$"];` +
+      `way(around:${radius},${lat},${lng})[highway~"^(motorway|motorway_link|trunk|trunk_link|primary|primary_link|secondary|secondary_link|tertiary|tertiary_link|residential|living_street|unclassified|service|road)$"];` +
       `out tags 10;`
 
     const body    = `data=${encodeURIComponent(query)}`
