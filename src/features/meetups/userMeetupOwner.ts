@@ -50,7 +50,8 @@ export function getRsvp(meetupId: string): { attend: boolean; interest: boolean 
 export function setRsvp(meetupId: string, type: 'attend' | 'interest', value: boolean): void {
   try {
     const m = _loadRsvp()
-    m[meetupId] = { ...m[meetupId], [type]: value }
+    const other = type === 'attend' ? 'interest' : 'attend'
+    m[meetupId] = { ...m[meetupId], [type]: value, ...(value ? { [other]: false } : {}) }
     localStorage.setItem(RSVP_KEY, JSON.stringify(m))
   } catch { /* quota */ }
 }

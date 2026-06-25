@@ -64,11 +64,20 @@ function MeetupDetailInner({ m }: { m: Meetup }) {
   const [interestCount, setInterestCount] = useState((m.interested ?? []).length)
 
   async function rsvpToggle(type: 'attend' | 'interest') {
-    const isOn    = type === 'attend' ? attending : interested
-    const action  = isOn ? 'remove' : 'add'
-    const newVal  = !isOn
-    if (type === 'attend')   { setAttending(newVal);  setAttendCount(c  => c + (newVal ? 1 : -1)) }
-    else                     { setInterested(newVal); setInterestCount(c => c + (newVal ? 1 : -1)) }
+    const isOn   = type === 'attend' ? attending : interested
+    const action = isOn ? 'remove' : 'add'
+    const newVal = !isOn
+
+    // Optimistic update — mutually exclusive
+    if (type === 'attend') {
+      setAttending(newVal)
+      setAttendCount(c => c + (newVal ? 1 : -1))
+      if (newVal && interested) { setInterested(false); setInterestCount(c => c - 1) }
+    } else {
+      setInterested(newVal)
+      setInterestCount(c => c + (newVal ? 1 : -1))
+      if (newVal && attending) { setAttending(false); setAttendCount(c => c - 1) }
+    }
     setRsvp(m.id, type, newVal)
     try {
       const res = await fetch('/api/meetups/rsvp', {

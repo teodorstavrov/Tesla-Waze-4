@@ -121,10 +121,16 @@ export const meetupStore = {
     if (!Array.isArray(m.attendees))  m.attendees  = []
     if (!Array.isArray(m.interested)) m.interested = []
     if (type === 'attend') {
-      if (action === 'add'    && !m.attendees.includes(deviceId))  m.attendees.push(deviceId)
-      if (action === 'remove') m.attendees  = m.attendees.filter((d) => d !== deviceId)
+      if (action === 'add') {
+        if (!m.attendees.includes(deviceId)) m.attendees.push(deviceId)
+        m.interested = m.interested.filter((d) => d !== deviceId)
+      }
+      if (action === 'remove') m.attendees = m.attendees.filter((d) => d !== deviceId)
     } else {
-      if (action === 'add'    && !m.interested.includes(deviceId)) m.interested.push(deviceId)
+      if (action === 'add') {
+        if (!m.interested.includes(deviceId)) m.interested.push(deviceId)
+        m.attendees = m.attendees.filter((d) => d !== deviceId)
+      }
       if (action === 'remove') m.interested = m.interested.filter((d) => d !== deviceId)
     }
     await _write(all)
