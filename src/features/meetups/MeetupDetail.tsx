@@ -181,13 +181,15 @@ function MeetupDetailInner({ m }: { m: Meetup }) {
                 {following ? t('meetup.following') : t('meetup.follow')}
               </button>
             )}
-            {/* Edit — always visible; server validates ownership */}
-            <button
-              onClick={() => meetupStore.openEdit(m)}
-              style={{ ...btn, flex: 1, background: isOwner ? 'rgba(99,102,241,0.2)' : 'rgba(255,255,255,0.07)', color: isOwner ? '#a5b4fc' : 'rgba(255,255,255,0.7)', border: `1px solid ${isOwner ? 'rgba(99,102,241,0.45)' : 'rgba(255,255,255,0.15)'}` }}
-            >
-              {t('meetup.edit')}
-            </button>
+            {/* Edit — visible only to the creator (ownerToken in localStorage) */}
+            {isOwner && (
+              <button
+                onClick={() => meetupStore.openEdit(m)}
+                style={{ ...btn, flex: 1, background: 'rgba(99,102,241,0.2)', color: '#a5b4fc', border: '1px solid rgba(99,102,241,0.45)' }}
+              >
+                {t('meetup.edit')}
+              </button>
+            )}
             {/* Share link — available to everyone */}
             <button
               onClick={shareLink}
