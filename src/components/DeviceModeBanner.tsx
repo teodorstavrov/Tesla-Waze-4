@@ -58,8 +58,8 @@ export function DeviceModeBanner() {
       borderBottom: '1px solid rgba(99,102,241,0.35)',
       display:    'flex',
       alignItems: 'center',
-      padding:    '0 12px',
-      height:     42,
+      padding:    '8px 12px',
+      minHeight:  42,
       backdropFilter: 'blur(8px)',
       WebkitBackdropFilter: 'blur(8px)',
     }}>
@@ -67,10 +67,7 @@ export function DeviceModeBanner() {
         flex: 1,
         fontSize: isPhone ? 12 : 13,
         color: 'rgba(255,255,255,0.85)',
-        lineHeight: 1.3,
-        overflow: 'hidden',
-        textOverflow: 'ellipsis',
-        whiteSpace: 'nowrap',
+        lineHeight: 1.45,
         paddingRight: 8,
       }}>
         {msg}

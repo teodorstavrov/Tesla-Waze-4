@@ -9,8 +9,10 @@ import { filterStore } from './filterStore.js'
 import { routeStore } from '@/features/route/routeStore'
 import type { ConnectorFilter, PowerFilter } from './filterStore.js'
 import { t, langStore } from '@/lib/locale'
+import { isPhone } from '@/lib/browser'
 
 export function FilterBar() {
+  if (isPhone) return null
   // Subscribe to lang changes so labels re-render on country switch
   useSyncExternalStore(langStore.subscribe, langStore.getLang, langStore.getLang)
 

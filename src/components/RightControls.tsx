@@ -11,6 +11,7 @@ import { t, langStore, getLang } from '@/lib/locale'
 import { settingsStore } from '@/features/settings/settingsStore'
 import { roadworksStore } from '@/features/roadworks/roadworksStore'
 import { uiStore } from '@/features/settings/uiStore'
+import { isPhone } from '@/lib/browser'
 
 const FB_GROUP_URL = 'https://www.facebook.com/groups/1496658052161240'
 
@@ -81,8 +82,8 @@ export function RightControls() {
         alignItems:    'center',
       }}
     >
-      {/* Action buttons — conditionally visible */}
-      {showRightControls && (
+      {/* Action buttons — hidden on mobile phone, conditionally visible otherwise */}
+      {!isPhone && showRightControls && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8, opacity: 0.5 }}>
           <div style={{ position: 'relative' }}>
             <button

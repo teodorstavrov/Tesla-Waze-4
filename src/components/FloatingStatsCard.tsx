@@ -113,7 +113,7 @@ export function FloatingStatsCard() {
     return (
       <div style={{
         position:      'absolute',
-        top:           50,   // below the banner if it's shown
+        top:           60,   // below the banner (up to 2 lines ~58px)
         right:         8,
         zIndex:        400,
         display:       'flex',

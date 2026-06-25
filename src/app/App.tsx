@@ -155,7 +155,7 @@ export function App() {
       <SearchBar />
       <FloatingStatsCard />
       <LeftControls />
-      {!isPhone && <RightControls />}
+      <RightControls />
       <BottomDock />
       {!isPhone && <CarClock />}
       <DeviceModeBanner />
