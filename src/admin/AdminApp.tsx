@@ -118,10 +118,23 @@ interface UserStation {
   connectors:     Array<{ type: string; powerKw: number | null; count: number }>
 }
 
+type RecurrenceType = 'none' | 'weekly' | 'biweekly' | 'monthly_date' | 'monthly_weekday'
+
+const RECURRENCE_OPTS: RecurrenceType[] = ['none','weekly','biweekly','monthly_date','monthly_weekday']
+const RECURRENCE_LABELS: Record<RecurrenceType, string> = {
+  none:            'Еднократно',
+  weekly:          'Всяка сед.',
+  biweekly:        'Всеки 2 сед.',
+  monthly_date:    'Месечно (число)',
+  monthly_weekday: 'Месечно (ден)',
+}
+
 interface AdminMeetup {
   id:             string
   title:          string
   date:           string
+  description:    string | null
+  recurrence:     RecurrenceType
   lat:            number
   lng:            number
   organizer:      string | null
@@ -129,6 +142,8 @@ interface AdminMeetup {
   organizerEmail: string | null
   facebook:       string | null
   followers:      string[]
+  attendees:      string[]
+  interested:     string[]
 }
 
 function Dashboard({ secret }: { secret: string }) {
@@ -1105,9 +1120,15 @@ function MeetupsPanel({ meetups, onDelete, onEdit }: { meetups: AdminMeetup[]; o
               </div>
               <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>
                 🕒 {new Date(m.date).toLocaleString('bg-BG', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                {m.recurrence && m.recurrence !== 'none' ? ` · 🔁 ${RECURRENCE_LABELS[m.recurrence]}` : ''}
                 {m.organizer ? ` · 👤 ${m.organizer}` : ''}
                 {` · 🔔 ${m.followers?.length ?? 0}`}
+                {(m.attendees?.length ?? 0) > 0  ? ` · ✅ ${m.attendees.length}` : ''}
+                {(m.interested?.length ?? 0) > 0 ? ` · ⭐ ${m.interested.length}` : ''}
               </div>
+              {m.description && (
+                <div style={{ fontSize: 11, color: '#64748b', marginTop: 2, fontStyle: 'italic' }}>"{m.description}"</div>
+              )}
               {(m.organizerPhone || m.organizerEmail || m.facebook) && (
                 <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
                   {m.organizerPhone ? `📞 ${m.organizerPhone}  ` : ''}
@@ -1632,15 +1653,17 @@ function MeetupEditModal({ meetup, onSave, onCancel }: {
   onSave:   (patch: Partial<AdminMeetup>) => void
   onCancel: () => void
 }) {
-  const [title,     setTitle]     = useState(meetup.title)
-  const [date,      setDate]      = useState(toLocalInput(meetup.date))
-  const [organizer, setOrganizer] = useState(meetup.organizer ?? '')
-  const [phone,     setPhone]     = useState(meetup.organizerPhone ?? '')
-  const [email,     setEmail]     = useState(meetup.organizerEmail ?? '')
-  const [facebook,  setFacebook]  = useState(meetup.facebook ?? '')
-  const [lat,       setLat]       = useState(String(meetup.lat))
-  const [lng,       setLng]       = useState(String(meetup.lng))
-  const [saving,    setSaving]    = useState(false)
+  const [title,       setTitle]       = useState(meetup.title)
+  const [date,        setDate]        = useState(toLocalInput(meetup.date))
+  const [description, setDescription] = useState(meetup.description ?? '')
+  const [recurrence,  setRecurrence]  = useState<RecurrenceType>(meetup.recurrence ?? 'none')
+  const [organizer,   setOrganizer]   = useState(meetup.organizer ?? '')
+  const [phone,       setPhone]       = useState(meetup.organizerPhone ?? '')
+  const [email,       setEmail]       = useState(meetup.organizerEmail ?? '')
+  const [facebook,    setFacebook]    = useState(meetup.facebook ?? '')
+  const [lat,         setLat]         = useState(String(meetup.lat))
+  const [lng,         setLng]         = useState(String(meetup.lng))
+  const [saving,      setSaving]      = useState(false)
 
   function handleSave() {
     if (!title.trim() || !date) return
@@ -1648,6 +1671,8 @@ function MeetupEditModal({ meetup, onSave, onCancel }: {
     onSave({
       title:          title.trim(),
       date:           new Date(date).toISOString(),
+      description:    description.trim() || null,
+      recurrence,
       organizer:      organizer.trim() || null,
       organizerPhone: phone.trim()     || null,
       organizerEmail: email.trim()     || null,
@@ -1679,13 +1704,48 @@ function MeetupEditModal({ meetup, onSave, onCancel }: {
         {/* Form */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14, padding: '20px' }}>
           <div>
-            <label style={lbl}>Описание *</label>
+            <label style={lbl}>Заглавие *</label>
             <input value={title} onChange={(e) => setTitle(e.target.value)} style={inp} placeholder="напр. Tesla среща Варна" />
           </div>
+
+          <div>
+            <label style={lbl}>Бележка</label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              maxLength={300}
+              rows={2}
+              style={{ ...inp, resize: 'vertical', minHeight: 54, lineHeight: 1.45 }}
+              placeholder="Кратко описание на събитието..."
+            />
+          </div>
+
           <div>
             <label style={lbl}>Дата и час *</label>
             <input type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} style={inp} />
           </div>
+
+          <div>
+            <label style={lbl}>Повторение</label>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {RECURRENCE_OPTS.map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setRecurrence(r)}
+                  style={{
+                    padding: '7px 11px', borderRadius: 7, fontSize: 12, fontWeight: 600, cursor: 'pointer',
+                    border:     recurrence === r ? '1px solid #6366f1' : '1px solid rgba(255,255,255,0.12)',
+                    background: recurrence === r ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.05)',
+                    color:      recurrence === r ? '#a5b4fc' : 'rgba(255,255,255,0.55)',
+                  }}
+                >
+                  {RECURRENCE_LABELS[r]}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div>
             <label style={lbl}>Организатор</label>
             <input value={organizer} onChange={(e) => setOrganizer(e.target.value)} style={inp} placeholder="Име / клуб" />
@@ -1714,6 +1774,15 @@ function MeetupEditModal({ meetup, onSave, onCancel }: {
               <input value={lng} onChange={(e) => setLng(e.target.value)} style={inp} />
             </div>
           </div>
+
+          {/* Read-only stats */}
+          {((meetup.attendees?.length ?? 0) > 0 || (meetup.interested?.length ?? 0) > 0) && (
+            <div style={{ display: 'flex', gap: 16, fontSize: 13, color: '#94a3b8', background: 'rgba(255,255,255,0.03)', borderRadius: 8, padding: '10px 14px' }}>
+              <span>✅ Ще присъстват: <b style={{ color: '#4ade80' }}>{meetup.attendees?.length ?? 0}</b></span>
+              <span>⭐ Интерес: <b style={{ color: '#fbbf24' }}>{meetup.interested?.length ?? 0}</b></span>
+              <span>🔔 Последователи: <b style={{ color: '#a5b4fc' }}>{meetup.followers?.length ?? 0}</b></span>
+            </div>
+          )}
 
           <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
             <button

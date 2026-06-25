@@ -4,7 +4,7 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { isAuthorized, unauthorized } from '../_lib/admin/auth.js'
-import { meetupStore } from '../_lib/meetups/store.js'
+import { meetupStore, VALID_RECURRENCE, type RecurrenceType } from '../_lib/meetups/store.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -27,6 +27,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     const patch: Parameters<typeof meetupStore.adminUpdate>[1] = {}
     if (body['title']          != null) patch.title          = String(body['title']).trim().slice(0, 120)
     if (body['date']           != null) patch.date           = String(body['date'])
+    if (body['description']    != null) patch.description    = String(body['description']).trim().slice(0, 300) || null
+    if (body['recurrence']     != null) {
+      const r = String(body['recurrence'])
+      patch.recurrence = (VALID_RECURRENCE.has(r) ? r : 'none') as RecurrenceType
+    }
     if (body['organizer']      != null) patch.organizer      = String(body['organizer']).trim() || null
     if (body['organizerPhone'] != null) patch.organizerPhone = String(body['organizerPhone']).trim() || null
     if (body['organizerEmail'] != null) patch.organizerEmail = String(body['organizerEmail']).trim() || null
