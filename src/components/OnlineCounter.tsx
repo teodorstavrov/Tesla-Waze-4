@@ -16,10 +16,10 @@ const HEARTBEAT_MS = 5 * 60_000   // 5 min — reduces Redis commands ~5x vs 60s
 
 function getSessionId(): string {
   const KEY = 'tesradar:sid'
-  let sid = sessionStorage.getItem(KEY)
+  let sid = localStorage.getItem(KEY)
   if (!sid) {
     sid = crypto.randomUUID()
-    sessionStorage.setItem(KEY, sid)
+    localStorage.setItem(KEY, sid)
   }
   return sid
 }
