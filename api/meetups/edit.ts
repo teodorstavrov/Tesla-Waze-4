@@ -2,7 +2,7 @@
 // Requires the ownerToken returned to the creator at submit time.
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { meetupStore } from '../_lib/meetups/store.js'
+import { meetupStore, VALID_RECURRENCE, type RecurrenceType } from '../_lib/meetups/store.js'
 import { rateLimit } from '../_lib/utils/rateLimit.js'
 import { captureApiError } from '../_lib/utils/sentryApi.js'
 
@@ -29,6 +29,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     if (!id || !ownerToken) { res.status(400).json({ error: 'Missing id or token' }); return }
 
     const title          = clean(body?.title, 120)
+    const description    = clean(body?.description, 300) || null
+    const recurrenceRaw  = String(body?.recurrence ?? 'none')
+    const recurrence     = (VALID_RECURRENCE.has(recurrenceRaw) ? recurrenceRaw : 'none') as RecurrenceType
     const organizer      = clean(body?.organizer, 80)
     const organizerPhone = clean(body?.organizerPhone, 40)
     const organizerEmail = clean(body?.organizerEmail, 160)
@@ -42,7 +45,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
     const updated = await meetupStore.update(id, ownerToken, {
       title,
-      date: new Date(dateMs).toISOString(),
+      date:        new Date(dateMs).toISOString(),
+      description: description || null,
+      recurrence,
       organizer:      organizer || null,
       organizerPhone: organizerPhone || null,
       organizerEmail: organizerEmail || null,

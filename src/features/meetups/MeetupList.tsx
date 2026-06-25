@@ -5,6 +5,7 @@ import { useState, useSyncExternalStore } from 'react'
 import { meetupStore } from './meetupStore'
 import { getMap } from '@/components/MapShell'
 import { t, langStore, getLang } from '@/lib/locale'
+import { nextOccurrence, formatRecurrence } from './recurrence'
 import type { Meetup } from './types'
 
 const LANG_LOCALE: Record<string, string> = {
@@ -92,12 +93,22 @@ function Row({ m }: { m: Meetup }) {
     } catch { /* ignore */ }
   }
 
+  const isRecurring = m.recurrence && m.recurrence !== 'none'
+  const displayDate = isRecurring
+    ? nextOccurrence(new Date(m.date), m.recurrence).toISOString()
+    : m.date
+  const recPattern = isRecurring ? formatRecurrence(new Date(m.date), m.recurrence, getLang()) : null
+
   return (
     <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '12px 14px', marginBottom: 8 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10 }}>
-        <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>{m.title}</div>
-        <div style={{ fontSize: 12, color: '#a5b4fc', whiteSpace: 'nowrap' }}>{fmtDate(m.date)}</div>
+        <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>
+          {isRecurring && <span style={{ marginRight: 5, fontSize: 13 }}>🔁</span>}{m.title}
+        </div>
+        <div style={{ fontSize: 12, color: '#a5b4fc', whiteSpace: 'nowrap' }}>{fmtDate(displayDate)}</div>
       </div>
+      {recPattern && <div style={{ fontSize: 11, color: 'rgba(165,180,252,0.7)', marginTop: 2 }}>{recPattern}</div>}
+      {m.description && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 3, lineHeight: 1.4 }}>{m.description}</div>}
       {m.organizer && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 4 }}>👤 {m.organizer}</div>}
       <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
         <button onClick={goToMap} style={smallBtn}>{t('meetup.toMap')}</button>

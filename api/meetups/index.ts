@@ -2,7 +2,7 @@
 // ─── POST /api/meetups  — create a meetup (returns ownerToken to creator) ─
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { meetupStore, meetupToPublic, type Meetup } from '../_lib/meetups/store.js'
+import { meetupStore, meetupToPublic, VALID_RECURRENCE, type Meetup, type RecurrenceType } from '../_lib/meetups/store.js'
 import { sendMeetupEmail, ADMIN_EMAIL, SITE_URL } from '../_lib/meetups/email.js'
 import { setCacheHeaders } from '../_lib/cache/headers.js'
 import { rateLimit } from '../_lib/utils/rateLimit.js'
@@ -42,6 +42,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       const lng = Number(body?.lng)
       const title          = clean(body?.title, 120)
       const dateRaw        = String(body?.date ?? '')
+      const description    = clean(body?.description, 300) || null
+      const recurrenceRaw  = String(body?.recurrence ?? 'none')
+      const recurrence     = (VALID_RECURRENCE.has(recurrenceRaw) ? recurrenceRaw : 'none') as RecurrenceType
       const organizer      = clean(body?.organizer, 80)
       const organizerPhone = clean(body?.organizerPhone, 40)
       const organizerEmail = clean(body?.organizerEmail, 160)
@@ -60,7 +63,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         id:        crypto.randomUUID(),
         lat, lng,
         title,
-        date:      new Date(dateMs).toISOString(),
+        date:        new Date(dateMs).toISOString(),
+        description: description || null,
+        recurrence,
         organizer:      organizer || null,
         organizerPhone: organizerPhone || null,
         organizerEmail: organizerEmail || null,

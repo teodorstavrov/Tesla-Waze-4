@@ -5,14 +5,21 @@
 import { useState, useSyncExternalStore } from 'react'
 import { meetupStore } from './meetupStore'
 import { saveMeetupToken, getMeetupToken } from './userMeetupOwner'
-import { t, langStore } from '@/lib/locale'
+import { t, langStore, getLang } from '@/lib/locale'
+import { formatRecurrence, nextOccurrence, type RecurrenceType } from './recurrence'
 import type { Meetup } from './types'
+
+const RECURRENCE_OPTS: RecurrenceType[] = ['none','weekly','biweekly','monthly_date','monthly_weekday']
 
 function toLocalInput(iso: string): string {
   const d = new Date(iso)
   if (isNaN(d.getTime())) return ''
   const pad = (n: number) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+function recLabel(r: RecurrenceType): string {
+  return t(`meetup.rec${r === 'none' ? 'None' : r === 'weekly' ? 'Weekly' : r === 'biweekly' ? 'Biweekly' : r === 'monthly_date' ? 'MonthDate' : 'MonthDay'}`)
 }
 
 export function MeetupForm() {
@@ -38,15 +45,29 @@ function MeetupModal({ lat, lng, address, editing }: {
   lat: number; lng: number; address: string; editing: Meetup | null
 }) {
   const isEdit = editing != null
-  const [title, setTitle]         = useState(editing?.title ?? '')
-  const [date, setDate]           = useState(editing ? toLocalInput(editing.date) : '')
-  const [organizer, setOrganizer] = useState(editing?.organizer ?? '')
-  const [phone, setPhone]         = useState(editing?.organizerPhone ?? '')
-  const [email, setEmail]         = useState(editing?.organizerEmail ?? '')
-  const [facebook, setFacebook]   = useState(editing?.facebook ?? '')
-  const [submitting, setSubmitting] = useState(false)
-  const [error, setError]         = useState<string | null>(null)
-  const [done, setDone]           = useState(false)
+  const [title,       setTitle]       = useState(editing?.title ?? '')
+  const [date,        setDate]        = useState(editing ? toLocalInput(editing.date) : '')
+  const [description, setDescription] = useState(editing?.description ?? '')
+  const [recurrence,  setRecurrence]  = useState<RecurrenceType>(editing?.recurrence ?? 'none')
+  const [organizer,   setOrganizer]   = useState(editing?.organizer ?? '')
+  const [phone,       setPhone]       = useState(editing?.organizerPhone ?? '')
+  const [email,       setEmail]       = useState(editing?.organizerEmail ?? '')
+  const [facebook,    setFacebook]    = useState(editing?.facebook ?? '')
+  const [submitting,  setSubmitting]  = useState(false)
+  const [error,       setError]       = useState<string | null>(null)
+  const [done,        setDone]        = useState(false)
+
+  const lang = getLang()
+
+  // Computed recurrence preview (derived from selected date + recurrence type)
+  const recurrencePreview = recurrence !== 'none' && date
+    ? formatRecurrence(new Date(date), recurrence, lang)
+    : null
+
+  // Show next occurrence if recurring
+  const nextDate = recurrence !== 'none' && date
+    ? nextOccurrence(new Date(date), recurrence)
+    : null
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -58,7 +79,7 @@ function MeetupModal({ lat, lng, address, editing }: {
         if (!token) { setError(t('meetup.onlyCreator')); setSubmitting(false); return }
         const res = await fetch('/api/meetups/edit', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: editing.id, ownerToken: token, title, date, organizer, organizerPhone: phone, organizerEmail: email, facebook }),
+          body: JSON.stringify({ id: editing.id, ownerToken: token, title, date, description: description || null, recurrence, organizer, organizerPhone: phone, organizerEmail: email, facebook }),
         })
         const data = await res.json()
         if (!res.ok) { setError(data.error ?? t('meetup.errorSave')); setSubmitting(false); return }
@@ -67,7 +88,7 @@ function MeetupModal({ lat, lng, address, editing }: {
       } else {
         const res = await fetch('/api/meetups', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lat, lng, title, date, organizer, organizerPhone: phone, organizerEmail: email, facebook }),
+          body: JSON.stringify({ lat, lng, title, date, description: description || null, recurrence, organizer, organizerPhone: phone, organizerEmail: email, facebook }),
         })
         const data = await res.json()
         if (!res.ok) { setError(data.error ?? t('meetup.errorSave')); setSubmitting(false); return }
@@ -110,14 +131,68 @@ function MeetupModal({ lat, lng, address, editing }: {
         )}
 
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: 13, padding: '12px 18px 18px' }}>
-          <Field label={t('meetup.descLabel')}><input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t('meetup.descPlaceholder')} style={inputStyle} /></Field>
-          <Field label={t('meetup.dateLabel')}><input type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} style={inputStyle} /></Field>
-          <Field label={t('meetup.organizerLabel')}><input value={organizer} onChange={(e) => setOrganizer(e.target.value)} placeholder={t('meetup.organizerPlaceholder')} style={inputStyle} /></Field>
+          <Field label={t('meetup.descLabel')}>
+            <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder={t('meetup.descPlaceholder')} style={inputStyle} />
+          </Field>
+
+          {/* Short description / notes */}
+          <Field label={t('meetup.noteLabel')}>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={t('meetup.notePlaceholder')}
+              maxLength={300}
+              rows={2}
+              style={{ ...inputStyle, resize: 'none', lineHeight: 1.45 }}
+            />
+          </Field>
+
+          <Field label={t('meetup.dateLabel')}>
+            <input type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} style={inputStyle} />
+          </Field>
+
+          {/* Recurrence */}
+          <Field label={t('meetup.recurrenceLabel')}>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+              {RECURRENCE_OPTS.map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setRecurrence(r)}
+                  style={{
+                    padding: '8px 11px', borderRadius: 8, fontSize: 12, fontWeight: 600,
+                    border:      recurrence === r ? '1px solid #6366f1' : '1px solid rgba(255,255,255,0.12)',
+                    background:  recurrence === r ? 'rgba(99,102,241,0.25)' : 'rgba(255,255,255,0.05)',
+                    color:       recurrence === r ? '#a5b4fc' : 'rgba(255,255,255,0.55)',
+                    cursor: 'pointer', touchAction: 'manipulation',
+                  }}
+                >
+                  {recLabel(r)}
+                </button>
+              ))}
+            </div>
+            {recurrencePreview && (
+              <div style={{ marginTop: 6, fontSize: 12, color: '#a5b4fc' }}>
+                🔁 {recurrencePreview}
+                {nextDate && nextDate.toISOString() !== new Date(date).toISOString() && (
+                  <span style={{ color: 'rgba(255,255,255,0.4)', marginLeft: 6 }}>
+                    · {t('meetup.recNext')} {nextDate.toLocaleString(undefined, { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                  </span>
+                )}
+              </div>
+            )}
+          </Field>
+
+          <Field label={t('meetup.organizerLabel')}>
+            <input value={organizer} onChange={(e) => setOrganizer(e.target.value)} placeholder={t('meetup.organizerPlaceholder')} style={inputStyle} />
+          </Field>
           <div style={{ display: 'flex', gap: 10 }}>
             <Field label={t('meetup.phoneLabel')} style={{ flex: 1 }}><input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+..." style={inputStyle} /></Field>
             <Field label={t('meetup.emailLabel')} style={{ flex: 1 }}><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="org@example.com" style={inputStyle} /></Field>
           </div>
-          <Field label={t('meetup.facebookLabel')}><input value={facebook} onChange={(e) => setFacebook(e.target.value)} placeholder={t('meetup.facebookPlaceholder')} style={inputStyle} /></Field>
+          <Field label={t('meetup.facebookLabel')}>
+            <input value={facebook} onChange={(e) => setFacebook(e.target.value)} placeholder={t('meetup.facebookPlaceholder')} style={inputStyle} />
+          </Field>
 
           {email && !isEdit && (
             <div style={{ fontSize: 11, color: 'rgba(165,180,252,0.85)' }}>{t('meetup.emailHint')}</div>
@@ -127,8 +202,8 @@ function MeetupModal({ lat, lng, address, editing }: {
           <button type="submit" disabled={submitting || !title.trim() || !date} style={{
             ...primaryBtn,
             background: submitting || !title.trim() || !date ? 'rgba(99,102,241,0.25)' : '#6366f1',
-            color: submitting || !title.trim() || !date ? 'rgba(255,255,255,0.4)' : '#fff',
-            cursor: submitting || !title.trim() || !date ? 'default' : 'pointer',
+            color:      submitting || !title.trim() || !date ? 'rgba(255,255,255,0.4)' : '#fff',
+            cursor:     submitting || !title.trim() || !date ? 'default' : 'pointer',
           }}>
             {submitting ? t('meetup.saving') : isEdit ? t('meetup.saveChanges') : t('meetup.formAdd')}
           </button>

@@ -6,6 +6,7 @@ import { meetupStore } from './meetupStore'
 import { getMeetupToken } from './userMeetupOwner'
 import { routeStore } from '@/features/route/routeStore'
 import { t, langStore, getLang } from '@/lib/locale'
+import { formatRecurrence, nextOccurrence } from './recurrence'
 
 const LANG_LOCALE: Record<string, string> = {
   bg: 'bg-BG', en: 'en-GB', no: 'nb-NO', sv: 'sv-SE', fi: 'fi-FI', nl: 'nl-NL',
@@ -81,7 +82,24 @@ export function MeetupDetail() {
           <button onClick={() => meetupStore.closeDetail()} style={closeBtn}>✕</button>
         </div>
         <div style={{ padding: '0 18px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
-          <Row icon="🕒" text={fmt(m.date)} />
+          {/* Date: show next occurrence for recurring events */}
+          {m.recurrence && m.recurrence !== 'none'
+            ? <Row icon="🕒" text={fmt(nextOccurrence(new Date(m.date), m.recurrence).toISOString())} />
+            : <Row icon="🕒" text={fmt(m.date)} />
+          }
+          {/* Recurrence pattern + description */}
+          {m.recurrence && m.recurrence !== 'none' && (
+            <Row icon="🔁" text={
+              <span style={{ color: '#a5b4fc' }}>
+                {t('meetup.recPattern')} {formatRecurrence(new Date(m.date), m.recurrence, getLang())}
+              </span>
+            } />
+          )}
+          {m.description && (
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5, background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '8px 10px', marginTop: 2 }}>
+              {m.description}
+            </div>
+          )}
           {m.organizer && <Row icon="👤" text={m.organizer} />}
           {m.organizerPhone && <Row icon="📞" text={<a href={`tel:${m.organizerPhone}`} style={link}>{m.organizerPhone}</a>} />}
           {m.organizerEmail && <Row icon="✉️" text={<a href={`mailto:${m.organizerEmail}`} style={link}>{m.organizerEmail}</a>} />}

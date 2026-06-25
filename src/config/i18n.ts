@@ -337,6 +337,16 @@ export const DICTIONARY = {
       noConn:               'Няма връзка',
       todayEvent:           'Днес има събитие',
       eventBtn:             'Събитие',
+      noteLabel:            'Бележка',
+      notePlaceholder:      'Кратко описание на събитието...',
+      recurrenceLabel:      'Повторение',
+      recNone:              'Еднократно',
+      recWeekly:            'Всяка сед.',
+      recBiweekly:          'Всеки 2 сед.',
+      recMonthDate:         'Месечно (число)',
+      recMonthDay:          'Месечно (ден)',
+      recNext:              'Следващо:',
+      recPattern:           'Повтаря се:',
     },
 
     tesla: {
@@ -698,6 +708,16 @@ export const DICTIONARY = {
       noConn:               'No connection',
       todayEvent:           'Event today',
       eventBtn:             'Event',
+      noteLabel:            'Notes',
+      notePlaceholder:      'Short description of the event...',
+      recurrenceLabel:      'Recurrence',
+      recNone:              'One-time',
+      recWeekly:            'Every week',
+      recBiweekly:          'Every 2 weeks',
+      recMonthDate:         'Monthly (date)',
+      recMonthDay:          'Monthly (day)',
+      recNext:              'Next:',
+      recPattern:           'Repeats:',
     },
 
     tesla: {

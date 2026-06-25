@@ -10,12 +10,21 @@
 
 import { redis, isRedisConfigured } from '../db/redis.js'
 
+export type RecurrenceType =
+  | 'none' | 'weekly' | 'biweekly' | 'monthly_date' | 'monthly_weekday'
+
+export const VALID_RECURRENCE = new Set<string>([
+  'none','weekly','biweekly','monthly_date','monthly_weekday',
+])
+
 export interface Meetup {
   id:             string
   lat:            number
   lng:            number
   title:          string
-  date:           string          // ISO datetime
+  date:           string          // ISO datetime (reference / first occurrence)
+  description:    string | null   // short explanatory text
+  recurrence:     RecurrenceType  // default 'none'
   organizer:      string | null
   organizerPhone: string | null
   organizerEmail: string | null
@@ -32,6 +41,8 @@ export type PublicMeetup = Omit<Meetup, 'ownerToken'>
 export function meetupToPublic(m: Meetup): PublicMeetup {
   return {
     id: m.id, lat: m.lat, lng: m.lng, title: m.title, date: m.date,
+    description: m.description ?? null,
+    recurrence:  m.recurrence  ?? 'none',
     organizer: m.organizer, organizerPhone: m.organizerPhone, organizerEmail: m.organizerEmail,
     facebook: m.facebook, createdAt: m.createdAt, followers: m.followers ?? [],
   }
@@ -50,6 +61,7 @@ let _memReminded: string[] = []
 function _prune(list: Meetup[]): Meetup[] {
   const cutoff = Date.now() - KEEP_PAST_MS
   return list.filter((m) => {
+    if (m.recurrence && m.recurrence !== 'none') return true  // recurring — never auto-prune
     const t = new Date(m.date).getTime()
     return isNaN(t) || t > cutoff
   })
@@ -87,7 +99,7 @@ export const meetupStore = {
 
   /** Update editable fields if ownerToken matches. Returns updated public record or null. */
   async update(id: string, ownerToken: string, patch: Partial<Pick<Meetup,
-    'title' | 'date' | 'organizer' | 'organizerPhone' | 'organizerEmail' | 'facebook' | 'lat' | 'lng'>>,
+    'title' | 'date' | 'description' | 'recurrence' | 'organizer' | 'organizerPhone' | 'organizerEmail' | 'facebook' | 'lat' | 'lng'>>,
   ): Promise<PublicMeetup | null> {
     const all = _prune(await _readAll())
     const m = all.find((x) => x.id === id)
@@ -109,7 +121,7 @@ export const meetupStore = {
 
   /** Admin update — bypasses ownerToken check, full field access. */
   async adminUpdate(id: string, patch: Partial<Pick<Meetup,
-    'title' | 'date' | 'organizer' | 'organizerPhone' | 'organizerEmail' | 'facebook' | 'lat' | 'lng'>>
+    'title' | 'date' | 'description' | 'recurrence' | 'organizer' | 'organizerPhone' | 'organizerEmail' | 'facebook' | 'lat' | 'lng'>>
   ): Promise<PublicMeetup | null> {
     const all = _prune(await _readAll())
     const m = all.find((x) => x.id === id)
