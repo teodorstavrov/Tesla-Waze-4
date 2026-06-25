@@ -9,7 +9,7 @@ import { vehicleProfileStore } from '@/features/planning/store'
 import { batteryStore } from '@/features/planning/batteryStore'
 import { TESLA_MODELS, getYearsForModel, getTrimsForYear } from '@/features/planning/vehicleConfig'
 import type { TeslaModel } from '@/features/planning/types'
-import { isTeslaBrowser } from '@/lib/browser'
+import { isTeslaBrowser, isPhone } from '@/lib/browser'
 import { t, getLang, langStore } from '@/lib/locale'
 import { TeslaConnect } from '@/features/tesla/TeslaConnect'
 import { teslaStore } from '@/features/tesla/teslaStore'
@@ -348,7 +348,7 @@ export function VehicleProfileModal() {
   }, [])
 
   useEffect(() => {
-    if (!vehicleProfileStore.get()) {
+    if (!isPhone && !vehicleProfileStore.get()) {
       const t = setTimeout(doOpen, 800)
       return () => clearTimeout(t)
     }
