@@ -16,4 +16,6 @@ export interface Meetup {
   facebook:       string | null   // free text OR url
   createdAt:      string
   followers:      string[]
+  attendees:      string[]        // anonymous device IDs
+  interested:     string[]        // anonymous device IDs
 }

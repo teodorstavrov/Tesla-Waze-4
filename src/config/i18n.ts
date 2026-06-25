@@ -347,6 +347,8 @@ export const DICTIONARY = {
       recMonthDay:          'Месечно (ден)',
       recNext:              'Следващо:',
       recPattern:           'Повтаря се:',
+      attendBtn:            'Ще присъствам',
+      interestBtn:          'Имам интерес',
     },
 
     tesla: {
@@ -718,6 +720,8 @@ export const DICTIONARY = {
       recMonthDay:          'Monthly (day)',
       recNext:              'Next:',
       recPattern:           'Repeats:',
+      attendBtn:            'Will attend',
+      interestBtn:          'Interested',
     },
 
     tesla: {

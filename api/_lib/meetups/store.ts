@@ -31,6 +31,8 @@ export interface Meetup {
   facebook:       string | null   // free text OR url
   createdAt:      string
   followers:      string[]        // emails to remind about THIS event
+  attendees:      string[]        // anonymous device IDs — "will attend"
+  interested:     string[]        // anonymous device IDs — "interested"
   ownerToken:     string          // secret — never returned by the public GET
 }
 
@@ -45,6 +47,8 @@ export function meetupToPublic(m: Meetup): PublicMeetup {
     recurrence:  m.recurrence  ?? 'none',
     organizer: m.organizer, organizerPhone: m.organizerPhone, organizerEmail: m.organizerEmail,
     facebook: m.facebook, createdAt: m.createdAt, followers: m.followers ?? [],
+    attendees:  m.attendees  ?? [],
+    interested: m.interested ?? [],
   }
 }
 
@@ -105,6 +109,24 @@ export const meetupStore = {
     const m = all.find((x) => x.id === id)
     if (!m || m.ownerToken !== ownerToken) return null
     Object.assign(m, patch)
+    await _write(all)
+    return meetupToPublic(m)
+  },
+
+  /** Toggle attend/interest for an anonymous deviceId. Returns updated public record or null. */
+  async rsvp(id: string, deviceId: string, type: 'attend' | 'interest', action: 'add' | 'remove'): Promise<PublicMeetup | null> {
+    const all = _prune(await _readAll())
+    const m = all.find((x) => x.id === id)
+    if (!m) return null
+    if (!Array.isArray(m.attendees))  m.attendees  = []
+    if (!Array.isArray(m.interested)) m.interested = []
+    if (type === 'attend') {
+      if (action === 'add'    && !m.attendees.includes(deviceId))  m.attendees.push(deviceId)
+      if (action === 'remove') m.attendees  = m.attendees.filter((d) => d !== deviceId)
+    } else {
+      if (action === 'add'    && !m.interested.includes(deviceId)) m.interested.push(deviceId)
+      if (action === 'remove') m.interested = m.interested.filter((d) => d !== deviceId)
+    }
     await _write(all)
     return meetupToPublic(m)
   },

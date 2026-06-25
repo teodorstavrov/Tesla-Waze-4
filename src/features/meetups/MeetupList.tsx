@@ -110,6 +110,12 @@ function Row({ m }: { m: Meetup }) {
       {recPattern && <div style={{ fontSize: 11, color: 'rgba(165,180,252,0.7)', marginTop: 2 }}>{recPattern}</div>}
       {m.description && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 3, lineHeight: 1.4 }}>{m.description}</div>}
       {m.organizer && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.55)', marginTop: 4 }}>👤 {m.organizer}</div>}
+      {((m.attendees?.length ?? 0) > 0 || (m.interested?.length ?? 0) > 0) && (
+        <div style={{ display: 'flex', gap: 10, marginTop: 5, fontSize: 12 }}>
+          {(m.attendees?.length ?? 0) > 0  && <span style={{ color: '#4ade80' }}>✅ {m.attendees.length}</span>}
+          {(m.interested?.length ?? 0) > 0 && <span style={{ color: '#fbbf24' }}>⭐ {m.interested.length}</span>}
+        </div>
+      )}
       <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
         <button onClick={goToMap} style={smallBtn}>{t('meetup.toMap')}</button>
         <button onClick={() => { meetupStore.select(m); meetupStore.closeList() }} style={smallBtn}>{t('meetup.details')}</button>

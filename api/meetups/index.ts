@@ -70,8 +70,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         organizerPhone: organizerPhone || null,
         organizerEmail: organizerEmail || null,
         facebook:       facebook || null,
-        createdAt: new Date().toISOString(),
-        followers: [],
+        createdAt:  new Date().toISOString(),
+        followers:  [],
+        attendees:  [],
+        interested: [],
         ownerToken,
       }
       await meetupStore.add(meetup)

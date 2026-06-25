@@ -3,10 +3,11 @@
 
 import { useState, useSyncExternalStore } from 'react'
 import { meetupStore } from './meetupStore'
-import { getMeetupToken } from './userMeetupOwner'
+import { getMeetupToken, getDeviceId, getRsvp, setRsvp } from './userMeetupOwner'
 import { routeStore } from '@/features/route/routeStore'
 import { t, langStore, getLang } from '@/lib/locale'
 import { formatRecurrence, nextOccurrence } from './recurrence'
+import type { Meetup } from './types'
 
 const LANG_LOCALE: Record<string, string> = {
   bg: 'bg-BG', en: 'en-GB', no: 'nb-NO', sv: 'sv-SE', fi: 'fi-FI', nl: 'nl-NL',
@@ -47,14 +48,46 @@ export function MeetupDetail() {
   )
   useSyncExternalStore(langStore.subscribe, langStore.getLang)
   const m = state.selected
-  const [following, setFollowing] = useState(false)
-  const [copied,    setCopied]    = useState(false)
   if (!m) return null
+  return <MeetupDetailInner key={m.id} m={m} />
+}
 
+function MeetupDetailInner({ m }: { m: Meetup }) {
   const isOwner = getMeetupToken(m.id) != null
+  const deviceId = getDeviceId()
+  const savedRsvp = getRsvp(m.id)
+  const [following,     setFollowing]    = useState(false)
+  const [copied,        setCopied]       = useState(false)
+  const [attending,     setAttending]    = useState(savedRsvp.attend)
+  const [interested,    setInterested]   = useState(savedRsvp.interest)
+  const [attendCount,   setAttendCount]  = useState((m.attendees  ?? []).length)
+  const [interestCount, setInterestCount] = useState((m.interested ?? []).length)
+
+  async function rsvpToggle(type: 'attend' | 'interest') {
+    const isOn    = type === 'attend' ? attending : interested
+    const action  = isOn ? 'remove' : 'add'
+    const newVal  = !isOn
+    if (type === 'attend')   { setAttending(newVal);  setAttendCount(c  => c + (newVal ? 1 : -1)) }
+    else                     { setInterested(newVal); setInterestCount(c => c + (newVal ? 1 : -1)) }
+    setRsvp(m.id, type, newVal)
+    try {
+      const res = await fetch('/api/meetups/rsvp', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: m.id, deviceId, type, action }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.meetup) {
+          meetupStore.upsertLocal(data.meetup as Meetup)
+          if (type === 'attend')   setAttendCount((data.meetup.attendees  ?? []).length)
+          else                     setInterestCount((data.meetup.interested ?? []).length)
+        }
+      }
+    } catch { /* revert optimistic update */ }
+  }
 
   function shareLink() {
-    void copyToClipboard(`${SITE}/?meetup=${m!.id}`).then(() => {
+    void copyToClipboard(`${SITE}/?meetup=${m.id}`).then(() => {
       setCopied(true)
       setTimeout(() => setCopied(false), 2500)
     })
@@ -105,9 +138,37 @@ export function MeetupDetail() {
           {m.organizerEmail && <Row icon="✉️" text={<a href={`mailto:${m.organizerEmail}`} style={link}>{m.organizerEmail}</a>} />}
           {m.facebook && <Row icon="f" text={isUrl(m.facebook) ? <a href={m.facebook} target="_blank" rel="noopener noreferrer" style={link}>{t('meetup.facebookGroup')}</a> : m.facebook} />}
 
+          {/* RSVP buttons */}
+          <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+            <button
+              onClick={() => void rsvpToggle('attend')}
+              style={{
+                ...btn, flex: 1,
+                background:  attending ? 'rgba(34,197,94,0.18)' : 'rgba(255,255,255,0.05)',
+                color:       attending ? '#4ade80' : 'rgba(255,255,255,0.8)',
+                border:      `1px solid ${attending ? 'rgba(34,197,94,0.5)' : 'rgba(255,255,255,0.15)'}`,
+                fontWeight:  attending ? 800 : 600,
+              }}
+            >
+              {attending ? '✅' : '○'} {t('meetup.attendBtn')} {attendCount > 0 && <span style={{ opacity: 0.7, marginLeft: 4 }}>{attendCount}</span>}
+            </button>
+            <button
+              onClick={() => void rsvpToggle('interest')}
+              style={{
+                ...btn, flex: 1,
+                background:  interested ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.05)',
+                color:       interested ? '#fbbf24' : 'rgba(255,255,255,0.8)',
+                border:      `1px solid ${interested ? 'rgba(251,191,36,0.45)' : 'rgba(255,255,255,0.15)'}`,
+                fontWeight:  interested ? 800 : 600,
+              }}
+            >
+              {interested ? '⭐' : '☆'} {t('meetup.interestBtn')} {interestCount > 0 && <span style={{ opacity: 0.7, marginLeft: 4 }}>{interestCount}</span>}
+            </button>
+          </div>
+
           {/* Navigate — available to everyone */}
           <button
-            onClick={() => { if (m) { void routeStore.navigateTo({ lat: m.lat, lng: m.lng, name: m.title }); meetupStore.closeDetail() } }}
+            onClick={() => { void routeStore.navigateTo({ lat: m.lat, lng: m.lng, name: m.title }); meetupStore.closeDetail() }}
             style={{ ...btn, marginTop: 8, width: '100%', background: '#e31937', border: 'none', fontWeight: 800, fontSize: 15 }}
           >
             {t('meetup.navigate')}
