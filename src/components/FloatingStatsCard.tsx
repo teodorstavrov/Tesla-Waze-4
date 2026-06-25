@@ -13,6 +13,7 @@ import { teslaStore } from '@/features/tesla/teslaStore'
 import { teslaVehicleStore } from '@/features/tesla/teslaVehicleStore'
 import { teslaPoller } from '@/features/tesla/teslaPoller'
 import { t, langStore } from '@/lib/locale'
+import { isPhone } from '@/lib/browser'
 
 export function FloatingStatsCard() {
   useSyncExternalStore(langStore.subscribe, langStore.getLang, langStore.getLang)
@@ -106,6 +107,28 @@ export function FloatingStatsCard() {
   const handleBatteryTap = useCallback(() => {
     if (teslaConnected) void teslaPoller.refresh()
   }, [teslaConnected])
+
+  // ── Mobile (phone): compact vertical pills ───────────────────────────
+  if (isPhone) {
+    return (
+      <div style={{
+        position:      'absolute',
+        top:           50,   // below the banner if it's shown
+        right:         8,
+        zIndex:        400,
+        display:       'flex',
+        flexDirection: 'column',
+        gap:           5,
+        alignItems:    'flex-end',
+        userSelect:    'none',
+        WebkitUserSelect: 'none',
+      }}>
+        <MiniStat icon="⚡" value={stationValue} accent={evState.status === 'error' ? '#ef4444' : filtersActive ? '#e31937' : undefined} />
+        <MiniStat icon="🚔" value={eventCount > 0 ? String(eventCount) : '—'} />
+        <MiniStat icon="📍" value={gpsValue} accent={gpsAccent} />
+      </div>
+    )
+  }
 
   return (
     <div
@@ -293,6 +316,26 @@ function BatteryIcon({ level, color }: { level: number; color: string }) {
       <rect x="14" y="3" width="1.5" height="3" rx="0.5" fill={color} />
       <rect x="2" y="2" width={fillW} height="5" rx="0.5" fill={color} />
     </svg>
+  )
+}
+
+// ── Mobile mini-stat pill ─────────────────────────────────────────────────
+
+function MiniStat({ icon, value, accent }: { icon: string; value: string; accent?: string }) {
+  return (
+    <div className="glass" style={{
+      display:    'flex',
+      alignItems: 'center',
+      gap:        6,
+      padding:    '5px 10px',
+      borderRadius: 8,
+      fontSize:   13,
+      fontWeight: 700,
+      userSelect: 'none',
+    }}>
+      <span style={{ fontSize: 14, lineHeight: 1 }}>{icon}</span>
+      <span style={{ color: accent ?? 'var(--text-primary)' }}>{value}</span>
+    </div>
   )
 }
 

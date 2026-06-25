@@ -52,7 +52,9 @@ import { CountryPicker } from '@/components/CountryPicker'
 import { NorwayBetaBanner } from '@/components/NorwayBetaBanner'
 import { OnlineCounter } from '@/components/OnlineCounter'
 import { CarClock } from '@/components/CarClock'
+import { DeviceModeBanner } from '@/components/DeviceModeBanner'
 import { UpgradeModal } from '@/components/UpgradeModal'
+import { isPhone } from '@/lib/browser'
 import { PricingModal } from '@/components/PricingModal'
 import { alertEngine } from '@/features/audio/alertEngine'
 import { batteryTracker } from '@/features/planning/batteryTracker'
@@ -153,9 +155,10 @@ export function App() {
       <SearchBar />
       <FloatingStatsCard />
       <LeftControls />
-      <RightControls />
+      {!isPhone && <RightControls />}
       <BottomDock />
-      <CarClock />
+      {!isPhone && <CarClock />}
+      <DeviceModeBanner />
       <OnlineCounter />
       <SettingsPanel />
 

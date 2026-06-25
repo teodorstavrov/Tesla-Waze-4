@@ -10,5 +10,12 @@ export const isTeslaBrowser: boolean =
 export const isMobile: boolean =
   /Android|iPhone|iPad|iPod/i.test(ua) || navigator.maxTouchPoints > 0
 
+/** Phone/tablet (not Tesla, identified by OS UA) */
+export const isPhone: boolean =
+  !isTeslaBrowser && /Android|iPhone|iPad|iPod/i.test(ua)
+
+/** Desktop browser — not Tesla, not a phone/tablet */
+export const isDesktop: boolean = !isTeslaBrowser && !isPhone
+
 /** Passive event options — required for Tesla scroll performance */
 export const PASSIVE: AddEventListenerOptions = { passive: true }
