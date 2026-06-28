@@ -74,15 +74,17 @@ export function TripSummaryBanner({ onClick }: { onClick?: () => void } = {}) {
       onClick={onClick}
       style={{
         position:         'absolute',
-        bottom:           30,
-        right:            12,
-        zIndex:           300,
+        // Match the old SHOW pill position when acting as panel trigger;
+        // otherwise sit in the bottom-right corner as a passive overlay.
+        ...(interactive
+          ? { bottom: 24, left: 'calc(25% - 40px)', transform: 'translateX(-50%)' }
+          : { bottom: 30, right: 12, transform: 'translateZ(0)' }),
+        zIndex:           500,
         userSelect:       'none',
         WebkitUserSelect: 'none',
         pointerEvents:    interactive ? 'auto' : 'none',
         cursor:           interactive ? 'pointer' : 'default',
         touchAction:      interactive ? 'manipulation' : undefined,
-        transform:        'translateZ(0)',
         background:       'rgba(0,0,0,0.55)',
         borderRadius:     10,
         padding:          '7px 13px',
