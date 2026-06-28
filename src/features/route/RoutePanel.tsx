@@ -20,6 +20,7 @@ import { vehicleProfileStore } from '@/features/planning/store'
 import { batteryStore } from '@/features/planning/batteryStore'
 import { estimateArrivalBattery } from '@/features/planning/estimator'
 import { PremiumBadge } from '@/components/PremiumBadge'
+import { TripSummaryBanner } from '@/components/TripSummaryBanner'
 
 export function RoutePanel() {
   // Re-render on country/language change
@@ -74,47 +75,9 @@ export function RoutePanel() {
 
   if (status === 'idle') return null
 
-  // When panel is hidden — show a small "ПОКАЖИ" pill at bottom
+  // When panel is hidden — show TripSummaryBanner as the "show" trigger
   if (dismissed) {
-    return (
-      <button
-        onClick={() => setDismissed(false)}
-        aria-label={t('routePanel.showPanel')}
-        style={{
-          position:       'absolute',
-          bottom:         24,
-          left:           'calc(25% - 40px)',
-          transform:      'translateX(-50%)',
-          zIndex:         500,
-          padding:        '10px 28px',
-          borderRadius:   24,
-          // Tesla: no inline backdropFilter — inline styles override CSS class
-          // rules ([data-tesla] .glass) and force GPU blur pass on every frame.
-          background:     isTeslaBrowser ? 'rgba(13,13,19,0.98)' : 'rgba(18,18,26,0.92)',
-          border:         '1px solid rgba(255,255,255,0.18)',
-          backdropFilter:       isTeslaBrowser ? undefined : 'blur(12px)',
-          WebkitBackdropFilter: isTeslaBrowser ? undefined : 'blur(12px)',
-          color:          'rgba(255,255,255,0.85)',
-          fontSize:       15,
-          fontWeight:     700,
-          letterSpacing:  '0.06em',
-          cursor:         'pointer',
-          touchAction:    'manipulation',
-          boxShadow:      isTeslaBrowser ? 'none' : '0 4px 20px rgba(0,0,0,0.45)',
-          display:        'flex',
-          alignItems:     'center',
-          gap:            8,
-          whiteSpace:     'nowrap',
-        }}
-      >
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-          stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-          aria-hidden="true">
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
-        {t('routePanel.showPanel')}
-      </button>
-    )
+    return <TripSummaryBanner onClick={() => setDismissed(false)} />
   }
 
   const remainingDurationS =

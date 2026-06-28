@@ -26,7 +26,7 @@ function batteryColor(pct: number): string {
   return '#4ade80'
 }
 
-export function TripSummaryBanner() {
+export function TripSummaryBanner({ onClick }: { onClick?: () => void } = {}) {
   const routeState = useSyncExternalStore(routeStore.subscribe, routeStore.getState, routeStore.getState)
   const battery    = useSyncExternalStore(batteryStore.subscribe, batteryStore.getState, batteryStore.getState)
 
@@ -67,8 +67,11 @@ export function TripSummaryBanner() {
     ? remainingKm.toFixed(1)
     : Math.round(remainingKm).toString()
 
+  const interactive = !!onClick
   return (
     <div
+      role={interactive ? 'button' : undefined}
+      onClick={onClick}
       style={{
         position:         'absolute',
         bottom:           30,
@@ -76,7 +79,9 @@ export function TripSummaryBanner() {
         zIndex:           300,
         userSelect:       'none',
         WebkitUserSelect: 'none',
-        pointerEvents:    'none',
+        pointerEvents:    interactive ? 'auto' : 'none',
+        cursor:           interactive ? 'pointer' : 'default',
+        touchAction:      interactive ? 'manipulation' : undefined,
         transform:        'translateZ(0)',
         background:       'rgba(0,0,0,0.55)',
         borderRadius:     10,
@@ -87,7 +92,9 @@ export function TripSummaryBanner() {
         minWidth:         160,
         backdropFilter:   'blur(6px)',
         WebkitBackdropFilter: 'blur(6px)',
-        border:           '1px solid rgba(255,255,255,0.08)',
+        border:           interactive
+          ? '1px solid rgba(255,255,255,0.22)'
+          : '1px solid rgba(255,255,255,0.08)',
       }}
     >
       <StatRow icon="🕐" value={etaTime}           label="пристигане" />
