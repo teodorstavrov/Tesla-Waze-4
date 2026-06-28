@@ -21,6 +21,7 @@ import { batteryStore } from '@/features/planning/batteryStore'
 import { estimateArrivalBattery } from '@/features/planning/estimator'
 import { PremiumBadge } from '@/components/PremiumBadge'
 import { TripSummaryBanner } from '@/components/TripSummaryBanner'
+import { isPhone } from '@/lib/browser'
 
 export function RoutePanel() {
   // Re-render on country/language change
@@ -87,7 +88,17 @@ export function RoutePanel() {
 
   return (
     <div
-      style={{
+      style={isPhone ? {
+        // Mobile: full-width bottom sheet above BottomDock (24 + ~70px buttons + 8px gap)
+        position:  'absolute',
+        bottom:    104,
+        left:      8,
+        right:     8,
+        zIndex:    500,
+        padding:   '12px 14px',
+        maxHeight: 'calc(100dvh - 220px)',
+        overflowY: 'auto',
+      } : {
         position:  'absolute',
         bottom:    24,
         left:      'calc(25% - 40px)',
@@ -161,65 +172,68 @@ export function RoutePanel() {
             <CancelButton />
           </div>
 
-          {/* Route pills — always shown so user can see/switch alternatives */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: -2 }}>
-            <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-              {t('routePanel.routes')}
-            </span>
-            <PremiumBadge feature="advanced_route_intelligence" />
-          </div>
-          <div style={{ display: 'flex', gap: 6 }}>
-            {routes.map((r, i) => (
+          {/* Route pills + Via Хемус — hidden on mobile to save space */}
+          {!isPhone && (
+            <>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: -2 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+                  {t('routePanel.routes')}
+                </span>
+                <PremiumBadge feature="advanced_route_intelligence" />
+              </div>
+              <div style={{ display: 'flex', gap: 6 }}>
+                {routes.map((r, i) => (
+                  <button
+                    key={i}
+                    onClick={() => routeStore.selectRoute(i)}
+                    style={{
+                      flex: 1, padding: '7px 8px', borderRadius: 8,
+                      border: i === activeRouteIndex
+                        ? '1px solid rgba(43,127,255,0.8)'
+                        : '1px solid rgba(255,255,255,0.16)',
+                      background: i === activeRouteIndex
+                        ? 'rgba(43,127,255,0.18)'
+                        : 'rgba(255,255,255,0.06)',
+                      color: i === activeRouteIndex ? '#7DB8FF' : 'var(--text-secondary)',
+                      fontSize: 14, fontWeight: i === activeRouteIndex ? 600 : 400,
+                      cursor: 'pointer', touchAction: 'manipulation', textAlign: 'center' as const,
+                    }}
+                  >
+                    {i === 0 ? t('route.primary') : `${t('route.alt')} ${i}`}
+                    <div style={{ fontSize: 13, marginTop: 2, opacity: 0.8 }}>{formatDist(r.distanceM)}</div>
+                  </button>
+                ))}
+              </div>
+
               <button
-                key={i}
-                onClick={() => routeStore.selectRoute(i)}
+                onClick={() => { void routeStore.toggleViaHemus() }}
                 style={{
-                  flex: 1, padding: '7px 8px', borderRadius: 8,
-                  border: i === activeRouteIndex
-                    ? '1px solid rgba(43,127,255,0.8)'
+                  width: '100%', padding: '7px 10px', borderRadius: 8,
+                  border: viaHemus
+                    ? '1px solid rgba(251,191,36,0.8)'
                     : '1px solid rgba(255,255,255,0.16)',
-                  background: i === activeRouteIndex
-                    ? 'rgba(43,127,255,0.18)'
+                  background: viaHemus
+                    ? 'rgba(251,191,36,0.15)'
                     : 'rgba(255,255,255,0.06)',
-                  color: i === activeRouteIndex ? '#7DB8FF' : 'var(--text-secondary)',
-                  fontSize: 14, fontWeight: i === activeRouteIndex ? 600 : 400,
-                  cursor: 'pointer', touchAction: 'manipulation', textAlign: 'center' as const,
+                  color:      viaHemus ? '#fbbf24' : 'var(--text-secondary)',
+                  fontSize:   13,
+                  fontWeight: viaHemus ? 700 : 400,
+                  cursor:     'pointer',
+                  touchAction: 'manipulation',
+                  display:    'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap:        6,
                 }}
               >
-                {i === 0 ? t('route.primary') : `${t('route.alt')} ${i}`}
-                <div style={{ fontSize: 13, marginTop: 2, opacity: 0.8 }}>{formatDist(r.distanceM)}</div>
+                <span style={{ fontSize: 15 }}>🏔</span>
+                <span>{t('route.viaHemus')}</span>
+                {viaHemus && (
+                  <span style={{ fontSize: 11, opacity: 0.7, marginLeft: 4 }}>✓ активен</span>
+                )}
               </button>
-            ))}
-          </div>
-
-          {/* Via Хемус toggle */}
-          <button
-            onClick={() => { void routeStore.toggleViaHemus() }}
-            style={{
-              width: '100%', padding: '7px 10px', borderRadius: 8,
-              border: viaHemus
-                ? '1px solid rgba(251,191,36,0.8)'
-                : '1px solid rgba(255,255,255,0.16)',
-              background: viaHemus
-                ? 'rgba(251,191,36,0.15)'
-                : 'rgba(255,255,255,0.06)',
-              color:      viaHemus ? '#fbbf24' : 'var(--text-secondary)',
-              fontSize:   13,
-              fontWeight: viaHemus ? 700 : 400,
-              cursor:     'pointer',
-              touchAction: 'manipulation',
-              display:    'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap:        6,
-            }}
-          >
-            <span style={{ fontSize: 15 }}>🏔</span>
-            <span>{t('route.viaHemus')}</span>
-            {viaHemus && (
-              <span style={{ fontSize: 11, opacity: 0.7, marginLeft: 4 }}>✓ активен</span>
-            )}
-          </button>
+            </>
+          )}
 
           {/* Battery arrival estimate */}
           {vehicleProfile && route && batterySession && (() => {
@@ -310,7 +324,7 @@ export function RoutePanel() {
 
           {/* EV stations along route + Hide button row */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {stationsOnRoute.length > 0 && (
+            {!isPhone && stationsOnRoute.length > 0 && (
               <div style={{ flex: 1 }}>
                 {/* Divider */}
                 <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '2px 0 8px' }} />
