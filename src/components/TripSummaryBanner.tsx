@@ -8,6 +8,7 @@ import { batteryStore } from '@/features/planning/batteryStore'
 import { vehicleProfileStore } from '@/features/planning/store'
 import { estimateArrivalBattery } from '@/features/planning/estimator'
 import { gpsStore } from '@/features/gps/gpsStore'
+import { isPhone } from '@/lib/browser'
 
 function pad(n: number): string { return n.toString().padStart(2, '0') }
 function fmtTime(date: Date): string { return `${pad(date.getHours())}:${pad(date.getMinutes())}` }
@@ -68,40 +69,47 @@ export function TripSummaryBanner({ onClick }: { onClick?: () => void } = {}) {
     : Math.round(remainingKm).toString()
 
   const interactive = !!onClick
+  const cols = arrivalPct != null ? 4 : 3
+
+  // ── Position ────────────────────────────────────────────────────────
+  // Mobile: full-width strip above the BottomDock (bottom:24 + ~70px height + 8px gap = 102px)
+  // Desktop/Tesla: match old SHOW pill position (left quarter of screen, bottom:24)
+  const posStyle: React.CSSProperties = isPhone
+    ? { bottom: 104, left: 12, right: 12 }
+    : interactive
+      ? { bottom: 24, left: 'calc(25% - 40px)', transform: 'translateX(-50%)' }
+      : { bottom: 30, right: 12, transform: 'translateZ(0)' }
+
   return (
     <div
       role={interactive ? 'button' : undefined}
       onClick={onClick}
       style={{
-        position:         'absolute',
-        // Match the old SHOW pill position when acting as panel trigger;
-        // otherwise sit in the bottom-right corner as a passive overlay.
-        ...(interactive
-          ? { bottom: 24, left: 'calc(25% - 40px)', transform: 'translateX(-50%)' }
-          : { bottom: 30, right: 12, transform: 'translateZ(0)' }),
-        zIndex:           500,
-        userSelect:       'none',
-        WebkitUserSelect: 'none',
-        pointerEvents:    interactive ? 'auto' : 'none',
-        cursor:           interactive ? 'pointer' : 'default',
-        touchAction:      interactive ? 'manipulation' : undefined,
-        background:       'rgba(0,0,0,0.55)',
-        borderRadius:     10,
-        padding:          '7px 13px',
-        display:          'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap:              '4px 16px',
-        minWidth:         160,
-        backdropFilter:   'blur(6px)',
+        position:            'absolute',
+        ...posStyle,
+        zIndex:              500,
+        userSelect:          'none',
+        WebkitUserSelect:    'none',
+        pointerEvents:       interactive ? 'auto' : 'none',
+        cursor:              interactive ? 'pointer' : 'default',
+        touchAction:         interactive ? 'manipulation' : undefined,
+        background:          'rgba(0,0,0,0.55)',
+        borderRadius:        10,
+        padding:             '7px 13px',
+        display:             'grid',
+        gridTemplateColumns: isPhone ? `repeat(${cols}, 1fr)` : '1fr 1fr',
+        gap:                 isPhone ? '4px 10px' : '4px 16px',
+        minWidth:            isPhone ? undefined : 160,
+        backdropFilter:      'blur(6px)',
         WebkitBackdropFilter: 'blur(6px)',
-        border:           interactive
+        border:              interactive
           ? '1px solid rgba(255,255,255,0.22)'
           : '1px solid rgba(255,255,255,0.08)',
       }}
     >
-      <StatRow icon="🕐" value={etaTime}           label="пристигане" />
-      <StatRow icon="⏱" value={fmtDuration(remainingSec)} label="оставащо" />
-      <StatRow icon="📍" value={`${kmLabel} км`}   label="разстояние" />
+      <StatRow icon="🕐" value={etaTime}                    label="пристигане" />
+      <StatRow icon="⏱"  value={fmtDuration(remainingSec)} label="оставащо" />
+      <StatRow icon="📍" value={`${kmLabel} км`}            label="разстояние" />
       {arrivalPct != null && (
         <StatRow icon="🔋" value={`~${arrivalPct}%`} label="батерия" accent={batteryColor(arrivalPct)} />
       )}
