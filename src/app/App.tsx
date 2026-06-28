@@ -52,6 +52,7 @@ import { CountryPicker } from '@/components/CountryPicker'
 import { NorwayBetaBanner } from '@/components/NorwayBetaBanner'
 import { OnlineCounter } from '@/components/OnlineCounter'
 import { CarClock } from '@/components/CarClock'
+import { TripSummaryBanner } from '@/components/TripSummaryBanner'
 import { DeviceModeBanner } from '@/components/DeviceModeBanner'
 import { UpgradeModal } from '@/components/UpgradeModal'
 import { isPhone } from '@/lib/browser'
@@ -158,6 +159,7 @@ export function App() {
       <RightControls />
       <BottomDock />
       {!isPhone && <CarClock />}
+      <TripSummaryBanner />
       <DeviceModeBanner />
       <OnlineCounter />
       <SettingsPanel />
