@@ -10,7 +10,7 @@
 //   3. Add to COUNTRY_LIST so the picker shows it.
 //   That's it — no other files need touching for basic support.
 
-export type CountryCode = 'BG' | 'NO' | 'SE' | 'FI' | 'NL'
+export type CountryCode = 'BG' | 'NO' | 'SE' | 'FI' | 'NL' | 'BE'
 
 export interface CountryFeatures {
   /** Whether this country has average-speed camera section data. */
@@ -117,6 +117,23 @@ export const COUNTRIES: Record<CountryCode, CountryConfig> = {
       speedSections: true,   // Dutch trajectcontrole average-speed sections
     },
   },
+
+  BE: {
+    code:       'BE',
+    name:       'Belgium',
+    nativeName: 'België',
+    flag:       '🇧🇪',
+    center:     [50.8503, 4.3517],    // Brussels
+    zoom:       15,
+    minZoom:    7,
+    searchCode: 'be',
+    searchLang: 'nl,fr,en',
+    bounds:     [[49.497, 2.546], [51.505, 6.408]],
+    locale:     'nl',
+    features: {
+      speedSections: false,  // no verified official BE trajectcontrole dataset yet — EV-focused onboarding
+    },
+  },
 }
 
 // Ordered list used by the country picker UI
@@ -126,4 +143,5 @@ export const COUNTRY_LIST: CountryConfig[] = [
   COUNTRIES.SE,
   COUNTRIES.FI,
   COUNTRIES.NL,
+  COUNTRIES.BE,
 ]

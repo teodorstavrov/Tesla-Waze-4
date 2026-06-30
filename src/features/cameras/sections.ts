@@ -863,12 +863,15 @@ export const SPEED_SECTIONS: SpeedSection[] = [
 // Returns the correct sections array for a given country code.
 // Called on every GPS tick — returns a pre-built array reference (no allocation).
 
+const SPEED_SECTIONS_BE: SpeedSection[] = []   // no verified official BE dataset yet
+
 export function getSectionsForCountry(code: string): SpeedSection[] {
   switch (code) {
     case 'NO': return SPEED_SECTIONS_NO
     case 'SE': return SPEED_SECTIONS_SE
     case 'FI': return SPEED_SECTIONS_FI
     case 'NL': return SPEED_SECTIONS_NL
+    case 'BE': return SPEED_SECTIONS_BE
     default:   return SPEED_SECTIONS    // BG and unknown → Bulgarian sections
   }
 }

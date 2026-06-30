@@ -11,14 +11,14 @@
 //
 // WHAT IT DOES
 // ──────────────────────────────────────────────────────────────────────
-// 1. Fetch all 3 providers for Bulgaria + Norway + Sweden + Finland in parallel (12 requests)
+// 1. Fetch all 3 providers for Bulgaria + Norway + Sweden + Finland + Netherlands + Belgium in parallel
 // 2. Merge + dedup per country, then combine (tesla > ocm > osm priority)
 // 3. Compare with existing DB snapshot — skip write if nothing changed
 // 4. Save to Upstash Redis (single key, filtered by viewport at read time)
 // 5. Return sync stats as JSON
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { BULGARIA_BBOX, NORWAY_BBOX, SWEDEN_BBOX, FINLAND_BBOX, NETHERLANDS_BBOX, NETHERLANDS_WEST_BBOX, NETHERLANDS_EAST_BBOX } from '../_lib/utils/bbox.js'
+import { BULGARIA_BBOX, NORWAY_BBOX, SWEDEN_BBOX, FINLAND_BBOX, NETHERLANDS_BBOX, NETHERLANDS_WEST_BBOX, NETHERLANDS_EAST_BBOX, BELGIUM_BBOX, BELGIUM_WEST_BBOX, BELGIUM_EAST_BBOX } from '../_lib/utils/bbox.js'
 import { fetchTeslaStations } from '../_lib/providers/tesla.js'
 import { fetchOCMStations } from '../_lib/providers/ocm.js'
 import { fetchOverpassStations } from '../_lib/providers/overpass.js'
@@ -89,6 +89,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     seTeslaResult, seOcmResult, seOsmResult,
     fiTeslaResult, fiOcmResult, fiOsmResult,
     nlTeslaResult, nlOcmWestResult, nlOcmEastResult, nlOsmResult,
+    beTeslaResult, beOcmWestResult, beOcmEastResult, beOsmResult,
   ] = await Promise.allSettled([
     fetchTeslaStations(BULGARIA_BBOX),
     fetchOCMStations(BULGARIA_BBOX),           // ~350   stations, 1 page
@@ -106,6 +107,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     fetchOCMStations(NETHERLANDS_WEST_BBOX),   // 3 000  west NL (Amsterdam/Rotterdam/Den Haag)
     fetchOCMStations(NETHERLANDS_EAST_BBOX),   // 3 000  east NL (Utrecht/Eindhoven/Groningen)
     fetchOverpassStations(NETHERLANDS_BBOX),
+    fetchTeslaStations(BELGIUM_BBOX),
+    fetchOCMStations(BELGIUM_WEST_BBOX),       // 3 000  west BE (Flanders, Brussels, Antwerp)
+    fetchOCMStations(BELGIUM_EAST_BBOX),       // 3 000  east BE (Wallonia, Liège, Namur)
+    fetchOverpassStations(BELGIUM_BBOX),
   ])
 
   function unwrap(r: PromiseSettledResult<ProviderResult>): ProviderResult | null {
@@ -118,8 +123,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const seResults = [seTeslaResult, seOcmResult, seOsmResult].map(unwrap).filter((r): r is ProviderResult => r !== null)
   const fiResults = [fiTeslaResult, fiOcmResult, fiOsmResult].map(unwrap).filter((r): r is ProviderResult => r !== null)
   const nlResults = [nlTeslaResult, nlOcmWestResult, nlOcmEastResult, nlOsmResult].map(unwrap).filter((r): r is ProviderResult => r !== null)
+  const beResults = [beTeslaResult, beOcmWestResult, beOcmEastResult, beOsmResult].map(unwrap).filter((r): r is ProviderResult => r !== null)
 
-  if (bgResults.length === 0 && noResults.length === 0 && seResults.length === 0 && fiResults.length === 0 && nlResults.length === 0) {
+  if (bgResults.length === 0 && noResults.length === 0 && seResults.length === 0 && fiResults.length === 0 && nlResults.length === 0 && beResults.length === 0) {
     res.status(502).json({ error: 'All providers failed — nothing to store' })
     return
   }
@@ -129,9 +135,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const seMerge = seResults.length > 0 ? mergeStations(seResults) : { stations: [], deduplicated: 0 }
   const fiMerge = fiResults.length > 0 ? mergeStations(fiResults) : { stations: [], deduplicated: 0 }
   const nlMerge = nlResults.length > 0 ? mergeStations(nlResults) : { stations: [], deduplicated: 0 }
+  const beMerge = beResults.length > 0 ? mergeStations(beResults) : { stations: [], deduplicated: 0 }
 
-  const stations     = [...bgMerge.stations, ...noMerge.stations, ...seMerge.stations, ...fiMerge.stations, ...nlMerge.stations]
-  const deduplicated = bgMerge.deduplicated + noMerge.deduplicated + seMerge.deduplicated + fiMerge.deduplicated + nlMerge.deduplicated
+  const stations     = [...bgMerge.stations, ...noMerge.stations, ...seMerge.stations, ...fiMerge.stations, ...nlMerge.stations, ...beMerge.stations]
+  const deduplicated = bgMerge.deduplicated + noMerge.deduplicated + seMerge.deduplicated + fiMerge.deduplicated + nlMerge.deduplicated + beMerge.deduplicated
 
   // ── Load existing snapshot ────────────────────────────────────────
   const existing = await stationDb.getAll()
@@ -203,9 +210,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     count: stations.length,
     deduplicated,
     providers: {
-      tesla: combinedMeta(bgTeslaResult, noTeslaResult, seTeslaResult, fiTeslaResult, nlTeslaResult),
-      ocm:   combinedMeta(bgOcmResult,   noOcmResult,   seOcmResult,   fiOcmResult,   nlOcmWestResult, nlOcmEastResult),
-      osm:   combinedMeta(bgOsmResult,   noOsmResult,   seOsmResult,   fiOsmResult,   nlOsmResult),
+      tesla: combinedMeta(bgTeslaResult, noTeslaResult, seTeslaResult, fiTeslaResult, nlTeslaResult, beTeslaResult),
+      ocm:   combinedMeta(bgOcmResult,   noOcmResult,   seOcmResult,   fiOcmResult,   nlOcmWestResult, nlOcmEastResult, beOcmWestResult, beOcmEastResult),
+      osm:   combinedMeta(bgOsmResult,   noOsmResult,   seOsmResult,   fiOsmResult,   nlOsmResult, beOsmResult),
     },
   }
 
@@ -221,8 +228,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     stations:    stations.length,
     deduplicated,
     fallback: {
-      tesla: combinedMeta(bgTeslaResult, noTeslaResult, seTeslaResult, fiTeslaResult, nlTeslaResult).status === 'error',
-      osm:   combinedMeta(bgOsmResult,   noOsmResult,   seOsmResult,   fiOsmResult,   nlOsmResult).status === 'error',
+      tesla: combinedMeta(bgTeslaResult, noTeslaResult, seTeslaResult, fiTeslaResult, nlTeslaResult, beTeslaResult).status === 'error',
+      osm:   combinedMeta(bgOsmResult,   noOsmResult,   seOsmResult,   fiOsmResult,   nlOsmResult, beOsmResult).status === 'error',
     },
     countries: {
       BG: bgMerge.stations.length,
@@ -230,11 +237,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       SE: seMerge.stations.length,
       FI: fiMerge.stations.length,
       NL: nlMerge.stations.length,
+      BE: beMerge.stations.length,
     },
     providers: {
-      tesla: combinedMeta(bgTeslaResult, noTeslaResult, seTeslaResult, fiTeslaResult, nlTeslaResult),
-      ocm:   combinedMeta(bgOcmResult,   noOcmResult,   seOcmResult,   fiOcmResult,   nlOcmWestResult, nlOcmEastResult),
-      osm:   combinedMeta(bgOsmResult,   noOsmResult,   seOsmResult,   fiOsmResult,   nlOsmResult),
+      tesla: combinedMeta(bgTeslaResult, noTeslaResult, seTeslaResult, fiTeslaResult, nlTeslaResult, beTeslaResult),
+      ocm:   combinedMeta(bgOcmResult,   noOcmResult,   seOcmResult,   fiOcmResult,   nlOcmWestResult, nlOcmEastResult, beOcmWestResult, beOcmEastResult),
+      osm:   combinedMeta(bgOsmResult,   noOsmResult,   seOsmResult,   fiOsmResult,   nlOsmResult, beOsmResult),
     },
     elapsedMs: elapsed,
     syncedAt:  new Date().toISOString(),

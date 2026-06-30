@@ -12,6 +12,7 @@ import { evStore } from './evStore'
 import { saveOwnerToken, removeOwnerToken } from './userStationOwner'
 import { t } from '@/lib/locale'
 import { isTeslaBrowser } from '@/lib/browser'
+import { countryStore } from '@/lib/countryStore'
 
 const CONNECTOR_TYPES = ['CCS', 'CHAdeMO', 'Type2', 'Type1', 'Tesla', 'Schuko'] as const
 type ConnectorType = (typeof CONNECTOR_TYPES)[number]
@@ -103,7 +104,7 @@ function AddStationModal({
 
     const payload = {
       name:          name.trim(),
-      country:       'BG',
+      country:       countryStore.getCode() ?? 'BG',
       network:       network.trim() || null,
       connectors:    builtConnectors,
       isFree,

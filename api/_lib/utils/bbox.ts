@@ -66,6 +66,32 @@ export const NETHERLANDS_EAST_BBOX: BBox = {
   maxLng:  7.230,   // Utrecht, Eindhoven, Arnhem, Groningen
 }
 
+/** Bbox covering all of Belgium */
+export const BELGIUM_BBOX: BBox = {
+  minLat: 49.497,
+  minLng:  2.546,
+  maxLat: 51.505,
+  maxLng:  6.408,
+}
+
+/**
+ * Belgium split into west/east for OCM fetching — same reasoning as the
+ * Netherlands split (Belgium has dense charger coverage; one bbox risks
+ * silently truncating to 3000 stations and missing a whole region).
+ */
+export const BELGIUM_WEST_BBOX: BBox = {
+  minLat: 49.497,
+  minLng:  2.546,
+  maxLat: 51.505,
+  maxLng:  4.500,   // West/East Flanders, Antwerp, Brussels
+}
+export const BELGIUM_EAST_BBOX: BBox = {
+  minLat: 49.497,
+  minLng:  4.500,
+  maxLat: 51.505,
+  maxLng:  6.408,   // Wallonia, Liège, Namur, Luxembourg province
+}
+
 /**
  * Parse a comma-separated bbox string: "minLat,minLng,maxLat,maxLng".
  * Returns null if invalid.

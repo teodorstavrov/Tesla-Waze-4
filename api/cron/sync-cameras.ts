@@ -21,6 +21,10 @@
 //          FI-2  62.0   – 65.5   (Central Finland, Oulu south)
 //          FI-3  65.5   – 70.1   (Lapland)
 //
+//  BE  — Belgium (split into west/east, dense camera coverage)
+//          BE-WEST  Flanders, Brussels, Antwerp
+//          BE-EAST  Wallonia, Liège, Namur, Luxembourg province
+//
 // All bands for a country share the same Redis key (e.g. teslaradar:cameras:no).
 // Each call reads existing cameras, removes old entries for its lat band, then
 // writes the merged result back.
@@ -30,7 +34,7 @@
 //   GET /api/cron/sync-cameras?secret=CRON_SECRET&country=SE-1  (etc.)
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { BULGARIA_BBOX } from '../_lib/utils/bbox.js' // NL uses inline bboxes below
+import { BULGARIA_BBOX } from '../_lib/utils/bbox.js' // NL/BE use inline bboxes below
 import type { BBox } from '../_lib/utils/bbox.js'
 import { fetchCamerasFromOverpass, redisKeyForCountry } from '../_lib/providers/cameras.js'
 import { cacheSet } from '../_lib/cache/memory.js'
@@ -84,10 +88,16 @@ const REGIONS: Record<string, { bbox: BBox; redisCountry: string }> = {
   'NL-2B':  { bbox: { minLat: 52.350, minLng: 3.360, maxLat: 52.600, maxLng: 7.230 }, redisCountry: 'NL' },
   'NL-2C':  { bbox: { minLat: 52.600, minLng: 3.360, maxLat: 52.800, maxLng: 7.230 }, redisCountry: 'NL' },
   'NL-3':   { bbox: { minLat: 52.800, minLng: 3.360, maxLat: 53.560, maxLng: 7.230 }, redisCountry: 'NL' },
+
+  // ── Belgium (2 regions, Redis key 'BE') ────────────────────────────────
+  //   BE-WEST  Flanders, Brussels, Antwerp (dense camera coverage)
+  //   BE-EAST  Wallonia, Liège, Namur, Luxembourg province
+  'BE-WEST': { bbox: { minLat: 49.497, minLng: 2.546, maxLat: 51.505, maxLng: 4.500 }, redisCountry: 'BE' },
+  'BE-EAST': { bbox: { minLat: 49.497, minLng: 4.500, maxLat: 51.505, maxLng: 6.408 }, redisCountry: 'BE' },
 }
 
 // Countries that split multiple regions into a single Redis key
-const MULTI_REGION_COUNTRIES = new Set(['NO', 'SE', 'FI', 'NL'])
+const MULTI_REGION_COUNTRIES = new Set(['NO', 'SE', 'FI', 'NL', 'BE'])
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   const secret = process.env['CRON_SECRET']
