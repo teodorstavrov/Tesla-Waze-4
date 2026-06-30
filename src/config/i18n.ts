@@ -169,6 +169,8 @@ export const DICTIONARY = {
       support:        'Подкрепи проекта',
       rateApp:        'Оцени приложението',
       vehicleProfile: 'Профил на автомобила',
+      translateToEnglish: 'Преведи всичко на английски',
+      removeTranslation:  'Върни оригиналния език',
     },
 
     station: {
@@ -542,6 +544,8 @@ export const DICTIONARY = {
       support:        'Support the project',
       rateApp:        'Rate the app',
       vehicleProfile: 'Vehicle setup',
+      translateToEnglish: 'Translate everything to English',
+      removeTranslation:  'Switch back to original language',
     },
 
     station: {
@@ -912,6 +916,8 @@ export const DICTIONARY = {
       support:        'Støtt prosjektet',
       rateApp:        'Vurder appen',
       vehicleProfile: 'Kjøretøyoppsett',
+      translateToEnglish: 'Oversett alt til engelsk',
+      removeTranslation:  'Bytt tilbake til opprinnelig språk',
     },
 
     station: {
@@ -1191,6 +1197,8 @@ export const DICTIONARY = {
       support:        'Stöd projektet',
       rateApp:        'Betygsätt appen',
       vehicleProfile: 'Fordonsinställning',
+      translateToEnglish: 'Översätt allt till engelska',
+      removeTranslation:  'Byt tillbaka till originalspråk',
     },
 
     station: {
@@ -1470,6 +1478,8 @@ export const DICTIONARY = {
       support:        'Tue projektia',
       rateApp:        'Arvioi sovellus',
       vehicleProfile: 'Ajoneuvon asetukset',
+      translateToEnglish: 'Käännä kaikki englanniksi',
+      removeTranslation:  'Vaihda takaisin alkuperäiseen kieleen',
     },
 
     station: {
@@ -1748,6 +1758,8 @@ export const DICTIONARY = {
       support:        'Steun het project',
       rateApp:        'Beoordeel de app',
       vehicleProfile: 'Voertuiginstellingen',
+      translateToEnglish: 'Vertaal alles naar het Engels',
+      removeTranslation:  'Terug naar de oorspronkelijke taal',
     },
 
     station: {

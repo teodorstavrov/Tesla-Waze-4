@@ -16,19 +16,28 @@ import { isPhone } from '@/lib/browser'
 const FB_GROUP_URL = 'https://www.facebook.com/groups/1496658052161240'
 
 function _pickerIcon(): string {
-  const code = countryStore.getCode()
-  if (code === 'BG' && getLang() === 'en') return '🇬🇧'
   return countryStore.getCountryOrDefault().flag
 }
 
 export function RightControls() {
-  useSyncExternalStore(langStore.subscribe.bind(langStore), _pickerIcon, _pickerIcon)
-
   const countryFlag = useSyncExternalStore(
-    langStore.subscribe.bind(langStore),
+    countryStore.subscribe.bind(countryStore),
     _pickerIcon,
     _pickerIcon,
   )
+  const isEnglishOverride = useSyncExternalStore(
+    langStore.subscribe.bind(langStore),
+    () => getLang() === 'en',
+    () => false,
+  )
+
+  const handleToggleEnglish = useCallback(() => {
+    if (getLang() === 'en') {
+      langStore.clearOverride()
+    } else {
+      langStore.setLang('en')
+    }
+  }, [])
   const showTraffic = useSyncExternalStore(
     settingsStore.subscribe.bind(settingsStore),
     () => settingsStore.get().showTraffic,
@@ -156,6 +165,27 @@ export function RightControls() {
           </a>
         </div>
       )}
+
+      {/* EN translate toggle — always visible, independent of country selection */}
+      <button
+        className="icon-btn"
+        onClick={handleToggleEnglish}
+        title={isEnglishOverride ? t('controls.removeTranslation') : t('controls.translateToEnglish')}
+        aria-label={isEnglishOverride ? t('controls.removeTranslation') : t('controls.translateToEnglish')}
+        aria-pressed={isEnglishOverride}
+        style={{
+          width:      63,
+          height:     63,
+          fontSize:   15,
+          fontWeight: 800,
+          letterSpacing: 0.5,
+          opacity:    isEnglishOverride ? 1 : 0.5,
+          background: isEnglishOverride ? 'rgba(227,25,55,0.22)' : undefined,
+          color:      isEnglishOverride ? '#e31937' : undefined,
+        }}
+      >
+        EN
+      </button>
 
       {/* Gear — always visible */}
       <button
