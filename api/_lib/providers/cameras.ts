@@ -23,8 +23,11 @@ export interface SpeedCamera {
 
 const MEM_CACHE_TTL_MS = 24 * 60 * 60 * 1000  // 24h in-memory cache
 const FETCH_TIMEOUT    = 55_000                 // 55s — cron only, large bbox
-const OVERPASS_URL     = 'https://overpass-api.de/api/interpreter'
-const OVERPASS_MIRROR  = 'https://overpass.kumi.systems/api/interpreter'
+const OVERPASS_ENDPOINTS = [
+  'https://overpass-api.de/api/interpreter',
+  'https://overpass.kumi.systems/api/interpreter',
+  'https://overpass.openstreetmap.ru/api/interpreter',
+]
 
 export function redisKeyForCountry(country: string): string {
   return `teslaradar:cameras:${country.toLowerCase()}`
@@ -57,7 +60,10 @@ async function _overpassQuery(q: string, url: string): Promise<OverpassResponse>
     url,
     {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'User-Agent': 'TesRadar/1.0 (tesradar.tech; speed-camera sync)',
+      },
       body: `data=${encodeURIComponent(q)}`,
     },
     FETCH_TIMEOUT,
@@ -90,12 +96,17 @@ export async function fetchCamerasFromOverpass(bbox: BBox, country: string): Pro
   const bboxStr = toOverpassBBox(bbox)
   const q = buildQuery(bboxStr)
 
-  let data: OverpassResponse
-  try {
-    data = await _overpassQuery(q, OVERPASS_URL)
-  } catch {
-    data = await _overpassQuery(q, OVERPASS_MIRROR)
+  let data: OverpassResponse | undefined
+  let lastError: unknown
+  for (const url of OVERPASS_ENDPOINTS) {
+    try {
+      data = await _overpassQuery(q, url)
+      break
+    } catch (err) {
+      lastError = err
+    }
   }
+  if (!data) throw lastError
 
   const cameras: SpeedCamera[] = []
   for (const el of data.elements) {
