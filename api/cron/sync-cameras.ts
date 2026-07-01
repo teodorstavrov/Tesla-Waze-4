@@ -21,9 +21,9 @@
 //          FI-2  62.0   – 65.5   (Central Finland, Oulu south)
 //          FI-3  65.5   – 70.1   (Lapland)
 //
-//  BE  — Belgium (split into west/east, dense camera coverage)
-//          BE-WEST  Flanders, Brussels, Antwerp
-//          BE-EAST  Wallonia, Liège, Namur, Luxembourg province
+//  BE  — Belgium (split into south/north lat bands)
+//          BE-S  49.497–50.600  Wallonia, Hainaut, Namur, Liège
+//          BE-N  50.600–51.505  Flanders, Brussels, Antwerp
 //
 // All bands for a country share the same Redis key (e.g. teslaradar:cameras:no).
 // Each call reads existing cameras, removes old entries for its lat band, then
@@ -89,11 +89,11 @@ const REGIONS: Record<string, { bbox: BBox; redisCountry: string }> = {
   'NL-2C':  { bbox: { minLat: 52.600, minLng: 3.360, maxLat: 52.800, maxLng: 7.230 }, redisCountry: 'NL' },
   'NL-3':   { bbox: { minLat: 52.800, minLng: 3.360, maxLat: 53.560, maxLng: 7.230 }, redisCountry: 'NL' },
 
-  // ── Belgium (2 regions, Redis key 'BE') ────────────────────────────────
-  //   BE-WEST  Flanders, Brussels, Antwerp (dense camera coverage)
-  //   BE-EAST  Wallonia, Liège, Namur, Luxembourg province
-  'BE-WEST': { bbox: { minLat: 49.497, minLng: 2.546, maxLat: 51.505, maxLng: 4.500 }, redisCountry: 'BE' },
-  'BE-EAST': { bbox: { minLat: 49.497, minLng: 4.500, maxLat: 51.505, maxLng: 6.408 }, redisCountry: 'BE' },
+  // ── Belgium (2 lat bands, Redis key 'BE') ──────────────────────────────
+  //   BE-S  49.497–50.600  Wallonia, Hainaut, Namur, Liège, Lux. province
+  //   BE-N  50.600–51.505  Flanders, Brussels, Antwerp (denser coverage)
+  'BE-S': { bbox: { minLat: 49.497, minLng: 2.546, maxLat: 50.600, maxLng: 6.408 }, redisCountry: 'BE' },
+  'BE-N': { bbox: { minLat: 50.600, minLng: 2.546, maxLat: 51.505, maxLng: 6.408 }, redisCountry: 'BE' },
 }
 
 // Countries that split multiple regions into a single Redis key
