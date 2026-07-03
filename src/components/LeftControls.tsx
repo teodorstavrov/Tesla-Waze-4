@@ -4,6 +4,7 @@ import { useSyncExternalStore, useState, useRef } from 'react'
 import { LocationButton } from '@/components/LocationButton'
 import { getMap } from '@/components/MapShell'
 import { openSupportModal } from '@/components/SupportModal'
+import { openLockSoundModal } from '@/components/LockSoundModal'
 import { openVehicleProfileModal } from '@/components/VehicleProfileModal'
 import { openPricingModal } from '@/components/PricingModal'
 import { settingsStore } from '@/features/settings/settingsStore'
@@ -107,6 +108,10 @@ export function LeftControls() {
           👑
         </button>
       )}
+      <button className="icon-btn" onClick={openLockSoundModal}
+        title="Tesla Lock Sounds" aria-label="Tesla Lock Sounds">
+        <BellIcon />
+      </button>
       <button className="icon-btn" onClick={openSupportModal}
         title={t('controls.support')} aria-label={t('controls.support')}>
         <HeartIcon />
@@ -177,6 +182,16 @@ function CarBatteryIcon() {
   )
 }
 
+
+function BellIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+    </svg>
+  )
+}
 
 function HeartIcon() {
   return (

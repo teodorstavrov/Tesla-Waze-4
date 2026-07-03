@@ -51,6 +51,7 @@ import { VehicleProfileModal } from '@/components/VehicleProfileModal'
 import { CountryPicker } from '@/components/CountryPicker'
 import { NorwayBetaBanner } from '@/components/NorwayBetaBanner'
 import { BelgiumBetaBanner } from '@/components/BelgiumBetaBanner'
+import { LockSoundModal } from '@/components/LockSoundModal'
 import { OnlineCounter } from '@/components/OnlineCounter'
 import { CarClock } from '@/components/CarClock'
 import { DeviceModeBanner } from '@/components/DeviceModeBanner'
@@ -152,6 +153,7 @@ export function App() {
       {/* Layer 1: floating UI */}
       <NorwayBetaBanner />
       <BelgiumBetaBanner />
+      <LockSoundModal />
       <FloatingTitleCard />
       <TurnInstruction />
       <SearchBar />
