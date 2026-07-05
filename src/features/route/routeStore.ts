@@ -223,6 +223,7 @@ function _onGpsUpdate(): void {
       }
       _state = { ..._state, deviated, remainingM: remaining, arrived: true }
       _emit()
+      setTimeout(() => { routeStore.clear() }, 20_000)
       return
     }
   }
@@ -273,7 +274,9 @@ function _onGpsUpdate(): void {
 
   let distToNextStepM: number | null = null
   if (nextStep && nextStep.type !== 'depart' && nextStep.type !== 'arrive') {
-    const d = haversineM(gps.lat, gps.lng, nextStep.lat, nextStep.lng)
+    // Road distance to next maneuver: remaining polyline distance minus segments after this step.
+    const distAfterM = steps.slice(newStep + 1).reduce((acc, s) => acc + (s.distanceM ?? 0), 0)
+    const d = Math.max(0, remainingDistanceM(idx) - distAfterM)
 
     // While in the post-turn buffer, hide the HUD counter so it doesn't awkwardly
     // count up from 0 while the driver is still executing the maneuver.

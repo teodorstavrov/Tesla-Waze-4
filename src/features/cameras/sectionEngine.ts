@@ -134,6 +134,10 @@ function _onPosition(pos: GpsPosition): void {
         ? Math.round((sess.section.lengthM / elapsedFinalS) * 3.6)
         : sess.avgKmh
 
+      // Beep on exit — higher pitch if OK, lower if violation
+      const exitOk = finalAvg <= sess.section.limitKmh
+      audioManager.beep(exitOk ? 880 : 440, exitOk ? 160 : 280)
+
       _emaAvg = null   // reset EMA for next section
       _lastEmittedAvg = -1; _lastEmittedDistBkt = -1; _lastEmittedWarned = false
       const exitEntry: SectionExit = {
@@ -151,11 +155,11 @@ function _onPosition(pos: GpsPosition): void {
       _prevPos = pos
       _emit()
 
-      // Clear lastExit after 5s — history bar is the persistent record
+      // Clear lastExit after 20s — history bar is the persistent record
       setTimeout(() => {
         _state = { ..._state, lastExit: null }
         _emit()
-      }, 5_000)
+      }, 20_000)
 
       return
     }

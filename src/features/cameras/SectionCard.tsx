@@ -27,7 +27,7 @@ export function SectionCard() {
     () => sectionStore.getState(),
   )
 
-  const topVisible = Boolean(session ?? preWarn)
+  const topVisible = Boolean(session ?? lastExit ?? preWarn)
 
   const wrapStyle: React.CSSProperties = {
     position: 'absolute',
@@ -39,11 +39,11 @@ export function SectionCard() {
 
   const topCard = isTeslaBrowser ? (
     <div aria-hidden={!topVisible} className="tesla-overlay-host" style={wrapStyle}>
-      <TopCardContent session={session} preWarn={preWarn} />
+      <TopCardContent session={session} lastExit={lastExit} preWarn={preWarn} />
     </div>
   ) : topVisible ? (
     <div style={wrapStyle}>
-      <TopCardContent session={session} preWarn={preWarn} />
+      <TopCardContent session={session} lastExit={lastExit} preWarn={preWarn} />
     </div>
   ) : null
 
@@ -58,13 +58,15 @@ export function SectionCard() {
 }
 
 function TopCardContent({
-  session, preWarn,
+  session, lastExit, preWarn,
 }: {
   session:  SectionSession | null
+  lastExit: import('./sectionTypes').SectionExit | null
   preWarn:  { section: SpeedSection; distM: number } | null
 }) {
-  if (session)  return <ActiveView session={session} />
-  if (preWarn)  return <PreWarnView preWarn={preWarn} />
+  if (session)   return <ActiveView session={session} />
+  if (lastExit)  return <ExitResultView exit={lastExit} />
+  if (preWarn)   return <PreWarnView preWarn={preWarn} />
   return null
 }
 
@@ -86,14 +88,15 @@ function ActiveView({ session }: { session: SectionSession }) {
 
   const avgOverLimit = avgKmh > section.limitKmh
   const avgRatio     = section.limitKmh > 0 ? avgKmh / section.limitKmh : 0
-  const avgColor     = avgOverLimit    ? '#ef4444'
+  const avgColor     = avgKmh === 0    ? 'rgba(255,255,255,0.35)'
+                     : avgOverLimit    ? '#ef4444'
                      : avgRatio > 0.93 ? '#f97316'
                      :                   '#22c55e'
 
   const speedOver  = currentSpeed !== null && currentSpeed > section.limitKmh
   const speedRatio = currentSpeed !== null && section.limitKmh > 0
     ? currentSpeed / section.limitKmh : 0
-  const speedColor = currentSpeed === null         ? 'rgba(255,255,255,0.6)'
+  const speedColor = currentSpeed === null         ? 'rgba(255,255,255,0.4)'
                    : speedOver                     ? '#ef4444'
                    : speedRatio > 0.93             ? '#f97316'
                    :                                 '#fff'
@@ -104,14 +107,20 @@ function ActiveView({ session }: { session: SectionSession }) {
   return (
     <div
       className={isTeslaBrowser ? 'glass tesla-overlay-inner' : 'glass'}
-      style={{ padding: '10px 16px 10px' }}
+      style={{
+        padding: '10px 16px 10px',
+        background: 'rgba(10, 10, 18, 0.96)',
+        '--text-primary':   '#f2f2f2',
+        '--text-secondary': 'rgba(255,255,255,0.45)',
+        '--glass-border':   'rgba(255,255,255,0.12)',
+      } as React.CSSProperties}
     >
       <div style={{
         display: 'flex', alignItems: 'center', gap: 5, marginBottom: 10,
       }}>
         <span style={{
           fontSize: 10, fontWeight: 700,
-          color: 'rgba(255,255,255,0.35)',
+          color: 'var(--text-secondary)',
           textTransform: 'uppercase', letterSpacing: '0.08em',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
         }}>
@@ -155,7 +164,7 @@ function ActiveView({ session }: { session: SectionSession }) {
         </div>
 
         <HudCell
-          value={avgKmh > 0 ? String(avgKmh) : '—'}
+          value={String(avgKmh)}
           valueColor={avgColor}
           label={t('sections.avg')}
         />
@@ -165,15 +174,15 @@ function ActiveView({ session }: { session: SectionSession }) {
             fontSize:           26,
             fontWeight:         800,
             lineHeight:         1,
-            color:              '#fff',
+            color:              'var(--text-primary)',
             fontVariantNumeric: 'tabular-nums',
           }}>
             {remainingKm}
           </div>
-          <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>
+          <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 2 }}>
             {t('routePanel.km')}
           </div>
-          <div style={{ fontSize: 9, color: 'rgba(255,255,255,0.25)', marginTop: 1, letterSpacing: '0.06em' }}>
+          <div style={{ fontSize: 9, color: 'var(--text-secondary)', marginTop: 1, letterSpacing: '0.06em' }}>
             {t('sections.rem')}
           </div>
         </div>
@@ -183,7 +192,7 @@ function ActiveView({ session }: { session: SectionSession }) {
         marginTop:    10,
         height:       4,
         borderRadius: 2,
-        background:   'rgba(255,255,255,0.1)',
+        background:   'var(--glass-border)',
         overflow:     'hidden',
       }}>
         <div style={{
@@ -214,7 +223,7 @@ function HudCell({ value, valueColor, label }: {
       }}>
         {value}
       </div>
-      <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)', marginTop: 2, letterSpacing: '0.06em' }}>
+      <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 2, letterSpacing: '0.06em' }}>
         {label}
       </div>
     </div>
@@ -238,7 +247,7 @@ function PreWarnView({ preWarn }: { preWarn: { section: SpeedSection; distM: num
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <span style={{ fontSize: 15 }}>⚠️</span>
         <span style={{
-          fontSize: 10, fontWeight: 800, color: 'rgba(255,255,255,0.45)',
+          fontSize: 10, fontWeight: 800, color: 'var(--text-secondary)',
           textTransform: 'uppercase', letterSpacing: '0.09em',
         }}>
           {t('sections.approach')}
@@ -246,23 +255,23 @@ function PreWarnView({ preWarn }: { preWarn: { section: SpeedSection; distM: num
       </div>
 
       <div>
-        <div style={{ fontSize: 12, fontWeight: 700, color: 'rgba(255,255,255,0.85)' }}>
+        <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>
           {section.road}
         </div>
-        <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', marginTop: 2 }}>
+        <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>
           {section.name}
         </div>
       </div>
 
       <div style={{
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        paddingTop: 6, borderTop: '1px solid rgba(255,255,255,0.08)',
+        paddingTop: 6, borderTop: '1px solid var(--glass-border)',
       }}>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
           <span style={{ fontSize: 22, fontWeight: 800, color: '#f97316', lineHeight: 1 }}>
             {distKm}
           </span>
-          <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)' }}>{t('sections.ahead')}</span>
+          <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>{t('sections.ahead')}</span>
         </div>
         <div style={{
           width: 34, height: 34, borderRadius: '50%',
@@ -272,6 +281,47 @@ function PreWarnView({ preWarn }: { preWarn: { section: SpeedSection; distM: num
           fontWeight: 900, color: '#111',
         }}>
           {section.limitKmh}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── ExitResultView — shown for 20s after leaving a section ───────────
+
+function ExitResultView({ exit }: { exit: import('./sectionTypes').SectionExit }) {
+  const ok = exit.avgKmh <= exit.limitKmh
+  return (
+    <div
+      className={isTeslaBrowser ? 'glass tesla-overlay-inner' : 'glass'}
+      style={{
+        padding: '14px 16px',
+        background: 'rgba(10, 10, 18, 0.96)',
+      }}
+    >
+      <div style={{
+        fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)',
+        textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10,
+        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+      }}>
+        {exit.section.road} · {exit.section.name}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+        <span style={{ fontSize: 40, lineHeight: 1, flexShrink: 0 }}>
+          {ok ? '✅' : '⚠️'}
+        </span>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontSize: 17, fontWeight: 800, color: ok ? '#22c55e' : '#ef4444', lineHeight: 1.2 }}>
+            {ok ? t('sections.exitOk') : t('sections.exitViolation')}
+          </div>
+          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 6, lineHeight: 1.5 }}>
+            {t('sections.avg')}:{' '}
+            <strong style={{ color: ok ? '#22c55e' : '#ef4444' }}>{exit.avgKmh}</strong>{' '}
+            {t('sections.kmh')}
+            {'  ·  '}{t('sections.limit')}:{' '}
+            <strong style={{ color: '#fff' }}>{exit.limitKmh}</strong>{' '}
+            {t('sections.kmh')}
+          </div>
         </div>
       </div>
     </div>
@@ -368,12 +418,12 @@ function SectionHistoryBar({
         alignItems:     'center',
         justifyContent: 'space-between',
         padding:        '10px 14px 8px',
-        borderBottom:   '1px solid rgba(255,255,255,0.08)',
+        borderBottom:   '1px solid var(--glass-border)',
         flexShrink:     0,
       }}>
         <span style={{
           fontSize: 11, fontWeight: 800,
-          color: 'rgba(255,255,255,0.45)',
+          color: 'var(--text-secondary)',
           textTransform: 'uppercase', letterSpacing: '0.09em',
         }}>
           {history.length} {t('sections.history')}
@@ -381,10 +431,10 @@ function SectionHistoryBar({
         <button
           onClick={() => setExpanded(false)}
           style={{
-            background: 'rgba(255,255,255,0.1)',
-            border:     '1px solid rgba(255,255,255,0.18)',
+            background: 'var(--surface-hover)',
+            border:     '1px solid var(--glass-border)',
             borderRadius: 6,
-            color:      'rgba(255,255,255,0.6)',
+            color:      'var(--text-secondary)',
             fontSize:   13,
             fontWeight: 700,
             padding:    '3px 9px',
@@ -407,11 +457,11 @@ function SectionHistoryBar({
               style={{
                 paddingTop:   10,
                 marginTop:    10,
-                borderTop:    '1px solid rgba(255,255,255,0.07)',
+                borderTop:    '1px solid var(--glass-border)',
               }}
             >
               <div style={{
-                fontSize: 10, color: 'rgba(255,255,255,0.4)',
+                fontSize: 10, color: 'var(--text-secondary)',
                 marginBottom: 5, letterSpacing: '0.05em',
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>
@@ -424,7 +474,7 @@ function SectionHistoryBar({
                 }}>
                   {exit.avgKmh}
                 </span>
-                <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
+                <span style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
                   {t('sections.kmh')}
                 </span>
                 <span style={{

@@ -84,9 +84,11 @@ export const DICTIONARY = {
       kmh:           'км/ч',
       withinLimit:   'В рамките на лимита ✓',
       overLimit:     'Лимитът е',
-      avg:           'СРД',
+      avg:           'СРЕДНА',
       rem:           'ОСТ',
       history:       'Минати отсечки',
+      exitOk:        'В норма ✓',
+      exitViolation: 'Превишена средна скорост',
     },
 
     dock: {
@@ -462,6 +464,8 @@ export const DICTIONARY = {
       avg:           'AVG',
       rem:           'REM',
       history:       'Sections passed',
+      exitOk:        'Within limit ✓',
+      exitViolation: 'Average speed exceeded',
     },
 
     dock: {
@@ -834,6 +838,8 @@ export const DICTIONARY = {
       avg:           'SNITT',
       rem:           'IGJEN',
       history:       'Strekninger',
+      exitOk:        'Innenfor grensen ✓',
+      exitViolation: 'Gjennomsnittsfart overskredet',
     },
 
     dock: {
@@ -1115,6 +1121,8 @@ export const DICTIONARY = {
       avg:           'SNITT',
       rem:           'KVAR',
       history:       'Sträckor',
+      exitOk:        'Inom gränsen ✓',
+      exitViolation: 'Medelhastighet överskriden',
     },
 
     dock: {
@@ -1396,6 +1404,8 @@ export const DICTIONARY = {
       avg:           'KESK',
       rem:           'JÄLJ',
       history:       'Osuudet',
+      exitOk:        'Rajan sisällä ✓',
+      exitViolation: 'Keskinopeus ylitetty',
     },
 
     dock: {
@@ -1676,6 +1686,8 @@ export const DICTIONARY = {
       avg:           'GEM',
       rem:           'REST',
       history:       'Gepasseerde trajecten',
+      exitOk:        'Binnen limiet ✓',
+      exitViolation: 'Gemiddelde snelheid overschreden',
     },
 
     dock: {
