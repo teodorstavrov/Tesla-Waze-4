@@ -22,8 +22,8 @@ import type { GpsPosition } from '@/features/gps/types'
 
 // ── Constants ─────────────────────────────────────────────────────────
 
-const ENTRY_M         = 150   // enter section when within 150m of start camera
-const EXIT_M          = 150   // exit section when within 150m of end camera
+const ENTRY_M         = 350   // enter section when within 350m of start camera
+const EXIT_M          = 200   // exit section when within 200m of end camera
 const PREWARN_M       = 2000  // show approach warning when 2km from start
 const NEARBY_KM       = 10    // only process sections within 10km (pre-filter)
 const WARN_COOLDOWN_S = 30    // re-warn at most every 30s if still over limit
