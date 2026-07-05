@@ -193,10 +193,11 @@ export async function fetchRoute(
   dest:         [number, number],  // [lat, lng]
   signal?:      AbortSignal,
   alternatives: number = 2,
+  forceRefresh: boolean = false,
 ): Promise<Route[]> {
   const cacheKey = _cacheKey(origin, dest)
   const hit = _cache.get(cacheKey)
-  if (hit && Date.now() < hit.expiresAt) return hit.routes
+  if (!forceRefresh && hit && Date.now() < hit.expiresAt) return hit.routes
 
   const body = JSON.stringify({
     locations: [
@@ -246,13 +247,14 @@ export { fetchRoute as fetchOSRMRoute }
 // ── Via Хемус variant — forces a through-waypoint on A2 ───────────────
 
 export async function fetchRouteViaHemus(
-  origin:  [number, number],
-  dest:    [number, number],
-  signal?: AbortSignal,
+  origin:       [number, number],
+  dest:         [number, number],
+  signal?:      AbortSignal,
+  forceRefresh: boolean = false,
 ): Promise<Route[]> {
   const cacheKey = _cacheKey(origin, dest) + ':hemus'
   const hit = _cache.get(cacheKey)
-  if (hit && Date.now() < hit.expiresAt) return hit.routes
+  if (!forceRefresh && hit && Date.now() < hit.expiresAt) return hit.routes
 
   const body = JSON.stringify({
     locations: [

@@ -471,11 +471,11 @@ export const routeStore = {
     _emit()
 
     try {
-      // Single route — no alternatives popup on reroute
+      // Single route — no alternatives popup on reroute; forceRefresh bypasses cache
       const routes = viaHemus
-        ? await fetchRouteViaHemus([gps.lat, gps.lng], [dest.lat, dest.lng], _abort.signal)
-        : await fetchValhalla([gps.lat, gps.lng], [dest.lat, dest.lng], _abort.signal)
-            .catch(() => fetchOSRM([gps.lat, gps.lng], [dest.lat, dest.lng], _abort!.signal))
+        ? await fetchRouteViaHemus([gps.lat, gps.lng], [dest.lat, dest.lng], _abort.signal, true)
+        : await fetchValhalla([gps.lat, gps.lng], [dest.lat, dest.lng], _abort.signal, 0, true)
+            .catch(() => fetchOSRM([gps.lat, gps.lng], [dest.lat, dest.lng], _abort!.signal, 0, true))
       const primary = routes[0]!
       _resetAnnouncements()  // clear old-route tracking before switching to new route
       _state = {

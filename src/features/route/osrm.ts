@@ -70,17 +70,23 @@ export async function fetchOSRMRoute(
   dest:         [number, number],   // [lat, lng]
   signal?:      AbortSignal,
   alternatives: number = 2,
+  forceRefresh: boolean = false,
 ): Promise<Route[]> {
   // Client cache — same O/D pair within 30 min returns instantly
   const cacheKey = _routeKey(origin, dest)
   const hit = _routeCache.get(cacheKey)
-  if (hit && Date.now() < hit.expiresAt) return hit.routes
+  if (!forceRefresh && hit && Date.now() < hit.expiresAt) return hit.routes
 
   // OSRM coordinate order: lng,lat
   const coords = `${origin[1]},${origin[0]};${dest[1]},${dest[0]}`
   const url = `${OSRM_BASE}/${coords}?overview=full&geometries=geojson&steps=true&alternatives=${alternatives}`
 
-  const res = await fetch(url, { signal })
+  const timeoutSignal = AbortSignal.timeout(12_000)
+  const combinedSignal: AbortSignal = signal && 'any' in AbortSignal
+    ? (AbortSignal as unknown as { any: (s: AbortSignal[]) => AbortSignal }).any([signal, timeoutSignal])
+    : signal ?? timeoutSignal
+
+  const res = await fetch(url, { signal: combinedSignal })
   if (!res.ok) throw new Error(`OSRM HTTP ${res.status}`)
 
   const data = (await res.json()) as OSRMResponse
