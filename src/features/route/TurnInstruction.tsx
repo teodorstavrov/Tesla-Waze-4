@@ -76,15 +76,18 @@ export function TurnInstruction() {
 
   if (status !== 'ok' || !route) return null
 
-  // Logo is 54px tall, starts at top:12 → bottom at 66px; 10px gap → top:76
-  const TOP = 76
+  // Positioned to the right of the 88px left-controls column:
+  // left: 12 (column start) + 88 (button width) + 8 (gap) = 108px
+  // top: aligned with the heading-toggle button (first in the column, near top)
+  const TOP  = 76
+  const LEFT = 108
 
   // ── Arrived ──────────────────────────────────────────────────────────
   if (arrived) {
     return (
       <div
         style={{
-          position: 'absolute', top: TOP, right: 12, zIndex: 500,
+          position: 'absolute', top: TOP, left: LEFT, zIndex: 500,
           display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
           userSelect: 'none', WebkitUserSelect: 'none',
           background: '#22c55e',
@@ -117,7 +120,7 @@ export function TurnInstruction() {
   return (
     <div
       style={{
-        position: 'absolute', top: TOP, right: 12, zIndex: 500,
+        position: 'absolute', top: TOP, left: LEFT, zIndex: 500,
         display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4,
         userSelect: 'none', WebkitUserSelect: 'none',
         background: '#2B7FFF',
