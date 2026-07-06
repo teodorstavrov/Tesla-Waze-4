@@ -45,6 +45,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     if (!VALID_TYPES.has(type))           { res.status(400).json({ error: `Invalid type: ${String(type)}` }); return }
     if (!isFinite(lat) || !isFinite(lng)) { res.status(400).json({ error: 'Invalid coordinates' }); return }
 
+    // Optional custom marker lifetime (ms). Used by the Waze sync so NL/BE
+    // markers live longer (4h15m, matching their 4h cadence) than the police
+    // default (2h15m). Admin-only endpoint => trusted; still clamp to a sane max.
+    const rawTtl = Number((body as { ttlMs?: unknown })?.ttlMs)
+    const customTtl = (isFinite(rawTtl) && rawTtl > 0 && rawTtl <= 7 * 24 * 60 * 60 * 1000) ? rawTtl : null
+    const lifetimeMs = customTtl ?? ttlMs(type)
+
     const now = new Date()
     const event: RoadEvent = {
       id:          crypto.randomUUID(),
@@ -53,7 +60,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       lng,
       description: description?.replace(/<[^>]*>/g, '').trim().slice(0, 200) ?? null,
       reportedAt:  now.toISOString(),
-      expiresAt:   new Date(now.getTime() + ttlMs(type)).toISOString(),
+      expiresAt:   new Date(now.getTime() + lifetimeMs).toISOString(),
       confirms:    0,
       denies:      0,
       permanent:   true,   // admin marker — red circle in panel; immune to deny-votes; still expires via expiresAt
