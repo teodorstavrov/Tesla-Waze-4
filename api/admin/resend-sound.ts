@@ -1,67 +1,52 @@
-// ─── POST /api/sounds/request-link ────────────────────────────────────
+// ─── GET /api/admin/resend-sound ───────────────────────────────────────
 //
-// Body: { melodyId: string, email: string }
+// Manually re-sends a Tesla lock-sound download link to a donor.
+// Query params: ?secret=ADMIN_SECRET&email=EMAIL&melodyId=MELODY_ID
 //
-// Generates a one-time download token stored in Redis (48h TTL),
-// then emails a download link via Resend.
+// Example:
+//   /api/admin/resend-sound?secret=25892589&email=donor@example.com&melodyId=general_owl-hoot
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { randomUUID } from 'crypto'
 import { redis, isRedisConfigured } from '../_lib/db/redis.js'
-import { rateLimit } from '../_lib/utils/rateLimit.js'
+import { VALID_SOUNDS } from '../sounds/request-link.js'
 
+const ADMIN_SECRET   = process.env['ADMIN_SECRET']
 const RESEND_API_KEY = process.env['RESEND_API_KEY']
 const FROM_EMAIL     = 'TesRadar <noreply@tesradar.tech>'
 const SITE_URL       = 'https://tesradar.tech'
-const TOKEN_TTL_SEC  = 48 * 60 * 60   // 48 hours
-
-export const VALID_SOUNDS: Record<string, string> = {
-  '90s_modem-connecting':              '90s Modem Connecting',
-  'among-us_role-reveal-sound':        'Among Us Role Reveal',
-  'brainrot_rizzbot-laugh':            'Rizzbot Laugh',
-  'general_owl-hoot':                  'Owl Hoot',
-  'general_turkey-gobble':             'Turkey Gobble',
-  'metal-gear-solid_alert':            'Metal Gear Solid Alert',
-  'nintendo_mario-die':                'Mario Game Over',
-  'police_dispatch-siren':             'Police Siren',
-  'road-runner_meep-meep':             'Road Runner Meep Meep',
-  'who-wants-to-be-a-millionaire_theme': 'Who Wants to Be a Millionaire',
-}
+const TOKEN_TTL_SEC  = 48 * 60 * 60
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
-  if (req.method !== 'POST') { res.status(405).json({ error: 'Method not allowed' }); return }
-
-  if (!isRedisConfigured()) { res.status(503).json({ error: 'Service unavailable' }); return }
-
-  const ip = (req.headers['x-forwarded-for'] as string | undefined)?.split(',')[0]?.trim() ?? 'unknown'
-  const ok = await rateLimit(ip, 'sounds-link', 3, 3600)
-  if (!ok) { res.status(429).json({ error: 'Too many requests — try again in an hour' }); return }
-
-  const { melodyId, email } = req.body as { melodyId?: string; email?: string }
-
-  if (!melodyId || !VALID_SOUNDS[melodyId]) {
-    res.status(400).json({ error: 'Invalid melody' }); return
+  if (!ADMIN_SECRET || req.query['secret'] !== ADMIN_SECRET) {
+    res.status(401).json({ error: 'Unauthorized' }); return
   }
+
+  const email    = String(req.query['email']    ?? '')
+  const melodyId = String(req.query['melodyId'] ?? '')
+
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    res.status(400).json({ error: 'Invalid email' }); return
+    res.status(400).json({ error: 'Missing or invalid email' }); return
   }
+  if (!melodyId || !VALID_SOUNDS[melodyId]) {
+    res.status(400).json({
+      error: 'Missing or invalid melodyId',
+      validIds: Object.keys(VALID_SOUNDS),
+    }); return
+  }
+  if (!isRedisConfigured()) { res.status(503).json({ error: 'Redis not configured' }); return }
 
-  const token = randomUUID()
+  const token       = randomUUID()
+  const melodyName  = VALID_SOUNDS[melodyId]!
+  const downloadUrl = `${SITE_URL}/api/sounds/download?token=${token}`
+
   await redis.setWithExpiry(`sounds:token:${token}`, { melodyId, email }, TOKEN_TTL_SEC)
 
-  const downloadUrl = `${SITE_URL}/api/sounds/download?token=${token}`
-  const melodyName  = VALID_SOUNDS[melodyId]!
-
-  await sendEmail(email, melodyName, downloadUrl)
-
-  res.status(200).json({ ok: true })
-}
-
-async function sendEmail(to: string, melodyName: string, downloadUrl: string): Promise<void> {
   if (!RESEND_API_KEY) {
-    console.log('[sounds] would send download link to', to, '→', downloadUrl)
+    res.status(200).json({ ok: true, note: 'RESEND_API_KEY not set — token created but no email sent', downloadUrl })
     return
   }
+
   const html = `
 <!DOCTYPE html>
 <html>
@@ -98,11 +83,14 @@ async function sendEmail(to: string, melodyName: string, downloadUrl: string): P
   const emailRes = await fetch('https://api.resend.com/emails', {
     method: 'POST',
     headers: { Authorization: `Bearer ${RESEND_API_KEY}`, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ from: FROM_EMAIL, to: [to], subject: `🔔 TesRadar — ${melodyName} · Download Link`, html }),
+    body: JSON.stringify({ from: FROM_EMAIL, to: [email], subject: `🔔 TesRadar — ${melodyName} · Download Link`, html }),
   })
+
   if (!emailRes.ok) {
     const errText = await emailRes.text().catch(() => '')
-    console.error('[sounds] Resend error', emailRes.status, errText)
-    throw new Error(`Email delivery failed (${emailRes.status})`)
+    console.error('[admin/resend-sound] Resend error', emailRes.status, errText)
+    res.status(502).json({ error: `Resend failed (${emailRes.status})`, details: errText }); return
   }
+
+  res.status(200).json({ ok: true, email, melodyId, melodyName, downloadUrl })
 }
