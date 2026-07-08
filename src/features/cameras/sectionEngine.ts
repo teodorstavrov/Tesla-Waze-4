@@ -82,7 +82,10 @@ const EMA_ALPHA = 0.35
 // ── Engine ────────────────────────────────────────────────────────────
 
 function _onPosition(pos: GpsPosition): void {
-  const now = pos.timestamp
+  // Use wall-clock time, not pos.timestamp — GPS timestamps can be in seconds
+  // on some WebKit builds (Tesla browser), making elapsedS always ~0.001 and
+  // breaking the avgKmh calculation entirely.
+  const now = Date.now()
 
   // ── Active session: update distance + avg speed ──────────────────
   if (_state.session) {
@@ -95,18 +98,22 @@ function _onPosition(pos: GpsPosition): void {
         [pos.lat, pos.lng],
       )
       // Only add if it looks like actual movement (< 200m per tick avoids teleport)
-      if (step < 200) {
+      if (step > 0 && step < 200) {
         sess.distM += step
       }
     }
 
-    // Rolling avg speed: use elapsed time + GPS-accumulated distance
+    // Rolling avg speed: distance accumulated / elapsed time
     const elapsedS = (now - sess.enteredAt) / 1000
-    if (elapsedS > 2) {
-      const effectiveDist = Math.max(sess.distM, 1)
-      const rawAvg = (effectiveDist / elapsedS) * 3.6
+    if (elapsedS > 2 && sess.distM > 0) {
+      const rawAvg = (sess.distM / elapsedS) * 3.6
       // EMA smoothing to reduce GPS noise oscillation
       _emaAvg = _emaAvg === null ? rawAvg : _emaAvg + EMA_ALPHA * (rawAvg - _emaAvg)
+      sess.avgKmh = Math.round(_emaAvg)
+    } else if (sess.avgKmh === 0 && pos.speedKmh !== null && pos.speedKmh > 0) {
+      // Fallback for first few seconds: GPS instantaneous speed until
+      // distance-based average stabilises (avoids showing 0 on entry)
+      _emaAvg = _emaAvg === null ? pos.speedKmh : _emaAvg + EMA_ALPHA * (pos.speedKmh - _emaAvg)
       sess.avgKmh = Math.round(_emaAvg)
     }
 
@@ -219,7 +226,7 @@ function _onPosition(pos: GpsPosition): void {
       _state = {
         session: {
           section,
-          enteredAt: now,
+          enteredAt: Date.now(),  // wall clock — consistent with how elapsed time is measured
           distM:     0,
           avgKmh:    0,
           warned:    false,
