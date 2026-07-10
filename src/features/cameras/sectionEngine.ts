@@ -79,6 +79,12 @@ let _lastEmittedWarned   = false
 let _emaAvg: number | null = null
 const EMA_ALPHA = 0.35
 
+// After exiting a section, suppress new entry detection for this many ms.
+// Prevents the reverse-direction section (same camera coordinates) from
+// triggering immediately and wiping out the exit result banner.
+const EXIT_COOLDOWN_MS = 10_000
+let _noEntryUntil = 0
+
 // ── Engine ────────────────────────────────────────────────────────────
 
 function _onPosition(pos: GpsPosition): void {
@@ -147,6 +153,7 @@ function _onPosition(pos: GpsPosition): void {
 
       _emaAvg = null   // reset EMA for next section
       _lastEmittedAvg = -1; _lastEmittedDistBkt = -1; _lastEmittedWarned = false
+      _noEntryUntil = now + EXIT_COOLDOWN_MS  // suppress reverse-section false trigger
       const exitEntry: SectionExit = {
         section:   sess.section,
         avgKmh:    finalAvg,
@@ -219,7 +226,7 @@ function _onPosition(pos: GpsPosition): void {
     )
 
     // ── Zone entry ──────────────────────────────────────────────────
-    if (distToStart <= ENTRY_M) {
+    if (distToStart <= ENTRY_M && now > _noEntryUntil) {
       _preWarnedIds.delete(section.id)   // reset so next approach works
       _emaAvg = null   // fresh EMA for this section
       _lastEmittedAvg = -1; _lastEmittedDistBkt = -1; _lastEmittedWarned = false
