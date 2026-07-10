@@ -79,11 +79,23 @@ let _lastEmittedWarned   = false
 let _emaAvg: number | null = null
 const EMA_ALPHA = 0.35
 
-// After exiting a section, suppress new entry detection for this many ms.
-// Prevents the reverse-direction section (same camera coordinates) from
-// triggering immediately and wiping out the exit result banner.
-const EXIT_COOLDOWN_MS = 10_000
-let _noEntryUntil = 0
+// After exiting a section, block re-entry of the REVERSE direction for this
+// many ms. Prevents the opposite-direction section (identical camera
+// coordinates) from triggering immediately and wiping out the exit banner.
+// A blanket time-block is intentionally NOT used because A1/A2 have
+// back-to-back sections sharing one intermediate camera — a global cooldown
+// would incorrectly suppress entry into the legitimate next section.
+const REVERSE_BLOCK_MS = 120_000   // 2 min — covers any realistic turnaround time
+let _lastExitedSection: SpeedSection | null = null
+let _lastExitAt = 0
+
+function _isReverseOf(candidate: SpeedSection, exited: SpeedSection): boolean {
+  const startMatchesEnd =
+    haversineMeters([candidate.startLat, candidate.startLng], [exited.endLat, exited.endLng]) < 500
+  const endMatchesStart =
+    haversineMeters([candidate.endLat, candidate.endLng], [exited.startLat, exited.startLng]) < 500
+  return startMatchesEnd && endMatchesStart
+}
 
 // ── Engine ────────────────────────────────────────────────────────────
 
@@ -153,7 +165,8 @@ function _onPosition(pos: GpsPosition): void {
 
       _emaAvg = null   // reset EMA for next section
       _lastEmittedAvg = -1; _lastEmittedDistBkt = -1; _lastEmittedWarned = false
-      _noEntryUntil = now + EXIT_COOLDOWN_MS  // suppress reverse-section false trigger
+      _lastExitedSection = sess.section   // used to block reverse-direction false trigger
+      _lastExitAt        = now
       const exitEntry: SectionExit = {
         section:   sess.section,
         avgKmh:    finalAvg,
@@ -226,7 +239,11 @@ function _onPosition(pos: GpsPosition): void {
     )
 
     // ── Zone entry ──────────────────────────────────────────────────
-    if (distToStart <= ENTRY_M && now > _noEntryUntil) {
+    const isReverseBlocked =
+      _lastExitedSection !== null &&
+      now - _lastExitAt < REVERSE_BLOCK_MS &&
+      _isReverseOf(section, _lastExitedSection)
+    if (distToStart <= ENTRY_M && !isReverseBlocked) {
       _preWarnedIds.delete(section.id)   // reset so next approach works
       _emaAvg = null   // fresh EMA for this section
       _lastEmittedAvg = -1; _lastEmittedDistBkt = -1; _lastEmittedWarned = false
@@ -249,10 +266,7 @@ function _onPosition(pos: GpsPosition): void {
     }
 
     // ── Approach warning (2km) ──────────────────────────────────────
-    if (distToStart <= PREWARN_M) {
-      // Reset pre-warn tracking when driver moves away (> PREWARN_M)
-      // so next approach fires again — handled below by absence in nearby
-
+    if (distToStart <= PREWARN_M && !isReverseBlocked) {
       if (!_preWarnedIds.has(section.id)) {
         _preWarnedIds.add(section.id)
         audioManager.beep(550, 80)

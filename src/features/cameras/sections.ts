@@ -235,17 +235,6 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     lengthM:   18_500,
     limitKmh:  140,
   },
-  {
-    id:       'a2-ignatiyevo-devnya',
-    road:     'АМ Хемус',
-    name:     'Игнатиево — Девня',
-    startLat:  43.240615,
-    startLng:  27.781235,
-    endLat:    43.227186,
-    endLng:    27.58358,
-    lengthM:   18_500,
-    limitKmh:  140,
-  },
 
   // ══ А2 „Хемус" — Varna → Sofia ══════════════════════════════════════════
 
