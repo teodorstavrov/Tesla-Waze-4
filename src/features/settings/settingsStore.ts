@@ -13,7 +13,7 @@ interface Settings {
 
 const STORAGE_KEY = 'teslaradar:settings'
 const DEFAULTS: Settings = {
-  headingMode:     'north-up',
+  headingMode:     'course-up',
   showTraffic:     false,
   performanceMode: 'auto',
 }
