@@ -9,6 +9,20 @@ import { gpsStore } from '@/features/gps/gpsStore'
 import { t } from '@/lib/locale'
 import type { Meetup } from './types'
 
+interface NominatimReverse { address?: { city?: string; town?: string; village?: string; municipality?: string } }
+
+async function fetchCity(lat: number, lng: number): Promise<string | null> {
+  try {
+    const res = await fetch(
+      `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=jsonv2&zoom=10`,
+      { headers: { 'User-Agent': 'TesRadar/1.0', 'Accept-Language': 'bg,en' } },
+    )
+    if (!res.ok) return null
+    const d = await res.json() as NominatimReverse
+    return d.address?.city ?? d.address?.town ?? d.address?.village ?? d.address?.municipality ?? null
+  } catch { return null }
+}
+
 /** Calendar days from today to the event date (0 = today, 1 = tomorrow, negative = past). */
 function daysUntil(isoDate: string): number {
   const ev   = new Date(isoDate)
@@ -51,6 +65,7 @@ function labelForDays(days: number): string {
 export function MeetupTodayToast() {
   const [event, setEvent] = useState<Meetup | null>(null)
   const [days,  setDays]  = useState(0)
+  const [city,  setCity]  = useState<string | null>(null)
   const [pos,   setPos]   = useState(() => gpsStore.getPosition())
 
   useEffect(() => {
@@ -66,10 +81,18 @@ export function MeetupTodayToast() {
         .sort((a, b) => a.d - b.d || a.m.date.localeCompare(b.m.date))[0]
 
       if (candidate) {
-        setEvent(candidate.m)
+        setEvent(prev => {
+          // Fetch city only when the event changes
+          if (prev?.id !== candidate.m.id) {
+            setCity(null)
+            fetchCity(candidate.m.lat, candidate.m.lng).then(setCity)
+          }
+          return candidate.m
+        })
         setDays(candidate.d)
       } else {
         setEvent(null)
+        setCity(null)
       }
     }
 
@@ -93,7 +116,7 @@ export function MeetupTodayToast() {
 
   const km   = pos ? distKm(pos.lat, pos.lng, event.lat, event.lng) : null
   const dist = km == null ? '' : km < 1 ? ` · ${Math.round(km * 1000)} м` : ` · ${km.toFixed(km < 10 ? 1 : 0)} км`
-  const label = labelForDays(days)
+  const label = labelForDays(days) + (city ? ` · ${city}` : '')
 
   function dismiss(e: React.MouseEvent) {
     e.stopPropagation()
