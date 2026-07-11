@@ -27,8 +27,9 @@ export interface SectionExit {
 // Runtime state tracked by sectionEngine
 export interface SectionSession {
   section:    SpeedSection
-  enteredAt:  number          // Date.now() at entry
-  distM:      number          // GPS-accumulated distance since entry (meters)
+  enteredAt:  number          // Date.now() at detection
+  distM:      number          // GPS-accumulated distance since detection (meters)
+  offsetM:    number          // distance already driven before detection (0 = entered at start camera)
   avgKmh:     number          // rolling average speed (km/h)
   warned:     boolean         // true if over-limit warning already shown
 }

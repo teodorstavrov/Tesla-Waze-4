@@ -12,7 +12,7 @@
 // React components subscribe with useSyncExternalStore.
 
 import { gpsStore } from '@/features/gps/gpsStore'
-import { haversineMeters } from '@/lib/geo'
+import { haversineMeters, bearingDeg } from '@/lib/geo'
 import { isTeslaBrowser } from '@/lib/browser'
 import { audioManager } from '@/features/audio/audioManager'
 import { getSectionsForCountry } from './sections'
@@ -153,10 +153,13 @@ function _onPosition(pos: GpsPosition): void {
     )
 
     if (distToEnd <= EXIT_M) {
-      // Finalise: compute avg speed from section road length
+      // Finalise: full section length / elapsed when entered at start; tracked
+      // portion only when entered mid-section (offsetM > 0 means we don't know
+      // the time from the actual start camera).
       const elapsedFinalS = (now - sess.enteredAt) / 1000
+      const distForAvg    = sess.offsetM > 0 ? sess.distM : sess.section.lengthM
       const finalAvg = elapsedFinalS > 0
-        ? Math.round((sess.section.lengthM / elapsedFinalS) * 3.6)
+        ? Math.round((distForAvg / elapsedFinalS) * 3.6)
         : sess.avgKmh
 
       // Beep on exit — higher pitch if OK, lower if violation
@@ -217,18 +220,23 @@ function _onPosition(pos: GpsPosition): void {
     return
   }
 
-  // Pre-filter by 10km bounding box (avoids O(n) haversine calls in open country)
+  // Pre-filter: keep sections whose bounding box (start↔end + NEARBY_KM margin) contains the car.
+  // Using the full bbox instead of proximity-to-start ensures mid-section and end-approach
+  // detection works for long sections (20-30 km) where the car may be > NEARBY_KM from start.
   const LAT_DEG_PER_KM = 1 / 111
   const LNG_DEG_PER_KM = 1 / (111 * Math.cos((pos.lat * Math.PI) / 180))
-  const latDelta = NEARBY_KM * LAT_DEG_PER_KM
-  const lngDelta = NEARBY_KM * LNG_DEG_PER_KM
+  const latMargin = NEARBY_KM * LAT_DEG_PER_KM
+  const lngMargin = NEARBY_KM * LNG_DEG_PER_KM
 
   const SPEED_SECTIONS = getSectionsForCountry(countryStore.getCode() ?? 'BG')
-  const nearby = SPEED_SECTIONS.filter(
-    (s) =>
-      Math.abs(s.startLat - pos.lat) < latDelta &&
-      Math.abs(s.startLng - pos.lng) < lngDelta,
-  )
+  const nearby = SPEED_SECTIONS.filter(s => {
+    const minLat = Math.min(s.startLat, s.endLat) - latMargin
+    const maxLat = Math.max(s.startLat, s.endLat) + latMargin
+    const minLng = Math.min(s.startLng, s.endLng) - lngMargin
+    const maxLng = Math.max(s.startLng, s.endLng) + lngMargin
+    return pos.lat >= minLat && pos.lat <= maxLat &&
+           pos.lng >= minLng && pos.lng <= maxLng
+  })
 
   let closestPreWarn: { section: SpeedSection; distM: number } | null = null
 
@@ -237,21 +245,27 @@ function _onPosition(pos: GpsPosition): void {
       [pos.lat, pos.lng],
       [section.startLat, section.startLng],
     )
+    const distToEnd = haversineMeters(
+      [pos.lat, pos.lng],
+      [section.endLat, section.endLng],
+    )
 
-    // ── Zone entry ──────────────────────────────────────────────────
     const isReverseBlocked =
       _lastExitedSection !== null &&
       now - _lastExitAt < REVERSE_BLOCK_MS &&
       _isReverseOf(section, _lastExitedSection)
+
+    // ── Zone entry at start camera ──────────────────────────────────
     if (distToStart <= ENTRY_M && !isReverseBlocked) {
-      _preWarnedIds.delete(section.id)   // reset so next approach works
-      _emaAvg = null   // fresh EMA for this section
+      _preWarnedIds.delete(section.id)
+      _emaAvg = null
       _lastEmittedAvg = -1; _lastEmittedDistBkt = -1; _lastEmittedWarned = false
       _state = {
         session: {
           section,
-          enteredAt: Date.now(),  // wall clock — consistent with how elapsed time is measured
+          enteredAt: Date.now(),
           distM:     0,
+          offsetM:   0,    // entered at the start camera
           avgKmh:    0,
           warned:    false,
         },
@@ -262,6 +276,54 @@ function _onPosition(pos: GpsPosition): void {
       _prevPos = pos
       _emit()
       audioManager.beep(660, 100)
+      return
+    }
+
+    // ── Mid-section detection ───────────────────────────────────────
+    // Car is between cameras: distToStart+distToEnd ≈ section length.
+    // Catches: app loaded mid-section, joined via on-ramp, GPS fix
+    // acquired after passing the start camera.
+    //
+    // Heading check guards against bidirectional sections sharing the same
+    // coordinates: if the car is mid-section going westward we must not
+    // enter the EASTBOUND section whose distToStart + distToEnd also
+    // satisfies the proximity test. When GPS heading is unavailable (null)
+    // the check is skipped — direction will be corrected on next tick once
+    // heading is acquired.
+    const sectionBearing = bearingDeg(
+      [section.startLat, section.startLng],
+      [section.endLat,   section.endLng],
+    )
+    const headingAligned = pos.heading === null ||
+      Math.abs(((sectionBearing - pos.heading + 540) % 360) - 180) < 100
+
+    const isMidSection =
+      distToStart > ENTRY_M &&
+      distToEnd   > EXIT_M  &&
+      distToStart + distToEnd <= section.lengthM * 1.4 &&
+      headingAligned &&
+      !isReverseBlocked
+    if (isMidSection) {
+      _preWarnedIds.delete(section.id)
+      _emaAvg = null
+      _lastEmittedAvg = -1; _lastEmittedDistBkt = -1; _lastEmittedWarned = false
+      const offsetM = Math.max(0, section.lengthM - distToEnd)
+      _state = {
+        session: {
+          section,
+          enteredAt: Date.now(),
+          distM:     0,
+          offsetM,     // already driven before detection
+          avgKmh:    pos.speedKmh ?? 0,
+          warned:    false,
+        },
+        lastExit: null,
+        preWarn:  null,
+        history:  _state.history,
+      }
+      _prevPos = pos
+      _emit()
+      // No beep — we don't know when they entered
       return
     }
 

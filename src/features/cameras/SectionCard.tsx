@@ -79,12 +79,14 @@ function ActiveView({ session }: { session: SectionSession }) {
     () => null,
   )
 
-  const { section, avgKmh, distM } = session
+  const { section, avgKmh, distM, offsetM } = session
   const currentSpeed = pos?.speedKmh ?? null
 
-  const remainingM  = Math.max(0, section.lengthM - Math.min(distM, section.lengthM))
+  // Total driven = distance before detection (offsetM) + GPS distance since detection
+  const drivenM     = offsetM + distM
+  const remainingM  = Math.max(0, section.lengthM - drivenM)
   const remainingKm = (remainingM / 1000).toFixed(1)
-  const progress    = Math.min(1, distM / section.lengthM)
+  const progress    = Math.min(1, drivenM / section.lengthM)
 
   const avgOverLimit = avgKmh > section.limitKmh
   const avgRatio     = section.limitKmh > 0 ? avgKmh / section.limitKmh : 0
