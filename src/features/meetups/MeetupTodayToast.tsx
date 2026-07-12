@@ -128,8 +128,8 @@ export function MeetupTodayToast() {
     <div
       onClick={() => event && meetupStore.select(event)}
       style={{
-        position: 'fixed', top: 'calc(env(safe-area-inset-top, 0px) + 12px)', left: '50%', transform: 'translateX(-50%)',
-        zIndex: 1190, maxWidth: '92vw',
+        position: 'fixed', top: 78, right: 12,
+        zIndex: 1190, maxWidth: 'calc(100vw - 24px)',
         background: 'linear-gradient(135deg,#4f46e5,#6366f1)', color: '#fff',
         borderRadius: 12, boxShadow: '0 6px 24px rgba(0,0,0,0.5)',
         padding: '10px 12px 10px 14px', display: 'flex', alignItems: 'center', gap: 10,
