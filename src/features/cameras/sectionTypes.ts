@@ -30,6 +30,7 @@ export interface SectionSession {
   enteredAt:  number          // Date.now() at detection
   distM:      number          // GPS-accumulated distance since detection (meters)
   offsetM:    number          // distance already driven before detection (0 = entered at start camera)
+  reversed:   boolean         // true when entered from the END camera (driving toward start)
   avgKmh:     number          // rolling average speed (km/h)
   warned:     boolean         // true if over-limit warning already shown
 }

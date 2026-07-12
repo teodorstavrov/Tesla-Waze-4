@@ -146,13 +146,49 @@ function _onPosition(pos: GpsPosition): void {
       audioManager.beep(1000, 120)
     }
 
-    // ── Check exit ───────────────────────────────────────────────────
-    const distToEnd = haversineMeters(
-      [pos.lat, pos.lng],
-      [sess.section.endLat, sess.section.endLng],
-    )
+    // ── Check exit / abandon ─────────────────────────────────────────
+    const distToEnd     = haversineMeters([pos.lat, pos.lng], [sess.section.endLat,   sess.section.endLng])
+    const distToStart_s = haversineMeters([pos.lat, pos.lng], [sess.section.startLat, sess.section.startLng])
 
-    if (distToEnd <= EXIT_M) {
+    // Abandon: car has left the section corridor without passing either camera.
+    // Covers: turned around, took an off-ramp, GPS re-acquired off-road.
+    // Silent close — no exit result, no sound.
+    if (distToStart_s + distToEnd > sess.section.lengthM * 1.6) {
+      _emaAvg = null
+      _lastEmittedAvg = -1; _lastEmittedDistBkt = -1; _lastEmittedWarned = false
+      _state = { ..._state, session: null }
+      _prevPos = pos
+      _emit()
+      return
+    }
+
+    // Reversed session: exit fires at the START camera (they entered from the END).
+    if (sess.reversed && distToStart_s <= EXIT_M) {
+      const elapsedFinalS = (now - sess.enteredAt) / 1000
+      const finalAvg = elapsedFinalS > 0
+        ? Math.round((sess.distM / elapsedFinalS) * 3.6)
+        : sess.avgKmh
+      const exitOk = finalAvg <= sess.section.limitKmh
+      audioManager.beep(exitOk ? 880 : 440, exitOk ? 160 : 280)
+      _emaAvg = null
+      _lastEmittedAvg = -1; _lastEmittedDistBkt = -1; _lastEmittedWarned = false
+      _lastExitedSection = sess.section
+      _lastExitAt        = now
+      const exitEntry: SectionExit = {
+        section:   sess.section,
+        avgKmh:    finalAvg,
+        limitKmh:  sess.section.limitKmh,
+        timestamp: now,
+      }
+      _state = { session: null, preWarn: null, lastExit: exitEntry, history: [..._state.history, exitEntry] }
+      _prevPos = pos
+      _emit()
+      setTimeout(() => { _state = { ..._state, lastExit: null }; _emit() }, 20_000)
+      return
+    }
+
+    // Normal exit at END camera (forward or mid-section traversal).
+    if (!sess.reversed && distToEnd <= EXIT_M) {
       // Finalise: full section length / elapsed when entered at start; tracked
       // portion only when entered mid-section (offsetM > 0 means we don't know
       // the time from the actual start camera).
@@ -266,6 +302,7 @@ function _onPosition(pos: GpsPosition): void {
           enteredAt: Date.now(),
           distM:     0,
           offsetM:   0,    // entered at the start camera
+          reversed:  false,
           avgKmh:    0,
           warned:    false,
         },
@@ -314,6 +351,7 @@ function _onPosition(pos: GpsPosition): void {
           enteredAt: Date.now(),
           distM:     0,
           offsetM,     // already driven before detection
+          reversed:  false,
           avgKmh:    pos.speedKmh ?? 0,
           warned:    false,
         },
@@ -325,6 +363,43 @@ function _onPosition(pos: GpsPosition): void {
       _emit()
       // No beep — we don't know when they entered
       return
+    }
+
+    // ── Zone entry from END camera (reverse-direction traversal) ───
+    // Fires when approaching from the end side with heading that doesn't
+    // align with the forward section direction (already excluded by the
+    // mid-section heading check above). Treats the section normally but
+    // marks it reversed so exit fires at the START camera instead.
+    if (distToEnd <= ENTRY_M && distToEnd > EXIT_M && !isReverseBlocked) {
+      const reverseBearing = bearingDeg(
+        [section.endLat,   section.endLng],
+        [section.startLat, section.startLng],
+      )
+      const headingOkReverse = pos.heading === null ||
+        Math.abs(((reverseBearing - pos.heading + 540) % 360) - 180) < 100
+      if (headingOkReverse) {
+        _preWarnedIds.delete(section.id)
+        _emaAvg = null
+        _lastEmittedAvg = -1; _lastEmittedDistBkt = -1; _lastEmittedWarned = false
+        _state = {
+          session: {
+            section,
+            enteredAt: Date.now(),
+            distM:     0,
+            offsetM:   0,
+            reversed:  true,
+            avgKmh:    pos.speedKmh ?? 0,
+            warned:    false,
+          },
+          lastExit: null,
+          preWarn:  null,
+          history:  _state.history,
+        }
+        _prevPos = pos
+        _emit()
+        audioManager.beep(660, 100)
+        return
+      }
     }
 
     // ── Approach warning (2km) ──────────────────────────────────────
