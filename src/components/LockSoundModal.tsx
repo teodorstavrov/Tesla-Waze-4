@@ -6,8 +6,10 @@
 // Flow:  browse → checkout → success
 
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { isTeslaBrowser } from '@/lib/browser'
+import { t, langStore } from '@/lib/locale'
 
 // ── Melody catalog (matches filenames in public/sounds/) ───────────────
 const SOUNDS = [
@@ -32,6 +34,9 @@ export function openLockSoundModal(): void { _openFn?.() }
 
 // ── Component ──────────────────────────────────────────────────────────
 export function LockSoundModal() {
+  // Re-render when language changes so all t() calls pick up the new lang
+  useSyncExternalStore(langStore.subscribe, langStore.getLang, langStore.getLang)
+
   const [open,     setOpen]     = useState(false)
   const [shown,    setShown]    = useState(false)
   const [view,     setView]     = useState<View>('browse')
@@ -111,10 +116,10 @@ export function LockSoundModal() {
         body:    JSON.stringify({ melodyId: selected, email: email.trim() }),
       })
       const data = await res.json() as { ok?: boolean; error?: string }
-      if (!res.ok) { setError(data.error ?? 'Грешка — опитай отново'); return }
+      if (!res.ok) { setError(data.error ?? t('lockSound.errRetry')); return }
       setView('success')
     } catch {
-      setError('Няма връзка — провери интернета')
+      setError(t('lockSound.errNoConn'))
     } finally {
       setSending(false)
     }
@@ -160,19 +165,19 @@ export function LockSoundModal() {
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
           <div>
             <div style={{ fontSize: 19, fontWeight: 800, color: '#f2f2f2', lineHeight: 1.2 }}>
-              {view === 'browse'   ? '🔔 Tesla Lock Sounds'        : null}
+              {view === 'browse'   ? '🔔 Tesla Lock Sounds'                              : null}
               {view === 'checkout' ? `${selectedSound?.emoji ?? '🔔'} ${selectedSound?.label}` : null}
-              {view === 'success'  ? '✅ Провери имейла си'        : null}
+              {view === 'success'  ? t('lockSound.successHeader')                        : null}
             </div>
             {view === 'browse' && (
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', marginTop: 6, lineHeight: 1.5 }}>
-                Избери мелодия · чуй · вземи я за Tesla
+                {t('lockSound.subtitle')}
               </div>
             )}
           </div>
           <button
             onClick={close}
-            aria-label="Затвори"
+            aria-label={t('lockSound.close')}
             style={{
               flexShrink: 0, width: 34, height: 34,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -203,7 +208,7 @@ export function LockSoundModal() {
                 {/* Play/pause */}
                 <button
                   onClick={() => handlePlay(s.id)}
-                  title={playing === s.id ? 'Пауза' : 'Пусни'}
+                  title={playing === s.id ? t('lockSound.pause') : t('lockSound.play')}
                   style={{
                     flexShrink: 0, width: 38, height: 38,
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -232,7 +237,7 @@ export function LockSoundModal() {
                     touchAction: 'manipulation',
                   }}
                 >
-                  Избери
+                  {t('lockSound.select')}
                 </button>
               </div>
             ))}
@@ -251,7 +256,7 @@ export function LockSoundModal() {
                 color: 'rgba(255,255,255,0.6)', fontSize: 13, cursor: 'pointer', touchAction: 'manipulation',
               }}
             >
-              ← Назад
+              {t('lockSound.back')}
             </button>
 
             {/* Donation box */}
@@ -261,10 +266,10 @@ export function LockSoundModal() {
               border: '1px solid rgba(227,25,55,0.25)',
             }}>
               <div style={{ fontSize: 15, fontWeight: 700, color: '#f2f2f2', marginBottom: 8 }}>
-                ❤️ Стъпка 1 — Направи малко дарение
+                {t('lockSound.step1Title')}
               </div>
               <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.55)', marginBottom: 14, lineHeight: 1.6 }}>
-                TesRadar е безплатен независим проект. Мелодиите са подарък срещу малка подкрепа.
+                {t('lockSound.step1Desc')}
               </div>
               <a
                 href="https://buy.stripe.com/14AaEXfak7HT744daj8g001"
@@ -277,22 +282,21 @@ export function LockSoundModal() {
                   fontSize: 14, fontWeight: 700,
                 }}
               >
-                Дари сега ↗
+                {t('lockSound.donateBtn')}
               </a>
             </div>
 
             {/* Email form */}
             <form onSubmit={(e) => { void handleSendLink(e) }} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: '#f2f2f2' }}>
-                Стъпка 2 — Въведи имейл за download линк
+                {t('lockSound.step2Title')}
               </div>
               <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>
-                Ще получиш еднократен линк за сваляне на <strong style={{ color: '#f2f2f2' }}>{selectedSound.label}</strong>.
-                Линкът важи 48 часа.
+                {t('lockSound.step2DescPre')} <strong style={{ color: '#f2f2f2' }}>{selectedSound.label}</strong>{t('lockSound.step2DescPost')}
               </div>
               <input
                 type="email"
-                placeholder="твоят@имейл.com"
+                placeholder={t('lockSound.emailPlaceholder')}
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -317,7 +321,7 @@ export function LockSoundModal() {
                   boxShadow: '0 4px 20px rgba(227,25,55,0.3)',
                 }}
               >
-                {sending ? 'Изпраща...' : '📧 Изпрати download линк'}
+                {sending ? t('lockSound.sending') : t('lockSound.sendBtn')}
               </button>
             </form>
           </>
@@ -328,7 +332,7 @@ export function LockSoundModal() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: '4px 0' }}>
             <div style={{ textAlign: 'center', fontSize: 48 }}>📬</div>
             <div style={{ fontSize: 15, fontWeight: 700, color: '#f2f2f2', textAlign: 'center' }}>
-              Линкът е изпратен на {email}
+              {t('lockSound.successSent')} {email}
             </div>
 
             {/* Instructions */}
@@ -338,14 +342,14 @@ export function LockSoundModal() {
               border: '1px solid rgba(255,255,255,0.10)',
             }}>
               <div style={{ fontSize: 13, fontWeight: 700, color: '#f2f2f2', marginBottom: 12 }}>
-                📋 Как да инсталираш мелодията в Tesla:
+                {t('lockSound.installTitle')}
               </div>
               <ol style={{ margin: 0, paddingLeft: 18, color: 'rgba(255,255,255,0.7)', fontSize: 13, lineHeight: 2.1 }}>
-                <li>Изтегли файла от линка в имейла</li>
-                <li>Преименувай го на <strong style={{ color: '#f2f2f2' }}>LockChime.wav</strong></li>
-                <li>Копирай в <strong style={{ color: '#f2f2f2' }}>главната директория</strong> на USB флашка (FAT32 / exFAT)</li>
-                <li>Включи флашката в USB порта на колата</li>
-                <li>На екрана на колата: <strong style={{ color: '#f2f2f2' }}>Controls → Safety → Lock Sound → USB</strong></li>
+                <li>{t('lockSound.install1')}</li>
+                <li>{t('lockSound.install2')} — <strong style={{ color: '#f2f2f2' }}>LockChime.wav</strong></li>
+                <li>{t('lockSound.install3')}</li>
+                <li>{t('lockSound.install4')}</li>
+                <li>{t('lockSound.install5')}</li>
               </ol>
             </div>
 
@@ -357,7 +361,7 @@ export function LockSoundModal() {
                 color: '#f2f2f2', fontSize: 15, fontWeight: 600, cursor: 'pointer', touchAction: 'manipulation',
               }}
             >
-              Затвори
+              {t('lockSound.close')}
             </button>
           </div>
         )}
