@@ -6,6 +6,7 @@ import { evStore } from '@/features/ev/evStore'
 import { eventStore } from '@/features/events/eventStore'
 import { routeStore } from '@/features/route/routeStore'
 import { langStore, t } from '@/lib/locale'
+import { v8Engine } from '@/features/v8sound/v8Engine'
 
 export function BottomDock() {
   // Re-render on language change so button labels update
@@ -22,6 +23,18 @@ export function BottomDock() {
     () => routeStore.getState().status !== 'idle',
     () => false,
   )
+
+  const [v8Active, setV8Active] = useState(false)
+
+  function handleV8Toggle() {
+    if (v8Engine.isRunning) {
+      v8Engine.stop()
+      setV8Active(false)
+    } else {
+      v8Engine.start()
+      setV8Active(true)
+    }
+  }
 
   const [noRouteMsg, setNoRouteMsg] = useState(false)
   const noRouteMsgTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -47,6 +60,25 @@ export function BottomDock() {
       gap: 'clamp(6px, 2.5vw, 13px)',
       alignItems: 'center',
     }}>
+      {/* V8 Sound toggle */}
+      <button
+        className="icon-btn"
+        onClick={handleV8Toggle}
+        title={v8Active ? t('dock.v8On') : t('dock.v8Off')}
+        aria-label={v8Active ? t('dock.v8On') : t('dock.v8Off')}
+        aria-pressed={v8Active}
+        style={{
+          width: 'clamp(58px, 17vw, 83px)', height: 'clamp(58px, 17vw, 83px)',
+          borderRadius: 'clamp(12px, 4vw, 16px)',
+          background: v8Active ? 'rgba(227,25,55,0.25)' : 'rgba(255,255,255,0.5)',
+          borderColor: v8Active ? '#e31937' : 'rgba(255,255,255,0.3)',
+          color: v8Active ? '#e31937' : '#111',
+          boxShadow: v8Active ? '0 0 0 3px rgba(227,25,55,0.25)' : '0 2px 12px rgba(0,0,0,0.18)',
+        }}
+      >
+        <V8Icon />
+      </button>
+
       {/* EV Stations toggle */}
       <button
         className="icon-btn"
@@ -142,6 +174,22 @@ export function BottomDock() {
         </button>
       </div>
     </div>
+  )
+}
+
+function V8Icon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {/* Engine block outline */}
+      <rect x="3" y="9" width="18" height="9" rx="2" />
+      {/* Pistons / cylinders on top */}
+      <line x1="7"  y1="9" x2="7"  y2="5" />
+      <line x1="12" y1="9" x2="12" y2="5" />
+      <line x1="17" y1="9" x2="17" y2="5" />
+      {/* Exhaust pipe */}
+      <path d="M3 13 Q1 13 1 16" />
+    </svg>
   )
 }
 

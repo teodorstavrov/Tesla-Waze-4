@@ -99,6 +99,8 @@ export const DICTIONARY = {
       stations:      'Станции',
       hideStations:  'Скрий станциите',
       showStations:  'Покажи станциите',
+      v8On:          'V8 звук — вкл.',
+      v8Off:         'V8 звук — изкл.',
     },
 
     events: {
@@ -506,6 +508,8 @@ export const DICTIONARY = {
       stations:      'Stations',
       hideStations:  'Hide stations',
       showStations:  'Show stations',
+      v8On:          'V8 Sound — on',
+      v8Off:         'V8 Sound — off',
     },
 
     events: {
