@@ -6,7 +6,7 @@ import { evStore } from '@/features/ev/evStore'
 import { eventStore } from '@/features/events/eventStore'
 import { routeStore } from '@/features/route/routeStore'
 import { langStore, t } from '@/lib/locale'
-import { v8Engine } from '@/features/v8sound/v8Engine'
+import { v8SportEngine, v8MuscleEngine } from '@/features/v8sound/v8Engine'
 
 export function BottomDock() {
   // Re-render on language change so button labels update
@@ -24,17 +24,24 @@ export function BottomDock() {
     () => false,
   )
 
-  const [v8Active, setV8Active] = useState(false)
+  type V8Mode = 'off' | 'sport' | 'muscle'
+  const [v8Mode, setV8Mode] = useState<V8Mode>('off')
 
-  function handleV8Toggle() {
-    if (v8Engine.isRunning) {
-      v8Engine.stop()
-      setV8Active(false)
+  function handleV8Cycle() {
+    if (v8Mode === 'off') {
+      v8SportEngine.start()
+      setV8Mode('sport')
+    } else if (v8Mode === 'sport') {
+      v8SportEngine.stop()
+      v8MuscleEngine.start()
+      setV8Mode('muscle')
     } else {
-      v8Engine.start()
-      setV8Active(true)
+      v8MuscleEngine.stop()
+      setV8Mode('off')
     }
   }
+
+  const v8Label = v8Mode === 'sport' ? t('dock.v8Sport') : v8Mode === 'muscle' ? t('dock.v8Muscle') : t('dock.v8Off')
 
   const [noRouteMsg, setNoRouteMsg] = useState(false)
   const noRouteMsgTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -60,23 +67,30 @@ export function BottomDock() {
       gap: 'clamp(6px, 2.5vw, 13px)',
       alignItems: 'center',
     }}>
-      {/* V8 Sound toggle */}
+      {/* V8 Sound cycle: off → sport → muscle → off */}
       <button
         className="icon-btn"
-        onClick={handleV8Toggle}
-        title={v8Active ? t('dock.v8On') : t('dock.v8Off')}
-        aria-label={v8Active ? t('dock.v8On') : t('dock.v8Off')}
-        aria-pressed={v8Active}
+        onClick={handleV8Cycle}
+        title={v8Label}
+        aria-label={v8Label}
         style={{
           width: 'clamp(58px, 17vw, 83px)', height: 'clamp(58px, 17vw, 83px)',
           borderRadius: 'clamp(12px, 4vw, 16px)',
-          background: v8Active ? 'rgba(227,25,55,0.25)' : 'rgba(255,255,255,0.5)',
-          borderColor: v8Active ? '#e31937' : 'rgba(255,255,255,0.3)',
-          color: v8Active ? '#e31937' : '#111',
-          boxShadow: v8Active ? '0 0 0 3px rgba(227,25,55,0.25)' : '0 2px 12px rgba(0,0,0,0.18)',
+          background:  v8Mode === 'muscle' ? 'rgba(245,158,11,0.25)'
+                     : v8Mode === 'sport'  ? 'rgba(227,25,55,0.25)'
+                     : 'rgba(255,255,255,0.5)',
+          borderColor: v8Mode === 'muscle' ? '#f59e0b'
+                     : v8Mode === 'sport'  ? '#e31937'
+                     : 'rgba(255,255,255,0.3)',
+          color:       v8Mode === 'muscle' ? '#f59e0b'
+                     : v8Mode === 'sport'  ? '#e31937'
+                     : '#111',
+          boxShadow:   v8Mode === 'muscle' ? '0 0 0 3px rgba(245,158,11,0.25)'
+                     : v8Mode === 'sport'  ? '0 0 0 3px rgba(227,25,55,0.25)'
+                     : '0 2px 12px rgba(0,0,0,0.18)',
         }}
       >
-        <V8Icon />
+        <V8Icon mode={v8Mode} />
       </button>
 
       {/* EV Stations toggle */}
@@ -177,16 +191,19 @@ export function BottomDock() {
   )
 }
 
-function V8Icon() {
+function V8Icon({ mode }: { mode: 'off' | 'sport' | 'muscle' }) {
   return (
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
       stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {/* Engine block outline */}
+      {/* Engine block */}
       <rect x="3" y="9" width="18" height="9" rx="2" />
-      {/* Pistons / cylinders on top */}
+      {/* Cylinder heads */}
       <line x1="7"  y1="9" x2="7"  y2="5" />
       <line x1="12" y1="9" x2="12" y2="5" />
       <line x1="17" y1="9" x2="17" y2="5" />
+      {/* Extra cylinder for muscle (6L+ visual cue) */}
+      {mode === 'muscle' && <line x1="9.5" y1="9" x2="9.5" y2="6" strokeWidth="1.2" strokeOpacity="0.7" />}
+      {mode === 'muscle' && <line x1="14.5" y1="9" x2="14.5" y2="6" strokeWidth="1.2" strokeOpacity="0.7" />}
       {/* Exhaust pipe */}
       <path d="M3 13 Q1 13 1 16" />
     </svg>
