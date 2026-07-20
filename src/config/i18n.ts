@@ -102,6 +102,8 @@ export const DICTIONARY = {
       v8Off:         'V8 звук — изкл.',
       v8Sport:       'V8 Sport',
       v8Muscle:      'V8 Muscle 6L+',
+      v8Header:      'Open Header V8',
+      v8S63:         'S63 AMG V8',
     },
 
     events: {
@@ -512,6 +514,8 @@ export const DICTIONARY = {
       v8Off:         'V8 Sound — off',
       v8Sport:       'V8 Sport',
       v8Muscle:      'V8 Muscle 6L+',
+      v8Header:      'Open Header V8',
+      v8S63:         'S63 AMG V8',
     },
 
     events: {

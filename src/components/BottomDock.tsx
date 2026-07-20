@@ -7,6 +7,7 @@ import { eventStore } from '@/features/events/eventStore'
 import { routeStore } from '@/features/route/routeStore'
 import { langStore, t } from '@/lib/locale'
 import { v8SportEngine, v8MuscleEngine } from '@/features/v8sound/v8Engine'
+import { v8HeaderEngine, v8S63Engine } from '@/features/v8sound/audioEngine'
 
 export function BottomDock() {
   // Re-render on language change so button labels update
@@ -24,10 +25,12 @@ export function BottomDock() {
     () => false,
   )
 
-  type V8Mode = 'off' | 'sport' | 'muscle'
-  const [v8Mode, setV8Mode] = useState<V8Mode>('off')
+  type V8Mode = 'off' | 'sport' | 'muscle' | 'header' | 's63'
+  const [v8Mode,    setV8Mode]    = useState<V8Mode>('off')
+  const [v8Loading, setV8Loading] = useState(false)
 
   function handleV8Cycle() {
+    if (v8Loading) return
     if (v8Mode === 'off') {
       v8SportEngine.start()
       setV8Mode('sport')
@@ -35,13 +38,31 @@ export function BottomDock() {
       v8SportEngine.stop()
       v8MuscleEngine.start()
       setV8Mode('muscle')
-    } else {
+    } else if (v8Mode === 'muscle') {
       v8MuscleEngine.stop()
+      setV8Mode('header')
+      setV8Loading(true)
+      v8HeaderEngine.start()
+        .then(() => setV8Loading(false))
+        .catch(() => { setV8Mode('off'); setV8Loading(false) })
+    } else if (v8Mode === 'header') {
+      v8HeaderEngine.stop()
+      setV8Mode('s63')
+      setV8Loading(true)
+      v8S63Engine.start()
+        .then(() => setV8Loading(false))
+        .catch(() => { setV8Mode('off'); setV8Loading(false) })
+    } else {
+      v8S63Engine.stop()
       setV8Mode('off')
     }
   }
 
-  const v8Label = v8Mode === 'sport' ? t('dock.v8Sport') : v8Mode === 'muscle' ? t('dock.v8Muscle') : t('dock.v8Off')
+  const v8Label = v8Mode === 'sport'  ? t('dock.v8Sport')
+               : v8Mode === 'muscle' ? t('dock.v8Muscle')
+               : v8Mode === 'header' ? t('dock.v8Header')
+               : v8Mode === 's63'   ? t('dock.v8S63')
+               : t('dock.v8Off')
 
   const [noRouteMsg, setNoRouteMsg] = useState(false)
   const noRouteMsgTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -67,30 +88,40 @@ export function BottomDock() {
       gap: 'clamp(6px, 2.5vw, 13px)',
       alignItems: 'center',
     }}>
-      {/* V8 Sound cycle: off → sport → muscle → off */}
+      {/* V8 Sound cycle: off → sport → muscle → header → s63 → off */}
       <button
         className="icon-btn"
         onClick={handleV8Cycle}
         title={v8Label}
         aria-label={v8Label}
+        disabled={v8Loading}
         style={{
           width: 'clamp(58px, 17vw, 83px)', height: 'clamp(58px, 17vw, 83px)',
           borderRadius: 'clamp(12px, 4vw, 16px)',
           background:  v8Mode === 'muscle' ? 'rgba(245,158,11,0.25)'
                      : v8Mode === 'sport'  ? 'rgba(227,25,55,0.25)'
+                     : v8Mode === 'header' ? 'rgba(16,185,129,0.25)'
+                     : v8Mode === 's63'   ? 'rgba(139,92,246,0.25)'
                      : 'rgba(255,255,255,0.5)',
           borderColor: v8Mode === 'muscle' ? '#f59e0b'
                      : v8Mode === 'sport'  ? '#e31937'
+                     : v8Mode === 'header' ? '#10b981'
+                     : v8Mode === 's63'   ? '#8b5cf6'
                      : 'rgba(255,255,255,0.3)',
           color:       v8Mode === 'muscle' ? '#f59e0b'
                      : v8Mode === 'sport'  ? '#e31937'
+                     : v8Mode === 'header' ? '#10b981'
+                     : v8Mode === 's63'   ? '#8b5cf6'
                      : '#111',
           boxShadow:   v8Mode === 'muscle' ? '0 0 0 3px rgba(245,158,11,0.25)'
                      : v8Mode === 'sport'  ? '0 0 0 3px rgba(227,25,55,0.25)'
+                     : v8Mode === 'header' ? '0 0 0 3px rgba(16,185,129,0.25)'
+                     : v8Mode === 's63'   ? '0 0 0 3px rgba(139,92,246,0.25)'
                      : '0 2px 12px rgba(0,0,0,0.18)',
+          opacity: v8Loading ? 0.5 : 1,
         }}
       >
-        <V8Icon mode={v8Mode} />
+        <V8Icon mode={v8Mode} loading={v8Loading} />
       </button>
 
       {/* EV Stations toggle */}
@@ -191,20 +222,40 @@ export function BottomDock() {
   )
 }
 
-function V8Icon({ mode }: { mode: 'off' | 'sport' | 'muscle' }) {
+type V8IconMode = 'off' | 'sport' | 'muscle' | 'header' | 's63'
+
+function V8Icon({ mode, loading }: { mode: V8IconMode; loading?: boolean }) {
+  // Real-audio modes (header, s63) show a waveform icon
+  if (mode === 'header' || mode === 's63') {
+    return (
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        {loading
+          ? <circle cx="12" cy="12" r="5" strokeDasharray="4 4" />
+          : <>
+              <line x1="2"  y1="12" x2="2"  y2="12" strokeWidth="3" />
+              <line x1="5"  y1="8"  x2="5"  y2="16" strokeWidth="2.5" />
+              <line x1="8"  y1="5"  x2="8"  y2="19" strokeWidth="2.5" />
+              <line x1="11" y1="9"  x2="11" y2="15" strokeWidth="2.5" />
+              <line x1="14" y1="3"  x2="14" y2="21" strokeWidth="2.5" />
+              <line x1="17" y1="7"  x2="17" y2="17" strokeWidth="2.5" />
+              <line x1="20" y1="10" x2="20" y2="14" strokeWidth="2.5" />
+            </>
+        }
+      </svg>
+    )
+  }
+
+  // Synth modes (off, sport, muscle) show an engine block icon
   return (
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
       stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {/* Engine block */}
       <rect x="3" y="9" width="18" height="9" rx="2" />
-      {/* Cylinder heads */}
       <line x1="7"  y1="9" x2="7"  y2="5" />
       <line x1="12" y1="9" x2="12" y2="5" />
       <line x1="17" y1="9" x2="17" y2="5" />
-      {/* Extra cylinder for muscle (6L+ visual cue) */}
-      {mode === 'muscle' && <line x1="9.5" y1="9" x2="9.5" y2="6" strokeWidth="1.2" strokeOpacity="0.7" />}
+      {mode === 'muscle' && <line x1="9.5"  y1="9" x2="9.5"  y2="6" strokeWidth="1.2" strokeOpacity="0.7" />}
       {mode === 'muscle' && <line x1="14.5" y1="9" x2="14.5" y2="6" strokeWidth="1.2" strokeOpacity="0.7" />}
-      {/* Exhaust pipe */}
       <path d="M3 13 Q1 13 1 16" />
     </svg>
   )
