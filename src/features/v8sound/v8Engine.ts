@@ -1,30 +1,22 @@
 // ─── V8 Engine Sound Synthesizer ─────────────────────────────────────────
 //
-// Three preconfigured V8 synthesizers built on Web Audio API:
-//   v8SportEngine  — high-revving sport V8 (~4–5L)
-//   v8MuscleEngine — heavy naturally-aspirated 6L+ big-block burble
-//   v8AmgEngine    — AMG S63 twin-turbo V8 with exhaust pops on hard decel
+// Three V8 synthesizers (sport, muscle, AMG S63) built on Web Audio API.
 //
-// Signal chain per engine:
-//   [osc1 sawtooth] ─┐
-//                     ├─→ [WaveShaper] → [BPF] → [LPF] → [masterGain] → out
-//   [osc2 sawtooth] ─┘
-//   [lfo sine] ──────────────────────────→ [lfoGain] → masterGain.gain
-//   [lfo2 sine] ─────────────────────────→ [lfo2Gain]→ masterGain.gain
+// Low-latency design:
+//   GPS updates are 1 Hz at best — using setTargetAtTime with a long TC would
+//   add ~1 second of extra lag on top of the GPS lag itself.
+//   Instead, a requestAnimationFrame loop runs at display refresh rate (~60 fps)
+//   and continuously interpolates _currentHz toward _targetHz using an
+//   exponential approach (k = 1 - exp(-dt × rate), rate=14 → 95% in ~214 ms).
+//   GPS position updates merely set _targetHz; the rAF loop does the rest.
 //
-// AMG only — exhaust pops on sudden deceleration (>15 km/h per second):
-//   [noise buffer] → [BPF crack] → [popGain] → masterGain
-//   [sine buffer]  → [thumpGain]             → masterGain
+// AMG only: exhaust pops on sudden deceleration (>15 km/h per second).
 
 import { gpsStore } from '@/features/gps/gpsStore'
 
 // ── Config ────────────────────────────────────────────────────────────────
 
-interface GearBand {
-  maxKmh: number
-  minRpm: number
-  maxRpm: number
-}
+interface GearBand { maxKmh: number; minRpm: number; maxRpm: number }
 
 interface V8Config {
   idleRpm:          number
@@ -38,10 +30,10 @@ interface V8Config {
   lfo2Depth:        number
   bpfQ:             number
   bpfMult:          number
-  bpfMaxHz:         number               // BPF center ceiling
+  bpfMaxHz:         number
   lpfFreq:          number
   masterVol:        number
-  enableExhaustPop: boolean              // fire noise pop on sudden deceleration
+  enableExhaustPop: boolean
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────
@@ -52,23 +44,21 @@ function speedToRpm(kmh: number, gears: ReadonlyArray<GearBand>): number {
   const speed = Math.max(0, kmh)
   let idx = gears.findIndex((g) => speed <= g.maxKmh)
   if (idx < 0) idx = gears.length - 1
-  const g       = gears[idx]
-  const prevMax = idx === 0 ? 0 : gears[idx - 1].maxKmh
-  const span    = g.maxKmh - prevMax
-  const t       = span === 0 ? 0 : (speed - prevMax) / span
-  return g.minRpm + t * (g.maxRpm - g.minRpm)
+  const g = gears[idx]; const prevMax = idx === 0 ? 0 : gears[idx - 1].maxKmh
+  const span = g.maxKmh - prevMax
+  return g.minRpm + (span === 0 ? 0 : (speed - prevMax) / span) * (g.maxRpm - g.minRpm)
 }
 
 function makeClipCurve(amount: number): Float32Array {
-  const n = 512; const curve = new Float32Array(n)
+  const n = 512; const c = new Float32Array(n)
   for (let i = 0; i < n; i++) {
     const x = (i * 2) / n - 1
-    curve[i] = ((Math.PI + amount) * x) / (Math.PI + amount * Math.abs(x))
+    c[i] = ((Math.PI + amount) * x) / (Math.PI + amount * Math.abs(x))
   }
-  return curve
+  return c
 }
 
-// ── Configs ───────────────────────────────────────────────────────────────
+// ── Gear configs ──────────────────────────────────────────────────────────
 
 const SPORT_GEARS: ReadonlyArray<GearBand> = [
   { maxKmh:   5, minRpm:  800, maxRpm:  800 },
@@ -90,17 +80,16 @@ const MUSCLE_GEARS: ReadonlyArray<GearBand> = [
   { maxKmh: 999, minRpm: 1600, maxRpm: 5000 },
 ]
 
-// AMG S63: 9-speed auto, very short gears, high-revving character
 const AMG_GEARS: ReadonlyArray<GearBand> = [
   { maxKmh:   5, minRpm:  780, maxRpm:  780 },
-  { maxKmh:  25, minRpm:  900, maxRpm: 5000 },   // 1st — very short
-  { maxKmh:  45, minRpm: 1500, maxRpm: 5000 },   // 2nd
-  { maxKmh:  70, minRpm: 1500, maxRpm: 5200 },   // 3rd
-  { maxKmh:  95, minRpm: 1500, maxRpm: 5200 },   // 4th
-  { maxKmh: 120, minRpm: 1500, maxRpm: 5200 },   // 5th
-  { maxKmh: 155, minRpm: 1800, maxRpm: 5500 },   // 6th–7th
-  { maxKmh: 200, minRpm: 2000, maxRpm: 6000 },   // 8th
-  { maxKmh: 999, minRpm: 2500, maxRpm: 6500 },   // 9th / top
+  { maxKmh:  25, minRpm:  900, maxRpm: 5000 },
+  { maxKmh:  45, minRpm: 1500, maxRpm: 5000 },
+  { maxKmh:  70, minRpm: 1500, maxRpm: 5200 },
+  { maxKmh:  95, minRpm: 1500, maxRpm: 5200 },
+  { maxKmh: 120, minRpm: 1500, maxRpm: 5200 },
+  { maxKmh: 155, minRpm: 1800, maxRpm: 5500 },
+  { maxKmh: 200, minRpm: 2000, maxRpm: 6000 },
+  { maxKmh: 999, minRpm: 2500, maxRpm: 6500 },
 ]
 
 const SPORT_CONFIG: V8Config = {
@@ -121,11 +110,8 @@ const MUSCLE_CONFIG: V8Config = {
 
 const AMG_CONFIG: V8Config = {
   idleRpm: 780, gears: AMG_GEARS,
-  // osc2 at musical fifth (3/2) → AMG's characteristic high-harmonic "snap"
   distAmount: 145, osc1Vol: 0.60, osc2Ratio: 1.50, osc2Vol: 0.40,
-  // Moderate thump — AMG idles very smoothly (twin-turbo dampens raw pulses)
   lfoDepth: 0.10, lfo2Ratio: null, lfo2Depth: 0,
-  // High BPF ceiling — AMG screams into the high-mids at redline
   bpfQ: 1.7, bpfMult: 3.0, bpfMaxHz: 1800, lpfFreq: 1100,
   masterVol: 0.30, enableExhaustPop: true,
 }
@@ -143,7 +129,12 @@ class V8EngineSound {
   private _running    = false
   private unsubGps:   (() => void) | null     = null
 
-  // Exhaust pop state
+  // rAF interpolation — runs at display refresh rate, not GPS rate
+  private _targetHz  = 50
+  private _currentHz = 50
+  private _rafId:    number | null = null
+
+  // Exhaust pop deceleration detection
   private _prevKmh   = 0
   private _prevTs    = 0
   private _braking   = false
@@ -159,7 +150,9 @@ class V8EngineSound {
     const ctx = this.ctx
     void ctx.resume()
 
-    const initHz = rpmToHz(speedToRpm(gpsStore.getPosition()?.speedKmh ?? 0, this.cfg.gears))
+    const initKmh = gpsStore.getPosition()?.speedKmh ?? 0
+    const initHz  = rpmToHz(speedToRpm(initKmh, this.cfg.gears))
+    this._targetHz = initHz; this._currentHz = initHz
 
     this.osc1 = ctx.createOscillator(); this.osc1.type = 'sawtooth'
     this.osc1.frequency.value = initHz
@@ -177,8 +170,7 @@ class V8EngineSound {
     const shaper = ctx.createWaveShaper()
     shaper.curve = makeClipCurve(this.cfg.distAmount); shaper.oversample = '2x'
 
-    this.bpf = ctx.createBiquadFilter()
-    this.bpf.type = 'bandpass'
+    this.bpf = ctx.createBiquadFilter(); this.bpf.type = 'bandpass'
     this.bpf.frequency.value = Math.min(initHz * this.cfg.bpfMult, this.cfg.bpfMaxHz)
     this.bpf.Q.value = this.cfg.bpfQ
 
@@ -204,13 +196,15 @@ class V8EngineSound {
     this._running = true
     this.masterGain.gain.setTargetAtTime(this.cfg.masterVol, ctx.currentTime, 0.25)
 
-    this._prevKmh = gpsStore.getPosition()?.speedKmh ?? 0
-    this._prevTs  = Date.now()
-    this._braking = false
+    // Start rAF interpolation loop
+    this._startRaf()
 
+    this._prevKmh = initKmh; this._prevTs = Date.now(); this._braking = false
+
+    // GPS only sets target — rAF handles smooth frequency tracking
     this.unsubGps = gpsStore.onPosition((pos) => {
       const kmh = pos?.speedKmh ?? 0
-      this._updateHz(rpmToHz(speedToRpm(kmh, this.cfg.gears)))
+      this._targetHz = rpmToHz(speedToRpm(kmh, this.cfg.gears))
       if (this.cfg.enableExhaustPop) this._checkDecel(kmh)
     })
   }
@@ -218,6 +212,7 @@ class V8EngineSound {
   stop(): void {
     if (!this._running) return
     this._running = false
+    this._stopRaf()
     this.unsubGps?.(); this.unsubGps = null
     if (this.masterGain && this.ctx) {
       this.masterGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.22)
@@ -232,90 +227,103 @@ class V8EngineSound {
     this.lfo = null; this.lfo2 = null; this.masterGain = null; this.bpf = null
   }
 
-  private _updateHz(hz: number): void {
-    if (!this.ctx || !this.osc1 || !this.osc2 || !this.lfo || !this.bpf) return
-    const T = this.ctx.currentTime; const TC = 0.38
-    this.osc1.frequency.setTargetAtTime(hz,                           T, TC)
-    this.osc2.frequency.setTargetAtTime(hz * this.cfg.osc2Ratio,     T, TC)
-    this.lfo.frequency.setTargetAtTime(hz,                            T, TC)
-    this.bpf.frequency.setTargetAtTime(Math.min(hz * this.cfg.bpfMult, this.cfg.bpfMaxHz), T, TC)
-    if (this.lfo2 && this.cfg.lfo2Ratio !== null) {
-      this.lfo2.frequency.setTargetAtTime(hz * this.cfg.lfo2Ratio, T, TC)
+  // ── rAF loop — frequency interpolation at display refresh rate ────────
+
+  private _startRaf(): void {
+    let lastMs = 0
+
+    const tick = (ms: number) => {
+      if (!this._running || !this.osc1 || !this.osc2 || !this.lfo || !this.bpf) {
+        this._rafId = null
+        return
+      }
+
+      // Frame-rate-independent exponential approach:
+      //   rate=14 → 95% of target reached in ~214 ms regardless of FPS
+      const dt = lastMs > 0 ? Math.min((ms - lastMs) / 1000, 0.1) : 0.016
+      lastMs   = ms
+      const k  = 1 - Math.exp(-dt * 14)
+
+      this._currentHz += (this._targetHz - this._currentHz) * k
+
+      // Direct .value assignment — no AudioParam lag, updates every frame
+      this.osc1.frequency.value = this._currentHz
+      this.osc2.frequency.value = this._currentHz * this.cfg.osc2Ratio
+      this.lfo.frequency.value  = this._currentHz
+      if (this.lfo2 && this.cfg.lfo2Ratio !== null) {
+        this.lfo2.frequency.value = this._currentHz * this.cfg.lfo2Ratio
+      }
+      this.bpf.frequency.value = Math.min(
+        this._currentHz * this.cfg.bpfMult,
+        this.cfg.bpfMaxHz,
+      )
+
+      this._rafId = requestAnimationFrame(tick)
     }
+
+    this._rafId = requestAnimationFrame(tick)
   }
 
-  // ── Exhaust pop (AMG) ─────────────────────────────────────────────────
+  private _stopRaf(): void {
+    if (this._rafId !== null) { cancelAnimationFrame(this._rafId); this._rafId = null }
+  }
+
+  // ── Exhaust pop (AMG only) ────────────────────────────────────────────
 
   private _checkDecel(kmh: number): void {
-    const now = Date.now()
-    const dtMs = now - this._prevTs
-
+    const now = Date.now(); const dtMs = now - this._prevTs
     if (this._prevTs > 0 && dtMs > 50 && dtMs < 3000) {
-      const decelRate = (this._prevKmh - kmh) / (dtMs / 1000)  // km/h per second
-
+      const decelRate = (this._prevKmh - kmh) / (dtMs / 1000)
       if (decelRate > 15 && this._prevKmh > 20) {
         if (!this._braking) {
           this._braking = true
-          const count = decelRate > 45 ? 3 : decelRate > 28 ? 2 : 1
-          this._triggerPops(count)
+          this._triggerPops(decelRate > 45 ? 3 : decelRate > 28 ? 2 : 1)
         }
       } else if (decelRate < 5) {
-        // Reset braking state when no longer decelerating hard
         this._braking = false
       }
     }
-
-    this._prevKmh = kmh
-    this._prevTs  = now
+    this._prevKmh = kmh; this._prevTs = now
   }
 
   private _triggerPops(count: number): void {
     if (!this.ctx || !this.masterGain) return
-    const ctx    = this.ctx
-    const master = this.masterGain
+    const ctx = this.ctx; const master = this.masterGain
 
     for (let i = 0; i < count; i++) {
-      const delayMs = i * (55 + Math.random() * 85)  // 55–140 ms between pops
       setTimeout(() => {
         if (!ctx || ctx.state === 'closed') return
         const T = ctx.currentTime
 
-        // ── Crack: filtered white noise burst ────────────────────────
+        // Crack: filtered white noise
         const nLen = Math.floor(ctx.sampleRate * 0.09)
         const nBuf = ctx.createBuffer(1, nLen, ctx.sampleRate)
-        const nd   = nBuf.getChannelData(0)
+        const nd = nBuf.getChannelData(0)
         for (let j = 0; j < nLen; j++) nd[j] = Math.random() * 2 - 1
-
-        const ns    = ctx.createBufferSource(); ns.buffer = nBuf
+        const ns = ctx.createBufferSource(); ns.buffer = nBuf
         const crack = ctx.createBiquadFilter()
-        crack.type = 'bandpass'
-        crack.frequency.value = 280 + Math.random() * 200  // 280–480 Hz (metallic crack)
-        crack.Q.value = 4.5
-
+        crack.type = 'bandpass'; crack.frequency.value = 280 + Math.random() * 200; crack.Q.value = 4.5
         const crackGain = ctx.createGain()
         crackGain.gain.setValueAtTime(0.80, T)
         crackGain.gain.exponentialRampToValueAtTime(0.001, T + 0.08)
-
         ns.connect(crack); crack.connect(crackGain); crackGain.connect(master)
         ns.start(T); ns.stop(T + 0.10)
 
-        // ── Thump: short 90 Hz sine wave (exhaust thunder) ───────────
+        // Thump: decaying 90 Hz sine (exhaust thunder)
         const tLen = Math.floor(ctx.sampleRate * 0.08)
         const tBuf = ctx.createBuffer(1, tLen, ctx.sampleRate)
-        const td   = tBuf.getChannelData(0)
+        const td = tBuf.getChannelData(0)
         for (let j = 0; j < tLen; j++) {
-          td[j] = Math.sin(2 * Math.PI * 90 * j / ctx.sampleRate)
-                * Math.exp(-j / (tLen * 0.28))
+          td[j] = Math.sin(2 * Math.PI * 90 * j / ctx.sampleRate) * Math.exp(-j / (tLen * 0.28))
         }
-        const ts        = ctx.createBufferSource(); ts.buffer = tBuf
+        const ts = ctx.createBufferSource(); ts.buffer = tBuf
         const thumpGain = ctx.createGain()
         thumpGain.gain.setValueAtTime(0.60, T)
         thumpGain.gain.exponentialRampToValueAtTime(0.001, T + 0.08)
-
         ts.connect(thumpGain); thumpGain.connect(master)
         ts.start(T); ts.stop(T + 0.09)
 
-      }, delayMs)
+      }, i * (55 + Math.random() * 85))
     }
   }
 }
