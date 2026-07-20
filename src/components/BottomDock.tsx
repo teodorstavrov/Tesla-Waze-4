@@ -6,8 +6,8 @@ import { evStore } from '@/features/ev/evStore'
 import { eventStore } from '@/features/events/eventStore'
 import { routeStore } from '@/features/route/routeStore'
 import { langStore, t } from '@/lib/locale'
-import { v8SportEngine, v8MuscleEngine } from '@/features/v8sound/v8Engine'
-import { v8HeaderEngine, v8S63Engine } from '@/features/v8sound/audioEngine'
+import { v8SportEngine, v8MuscleEngine, v8AmgEngine } from '@/features/v8sound/v8Engine'
+import { v8HeaderEngine } from '@/features/v8sound/audioEngine'
 
 export function BottomDock() {
   // Re-render on language change so button labels update
@@ -47,13 +47,10 @@ export function BottomDock() {
         .catch(() => { setV8Mode('off'); setV8Loading(false) })
     } else if (v8Mode === 'header') {
       v8HeaderEngine.stop()
+      v8AmgEngine.start()
       setV8Mode('s63')
-      setV8Loading(true)
-      v8S63Engine.start()
-        .then(() => setV8Loading(false))
-        .catch(() => { setV8Mode('off'); setV8Loading(false) })
     } else {
-      v8S63Engine.stop()
+      v8AmgEngine.stop()
       setV8Mode('off')
     }
   }
