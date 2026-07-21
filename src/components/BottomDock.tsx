@@ -6,7 +6,7 @@ import { evStore } from '@/features/ev/evStore'
 import { eventStore } from '@/features/events/eventStore'
 import { routeStore } from '@/features/route/routeStore'
 import { langStore, t } from '@/lib/locale'
-import { v8SportEngine, v8MuscleEngine, v8AmgEngine } from '@/features/v8sound/v8Engine'
+import { v8SportEngine, v8MuscleEngine, v8AmgEngine, v8W12Engine } from '@/features/v8sound/v8Engine'
 import { v8HeaderEngine } from '@/features/v8sound/audioEngine'
 
 export function BottomDock() {
@@ -25,7 +25,7 @@ export function BottomDock() {
     () => false,
   )
 
-  type V8Mode = 'off' | 'sport' | 'muscle' | 'header' | 's63'
+  type V8Mode = 'off' | 'sport' | 'muscle' | 'header' | 's63' | 'w12'
   const [v8Mode,    setV8Mode]    = useState<V8Mode>('off')
   const [v8Loading, setV8Loading] = useState(false)
 
@@ -49,8 +49,12 @@ export function BottomDock() {
       v8HeaderEngine.stop()
       v8AmgEngine.start()
       setV8Mode('s63')
-    } else {
+    } else if (v8Mode === 's63') {
       v8AmgEngine.stop()
+      v8W12Engine.start()
+      setV8Mode('w12')
+    } else {
+      v8W12Engine.stop()
       setV8Mode('off')
     }
   }
@@ -59,6 +63,7 @@ export function BottomDock() {
                : v8Mode === 'muscle' ? t('dock.v8Muscle')
                : v8Mode === 'header' ? t('dock.v8Header')
                : v8Mode === 's63'   ? t('dock.v8S63')
+               : v8Mode === 'w12'   ? t('dock.v8W12')
                : t('dock.v8Off')
 
   const [noRouteMsg, setNoRouteMsg] = useState(false)
@@ -99,21 +104,25 @@ export function BottomDock() {
                      : v8Mode === 'sport'  ? 'rgba(227,25,55,0.25)'
                      : v8Mode === 'header' ? 'rgba(16,185,129,0.25)'
                      : v8Mode === 's63'   ? 'rgba(139,92,246,0.25)'
+                     : v8Mode === 'w12'   ? 'rgba(234,179,8,0.25)'
                      : 'rgba(255,255,255,0.5)',
           borderColor: v8Mode === 'muscle' ? '#f59e0b'
                      : v8Mode === 'sport'  ? '#e31937'
                      : v8Mode === 'header' ? '#10b981'
                      : v8Mode === 's63'   ? '#8b5cf6'
+                     : v8Mode === 'w12'   ? '#eab308'
                      : 'rgba(255,255,255,0.3)',
           color:       v8Mode === 'muscle' ? '#f59e0b'
                      : v8Mode === 'sport'  ? '#e31937'
                      : v8Mode === 'header' ? '#10b981'
                      : v8Mode === 's63'   ? '#8b5cf6'
+                     : v8Mode === 'w12'   ? '#eab308'
                      : '#111',
           boxShadow:   v8Mode === 'muscle' ? '0 0 0 3px rgba(245,158,11,0.25)'
                      : v8Mode === 'sport'  ? '0 0 0 3px rgba(227,25,55,0.25)'
                      : v8Mode === 'header' ? '0 0 0 3px rgba(16,185,129,0.25)'
                      : v8Mode === 's63'   ? '0 0 0 3px rgba(139,92,246,0.25)'
+                     : v8Mode === 'w12'   ? '0 0 0 3px rgba(234,179,8,0.25)'
                      : '0 2px 12px rgba(0,0,0,0.18)',
           opacity: v8Loading ? 0.5 : 1,
         }}
@@ -219,7 +228,7 @@ export function BottomDock() {
   )
 }
 
-type V8IconMode = 'off' | 'sport' | 'muscle' | 'header' | 's63'
+type V8IconMode = 'off' | 'sport' | 'muscle' | 'header' | 's63' | 'w12'
 
 function V8Icon({ mode, loading }: { mode: V8IconMode; loading?: boolean }) {
   // Real-audio modes (header, s63) show a waveform icon
@@ -243,7 +252,24 @@ function V8Icon({ mode, loading }: { mode: V8IconMode; loading?: boolean }) {
     )
   }
 
-  // Synth modes (off, sport, muscle) show an engine block icon
+  // W12 — wider block with 5 cylinder heads and W-pattern line suggesting 12-cyl layout
+  if (mode === 'w12') {
+    return (
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <rect x="1" y="10" width="22" height="8" rx="2" />
+        <line x1="4"  y1="10" x2="4"  y2="6" />
+        <line x1="8"  y1="10" x2="8"  y2="6" />
+        <line x1="12" y1="10" x2="12" y2="6" />
+        <line x1="16" y1="10" x2="16" y2="6" />
+        <line x1="20" y1="10" x2="20" y2="6" />
+        <path d="M3 15 L5 12.5 L7 15 L9 12.5 L11 15" strokeWidth="1.3" strokeOpacity="0.75" />
+        <path d="M1 14 Q0 14 0 17" />
+      </svg>
+    )
+  }
+
+  // Synth modes (off, sport, muscle) show a standard engine block icon
   return (
     <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
       stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

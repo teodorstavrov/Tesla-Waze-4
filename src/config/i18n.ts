@@ -104,6 +104,7 @@ export const DICTIONARY = {
       v8Muscle:      'V8 Muscle 6L+',
       v8Header:      'Open Header V8',
       v8S63:         'S63 AMG V8',
+      v8W12:         'W12 Bentley',
     },
 
     events: {
@@ -516,6 +517,7 @@ export const DICTIONARY = {
       v8Muscle:      'V8 Muscle 6L+',
       v8Header:      'Open Header V8',
       v8S63:         'S63 AMG V8',
+      v8W12:         'W12 Bentley',
     },
 
     events: {
