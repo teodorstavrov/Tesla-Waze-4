@@ -96,9 +96,11 @@ class HybridAudioEngine {
   private unsubGps:   (() => void) | null          = null
 
   // rAF interpolation
-  private _targetKmh  = 0
-  private _currentKmh = 0
-  private _rafId:     number | null = null
+  private _targetKmh       = 0
+  private _currentKmh      = 0
+  private _rafId:          number | null = null
+  private _speedDecreasing = false
+  private _prevGpsKmh      = 0
 
   constructor(private readonly cfg: HybridConfig) {}
 
@@ -170,9 +172,15 @@ class HybridAudioEngine {
       // Start rAF loop immediately — synth is already live
       this._startRaf()
 
+      this._prevGpsKmh = initKmh; this._speedDecreasing = false
+
       // GPS sets target; rAF interpolates every frame
       this.unsubGps = gpsStore.onPosition((pos) => {
-        if (pos?.speedKmh != null) this._targetKmh = pos.speedKmh
+        if (pos?.speedKmh != null) {
+          this._speedDecreasing = pos.speedKmh < this._prevGpsKmh
+          this._prevGpsKmh = pos.speedKmh
+          this._targetKmh = pos.speedKmh
+        }
       })
 
       // ── Real audio layer (async, joins after decode) ───────────────────
@@ -226,8 +234,8 @@ class HybridAudioEngine {
 
       const dt = lastMs > 0 ? Math.min((ms - lastMs) / 1000, 0.1) : 0.016
       lastMs   = ms
-      // rate=14 → 95% in ~214 ms, frame-rate independent
-      const k  = 1 - Math.exp(-dt * 14)
+      const rate = this._speedDecreasing ? 3 : 10
+      const k    = 1 - Math.exp(-dt * rate)
 
       this._currentKmh += (this._targetKmh - this._currentKmh) * k
 

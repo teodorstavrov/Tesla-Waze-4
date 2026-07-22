@@ -173,9 +173,11 @@ class V8EngineSound {
   private unsubGps:   (() => void) | null     = null
 
   // rAF interpolation
-  private _targetHz  = 50
-  private _currentHz = 50
-  private _rafId:    number | null = null
+  private _targetHz        = 50
+  private _currentHz       = 50
+  private _rafId:          number | null = null
+  private _speedDecreasing = false   // set by GPS callback; drives rAF rate selection
+  private _prevGpsKmh      = 0
 
   // Exhaust pop decel detection
   private _prevKmh = 0
@@ -245,9 +247,12 @@ class V8EngineSound {
     this._startRaf()
 
     this._prevKmh = initKmh; this._prevTs = Date.now(); this._braking = false
+    this._prevGpsKmh = initKmh; this._speedDecreasing = false
 
     this.unsubGps = gpsStore.onPosition((pos) => {
       const kmh = pos?.speedKmh ?? 0
+      this._speedDecreasing = kmh < this._prevGpsKmh
+      this._prevGpsKmh = kmh
       this._targetHz = this._toHz(speedToRpm(kmh, this.cfg.gears))
       if (this.cfg.enableExhaustPop) this._checkDecel(kmh)
     })
@@ -281,7 +286,11 @@ class V8EngineSound {
       }
       const dt = lastMs > 0 ? Math.min((ms - lastMs) / 1000, 0.1) : 0.016
       lastMs = ms
-      const k = 1 - Math.exp(-dt * 14)
+      // Accelerating: fast response (rate=10, 95% in ~300ms).
+      // Decelerating or downshifting: smooth glide (rate=3, 95% in ~1s)
+      // so the RPM change fills the GPS 1-second update gap naturally.
+      const rate = this._speedDecreasing ? 3 : 10
+      const k = 1 - Math.exp(-dt * rate)
       this._currentHz += (this._targetHz - this._currentHz) * k
 
       this.osc1.frequency.value = this._currentHz
