@@ -22,7 +22,9 @@ function speedToRpm(kmh: number, gears: ReadonlyArray<GearBand>): number {
   if (idx < 0) idx = gears.length - 1
   const g = gears[idx]; const prevMax = idx === 0 ? 0 : gears[idx - 1].maxKmh
   const span = g.maxKmh - prevMax
-  return g.minRpm + (span === 0 ? 0 : (speed - prevMax) / span) * (g.maxRpm - g.minRpm)
+  const next = idx < gears.length - 1 ? gears[idx + 1] : null
+  const topRpm = next ? Math.min(g.maxRpm, next.minRpm * 2.5) : g.maxRpm
+  return g.minRpm + (span === 0 ? 0 : (speed - prevMax) / span) * (topRpm - g.minRpm)
 }
 
 function rpmToHz(rpm: number): number { return (rpm / 60) * 4 }
@@ -59,17 +61,17 @@ interface HybridConfig {
 
 // ── Open Header V8 ────────────────────────────────────────────────────────
 const HEADER_GEARS: ReadonlyArray<GearBand> = [
-  { maxKmh:   5, minRpm:  700, maxRpm:  700 },
-  { maxKmh:  40, minRpm:  750, maxRpm: 4000 },
-  { maxKmh:  70, minRpm: 1100, maxRpm: 3800 },
-  { maxKmh: 100, minRpm: 1100, maxRpm: 3800 },
-  { maxKmh: 135, minRpm: 1100, maxRpm: 4000 },
-  { maxKmh: 170, minRpm: 1400, maxRpm: 4500 },
-  { maxKmh: 999, minRpm: 1700, maxRpm: 5500 },
+  { maxKmh:   5, minRpm:  400, maxRpm:  400 },   // idle
+  { maxKmh:  35, minRpm:  450, maxRpm: 3700 },   // 1st
+  { maxKmh:  65, minRpm:  800, maxRpm: 3500 },   // 2nd
+  { maxKmh:  95, minRpm:  800, maxRpm: 3500 },   // 3rd
+  { maxKmh: 130, minRpm:  800, maxRpm: 3700 },   // 4th
+  { maxKmh: 165, minRpm: 1100, maxRpm: 4200 },   // 5th
+  { maxKmh: 999, minRpm: 1400, maxRpm: 5200 },   // 6th
 ]
 
 const HEADER_CONFIG: HybridConfig = {
-  url: '/engine-sounds/open-header-v8.mp3', audioVol: 0.30, audioBaseRpm: 1200,
+  url: '/engine-sounds/open-header-v8.mp3', audioVol: 0.30, audioBaseRpm: 900,
   audioGears: HEADER_GEARS, synthGears: HEADER_GEARS,
   distAmount: 190, osc1Vol: 0.60, osc2Ratio: 1.80, osc2Vol: 0.40,
   lfoDepth: 0.17, lfo2Ratio: 0.875, lfo2Depth: 0.07,

@@ -47,7 +47,12 @@ function speedToRpm(kmh: number, gears: ReadonlyArray<GearBand>): number {
   if (idx < 0) idx = gears.length - 1
   const g = gears[idx]; const prevMax = idx === 0 ? 0 : gears[idx - 1].maxKmh
   const span = g.maxKmh - prevMax
-  return g.minRpm + (span === 0 ? 0 : (speed - prevMax) / span) * (g.maxRpm - g.minRpm)
+  // Cap the RPM at the top of each band at 2.5× the next gear's minRpm.
+  // This prevents the jarring RPM spike when downshifting (e.g. 2nd→1st
+  // goes from 1200 to ~3000 instead of all the way to 4700).
+  const next = idx < gears.length - 1 ? gears[idx + 1] : null
+  const topRpm = next ? Math.min(g.maxRpm, next.minRpm * 2.5) : g.maxRpm
+  return g.minRpm + (span === 0 ? 0 : (speed - prevMax) / span) * (topRpm - g.minRpm)
 }
 
 function makeClipCurve(amount: number): Float32Array {
@@ -62,55 +67,55 @@ function makeClipCurve(amount: number): Float32Array {
 // ── Gear configs ──────────────────────────────────────────────────────────
 
 const SPORT_GEARS: ReadonlyArray<GearBand> = [
-  { maxKmh:   5, minRpm:  800, maxRpm:  800 },
-  { maxKmh:  30, minRpm:  900, maxRpm: 4500 },
-  { maxKmh:  55, minRpm: 1200, maxRpm: 4000 },
-  { maxKmh:  80, minRpm: 1200, maxRpm: 4000 },
-  { maxKmh: 110, minRpm: 1200, maxRpm: 4000 },
-  { maxKmh: 140, minRpm: 1500, maxRpm: 4200 },
-  { maxKmh: 999, minRpm: 1800, maxRpm: 5500 },
+  { maxKmh:   5, minRpm:  500, maxRpm:  500 },   // idle (no km/h change)
+  { maxKmh:  25, minRpm:  600, maxRpm: 4200 },   // 1st
+  { maxKmh:  50, minRpm:  900, maxRpm: 3700 },   // 2nd
+  { maxKmh:  75, minRpm:  900, maxRpm: 3700 },   // 3rd
+  { maxKmh: 105, minRpm:  900, maxRpm: 3700 },   // 4th
+  { maxKmh: 135, minRpm: 1200, maxRpm: 3900 },   // 5th
+  { maxKmh: 999, minRpm: 1500, maxRpm: 5200 },   // 6th
 ]
 
 const MUSCLE_GEARS: ReadonlyArray<GearBand> = [
-  { maxKmh:   5, minRpm:  680, maxRpm:  680 },
-  { maxKmh:  40, minRpm:  750, maxRpm: 3800 },
-  { maxKmh:  70, minRpm: 1100, maxRpm: 3600 },
-  { maxKmh: 100, minRpm: 1100, maxRpm: 3600 },
-  { maxKmh: 135, minRpm: 1100, maxRpm: 3800 },
-  { maxKmh: 170, minRpm: 1400, maxRpm: 4000 },
-  { maxKmh: 999, minRpm: 1600, maxRpm: 5000 },
+  { maxKmh:   5, minRpm:  380, maxRpm:  380 },   // idle
+  { maxKmh:  35, minRpm:  450, maxRpm: 3500 },   // 1st
+  { maxKmh:  65, minRpm:  800, maxRpm: 3300 },   // 2nd
+  { maxKmh:  95, minRpm:  800, maxRpm: 3300 },   // 3rd
+  { maxKmh: 130, minRpm:  800, maxRpm: 3500 },   // 4th
+  { maxKmh: 165, minRpm: 1100, maxRpm: 3700 },   // 5th
+  { maxKmh: 999, minRpm: 1300, maxRpm: 4700 },   // 6th
 ]
 
 const AMG_GEARS: ReadonlyArray<GearBand> = [
-  { maxKmh:   5, minRpm:  780, maxRpm:  780 },
-  { maxKmh:  25, minRpm:  900, maxRpm: 5000 },
-  { maxKmh:  45, minRpm: 1500, maxRpm: 5000 },
-  { maxKmh:  70, minRpm: 1500, maxRpm: 5200 },
-  { maxKmh:  95, minRpm: 1500, maxRpm: 5200 },
-  { maxKmh: 120, minRpm: 1500, maxRpm: 5200 },
-  { maxKmh: 155, minRpm: 1800, maxRpm: 5500 },
-  { maxKmh: 200, minRpm: 2000, maxRpm: 6000 },
-  { maxKmh: 999, minRpm: 2500, maxRpm: 6500 },
+  { maxKmh:   5, minRpm:  480, maxRpm:  480 },   // idle
+  { maxKmh:  20, minRpm:  600, maxRpm: 4700 },   // 1st
+  { maxKmh:  40, minRpm: 1200, maxRpm: 4700 },   // 2nd
+  { maxKmh:  65, minRpm: 1200, maxRpm: 4900 },   // 3rd
+  { maxKmh:  90, minRpm: 1200, maxRpm: 4900 },   // 4th
+  { maxKmh: 115, minRpm: 1200, maxRpm: 4900 },   // 5th
+  { maxKmh: 150, minRpm: 1500, maxRpm: 5200 },   // 6th
+  { maxKmh: 195, minRpm: 1700, maxRpm: 5700 },   // 7th
+  { maxKmh: 999, minRpm: 2200, maxRpm: 6200 },   // 8th
 ]
 
 // W12 Bentley — 8-speed ZF, enormous torque, rarely needs to rev high.
 // Cruise at 100 km/h ~1500 RPM, top speed 333 km/h at ~5800 RPM.
 const W12_GEARS: ReadonlyArray<GearBand> = [
-  { maxKmh:   5, minRpm:  600, maxRpm:  600 },   // deep idle
-  { maxKmh:  40, minRpm:  700, maxRpm: 3800 },   // 1st
-  { maxKmh:  70, minRpm: 1000, maxRpm: 3500 },   // 2nd
-  { maxKmh: 100, minRpm: 1000, maxRpm: 3500 },   // 3rd
-  { maxKmh: 130, minRpm: 1000, maxRpm: 3500 },   // 4th
-  { maxKmh: 165, minRpm: 1200, maxRpm: 4000 },   // 5th
-  { maxKmh: 200, minRpm: 1500, maxRpm: 4500 },   // 6th
-  { maxKmh: 250, minRpm: 1800, maxRpm: 5500 },   // 7th
-  { maxKmh: 999, minRpm: 2200, maxRpm: 6200 },   // 8th
+  { maxKmh:   5, minRpm:  300, maxRpm:  300 },   // deep idle
+  { maxKmh:  35, minRpm:  400, maxRpm: 3500 },   // 1st
+  { maxKmh:  65, minRpm:  700, maxRpm: 3200 },   // 2nd
+  { maxKmh:  95, minRpm:  700, maxRpm: 3200 },   // 3rd
+  { maxKmh: 125, minRpm:  700, maxRpm: 3200 },   // 4th
+  { maxKmh: 160, minRpm:  900, maxRpm: 3700 },   // 5th
+  { maxKmh: 195, minRpm: 1200, maxRpm: 4200 },   // 6th
+  { maxKmh: 245, minRpm: 1500, maxRpm: 5200 },   // 7th
+  { maxKmh: 999, minRpm: 1900, maxRpm: 5900 },   // 8th
 ]
 
 // ── Engine configs ────────────────────────────────────────────────────────
 
 const SPORT_CONFIG: V8Config = {
-  idleRpm: 800, gears: SPORT_GEARS, cylPairs: 4,
+  idleRpm: 500, gears: SPORT_GEARS, cylPairs: 4,
   distAmount: 100, osc1Vol: 0.65, osc2Ratio: 1.015, osc2Vol: 0.35,
   lfoDepth: 0.10, lfo2Ratio: null, lfo2Depth: 0,
   bpfQ: 1.2, bpfMult: 2.5, bpfMaxHz: 1400, lpfFreq: 900,
@@ -118,7 +123,7 @@ const SPORT_CONFIG: V8Config = {
 }
 
 const MUSCLE_CONFIG: V8Config = {
-  idleRpm: 680, gears: MUSCLE_GEARS, cylPairs: 4,
+  idleRpm: 380, gears: MUSCLE_GEARS, cylPairs: 4,
   distAmount: 220, osc1Vol: 0.58, osc2Ratio: 2.0, osc2Vol: 0.42,
   lfoDepth: 0.18, lfo2Ratio: 0.875, lfo2Depth: 0.06,
   bpfQ: 1.9, bpfMult: 1.7, bpfMaxHz: 1400, lpfFreq: 650,
@@ -126,7 +131,7 @@ const MUSCLE_CONFIG: V8Config = {
 }
 
 const AMG_CONFIG: V8Config = {
-  idleRpm: 780, gears: AMG_GEARS, cylPairs: 4,
+  idleRpm: 480, gears: AMG_GEARS, cylPairs: 4,
   distAmount: 145, osc1Vol: 0.60, osc2Ratio: 1.50, osc2Vol: 0.40,
   lfoDepth: 0.10, lfo2Ratio: null, lfo2Depth: 0,
   bpfQ: 1.7, bpfMult: 3.0, bpfMaxHz: 1800, lpfFreq: 1100,
@@ -134,7 +139,7 @@ const AMG_CONFIG: V8Config = {
 }
 
 const W12_CONFIG: V8Config = {
-  idleRpm: 600, gears: W12_GEARS,
+  idleRpm: 300, gears: W12_GEARS,
   // cylPairs=3 keeps frequencies 25% lower than a V8 at the same RPM:
   //   idle 600 RPM → 30 Hz  |  highway 4000 RPM → 200 Hz  |  redline → ~310 Hz
   // Even at full throttle the fundamental never leaves the bass register.
