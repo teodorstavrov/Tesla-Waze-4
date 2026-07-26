@@ -290,7 +290,7 @@ async function collectWazePolice(tiles) {
     console.log(`  ${collectProblem}`);
     return []; // graceful: nothing collected, alert e-mail will be sent
   }
-  const ctx = browser.contexts()[0] || await browser.newContext();
+  const ctx = await browser.newContext();   // fresh incognito-like context — no cookies from prev runs
   const page = await ctx.newPage();
   // Cap every Playwright action/navigation so nothing waits forever when the
   // network flaps. bringToFront has no timeout param, so wrap it via withTimeout.
@@ -924,6 +924,7 @@ async function collectWazePolice(tiles) {
   }
 
   try { await page.close(); } catch {}     // close our tab so they don't pile up each run
+  try { await ctx.close();  } catch {}     // discard incognito context + all its cookies
   try { await browser.close(); } catch {}  // disconnect CDP (does NOT kill your Chrome)
   const list = [...found.values()];
   console.log(`Waze: ${list.length} unique POLICE markers.`);
