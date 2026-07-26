@@ -505,6 +505,27 @@ async function collectWazePolice(tiles) {
     } catch { return false; }
   }
 
+  // Dismiss any cookie/GDPR/privacy banners that appear in incognito mode.
+  // Tries common Waze consent button selectors; silently skips if nothing found.
+  async function dismissBanners() {
+    const selectors = [
+      'button:has-text("I understand")',
+      'button:has-text("Accept all")',
+      'button:has-text("Accept")',
+      'button:has-text("Agree")',
+      '[data-testid="DesktopDialogConsent-AcceptButton"]',
+      '.waze-accept-cookie',
+    ];
+    for (const sel of selectors) {
+      try {
+        const btn = page.locator(sel).first();
+        await btn.click({ timeout: 1500 });
+        await sleep(400);
+        return; // one banner at most
+      } catch { /* not present — try next */ }
+    }
+  }
+
   // Click the Waze/Leaflet zoom-out button CONFIG.zoomOutClicks times so the
   // viewport covers a much larger area than Waze's default stored zoom level.
   // Called after every page.goto() (centre navigation only — drags inherit zoom).
@@ -540,6 +561,7 @@ async function collectWazePolice(tiles) {
       try {
         await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 35000 });
         await withTimeout(page.bringToFront(), 8000, 'bringToFront');
+        await dismissBanners();
         try { await page.waitForSelector('.leaflet-tile-loaded', { timeout: 8000 }); } catch {}
         await doZoomOut();
         _mapLat = lat; _mapLon = lon;
