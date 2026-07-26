@@ -3,6 +3,7 @@
 // Phase 22: live Tesla battery indicator with source label + tap-to-refresh.
 
 import { useSyncExternalStore, useState, useEffect, useCallback } from 'react'
+import { EventsListPanel } from '@/features/events/EventsListPanel'
 import { evStore } from '@/features/ev/evStore'
 import { filterStore } from '@/features/ev/filterStore'
 import { gpsStore } from '@/features/gps/gpsStore'
@@ -108,6 +109,8 @@ export function FloatingStatsCard() {
     if (teslaConnected) void teslaPoller.refresh()
   }, [teslaConnected])
 
+  const [showEvents, setShowEvents] = useState(false)
+
   // ── Mobile (phone): compact vertical pills ───────────────────────────
   if (isPhone) {
     return (
@@ -131,13 +134,21 @@ export function FloatingStatsCard() {
   }
 
   return (
+    <>
+    <EventsListPanel open={showEvents} onClose={() => setShowEvents(false)} />
+    <div style={{
+      position:      'absolute',
+      top:           12,
+      right:         12,
+      zIndex:        400,
+      display:       'flex',
+      flexDirection: 'column',
+      alignItems:    'flex-end',
+      gap:           8,
+    }}>
     <div
       className="glass"
       style={{
-        position: 'absolute',
-        top: 12,
-        right: 12,
-        zIndex: 400,
         padding: '8px clamp(10px, 3vw, 16px)',
         display: 'flex',
         alignItems: 'center',
@@ -194,6 +205,33 @@ export function FloatingStatsCard() {
       <Stat label={t('stats.events')} value={eventCount > 0 ? String(eventCount) : '—'} />
       <Stat label={t('stats.gps')} value={gpsValue} accent={gpsAccent} />
     </div>
+
+    {/* СЪБИТИЕ button — opens events list panel */}
+    <button
+      onClick={() => setShowEvents(true)}
+      style={{
+        background:   '#e31937',
+        border:       'none',
+        borderRadius: 'clamp(10px, 3vw, 14px)',
+        color:        '#fff',
+        fontSize:     'clamp(11px, 2.8vw, 13px)',
+        fontWeight:   700,
+        letterSpacing: '0.06em',
+        padding:      '6px clamp(14px, 3.5vw, 22px)',
+        cursor:       'pointer',
+        boxShadow:    '0 4px 16px rgba(227,25,55,0.4)',
+        touchAction:  'manipulation',
+        userSelect:   'none',
+        WebkitUserSelect: 'none',
+      }}
+      onPointerDown={e  => { (e.currentTarget as HTMLButtonElement).style.opacity = '0.8' }}
+      onPointerUp={e    => { (e.currentTarget as HTMLButtonElement).style.opacity = '' }}
+      onPointerLeave={e => { (e.currentTarget as HTMLButtonElement).style.opacity = '' }}
+    >
+      СЪБИТИЕ
+    </button>
+    </div>
+    </>
   )
 }
 

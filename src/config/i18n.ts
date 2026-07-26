@@ -54,7 +54,7 @@ export const DICTIONARY = {
 
     stats: {
       stations:  'Станции',
-      events:    'Събития',
+      events:    'Маркери',
       gps:       'GPS',
       muteOn:    'Включи звука',
       muteOff:   'Изключи звука',
