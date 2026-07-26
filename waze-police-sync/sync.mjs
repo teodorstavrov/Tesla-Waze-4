@@ -403,16 +403,9 @@ async function collectWazePolice(tiles) {
     return []; // graceful: nothing collected
   }
   await withTimeout(page.bringToFront(), 8000, 'bringToFront');
-  await sleep(2500);
-  try {
-    const btns = page.locator('.wz-cc-container button, .wz-cc-buttons button');
-    const n = await btns.count();
-    for (let i = 0; i < n; i++) {
-      const t = (await btns.nth(i).innerText().catch(() => '')).toLowerCase();
-      if (/приемам|съглас|разбрах|получих|accept|agree|understand|ok|да/.test(t)) { await btns.nth(i).click({ timeout: 2000 }).catch(() => {}); break; }
-    }
-  } catch {}
-  await sleep(1000);
+  await sleep(3000);
+  await dismissBanners();
+  await sleep(800);
 
   // ── Post-warm-up session health gate ──────────────────────────────────────
   // The warm-up page.goto() fires 1-3 georss requests as the Waze app initialises.
@@ -505,24 +498,39 @@ async function collectWazePolice(tiles) {
     } catch { return false; }
   }
 
-  // Dismiss any cookie/GDPR/privacy banners that appear in incognito mode.
-  // Tries common Waze consent button selectors; silently skips if nothing found.
+  // Dismiss any cookie/GDPR/privacy banners (Waze, Didomi, OneTrust, custom).
+  // Uses DOM text search so it works regardless of CSS class names or CMP vendor.
   async function dismissBanners() {
-    const selectors = [
-      'button:has-text("I understand")',
-      'button:has-text("Accept all")',
-      'button:has-text("Accept")',
-      'button:has-text("Agree")',
-      '[data-testid="DesktopDialogConsent-AcceptButton"]',
-      '.waze-accept-cookie',
-    ];
-    for (const sel of selectors) {
+    const CONSENT_RE = /i understand|accept all|accept cookies|agree|разбрах|приемам|съгласен|съглас|получих|ok\b/i;
+    // Wait up to 5 s for any overlay/dialog to appear, then try to click it.
+    for (let pass = 0; pass < 3; pass++) {
       try {
-        const btn = page.locator(sel).first();
-        await btn.click({ timeout: 1500 });
-        await sleep(400);
-        return; // one banner at most
-      } catch { /* not present — try next */ }
+        const clicked = await page.evaluate((pattern) => {
+          // Find all visible buttons / links that look like consent actions.
+          const candidates = Array.from(
+            document.querySelectorAll('button, a[role="button"], [role="button"], input[type="button"], input[type="submit"]')
+          );
+          const re = new RegExp(pattern, 'i');
+          for (const el of candidates) {
+            const text = (el.innerText || el.value || el.getAttribute('aria-label') || '').trim();
+            if (!text || !re.test(text)) continue;
+            // Make sure the element is visible (not display:none etc.)
+            const rect = el.getBoundingClientRect();
+            if (rect.width === 0 && rect.height === 0) continue;
+            el.click();
+            return text; // return what we clicked so the caller can log it
+          }
+          return null;
+        }, CONSENT_RE.source);
+
+        if (clicked) {
+          console.log(`  [banner] dismissed: "${clicked}"`);
+          await sleep(600);
+          return;
+        }
+      } catch { /* page closed / evaluate error */ }
+
+      if (pass < 2) await sleep(1500); // give banner time to appear and retry
     }
   }
 
