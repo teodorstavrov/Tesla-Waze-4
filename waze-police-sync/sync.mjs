@@ -290,7 +290,7 @@ async function collectWazePolice(tiles) {
     console.log(`  ${collectProblem}`);
     return []; // graceful: nothing collected, alert e-mail will be sent
   }
-  const ctx = await browser.newContext();   // fresh incognito-like context — no cookies from prev runs
+  const ctx = browser.contexts()[0] || await browser.newContext();
   const page = await ctx.newPage();
   // Cap every Playwright action/navigation so nothing waits forever when the
   // network flaps. bringToFront has no timeout param, so wrap it via withTimeout.
