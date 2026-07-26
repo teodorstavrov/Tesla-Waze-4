@@ -3,7 +3,7 @@
 // Phase 22: live Tesla battery indicator with source label + tap-to-refresh.
 
 import { useSyncExternalStore, useState, useEffect, useCallback } from 'react'
-import { EventsListPanel } from '@/features/events/EventsListPanel'
+import { meetupStore } from '@/features/meetups/meetupStore'
 import { evStore } from '@/features/ev/evStore'
 import { filterStore } from '@/features/ev/filterStore'
 import { gpsStore } from '@/features/gps/gpsStore'
@@ -109,7 +109,6 @@ export function FloatingStatsCard() {
     if (teslaConnected) void teslaPoller.refresh()
   }, [teslaConnected])
 
-  const [showEvents, setShowEvents] = useState(false)
 
   // ── Mobile (phone): compact vertical pills ───────────────────────────
   if (isPhone) {
@@ -134,8 +133,6 @@ export function FloatingStatsCard() {
   }
 
   return (
-    <>
-    <EventsListPanel open={showEvents} onClose={() => setShowEvents(false)} />
     <div style={{
       position:      'absolute',
       top:           12,
@@ -206,9 +203,9 @@ export function FloatingStatsCard() {
       <Stat label={t('stats.gps')} value={gpsValue} accent={gpsAccent} />
     </div>
 
-    {/* СЪБИТИЕ button — opens events list panel */}
+    {/* СЪБИТИЯ button — opens meetups (social events) list */}
     <button
-      onClick={() => setShowEvents(true)}
+      onClick={() => { void meetupStore.fetch(); meetupStore.openList() }}
       style={{
         background:   '#e31937',
         border:       'none',
@@ -228,10 +225,9 @@ export function FloatingStatsCard() {
       onPointerUp={e    => { (e.currentTarget as HTMLButtonElement).style.opacity = '' }}
       onPointerLeave={e => { (e.currentTarget as HTMLButtonElement).style.opacity = '' }}
     >
-      СЪБИТИЕ
+      СЪБИТИЯ
     </button>
     </div>
-    </>
   )
 }
 
