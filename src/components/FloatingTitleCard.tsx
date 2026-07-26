@@ -1,68 +1,15 @@
-// ─── Top-left branding card + standalone speed-limit sign ─────────────
+// ─── Top-left branding card ─────────────────────────────────────────────
 import { useSyncExternalStore } from 'react'
 import { routeStore } from '@/features/route/routeStore'
 import { openRatingModal } from '@/components/RatingModal'
-import { speedLimitStore } from '@/features/speedlimit/speedLimitStore'
-import { gpsStore } from '@/features/gps/gpsStore'
 import { isTeslaBrowser } from '@/lib/browser'
 import { t, getLang, langStore } from '@/lib/locale'
-
-// ── Shared speed-limit badge (used in both nav and non-nav states) ─────
-function SpeedLimitBadge({ limit }: { limit: number | null }) {
-  return (
-    <div
-      aria-label={limit != null ? `Speed limit ${limit} km/h` : 'Speed limit unknown'}
-      style={{
-        width:          52,
-        height:         52,
-        borderRadius:   '50%',
-        background:     '#fff',
-        border:         '4px solid #e00',
-        boxShadow:      '0 2px 10px rgba(0,0,0,0.45)',
-        display:        'flex',
-        flexDirection:  'column',
-        alignItems:     'center',
-        justifyContent: 'center',
-        transition:     isTeslaBrowser ? undefined : 'opacity 0.3s',
-        opacity:        limit != null ? 1 : 0.25,
-        flexShrink:     0,
-      }}
-    >
-      {limit != null ? (
-        <span style={{
-          fontSize:           limit >= 100 ? 16 : 19,
-          fontWeight:         900,
-          color:              '#111',
-          letterSpacing:      '-0.5px',
-          fontVariantNumeric: 'tabular-nums',
-          lineHeight:         1,
-          fontFamily:         'system-ui, sans-serif',
-        }}>
-          {limit}
-        </span>
-      ) : (
-        <span style={{ fontSize: 11, color: '#bbb', lineHeight: 1 }}>—</span>
-      )}
-    </div>
-  )
-}
 
 export function FloatingTitleCard() {
   useSyncExternalStore(langStore.subscribe.bind(langStore), getLang, getLang)
   const routeActive = useSyncExternalStore(
     routeStore.subscribe.bind(routeStore),
     () => routeStore.getState().status === 'ok',
-    () => false,
-  )
-  const limit = useSyncExternalStore(
-    speedLimitStore.subscribe.bind(speedLimitStore),
-    () => speedLimitStore.getLimit(),
-    () => null,
-  )
-  // Only show sign when GPS is active (avoids phantom sign on first load)
-  const hasGps = useSyncExternalStore(
-    gpsStore.onPosition.bind(gpsStore),
-    () => gpsStore.getPosition() !== null,
     () => false,
   )
 
@@ -114,9 +61,6 @@ export function FloatingTitleCard() {
           ★
         </button>
       )}
-
-      {/* ── Speed limit sign ─────────────────────────────────────────── */}
-      {hasGps && <SpeedLimitBadge limit={limit} />}
     </div>
   )
 }

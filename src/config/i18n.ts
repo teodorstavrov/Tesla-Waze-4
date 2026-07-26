@@ -274,12 +274,6 @@ export const DICTIONARY = {
       errNoConn:        'Няма връзка. Опитайте отново.',
     },
 
-    speedo: {
-      kmh:         'км/ч',
-      speedLabel:  'км/ч',
-      noSignal:    'Скоростта не е налична',
-      slowDown:    'Намалете скоростта',
-    },
 
     nudge: {
       title:       '❤️ Хареса ли ти TesRadar?',
@@ -687,12 +681,6 @@ export const DICTIONARY = {
       errNoConn:        'No connection. Try again.',
     },
 
-    speedo: {
-      kmh:         'km/h',
-      speedLabel:  'km/h',
-      noSignal:    'Speed unavailable',
-      slowDown:    'Reduce speed',
-    },
 
     nudge: {
       title:       '❤️ Enjoying TesRadar?',
@@ -1091,12 +1079,6 @@ export const DICTIONARY = {
       errNoConn:        'Ingen tilkobling. Prøv igjen.',
     },
 
-    speedo: {
-      kmh:        'km/t',
-      speedLabel: 'km/t',
-      noSignal:   'Hastighet utilgjengelig',
-      slowDown:   'Senk hastigheten',
-    },
 
     nudge: {
       title:       '❤️ Liker du TesRadar?',
@@ -1374,12 +1356,6 @@ export const DICTIONARY = {
       errNoConn:        'Ingen anslutning. Försök igen.',
     },
 
-    speedo: {
-      kmh:        'km/h',
-      speedLabel: 'km/h',
-      noSignal:   'Hastighet otillgänglig',
-      slowDown:   'Sänk hastigheten',
-    },
 
     nudge: {
       title:       '❤️ Gillar du TesRadar?',
@@ -1657,12 +1633,6 @@ export const DICTIONARY = {
       errNoConn:        'Ei yhteyttä. Yritä uudelleen.',
     },
 
-    speedo: {
-      kmh:        'km/h',
-      speedLabel: 'km/h',
-      noSignal:   'Nopeus ei saatavilla',
-      slowDown:   'Hidasta',
-    },
 
     nudge: {
       title:       '❤️ Pidätkö TesRadarista?',
@@ -1939,12 +1909,6 @@ export const DICTIONARY = {
       errNoConn:        'Geen verbinding. Probeer opnieuw.',
     },
 
-    speedo: {
-      kmh:        'km/u',
-      speedLabel: 'km/u',
-      noSignal:   'Snelheid niet beschikbaar',
-      slowDown:   'Snelheid verminderen',
-    },
 
     nudge: {
       title:       '❤️ Geniet u van TesRadar?',
