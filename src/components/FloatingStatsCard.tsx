@@ -207,7 +207,7 @@ export function FloatingStatsCard() {
     <button
       onClick={() => { void meetupStore.fetch(); meetupStore.openList() }}
       style={{
-        background:   '#e31937',
+        background:   '#6366f1',
         border:       'none',
         borderRadius: 'clamp(10px, 3vw, 14px)',
         color:        '#fff',
@@ -216,16 +216,17 @@ export function FloatingStatsCard() {
         letterSpacing: '0.06em',
         padding:      '6px clamp(14px, 3.5vw, 22px)',
         cursor:       'pointer',
-        boxShadow:    '0 4px 16px rgba(227,25,55,0.4)',
+        boxShadow:    '0 4px 16px rgba(99,102,241,0.4)',
         touchAction:  'manipulation',
         userSelect:   'none',
         WebkitUserSelect: 'none',
+        textTransform: 'uppercase',
       }}
       onPointerDown={e  => { (e.currentTarget as HTMLButtonElement).style.opacity = '0.8' }}
       onPointerUp={e    => { (e.currentTarget as HTMLButtonElement).style.opacity = '' }}
       onPointerLeave={e => { (e.currentTarget as HTMLButtonElement).style.opacity = '' }}
     >
-      СЪБИТИЯ
+      {t('dock.meetupsBtn')}
     </button>
     </div>
   )

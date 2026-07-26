@@ -5,6 +5,7 @@
 import { useSyncExternalStore } from 'react'
 import { eventStore } from './eventStore'
 import { EVENT_EMOJI, EVENT_LABELS, EVENT_COLORS } from './types'
+import { t } from '@/lib/locale'
 
 function timeAgo(iso: string): string {
   const mins = Math.floor((Date.now() - new Date(iso).getTime()) / 60000)
@@ -60,7 +61,7 @@ export function EventsListPanel({ open, onClose }: { open: boolean; onClose: () 
           justifyContent: 'space-between',
         }}>
           <span style={{ fontSize: 17, fontWeight: 700, color: '#fff' }}>
-            Маркери {events.length > 0 && `(${events.length})`}
+            {t('stats.events')} {events.length > 0 && `(${events.length})`}
           </span>
           <button
             onClick={onClose}
@@ -78,7 +79,7 @@ export function EventsListPanel({ open, onClose }: { open: boolean; onClose: () 
               justifyContent: 'center',
               touchAction: 'manipulation',
             }}
-            aria-label="Затвори"
+            aria-label={t('common.close')}
           >
             ×
           </button>
@@ -87,7 +88,7 @@ export function EventsListPanel({ open, onClose }: { open: boolean; onClose: () 
         {/* Empty state */}
         {events.length === 0 && (
           <div style={{ padding: '32px 20px', color: 'rgba(255,255,255,0.4)', textAlign: 'center', fontSize: 15 }}>
-            Няма активни маркери
+            {t('events.noActive')}
           </div>
         )}
 

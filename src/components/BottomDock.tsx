@@ -123,7 +123,7 @@ export function BottomDock() {
             pointerEvents: 'none',
             letterSpacing: '0.04em',
           }}>
-            Engine Simulator
+            {t('dock.engineSimulator')}
           </div>
         )}
         <button

@@ -99,12 +99,14 @@ export const DICTIONARY = {
       stations:      'Станции',
       hideStations:  'Скрий станциите',
       showStations:  'Покажи станциите',
-      v8Off:         'V8 звук — изкл.',
-      v8Sport:       'V8 Sport',
-      v8Muscle:      'V8 Muscle 6L+',
-      v8Header:      'Open Header V8',
-      v8S63:         'S63 AMG V8',
-      v8W12:         'W12 Bentley',
+      v8Off:          'V8 звук — изкл.',
+      v8Sport:        'V8 Sport',
+      v8Muscle:       'V8 Muscle 6L+',
+      v8Header:       'Open Header V8',
+      v8S63:          'S63 AMG V8',
+      v8W12:          'W12 Bentley',
+      engineSimulator: 'Симулатор на двигател',
+      meetupsBtn:     'Събития',
     },
 
     events: {
@@ -122,6 +124,7 @@ export const DICTIONARY = {
       filterLabel:   'Филтри за зарядни станции',
       reportWhat:    'Какво докладвате?',
       reportTitle:   'Докладвай събитие',
+      noActive:      'Няма активни маркери',
     },
 
     filter: {
@@ -506,12 +509,14 @@ export const DICTIONARY = {
       stations:      'Stations',
       hideStations:  'Hide stations',
       showStations:  'Show stations',
-      v8Off:         'V8 Sound — off',
-      v8Sport:       'V8 Sport',
-      v8Muscle:      'V8 Muscle 6L+',
-      v8Header:      'Open Header V8',
-      v8S63:         'S63 AMG V8',
-      v8W12:         'W12 Bentley',
+      v8Off:          'V8 Sound — off',
+      v8Sport:        'V8 Sport',
+      v8Muscle:       'V8 Muscle 6L+',
+      v8Header:       'Open Header V8',
+      v8S63:          'S63 AMG V8',
+      v8W12:          'W12 Bentley',
+      engineSimulator: 'Engine Simulator',
+      meetupsBtn:     'Events',
     },
 
     events: {
@@ -529,6 +534,7 @@ export const DICTIONARY = {
       filterLabel:   'EV station filters',
       reportWhat:    'What are you reporting?',
       reportTitle:   'Report an event',
+      noActive:      'No active markers',
     },
 
     filter: {
@@ -908,8 +914,16 @@ export const DICTIONARY = {
       route:         'Rute',
       cancelRoute:   'Avbryt rute',
       stations:      'Stasjoner',
-      hideStations:  'Skjul stasjoner',
-      showStations:  'Vis stasjoner',
+      hideStations:   'Skjul stasjoner',
+      showStations:   'Vis stasjoner',
+      v8Off:          'V8 lyd — av',
+      v8Sport:        'V8 Sport',
+      v8Muscle:       'V8 Muscle 6L+',
+      v8Header:       'Open Header V8',
+      v8S63:          'S63 AMG V8',
+      v8W12:          'W12 Bentley',
+      engineSimulator: 'Motorsimulator',
+      meetupsBtn:     'Hendelser',
     },
 
     events: {
@@ -927,6 +941,7 @@ export const DICTIONARY = {
       filterLabel:   'Elbil-stasjonsfiltre',
       reportWhat:    'Hva rapporterer du?',
       reportTitle:   'Rapporter en hendelse',
+      noActive:      'Ingen aktive hendelser',
     },
 
     filter: {
@@ -1185,8 +1200,16 @@ export const DICTIONARY = {
       route:         'Rutt',
       cancelRoute:   'Avbryt rutt',
       stations:      'Stationer',
-      hideStations:  'Dölj stationer',
-      showStations:  'Visa stationer',
+      hideStations:   'Dölj stationer',
+      showStations:   'Visa stationer',
+      v8Off:          'V8 ljud — av',
+      v8Sport:        'V8 Sport',
+      v8Muscle:       'V8 Muscle 6L+',
+      v8Header:       'Open Header V8',
+      v8S63:          'S63 AMG V8',
+      v8W12:          'W12 Bentley',
+      engineSimulator: 'Motorsimulator',
+      meetupsBtn:     'Händelser',
     },
 
     events: {
@@ -1204,6 +1227,7 @@ export const DICTIONARY = {
       filterLabel:   'Elbilsstationsfilter',
       reportWhat:    'Vad rapporterar du?',
       reportTitle:   'Rapportera en händelse',
+      noActive:      'Inga aktiva händelser',
     },
 
     filter: {
@@ -1462,8 +1486,16 @@ export const DICTIONARY = {
       route:         'Reitti',
       cancelRoute:   'Peruuta reitti',
       stations:      'Asemat',
-      hideStations:  'Piilota asemat',
-      showStations:  'Näytä asemat',
+      hideStations:   'Piilota asemat',
+      showStations:   'Näytä asemat',
+      v8Off:          'V8 ääni — pois',
+      v8Sport:        'V8 Sport',
+      v8Muscle:       'V8 Muscle 6L+',
+      v8Header:       'Open Header V8',
+      v8S63:          'S63 AMG V8',
+      v8W12:          'W12 Bentley',
+      engineSimulator: 'Moottorisimulaattori',
+      meetupsBtn:     'Tapahtumat',
     },
 
     events: {
@@ -1481,6 +1513,7 @@ export const DICTIONARY = {
       filterLabel:   'Sähköautoasemasuodattimet',
       reportWhat:    'Mitä ilmoitat?',
       reportTitle:   'Ilmoita tapahtuma',
+      noActive:      'Ei aktiivisia tapahtumia',
     },
 
     filter: {
@@ -1738,8 +1771,16 @@ export const DICTIONARY = {
       route:         'Route',
       cancelRoute:   'Route annuleren',
       stations:      'Laadpalen',
-      hideStations:  'Laadpalen verbergen',
-      showStations:  'Laadpalen tonen',
+      hideStations:   'Laadpalen verbergen',
+      showStations:   'Laadpalen tonen',
+      v8Off:          'V8 geluid — uit',
+      v8Sport:        'V8 Sport',
+      v8Muscle:       'V8 Muscle 6L+',
+      v8Header:       'Open Header V8',
+      v8S63:          'S63 AMG V8',
+      v8W12:          'W12 Bentley',
+      engineSimulator: 'Motorsimulator',
+      meetupsBtn:     'Evenementen',
     },
 
     events: {
@@ -1757,6 +1798,7 @@ export const DICTIONARY = {
       filterLabel:   'EV-laadpaalfilters',
       reportWhat:    'Wat meldt u?',
       reportTitle:   'Melding maken',
+      noActive:      'Geen actieve meldingen',
     },
 
     filter: {
