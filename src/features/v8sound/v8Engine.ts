@@ -155,7 +155,7 @@ const W12_CONFIG: V8Config = {
   bpfMult:    1.8,     // BPF center = hz × 1.8 → stays in bass at all speeds
   bpfMaxHz:   350,     // hard cap: never above 350 Hz even at 333 km/h
   lpfFreq:    380,     // aggressive high-cut — nothing above 380 Hz passes through
-  masterVol:  0.38,    // slightly louder to compensate for low-frequency headroom
+  masterVol:  0.55,    // boosted to compensate for bass-frequency perceptual loudness gap
   enableExhaustPop: false,
 }
 

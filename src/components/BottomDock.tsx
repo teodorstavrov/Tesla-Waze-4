@@ -311,6 +311,8 @@ function V8VolumePanel({
   accentColor: string
   onChange:    (v: number) => void
 }) {
+  const [collapsed, setCollapsed] = React.useState(false)
+
   const MIN = 0.5
   const MAX = 5.0
   const STEP = 0.5
@@ -323,17 +325,18 @@ function V8VolumePanel({
   return (
     <div style={{
       position:          'absolute',
-      bottom:            'calc(100% + 10px)',
-      left:              '50%',
-      transform:         'translateX(-50%)',
-      width:             224,
+      right:             'calc(100% + 10px)',
+      top:               '50%',
+      transform:         'translateY(-50%)',
+      width:             collapsed ? 'auto' : 224,
+      minWidth:          collapsed ? 80 : undefined,
       background:        'rgba(14,14,22,0.90)',
       border:            `1px solid ${accentColor}44`,
       backdropFilter:    'blur(14px)',
       WebkitBackdropFilter: 'blur(14px)',
       borderRadius:      14,
       boxShadow:         `0 4px 24px rgba(0,0,0,0.5), 0 0 0 1px ${accentColor}22`,
-      padding:           '10px 12px 10px',
+      padding:           collapsed ? '8px 12px' : '10px 12px 10px',
       display:           'flex',
       flexDirection:     'column',
       gap:               6,
@@ -341,18 +344,24 @@ function V8VolumePanel({
       WebkitUserSelect:  'none',
     }}>
 
-      {/* Label row */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      {/* Label row — tap to toggle */}
+      <div
+        onPointerDown={() => setCollapsed(c => !c)}
+        style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, cursor: 'pointer', touchAction: 'manipulation' }}
+      >
         <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-          Volume
+          Vol
         </span>
-        <span style={{ fontSize: 15, fontWeight: 700, color: accentColor, letterSpacing: '0.04em', minWidth: 40, textAlign: 'right' }}>
+        <span style={{ fontSize: 15, fontWeight: 700, color: accentColor, letterSpacing: '0.04em' }}>
           ×{volume.toFixed(1)}
+        </span>
+        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.35)', lineHeight: 1, transform: collapsed ? 'rotate(90deg)' : 'rotate(-90deg)', display: 'inline-block' }}>
+          ▲
         </span>
       </div>
 
-      {/* Slider row */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      {/* Slider + markers — hidden when collapsed */}
+      {!collapsed && <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
 
         {/* − button */}
         <button
@@ -408,17 +417,18 @@ function V8VolumePanel({
             lineHeight: 1,
           }}
         >+</button>
-      </div>
+      </div>}
 
-      {/* Scale markers */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', paddingInline: 44 }}>
-        {[1, 2, 3, 4, 5].map(v => (
-          <span key={v} style={{
-            fontSize: 9, color: volume >= v ? accentColor : 'rgba(255,255,255,0.25)',
-            fontWeight: volume >= v ? 700 : 400, transition: 'color 0.1s',
-          }}>×{v}</span>
-        ))}
-      </div>
+      {!collapsed && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', paddingInline: 44 }}>
+          {[1, 2, 3, 4, 5].map(v => (
+            <span key={v} style={{
+              fontSize: 9, color: volume >= v ? accentColor : 'rgba(255,255,255,0.25)',
+              fontWeight: volume >= v ? 700 : 400, transition: 'color 0.1s',
+            }}>×{v}</span>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
