@@ -171,6 +171,7 @@ class V8EngineSound {
   private bpf:        BiquadFilterNode | null = null
   private _running    = false
   private unsubGps:   (() => void) | null     = null
+  private _volMult    = 1.0
 
   // rAF interpolation
   private _targetHz        = 50
@@ -256,6 +257,12 @@ class V8EngineSound {
       this._targetHz = this._toHz(speedToRpm(kmh, this.cfg.gears))
       if (this.cfg.enableExhaustPop) this._checkDecel(kmh)
     })
+  }
+
+  setVolumeMultiplier(m: number): void {
+    this._volMult = Math.max(0, m)
+    if (this.masterGain && this.ctx)
+      this.masterGain.gain.setTargetAtTime(this.cfg.masterVol * this._volMult, this.ctx.currentTime, 0.1)
   }
 
   stop(): void {

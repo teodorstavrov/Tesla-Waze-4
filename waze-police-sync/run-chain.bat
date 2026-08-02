@@ -25,6 +25,32 @@ for /f "tokens=1,2" %%a in ('powershell -NoProfile -Command "Get-Date -Format \"
 
 call :log "================ CHAIN START ================"
 
+REM ── Pre-run throttle guard ──────────────────────────────────────────────────
+REM If the last run was IP-throttled and the 90-min quiet window hasn't expired,
+REM skip this cycle entirely. Hitting Waze again while blocked only deepens it.
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$f='.wazesync-throttle';" ^
+  "if(Test-Path $f){" ^
+  "  $ts=[long](Get-Content $f -Raw -ErrorAction SilentlyContinue);" ^
+  "  if($ts -gt 0){" ^
+  "    $ageMs=[long]((Get-Date -UFormat %%s)*1000) - $ts;" ^
+  "    $remMs=90*60*1000 - $ageMs;" ^
+  "    if($remMs -gt 0){" ^
+  "      $remMin=[math]::Ceiling($remMs/60000);" ^
+  "      Write-Host \"[throttle-guard] IP still throttled (~${remMin}min remaining) -- skipping this cycle.\";" ^
+  "      exit 2}" ^
+  "  }" ^
+  "}" ^
+  "exit 0"
+if %ERRORLEVEL% EQU 2 (
+  call :log "THROTTLE GUARD: skipped run -- IP still in Waze quiet window."
+  call :log "================ CHAIN SKIPPED ================"
+  powershell -NoProfile -ExecutionPolicy Bypass -File "rotate-log.ps1" -Log "%CHAINLOG%" -Tmp "%CHAINCUR%" -Keep 30 -Marker "##### CHAIN "
+  ping -n 11 127.0.0.1 >nul
+  endlocal
+  exit /b 2
+)
+
 REM Make sure the debug Chrome is up (launch it if the port is dead).
 call :ensure_chrome
 
@@ -41,11 +67,15 @@ call "%DIR%\waze-sync.bat" cities
 set "RC=!ERRORLEVEL!"
 call :log "PHASE: CITIES  -- END (exit !RC!)"
 if "!RC!"=="0" goto :cities_ok
+if "!RC!"=="3" goto :cities_guard_skip
 if "!RC!"=="4" goto :cities_partial
 call :log "CITIES hard-blocked/failed (exit !RC!) -- next scheduled cycle will retry."
 goto :cities_done
 :cities_ok
 call :log "CITIES passed cleanly."
+goto :cities_done
+:cities_guard_skip
+call :log "CITIES skipped by WazeGuard (exit 3) -- cooldown or circuit OPEN."
 goto :cities_done
 :cities_partial
 call :log "CITIES partially incomplete (exit 4) -- good enough; missing cities fill next cycle."

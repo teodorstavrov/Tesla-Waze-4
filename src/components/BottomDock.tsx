@@ -28,6 +28,21 @@ export function BottomDock() {
   type V8Mode = 'off' | 'sport' | 'muscle' | 'header' | 's63' | 'w12'
   const [v8Mode,    setV8Mode]    = useState<V8Mode>('off')
   const [v8Loading, setV8Loading] = useState(false)
+  const [v8Volume,  setV8Volume]  = useState(1.0)   // 1.0 = default, range 0.5-5
+
+  function applyVolume(mode: V8Mode, mult: number) {
+    if (mode === 'sport')  v8SportEngine.setVolumeMultiplier(mult)
+    if (mode === 'muscle') v8MuscleEngine.setVolumeMultiplier(mult)
+    if (mode === 'header') v8HeaderEngine.setVolumeMultiplier(mult)
+    if (mode === 's63')    v8AmgEngine.setVolumeMultiplier(mult)
+    if (mode === 'w12')    v8W12Engine.setVolumeMultiplier(mult)
+  }
+
+  function setEngineVolume(mult: number) {
+    const clamped = Math.round(mult * 10) / 10
+    setV8Volume(clamped)
+    applyVolume(v8Mode, clamped)
+  }
 
   function showEngineToast() {
     if (engineToastTimer.current) clearTimeout(engineToastTimer.current)
@@ -40,25 +55,29 @@ export function BottomDock() {
     showEngineToast()
     if (v8Mode === 'off') {
       v8SportEngine.start()
+      v8SportEngine.setVolumeMultiplier(v8Volume)
       setV8Mode('sport')
     } else if (v8Mode === 'sport') {
       v8SportEngine.stop()
       v8MuscleEngine.start()
+      v8MuscleEngine.setVolumeMultiplier(v8Volume)
       setV8Mode('muscle')
     } else if (v8Mode === 'muscle') {
       v8MuscleEngine.stop()
       setV8Mode('header')
       setV8Loading(true)
       v8HeaderEngine.start()
-        .then(() => setV8Loading(false))
+        .then(() => { v8HeaderEngine.setVolumeMultiplier(v8Volume); setV8Loading(false) })
         .catch(() => { setV8Mode('off'); setV8Loading(false) })
     } else if (v8Mode === 'header') {
       v8HeaderEngine.stop()
       v8AmgEngine.start()
+      v8AmgEngine.setVolumeMultiplier(v8Volume)
       setV8Mode('s63')
     } else if (v8Mode === 's63') {
       v8AmgEngine.stop()
       v8W12Engine.start()
+      v8W12Engine.setVolumeMultiplier(v8Volume)
       setV8Mode('w12')
     } else {
       v8W12Engine.stop()
@@ -102,7 +121,9 @@ export function BottomDock() {
     }}>
       {/* V8 Sound cycle: off → sport → muscle → header → s63 → off */}
       <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-        {engineToast && (
+
+        {/* Engine Simulator toast — shown for 3s on mode change */}
+        {engineToast && v8Mode === 'off' && (
           <div style={{
             position: 'absolute',
             bottom: '100%',
@@ -125,6 +146,21 @@ export function BottomDock() {
           }}>
             {t('dock.engineSimulator')}
           </div>
+        )}
+
+        {/* Volume panel — visible while engine is running */}
+        {v8Mode !== 'off' && (
+          <V8VolumePanel
+            volume={v8Volume}
+            accentColor={
+              v8Mode === 'sport'  ? '#e31937'
+            : v8Mode === 'muscle' ? '#f59e0b'
+            : v8Mode === 'header' ? '#10b981'
+            : v8Mode === 's63'   ? '#8b5cf6'
+            :                       '#eab308'
+            }
+            onChange={setEngineVolume}
+          />
         )}
         <button
           className="icon-btn"
@@ -259,6 +295,129 @@ export function BottomDock() {
         >
           <RouteIcon />
         </button>
+      </div>
+    </div>
+  )
+}
+
+// ── Volume panel ──────────────────────────────────────────────────────────────
+
+function V8VolumePanel({
+  volume,
+  accentColor,
+  onChange,
+}: {
+  volume:      number
+  accentColor: string
+  onChange:    (v: number) => void
+}) {
+  const MIN = 0.5
+  const MAX = 5.0
+  const STEP = 0.5
+
+  const dec = () => onChange(Math.max(MIN, Math.round((volume - STEP) * 10) / 10))
+  const inc = () => onChange(Math.min(MAX, Math.round((volume + STEP) * 10) / 10))
+
+  const pct = ((volume - MIN) / (MAX - MIN)) * 100
+
+  return (
+    <div style={{
+      position:          'absolute',
+      bottom:            'calc(100% + 10px)',
+      left:              '50%',
+      transform:         'translateX(-50%)',
+      width:             224,
+      background:        'rgba(14,14,22,0.90)',
+      border:            `1px solid ${accentColor}44`,
+      backdropFilter:    'blur(14px)',
+      WebkitBackdropFilter: 'blur(14px)',
+      borderRadius:      14,
+      boxShadow:         `0 4px 24px rgba(0,0,0,0.5), 0 0 0 1px ${accentColor}22`,
+      padding:           '10px 12px 10px',
+      display:           'flex',
+      flexDirection:     'column',
+      gap:               6,
+      userSelect:        'none',
+      WebkitUserSelect:  'none',
+    }}>
+
+      {/* Label row */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: 10, color: 'rgba(255,255,255,0.45)', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+          Volume
+        </span>
+        <span style={{ fontSize: 15, fontWeight: 700, color: accentColor, letterSpacing: '0.04em', minWidth: 40, textAlign: 'right' }}>
+          ×{volume.toFixed(1)}
+        </span>
+      </div>
+
+      {/* Slider row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+
+        {/* − button */}
+        <button
+          onPointerDown={dec}
+          style={{
+            width: 36, height: 36, borderRadius: 9,
+            background: 'rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.14)',
+            color: '#fff', fontSize: 20, fontWeight: 300,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', flexShrink: 0, touchAction: 'manipulation',
+            lineHeight: 1,
+          }}
+        >−</button>
+
+        {/* Custom track + thumb */}
+        <div style={{ flex: 1, position: 'relative', height: 36, display: 'flex', alignItems: 'center' }}>
+          {/* Track background */}
+          <div style={{
+            position: 'absolute', left: 0, right: 0, height: 5,
+            borderRadius: 3, background: 'rgba(255,255,255,0.12)',
+          }} />
+          {/* Filled portion */}
+          <div style={{
+            position: 'absolute', left: 0, width: `${pct}%`, height: 5,
+            borderRadius: 3, background: accentColor,
+            transition: 'width 0.07s',
+          }} />
+          {/* Native range (invisible, sits on top for touch interaction) */}
+          <input
+            type="range"
+            min={MIN} max={MAX} step={STEP}
+            value={volume}
+            onChange={e => onChange(Number(e.target.value))}
+            style={{
+              position: 'absolute', inset: 0, width: '100%', height: '100%',
+              opacity: 0, cursor: 'pointer', margin: 0,
+              touchAction: 'manipulation',
+            }}
+          />
+        </div>
+
+        {/* + button */}
+        <button
+          onPointerDown={inc}
+          style={{
+            width: 36, height: 36, borderRadius: 9,
+            background: 'rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.14)',
+            color: '#fff', fontSize: 20, fontWeight: 300,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', flexShrink: 0, touchAction: 'manipulation',
+            lineHeight: 1,
+          }}
+        >+</button>
+      </div>
+
+      {/* Scale markers */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', paddingInline: 44 }}>
+        {[1, 2, 3, 4, 5].map(v => (
+          <span key={v} style={{
+            fontSize: 9, color: volume >= v ? accentColor : 'rgba(255,255,255,0.25)',
+            fontWeight: volume >= v ? 700 : 400, transition: 'color 0.1s',
+          }}>×{v}</span>
+        ))}
       </div>
     </div>
   )

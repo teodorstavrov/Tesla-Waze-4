@@ -91,6 +91,7 @@ class HybridAudioEngine {
   private synthBpf:   BiquadFilterNode | null      = null
   private synthGain:  GainNode | null              = null
   private masterGain: GainNode | null              = null
+  private _volMult    = 1.0
   private _running    = false
   private _loading    = false
   private unsubGps:   (() => void) | null          = null
@@ -205,6 +206,12 @@ class HybridAudioEngine {
     } finally {
       this._loading = false
     }
+  }
+
+  setVolumeMultiplier(m: number): void {
+    this._volMult = Math.max(0, m)
+    if (this.masterGain && this.ctx)
+      this.masterGain.gain.setTargetAtTime(this._volMult, this.ctx.currentTime, 0.1)
   }
 
   stop(): void {

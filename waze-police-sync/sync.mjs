@@ -23,6 +23,7 @@ import { chromium }                       from 'playwright';
 import { readFileSync, writeFileSync }     from 'fs';
 import { dirname, join }                   from 'path';
 import { fileURLToPath }                   from 'url';
+import { WazeGuard }                       from './lib/WazeGuard.js';
 
 // ----------------------------- CONFIG -----------------------------
 const CONFIG = {
@@ -229,6 +230,10 @@ let unresolvedTiles = [];
 // longer than BG's (which sync every 2h). null => let the server use its default
 // (police = 2h15m). Set in main() from the group argument.
 let markerTtlMs = null;
+
+// Total georss requests made this run (OK + 403 + 429). Set by collectWazePolice(),
+// read by WazeGuard.afterRun() to track the daily request budget.
+let _runGeoRequests = 0;
 
 // Mid-batch breather: pause after the Nth location in the main pass (0 = off).
 // Used for cities (20 locations) to let Waze's per-IP rate budget recover at the
@@ -951,6 +956,7 @@ async function collectWazePolice(tiles) {
       ` 429:${sh.total429} (${blockRatio}% blocked)` +
       ` | ${found.size} markers in ${elapsedMin}min (${mpm}/min)`,
     );
+    _runGeoRequests = totalReqs;
   }
 
   try { await page.close(); } catch {}     // close our tab so they don't pile up each run
@@ -1045,6 +1051,16 @@ async function main() {
     process.exit(1);
   }
 
+  // WazeGuard: pre-run check (circuit breaker, cooldown, risk score, budget)
+  const _guardArg = (process.argv[2] || 'all').toLowerCase();
+  const _guard = await WazeGuard.check(_guardArg);
+  if (!_guard.allow) {
+    console.log(`[WazeGuard] Run skipped.\nReason: ${_guard.reason}.\nResume after: ${_guard.resumeAfter}`);
+    process.exit(3);
+  }
+  if (_guard.mode && _guard.mode !== 'NORMAL')
+    console.log(`[WazeGuard] Mode: ${_guard.mode} (risk score: ${_guard.riskScore}/100)`);
+
   // Which group to scan: node sync.mjs <group>  (cities | route | all). Default: all.
   const arg = (process.argv[2] || 'all').toLowerCase();
   let tiles;
@@ -1053,9 +1069,31 @@ async function main() {
   else { console.error(`Unknown group "${arg}". Use: ${Object.keys(CONFIG.groups).join(' | ')} | all`); process.exit(1); }
 
   // Shuffle so Waze never sees the same scan sequence twice.
-  for (let i = tiles.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [tiles[i], tiles[j]] = [tiles[j], tiles[i]];
+  // Multi-point metro clusters (Varna-*, Sofia-*) are treated as a single unit
+  // so their sub-tiles are always scanned consecutively — splitting them across
+  // the map wastes navigation time and makes the scan pattern less coherent.
+  // All other cities and route points are individual shuffle units.
+  {
+    const METRO_PREFIXES = ['Varna', 'Sofia']; // name prefix → cluster kept together
+    const clusterMap = new Map();              // prefix  → [tile, ...]
+    const singles    = [];                     // individual tiles
+    for (const t of tiles) {
+      const prefix = METRO_PREFIXES.find(p => t.name.startsWith(p + '-'));
+      if (prefix) {
+        if (!clusterMap.has(prefix)) clusterMap.set(prefix, []);
+        clusterMap.get(prefix).push(t);
+      } else {
+        singles.push(t);
+      }
+    }
+    // Units = metro clusters + individual singles (each wrapped in a 1-element array)
+    const units = [...clusterMap.values(), ...singles.map(t => [t])];
+    // Fisher-Yates on units
+    for (let i = units.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [units[i], units[j]] = [units[j], units[i]];
+    }
+    tiles = units.flat();
   }
   console.log(`Group: ${arg} (${tiles.length} locations). Order: ${tiles.map(t => t.name).join(', ')}`);
   try {
@@ -1064,10 +1102,12 @@ async function main() {
     console.log(`Outbound IP: ${ip}`);
   } catch { console.log('Outbound IP: (lookup failed)'); }
 
-  // NL/BE now sync once a day (04:00), so their markers must survive until the
-  // next scan: 25h = 24h + 1h buffer (no gap before the next 04:00 run).
-  // BG (cities/route) keeps the server default (2h15m) by leaving markerTtlMs null.
-  markerTtlMs = (arg === 'nl' || arg === 'be') ? 25 * 60 * 60 * 1000 : null; // 25 hours
+  // NL/BE sync once a day: markers live 25h (24h + 1h buffer).
+  // Route syncs every 4h: markers live 4h15m (4h + 15min buffer so nothing expires early).
+  // Cities keeps the server default (2h15m) by leaving markerTtlMs null.
+  markerTtlMs = (arg === 'nl' || arg === 'be') ? 25 * 60 * 60 * 1000          // 25 h
+              : arg === 'route'                 ? (4 * 60 + 15) * 60 * 1000    // 4 h 15 min
+              : null;
 
   // Cities (20 locations): 3-minute breather between the first 10 and the next 10.
   if (arg === 'cities') { midPauseAfter = 10; midPauseMs = 3 * 60 * 1000; }
@@ -1206,6 +1246,16 @@ async function main() {
     code = 1;
   }
   clearTimeout(watchdog);
+  // WazeGuard: record result → update circuit state, risk score, event log
+  try {
+    await WazeGuard.afterRun({
+      group:          process.argv[2] || 'all',
+      warmupThrottled,
+      code,
+      requestCount:   _runGeoRequests,
+      alertFn:        sendAlert,
+    });
+  } catch (e) { console.warn('[WazeGuard] afterRun error:', e.message); }
   // Make the exit code reliable: if the browser/CDP closed, Node may drain and
   // exit on its own BEFORE the unref'd timer below — without this it would exit
   // 0 even on a crash, and the chain would wrongly treat the run as "clean".
