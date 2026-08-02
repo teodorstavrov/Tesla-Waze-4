@@ -311,7 +311,7 @@ function V8VolumePanel({
   accentColor: string
   onChange:    (v: number) => void
 }) {
-  const [collapsed, setCollapsed] = React.useState(false)
+  const [collapsed, setCollapsed] = useState(false)
 
   const MIN = 0.5
   const MAX = 5.0
