@@ -284,29 +284,5 @@ class HybridAudioEngine {
   }
 }
 
-// ── Dodge Hellcat SRT 6.2L Supercharged V8 ───────────────────────────────
-// 8-speed TorqueFlite. Massive torque, aggressive supercharger note, interior mic.
-const HELLCAT_GEARS: ReadonlyArray<GearBand> = [
-  { maxKmh:   5, minRpm:  850, maxRpm:  850 },   // idle
-  { maxKmh:  45, minRpm:  900, maxRpm: 6200 },   // 1st
-  { maxKmh:  85, minRpm: 1200, maxRpm: 6200 },   // 2nd
-  { maxKmh: 125, minRpm: 1200, maxRpm: 6200 },   // 3rd
-  { maxKmh: 165, minRpm: 1300, maxRpm: 6200 },   // 4th
-  { maxKmh: 200, minRpm: 1400, maxRpm: 6200 },   // 5th
-  { maxKmh: 240, minRpm: 1600, maxRpm: 6200 },   // 6th
-  { maxKmh: 280, minRpm: 1800, maxRpm: 6200 },   // 7th
-  { maxKmh: 999, minRpm: 2000, maxRpm: 6200 },   // 8th
-]
-
-const HELLCAT_CONFIG: HybridConfig = {
-  url: '/engine-sounds/hellcat-v8.mp3', audioVol: 0.55, audioBaseRpm: 3500,
-  audioGears: HELLCAT_GEARS, synthGears: HELLCAT_GEARS,
-  // Synth layer adds depth and fills low-speed zones; real audio carries the character
-  distAmount: 130, osc1Vol: 0.40, osc2Ratio: 2.0, osc2Vol: 0.22,
-  lfoDepth: 0.14, lfo2Ratio: 0.5, lfo2Depth: 0.09,
-  bpfQ: 2.2, bpfMult: 2.2, lpfFreq: 850, synthVol: 0.22,
-}
-
-// ── Exported singletons ───────────────────────────────────────────────────
-export const v8HeaderEngine  = new HybridAudioEngine(HEADER_CONFIG)
-export const v8HellcatEngine = new HybridAudioEngine(HELLCAT_CONFIG)
+// ── Exported singleton ────────────────────────────────────────────────────
+export const v8HeaderEngine = new HybridAudioEngine(HEADER_CONFIG)
