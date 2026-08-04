@@ -8,6 +8,7 @@ import { routeStore } from '@/features/route/routeStore'
 import { langStore, t } from '@/lib/locale'
 import { v8SportEngine, v8MuscleEngine, v8AmgEngine, v8W12Engine } from '@/features/v8sound/v8Engine'
 import { v8HeaderEngine } from '@/features/v8sound/audioEngine'
+import { muscleCarEngine } from '@/features/enginePack/SampleEngine'
 
 export function BottomDock() {
   // Re-render on language change so button labels update
@@ -25,7 +26,7 @@ export function BottomDock() {
     () => false,
   )
 
-  type V8Mode = 'off' | 'sport' | 'muscle' | 'header' | 's63' | 'w12'
+  type V8Mode = 'off' | 'sport' | 'muscle' | 'header' | 's63' | 'w12' | 'musclecar'
   const [v8Mode,    setV8Mode]    = useState<V8Mode>('off')
   const [v8Loading, setV8Loading] = useState(false)
   const [v8Volume,  setV8Volume]  = useState(1.0)   // 1.0 = default, range 0.5-5
@@ -35,7 +36,8 @@ export function BottomDock() {
     if (mode === 'muscle') v8MuscleEngine.setVolumeMultiplier(mult)
     if (mode === 'header') v8HeaderEngine.setVolumeMultiplier(mult)
     if (mode === 's63')    v8AmgEngine.setVolumeMultiplier(mult)
-    if (mode === 'w12')    v8W12Engine.setVolumeMultiplier(mult)
+    if (mode === 'w12')      v8W12Engine.setVolumeMultiplier(mult)
+    if (mode === 'musclecar') muscleCarEngine.setVolumeMultiplier(mult)
   }
 
   function setEngineVolume(mult: number) {
@@ -79,17 +81,25 @@ export function BottomDock() {
       v8W12Engine.start()
       v8W12Engine.setVolumeMultiplier(v8Volume)
       setV8Mode('w12')
-    } else {
+    } else if (v8Mode === 'w12') {
       v8W12Engine.stop()
+      setV8Mode('musclecar')
+      setV8Loading(true)
+      muscleCarEngine.start()
+        .then(() => { muscleCarEngine.setVolumeMultiplier(v8Volume); setV8Loading(false) })
+        .catch(() => { setV8Mode('off'); setV8Loading(false) })
+    } else {
+      muscleCarEngine.stop()
       setV8Mode('off')
     }
   }
 
-  const v8Label = v8Mode === 'sport'  ? t('dock.v8Sport')
-               : v8Mode === 'muscle' ? t('dock.v8Muscle')
-               : v8Mode === 'header' ? t('dock.v8Header')
-               : v8Mode === 's63'   ? t('dock.v8S63')
-               : v8Mode === 'w12'   ? t('dock.v8W12')
+  const v8Label = v8Mode === 'sport'     ? t('dock.v8Sport')
+               : v8Mode === 'muscle'    ? t('dock.v8Muscle')
+               : v8Mode === 'header'    ? t('dock.v8Header')
+               : v8Mode === 's63'      ? t('dock.v8S63')
+               : v8Mode === 'w12'      ? t('dock.v8W12')
+               : v8Mode === 'musclecar' ? t('dock.v8MuscleCar')
                : t('dock.v8Off')
 
   const [engineToast, setEngineToast] = useState(false)
@@ -155,9 +165,10 @@ export function BottomDock() {
             accentColor={
               v8Mode === 'sport'  ? '#e31937'
             : v8Mode === 'muscle' ? '#f59e0b'
-            : v8Mode === 'header' ? '#10b981'
-            : v8Mode === 's63'   ? '#8b5cf6'
-            :                       '#eab308'
+            : v8Mode === 'header'    ? '#10b981'
+            : v8Mode === 's63'      ? '#8b5cf6'
+            : v8Mode === 'w12'      ? '#eab308'
+            :                          '#f97316'
             }
             onChange={setEngineVolume}
           />
@@ -433,11 +444,11 @@ function V8VolumePanel({
   )
 }
 
-type V8IconMode = 'off' | 'sport' | 'muscle' | 'header' | 's63' | 'w12'
+type V8IconMode = 'off' | 'sport' | 'muscle' | 'header' | 's63' | 'w12' | 'musclecar'
 
 function V8Icon({ mode, loading }: { mode: V8IconMode; loading?: boolean }) {
-  // Real-audio modes (header, s63) show a waveform icon
-  if (mode === 'header' || mode === 's63') {
+  // Real-audio modes show a waveform icon
+  if (mode === 'header' || mode === 's63' || mode === 'musclecar') {
     return (
       <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
         stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
