@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Engine Pack Builder — TesRadar Admin</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0a0f;color:#e8e8f0;font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;min-height:100vh}
+h1{font-size:20px;font-weight:700;letter-spacing:.06em;color:#fff}
+h2{font-size:12px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.4);margin-bottom:10px}
+.header{display:flex;align-items:center;gap:14px;padding:18px 24px;border-bottom:1px solid rgba(255,255,255,.07)}
+.badge{background:#e31937;color:#fff;font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;letter-spacing:.08em}
+.main{padding:24px;max-width:960px;margin:0 auto}
+/* Upload */
+.drop{border:2px dashed rgba(255,255,255,.15);border-radius:16px;padding:48px 24px;text-align:center;cursor:pointer;transition:border-color .2s,background .2s;position:relative}
+.drop:hover,.drop.over{border-color:#e31937;background:rgba(227,25,55,.05)}
+.drop input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.drop-icon{font-size:40px;margin-bottom:12px;opacity:.5}
+.drop-title{font-size:16px;font-weight:600;margin-bottom:6px}
+.drop-sub{font-size:12px;color:rgba(255,255,255,.4)}
+/* Progress */
+.progress-wrap{margin:20px 0;display:none}
+.progress-label{font-size:12px;color:rgba(255,255,255,.5);margin-bottom:6px}
+.progress-bar{height:4px;background:rgba(255,255,255,.1);border-radius:2px;overflow:hidden}
+.progress-fill{height:100%;background:#e31937;border-radius:2px;transition:width .15s;width:0}
+.status-msg{font-size:12px;color:rgba(255,255,255,.4);margin-top:8px}
+/* Canvas */
+.canvas-wrap{margin:20px 0;display:none}
+canvas{width:100%;border-radius:10px;background:#111118;display:block}
+/* Grid */
+.info-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:20px 0;display:none}
+.info-card{background:#111118;border-radius:10px;padding:12px 14px;border:1px solid rgba(255,255,255,.06)}
+.info-label{font-size:10px;color:rgba(255,255,255,.35);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
+.info-value{font-size:18px;font-weight:700;color:#fff}
+.info-unit{font-size:10px;color:rgba(255,255,255,.35);margin-left:2px}
+/* Samples */
+.samples-wrap{margin:20px 0;display:none}
+.sample-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}
+.sample-card{background:#111118;border-radius:10px;padding:10px 12px;border:1px solid rgba(255,255,255,.06);text-align:center;cursor:pointer;transition:border-color .2s}
+.sample-card:hover{border-color:rgba(227,25,55,.5)}
+.sample-card.playing{border-color:#e31937;background:rgba(227,25,55,.08)}
+.sample-card.found{border-color:rgba(34,197,94,.3)}
+.sample-card.missing{opacity:.45}
+.sample-rpm{font-size:18px;font-weight:800;color:#fff}
+.sample-dur{font-size:10px;color:rgba(255,255,255,.4);margin-top:2px}
+.sample-score{font-size:10px;margin-top:4px;padding:2px 6px;border-radius:4px;display:inline-block}
+.score-good{background:rgba(34,197,94,.15);color:#4ade80}
+.score-ok{background:rgba(234,179,8,.15);color:#fbbf24}
+.score-poor{background:rgba(239,68,68,.15);color:#f87171}
+/* Export */
+.export-wrap{margin:24px 0;display:none}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:12px 22px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;border:none;transition:opacity .15s}
+.btn:hover{opacity:.85}
+.btn-primary{background:#e31937;color:#fff}
+.btn-secondary{background:rgba(255,255,255,.08);color:#fff;border:1px solid rgba(255,255,255,.12)}
+.btn:disabled{opacity:.3;cursor:not-allowed}
+.engine-name-row{display:flex;gap:10px;margin-bottom:16px;align-items:center}
+.engine-name-row input{flex:1;background:#111118;border:1px solid rgba(255,255,255,.12);border-radius:8px;padding:10px 14px;color:#fff;font-size:14px;outline:none}
+.engine-name-row input:focus{border-color:rgba(227,25,55,.6)}
+/* Log */
+.log{background:#060609;border-radius:10px;padding:14px;font-family:'Courier New',monospace;font-size:11px;color:rgba(255,255,255,.5);max-height:200px;overflow-y:auto;margin-top:16px;display:none;line-height:1.7}
+.log .ok{color:#4ade80}
+.log .warn{color:#fbbf24}
+.log .err{color:#f87171}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>Engine Pack Builder</h1>
+    <div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:2px">Extracts real engine loops from a recording</div>
+  </div>
+  <span class="badge">ADMIN</span>
+</div>
+
+<div class="main">
+
+  <!-- Upload -->
+  <div class="drop" id="drop">
+    <input type="file" id="fileInput" accept=".mp3,.wav,.ogg,.m4a,.flac">
+    <div class="drop-icon">🎵</div>
+    <div class="drop-title">Drop engine recording here</div>
+    <div class="drop-sub">MP3 · WAV · OGG · M4A · FLAC</div>
+  </div>
+
+  <!-- Progress -->
+  <div class="progress-wrap" id="progressWrap">
+    <div class="progress-label" id="progressLabel">Analyzing…</div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+    <div class="status-msg" id="statusMsg"></div>
+  </div>
+
+  <!-- Waveform + RPM canvas -->
+  <div class="canvas-wrap" id="canvasWrap">
+    <h2>Waveform + RPM Timeline</h2>
+    <canvas id="waveCanvas" height="90"></canvas>
+    <canvas id="rpmCanvas" height="130" style="margin-top:6px"></canvas>
+  </div>
+
+  <!-- Stats -->
+  <div class="info-grid" id="infoGrid">
+    <div class="info-card"><div class="info-label">Duration</div><div class="info-value" id="statDur">—</div></div>
+    <div class="info-card"><div class="info-label">Sample rate</div><div class="info-value" id="statSr">—</div></div>
+    <div class="info-card"><div class="info-label">Cylinders</div><div class="info-value" id="statCyl">—</div></div>
+    <div class="info-card"><div class="info-label">Idle RPM</div><div class="info-value" id="statIdle">—</div></div>
+    <div class="info-card"><div class="info-label">Max RPM</div><div class="info-value" id="statMax">—</div></div>
+    <div class="info-card"><div class="info-label">Gear shifts</div><div class="info-value" id="statGear">—</div></div>
+  </div>
+
+  <!-- Samples -->
+  <div class="samples-wrap" id="samplesWrap">
+    <h2>Extracted Loops — click to preview</h2>
+    <div class="sample-grid" id="sampleGrid"></div>
+  </div>
+
+  <!-- Export -->
+  <div class="export-wrap" id="exportWrap">
+    <h2>Export Engine Pack</h2>
+    <div class="engine-name-row">
+      <input id="engineName" placeholder="Engine name (e.g. Dodge Hellcat 6.2L V8)" />
+      <input id="engineId" placeholder="ID (e.g. hellcat_v8)" style="max-width:180px" />
+    </div>
+    <button class="btn btn-primary" id="exportBtn">⬇ Download Engine Pack ZIP</button>
+  </div>
+
+  <!-- Log -->
+  <div class="log" id="log"></div>
+
+</div>
+
+<script>
+'use strict';
+
+// ─── State ───────────────────────────────────────────────────────────────────
+let G = {
+  audioBuffer: null,
+  sampleRate:  0,
+  rpmTimeline: [],   // [{time, rpm, energy}]
+  cylPairs:    4,
+  idleRPM:     0,
+  maxRPM:      0,
+  gearShifts:  [],
+  loops:       [],   // [{rpm, startSec, endSec, score, label}]
+  previewCtx:  null,
+  previewSrc:  null,
+};
+
+const TARGET_RPMS = [800, 1200, 1800, 2500, 3200, 4000, 4800, 5600, 6400];
+
+// ─── Logging ─────────────────────────────────────────────────────────────────
+const $log = document.getElementById('log');
+function log(msg, cls = '') {
+  $log.style.display = 'block';
+  const d = document.createElement('div');
+  if (cls) d.className = cls;
+  d.textContent = msg;
+  $log.appendChild(d);
+  $log.scrollTop = $log.scrollHeight;
+}
+
+// ─── Progress ────────────────────────────────────────────────────────────────
+function setProgress(pct, label, msg = '') {
+  const w = document.getElementById('progressWrap');
+  w.style.display = 'block';
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressLabel').textContent = label;
+  document.getElementById('statusMsg').textContent = msg;
+}
+
+// ─── FFT (Cooley-Tukey, radix-2) ─────────────────────────────────────────────
+function fft(re, im) {
+  const n = re.length;
+  // bit-reversal
+  for (let i = 1, j = 0; i < n; i++) {
+    let bit = n >> 1;
+    for (; j & bit; bit >>= 1) j ^= bit;
+    j ^= bit;
+    if (i < j) { [re[i],re[j]]=[re[j],re[i]]; [im[i],im[j]]=[im[j],im[i]]; }
+  }
+  for (let len = 2; len <= n; len <<= 1) {
+    const ang = -2 * Math.PI / len;
+    const wr = Math.cos(ang), wi = Math.sin(ang);
+    for (let i = 0; i < n; i += len) {
+      let cr = 1, ci = 0;
+      for (let k = 0; k < len >> 1; k++) {
+        const p = i + k, q = i + k + (len >> 1);
+        const vr = re[q]*cr - im[q]*ci;
+        const vi = re[q]*ci + im[q]*cr;
+        re[q] = re[p]-vr; im[q] = im[p]-vi;
+        re[p] += vr;      im[p] += vi;
+        [cr, ci] = [cr*wr - ci*wi, cr*wi + ci*wr];
+      }
+    }
+  }
+}
+
+function hannWindow(n) {
+  const w = new Float32Array(n);
+  for (let i = 0; i < n; i++) w[i] = 0.5 * (1 - Math.cos(2*Math.PI*i/(n-1)));
+  return w;
+}
+
+// Harmonic Product Spectrum — reinforces true fundamental, suppresses harmonics
+function hps(mag, order = 5) {
+  const n = mag.length;
+  const out = new Float32Array(n);
+  for (let i = 0; i < n; i++) out[i] = mag[i];
+  for (let h = 2; h <= order; h++) {
+    const lim = Math.floor(n / h);
+    for (let i = 0; i < lim; i++) out[i] *= mag[i * h];
+  }
+  for (let i = Math.floor(n / order); i < n; i++) out[i] = 0;
+  return out;
+}
+
+function peakInRange(spec, lo, hi) {
+  let best = lo, bv = 0;
+  for (let i = lo; i <= hi; i++) if (spec[i] > bv) { bv = spec[i]; best = i; }
+  return best;
+}
+
+// ─── Auto-detect cylinder pairs ──────────────────────────────────────────────
+function detectCylPairs(data, sr, fftSize, hopSize, hann) {
+  // Sample first 3 seconds or less
+  const testFrames = Math.min(50, Math.floor((data.length - fftSize) / hopSize));
+  const candidates = [2, 3, 4, 5, 6]; // I4, V6, V8, V10, W12
+  const scores = new Array(candidates.length).fill(0);
+
+  for (let f = 0; f < testFrames; f++) {
+    const off = f * hopSize;
+    const re = new Float32Array(fftSize);
+    const im = new Float32Array(fftSize);
+    for (let i = 0; i < fftSize && off+i < data.length; i++) re[i] = data[off+i] * hann[i];
+    fft(re, im);
+    const mag = new Float32Array(fftSize >> 1);
+    for (let i = 0; i < mag.length; i++) mag[i] = Math.hypot(re[i], im[i]);
+    const hpsSpec = hps(mag, 5);
+
+    for (let ci = 0; ci < candidates.length; ci++) {
+      const cp = candidates[ci];
+      // Plausible idle 600–1000 RPM → freq = rpm*cp/60
+      const minHz = 600 * cp / 60, maxHz = 1200 * cp / 60;
+      const minBin = Math.ceil(minHz * fftSize / sr);
+      const maxBin = Math.floor(maxHz * fftSize / sr);
+      if (minBin >= maxBin) continue;
+      const bin = peakInRange(hpsSpec, minBin, maxBin);
+      scores[ci] += hpsSpec[bin];
+    }
+  }
+  // Pick cylPairs with highest idle-frequency energy
+  let best = 0;
+  for (let i = 1; i < scores.length; i++) if (scores[i] > scores[best]) best = i;
+  return candidates[best];
+}
+
+// ─── Analyse audio → RPM timeline ────────────────────────────────────────────
+async function analyseAudio(buf) {
+  const data = buf.getChannelData(0);  // mono analysis
+  const sr   = buf.sampleRate;
+  const fftSize = 8192;
+  const hopSize = 1024;
+  const hann   = hannWindow(fftSize);
+
+  setProgress(10, 'Detecting cylinder count…');
+  await tick();
+
+  G.cylPairs = detectCylPairs(data, sr, fftSize, hopSize, hann);
+  log(`Detected: cylPairs = ${G.cylPairs}  (${G.cylPairs*2}-cylinder)`, 'ok');
+
+  const minHz = 400 * G.cylPairs / 60;  // 400 RPM lower bound
+  const maxHz = 9000 * G.cylPairs / 60; // 9000 RPM upper bound
+  const minBin = Math.ceil(minHz * fftSize / sr);
+  const maxBin = Math.min(Math.floor(maxHz * fftSize / sr), fftSize/2 - 1);
+
+  const frames = Math.floor((data.length - fftSize) / hopSize);
+  const timeline = [];
+
+  setProgress(15, 'FFT analysis…', `0 / ${frames} frames`);
+
+  for (let f = 0; f < frames; f++) {
+    const off = f * hopSize;
+    const re = new Float32Array(fftSize);
+    const im = new Float32Array(fftSize);
+    for (let i = 0; i < fftSize && off+i < data.length; i++) re[i] = data[off+i] * hann[i];
+    fft(re, im);
+    const mag = new Float32Array(fftSize >> 1);
+    for (let i = 0; i < mag.length; i++) mag[i] = Math.hypot(re[i], im[i]);
+    const hpsSpec = hps(mag, 5);
+    const bin = peakInRange(hpsSpec, minBin, maxBin);
+    const freq = bin * sr / fftSize;
+    const rpm  = freq * 60 / G.cylPairs;
+    const time = (off + fftSize / 2) / sr;
+    const energy = hpsSpec[bin];
+    timeline.push({ time, rpm, energy });
+
+    if (f % 50 === 0) {
+      setProgress(15 + 45 * f / frames, 'FFT analysis…', `${f} / ${frames} frames`);
+      await tick();
+    }
+  }
+
+  // Median smooth RPM (window=9)
+  const W = 9;
+  G.rpmTimeline = timeline.map((fr, i) => {
+    const slice = timeline.slice(Math.max(0, i-W), i+W+1).map(x=>x.rpm).sort((a,b)=>a-b);
+    return { ...fr, rpm: slice[Math.floor(slice.length/2)] };
+  });
+
+  // Stats
+  const rpms = G.rpmTimeline.map(f=>f.rpm).filter(r=>r>200 && r<12000);
+  G.idleRPM = percentile(rpms, 5);
+  G.maxRPM  = percentile(rpms, 95);
+
+  log(`Idle RPM ≈ ${G.idleRPM.toFixed(0)}   Max RPM ≈ ${G.maxRPM.toFixed(0)}`, 'ok');
+}
+
+function percentile(arr, p) {
+  const s = [...arr].sort((a,b)=>a-b);
+  return s[Math.floor(s.length * p / 100)] || 0;
+}
+
+// ─── Detect gear shifts ───────────────────────────────────────────────────────
+function detectGearShifts() {
+  const tl = G.rpmTimeline;
+  const shifts = [];
+  const windowSec = 0.3;
+  const fps = tl.length / (tl[tl.length-1]?.time || 1);
+  const wf = Math.round(windowSec * fps);
+
+  for (let i = wf; i < tl.length - wf; i++) {
+    const before = tl[i-wf].rpm;
+    const after  = tl[i+wf].rpm;
+    const drop   = before - after;
+    if (drop > before * 0.15 && drop > 300) {
+      shifts.push({ time: tl[i].time, fromRPM: before, toRPM: after });
+      i += Math.round(fps * 0.8); // skip 0.8s after shift
+    }
+  }
+  G.gearShifts = shifts;
+  log(`Gear shifts detected: ${shifts.length}`, shifts.length ? 'ok' : 'warn');
+}
+
+// ─── Find best loop at target RPM ────────────────────────────────────────────
+function findLoop(targetRPM, data, sr) {
+  const tl = G.rpmTimeline;
+
+  // 1. Score every frame: how close to targetRPM AND how stable locally
+  const WIN = 15; // frames
+  const scored = tl.map((fr, i) => {
+    const rpms = tl.slice(Math.max(0,i-WIN), i+WIN+1).map(f=>f.rpm);
+    const mean = rpms.reduce((a,b)=>a+b,0)/rpms.length;
+    const variance = rpms.reduce((a,b)=>a+(b-mean)**2,0)/rpms.length;
+    const deviation = Math.abs(fr.rpm - targetRPM);
+    // penalty: distance from target + RPM variance
+    const score = 1 / (1 + deviation/200 + Math.sqrt(variance)/500);
+    return { i, time: fr.time, score };
+  });
+
+  // Filter near gear shifts (avoid 0.5s around each shift)
+  const shiftTimes = new Set(G.gearShifts.map(g => Math.round(g.time * 10)));
+  const filtered = scored.filter(s => {
+    for (let t = -5; t <= 5; t++) {
+      if (shiftTimes.has(Math.round(s.time * 10) + t)) return false;
+    }
+    return s.score > 0.1;
+  });
+
+  if (!filtered.length) return null;
+
+  // 2. Pick the best-scoring frame as loop center
+  filtered.sort((a,b)=>b.score-a.score);
+  const best = filtered[0];
+
+  // 3. Compute one engine cycle duration at this RPM
+  const actualRPM = tl[best.i].rpm;
+  const cycleSec  = 60 / (actualRPM * G.cylPairs); // one firing cycle
+  const targetDur = Math.max(0.5, Math.min(2.5, 80 * cycleSec)); // aim ~80 cycles
+  const N         = Math.max(4, Math.round(targetDur / cycleSec));
+  const loopDur   = N * cycleSec;
+
+  // 4. Find zero crossing near center - loopDur/2
+  const centerSample = Math.round(best.time * sr);
+  const halfSamples  = Math.round(loopDur * sr / 2);
+  const startTarget  = centerSample - halfSamples;
+  const endTarget    = startTarget + Math.round(loopDur * sr);
+
+  if (startTarget < 0 || endTarget >= data.length) return null;
+
+  // 5. Snap start to nearest zero crossing (within ±cycleLength samples)
+  const cycSamples = Math.round(cycleSec * sr);
+  const startIdx   = nearestZeroCrossing(data, startTarget, cycSamples);
+  const loopSamples = N * cycSamples;
+  let   endIdx     = startIdx + loopSamples;
+  if (endIdx >= data.length) endIdx = startIdx + loopSamples - cycSamples;
+
+  // 6. Quality: correlation between loop-start region and loop-end region
+  const corrLen = Math.min(cycSamples * 2, 4096);
+  let corr = 0;
+  for (let k = 0; k < corrLen; k++) {
+    const a = startIdx + k < data.length ? data[startIdx + k] : 0;
+    const b = endIdx - corrLen + k;
+    const bv = b >= 0 && b < data.length ? data[b] : 0;
+    corr += a * bv;
+  }
+  corr = Math.max(0, corr / corrLen) / (rms(data, startIdx, corrLen) * rms(data, endIdx - corrLen, corrLen) + 1e-9);
+
+  return {
+    rpm:      actualRPM,
+    targetRPM,
+    startIdx,
+    endIdx,
+    startSec: startIdx / sr,
+    endSec:   endIdx / sr,
+    loopDur:  loopDur,
+    score:    Math.min(1, corr),
+    label:    targetRPM < 1000 ? 'idle' : `${targetRPM}`,
+  };
+}
+
+function nearestZeroCrossing(data, target, radius) {
+  const lo = Math.max(1, target - radius);
+  const hi = Math.min(data.length - 2, target + radius);
+  let best = target, bestVal = Infinity;
+  for (let i = lo; i < hi; i++) {
+    if (Math.sign(data[i]) !== Math.sign(data[i+1])) {
+      const d = Math.abs(i - target);
+      if (d < bestVal) { bestVal = d; best = i; }
+    }
+  }
+  return best;
+}
+
+function rms(data, start, len) {
+  let s = 0;
+  for (let i = 0; i < len; i++) {
+    const v = (start+i < data.length) ? data[start+i] : 0;
+    s += v * v;
+  }
+  return Math.sqrt(s / len);
+}
+
+// ─── Extract + render loop sample ────────────────────────────────────────────
+async function renderLoop(loop, srcBuf) {
+  const sr = srcBuf.sampleRate;
+  const nCh = srcBuf.numberOfChannels;
+  const len = loop.endIdx - loop.startIdx;
+  if (len <= 0) return null;
+
+  const ctx = new OfflineAudioContext(nCh, len, sr);
+  const src = ctx.createBufferSource();
+
+  // Copy the loop slice
+  const sliceBuf = ctx.createBuffer(nCh, len, sr);
+  for (let c = 0; c < nCh; c++) {
+    const ch = srcBuf.getChannelData(c);
+    const dst = sliceBuf.getChannelData(c);
+    for (let i = 0; i < len; i++) dst[i] = ch[loop.startIdx + i] || 0;
+  }
+
+  // 10ms fade in/out to prevent any click
+  const fadeLen = Math.min(Math.round(0.010 * sr), Math.floor(len / 4));
+  for (let c = 0; c < nCh; c++) {
+    const ch = sliceBuf.getChannelData(c);
+    for (let i = 0; i < fadeLen; i++) {
+      ch[i] *= i / fadeLen;
+      ch[len - 1 - i] *= i / fadeLen;
+    }
+  }
+
+  // Normalize to -3 dBFS
+  let peak = 0;
+  for (let c = 0; c < nCh; c++) {
+    const ch = sliceBuf.getChannelData(c);
+    for (let i = 0; i < len; i++) peak = Math.max(peak, Math.abs(ch[i]));
+  }
+  if (peak > 0) {
+    const gain = Math.min(0.707 / peak, 3.0);
+    for (let c = 0; c < nCh; c++) {
+      const ch = sliceBuf.getChannelData(c);
+      for (let i = 0; i < len; i++) ch[i] *= gain;
+    }
+  }
+
+  src.buffer = sliceBuf;
+  src.connect(ctx.destination);
+  src.start();
+  return ctx.startRendering();
+}
+
+// ─── AudioBuffer → WAV bytes ──────────────────────────────────────────────────
+function audioBufferToWav(buf) {
+  const nCh = buf.numberOfChannels;
+  const sr  = buf.sampleRate;
+  const len = buf.length;
+  const bitsPerSample = 16;
+  const blockAlign    = nCh * 2;
+  const byteRate      = sr * blockAlign;
+  const dataSize      = len * blockAlign;
+  const out = new DataView(new ArrayBuffer(44 + dataSize));
+
+  const ws = (o, s) => { for (let i=0;i<s.length;i++) out.setUint8(o+i,s.charCodeAt(i)); };
+  ws(0,'RIFF'); out.setUint32(4, 36+dataSize, true);
+  ws(8,'WAVE'); ws(12,'fmt ');
+  out.setUint32(16, 16, true); out.setUint16(20, 1, true);
+  out.setUint16(22, nCh, true); out.setUint32(24, sr, true);
+  out.setUint32(28, byteRate, true); out.setUint16(32, blockAlign, true);
+  out.setUint16(34, bitsPerSample, true); ws(36,'data');
+  out.setUint32(40, dataSize, true);
+
+  let off = 44;
+  for (let i = 0; i < len; i++) {
+    for (let c = 0; c < nCh; c++) {
+      const s = Math.max(-1, Math.min(1, buf.getChannelData(c)[i]));
+      out.setInt16(off, s < 0 ? s*0x8000 : s*0x7FFF, true);
+      off += 2;
+    }
+  }
+  return new Uint8Array(out.buffer);
+}
+
+// ─── ZIP builder (pure JS, no deps) ──────────────────────────────────────────
+const CRC32_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let i=0;i<256;i++) { let c=i; for(let k=0;k<8;k++) c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1); t[i]=c; }
+  return t;
+})();
+function crc32(data) {
+  let c = 0xFFFFFFFF;
+  for (let i=0;i<data.length;i++) c=CRC32_TABLE[(c^data[i])&0xFF]^(c>>>8);
+  return (c^0xFFFFFFFF)>>>0;
+}
+
+class SimpleZip {
+  constructor() { this._files=[]; this._central=[]; this._offset=0; }
+  add(name, data) {
+    const nb = new TextEncoder().encode(name);
+    const crc = crc32(data);
+    // Local header
+    const lh = new Uint8Array(30 + nb.length);
+    const lv = new DataView(lh.buffer);
+    lv.setUint32(0, 0x04034b50, true); lv.setUint16(4,20,true);
+    lv.setUint16(6,0,true); lv.setUint16(8,0,true);
+    lv.setUint16(10,0,true); lv.setUint16(12,0,true);
+    lv.setUint32(14,crc,true); lv.setUint32(18,data.length,true);
+    lv.setUint32(22,data.length,true); lv.setUint16(26,nb.length,true);
+    lv.setUint16(28,0,true); lh.set(nb,30);
+    // Central dir entry
+    const ch = new Uint8Array(46 + nb.length);
+    const cv = new DataView(ch.buffer);
+    cv.setUint32(0,0x02014b50,true); cv.setUint16(4,20,true); cv.setUint16(6,20,true);
+    cv.setUint16(8,0,true); cv.setUint16(10,0,true);
+    cv.setUint16(12,0,true); cv.setUint16(14,0,true);
+    cv.setUint32(16,crc,true); cv.setUint32(20,data.length,true);
+    cv.setUint32(24,data.length,true); cv.setUint16(28,nb.length,true);
+    cv.setUint16(30,0,true); cv.setUint16(32,0,true); cv.setUint16(34,0,true);
+    cv.setUint16(36,0,true); cv.setUint32(38,0,true);
+    cv.setUint32(42,this._offset,true); ch.set(nb,46);
+
+    this._files.push(lh, data);
+    this._central.push(ch);
+    this._offset += lh.length + data.length;
+  }
+  generate() {
+    const localSz   = this._files.reduce((s,f)=>s+f.length, 0);
+    const centralSz = this._central.reduce((s,c)=>s+c.length, 0);
+    const eocd = new Uint8Array(22);
+    const ev = new DataView(eocd.buffer);
+    ev.setUint32(0,0x06054b50,true); ev.setUint16(4,0,true); ev.setUint16(6,0,true);
+    ev.setUint16(8,this._central.length,true); ev.setUint16(10,this._central.length,true);
+    ev.setUint32(12,centralSz,true); ev.setUint32(16,localSz,true); ev.setUint16(20,0,true);
+    const total = new Uint8Array(localSz + centralSz + 22);
+    let off = 0;
+    for (const f of this._files)   { total.set(f, off); off += f.length; }
+    for (const c of this._central) { total.set(c, off); off += c.length; }
+    total.set(eocd, off);
+    return total;
+  }
+}
+
+// ─── Visualisation ───────────────────────────────────────────────────────────
+function drawWaveform(buf) {
+  const canvas = document.getElementById('waveCanvas');
+  const W = canvas.offsetWidth || 900;
+  canvas.width  = W * devicePixelRatio;
+  canvas.height = 90 * devicePixelRatio;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+  ctx.fillStyle = '#111118';
+  ctx.fillRect(0,0,W,90);
+
+  const data  = buf.getChannelData(0);
+  const step  = Math.max(1, Math.floor(data.length / W));
+  const half  = 45;
+
+  ctx.strokeStyle = 'rgba(227,25,55,0.55)';
+  ctx.lineWidth   = 1;
+  ctx.beginPath();
+  for (let x = 0; x < W; x++) {
+    let mn = 0, mx = 0;
+    const off = x * step;
+    for (let i = 0; i < step && off+i < data.length; i++) {
+      const v = data[off+i];
+      if (v < mn) mn = v; if (v > mx) mx = v;
+    }
+    ctx.moveTo(x, half + mn*half*0.9);
+    ctx.lineTo(x, half + mx*half*0.9);
+  }
+  ctx.stroke();
+
+  // Gear shifts
+  ctx.strokeStyle = 'rgba(251,191,36,0.7)';
+  ctx.lineWidth   = 1;
+  const dur = buf.duration;
+  for (const gs of G.gearShifts) {
+    const x = (gs.time / dur) * W;
+    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,90); ctx.stroke();
+  }
+
+  // Loop regions
+  for (const loop of G.loops) {
+    const x1 = (loop.startSec / dur) * W;
+    const x2 = (loop.endSec / dur) * W;
+    const alpha = 0.08 + 0.12 * loop.score;
+    ctx.fillStyle = `rgba(34,197,94,${alpha})`;
+    ctx.fillRect(x1, 0, x2-x1, 90);
+  }
+}
+
+function drawRPM(buf) {
+  const canvas = document.getElementById('rpmCanvas');
+  const W = canvas.offsetWidth || 900;
+  canvas.width  = W * devicePixelRatio;
+  canvas.height = 130 * devicePixelRatio;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(devicePixelRatio, devicePixelRatio);
+  ctx.fillStyle = '#111118';
+  ctx.fillRect(0,0,W,130);
+
+  const tl = G.rpmTimeline;
+  if (!tl.length) return;
+  const maxRPM = Math.max(...tl.map(f=>f.rpm), 1000);
+  const dur    = buf.duration;
+
+  // Target RPM lines
+  for (const tr of TARGET_RPMS) {
+    const y = 120 - (tr / maxRPM) * 110;
+    ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+    ctx.lineWidth   = 1;
+    ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+    ctx.font = '9px sans-serif';
+    ctx.fillText(tr, 4, y-2);
+  }
+
+  // RPM curve
+  ctx.strokeStyle = '#e31937';
+  ctx.lineWidth   = 1.5;
+  ctx.beginPath();
+  for (let i = 0; i < tl.length; i++) {
+    const x = (tl[i].time / dur) * W;
+    const y = 120 - (tl[i].rpm / maxRPM) * 110;
+    i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+
+  // Loop regions
+  for (const loop of G.loops) {
+    const x1 = (loop.startSec / dur) * W;
+    const x2 = (loop.endSec   / dur) * W;
+    const y  = 120 - (loop.targetRPM / maxRPM) * 110;
+    ctx.fillStyle = 'rgba(34,197,94,0.25)';
+    ctx.fillRect(x1, y-8, x2-x1, 16);
+  }
+}
+
+// ─── Build sample cards ───────────────────────────────────────────────────────
+function renderSampleGrid() {
+  const grid = document.getElementById('sampleGrid');
+  grid.innerHTML = '';
+
+  for (const loop of G.loops) {
+    const card = document.createElement('div');
+    card.className = 'sample-card' + (loop ? ' found' : ' missing');
+    const scoreClass = loop.score > 0.6 ? 'score-good' : loop.score > 0.3 ? 'score-ok' : 'score-poor';
+    const scoreLabel = loop.score > 0.6 ? '●  good' : loop.score > 0.3 ? '●  ok' : '●  short';
+    card.innerHTML = `
+      <div class="sample-rpm">${loop.targetRPM < 1000 ? 'IDLE' : loop.targetRPM}</div>
+      <div class="sample-dur">${(loop.endSec - loop.startSec).toFixed(2)}s loop</div>
+      <div class="sample-score ${scoreClass}">${scoreLabel}</div>`;
+    card.title = `RPM: ${loop.rpm.toFixed(0)}  Score: ${loop.score.toFixed(2)}  at ${loop.startSec.toFixed(2)}s`;
+    card.addEventListener('click', () => previewLoop(loop, card));
+    grid.appendChild(card);
+  }
+
+  document.getElementById('samplesWrap').style.display = 'block';
+}
+
+// ─── Preview loop in browser ──────────────────────────────────────────────────
+async function previewLoop(loop, card) {
+  if (G.previewSrc) { try { G.previewSrc.stop(); } catch {} }
+  document.querySelectorAll('.sample-card').forEach(c => c.classList.remove('playing'));
+  card.classList.add('playing');
+
+  const rendered = await renderLoop(loop, G.audioBuffer);
+  if (!rendered) return;
+
+  G.previewCtx = new AudioContext();
+  const gainNode = G.previewCtx.createGain();
+  gainNode.connect(G.previewCtx.destination);
+  G.previewSrc = G.previewCtx.createBufferSource();
+  G.previewSrc.buffer = rendered;
+  G.previewSrc.loop   = true;
+  G.previewSrc.connect(gainNode);
+  G.previewSrc.start();
+  G.previewSrc.onended = () => card.classList.remove('playing');
+
+  // Auto-stop after 6 seconds
+  setTimeout(() => {
+    try { G.previewSrc?.stop(); } catch {}
+    card.classList.remove('playing');
+  }, 6000);
+}
+
+// ─── Main analysis pipeline ───────────────────────────────────────────────────
+async function runAnalysis(file) {
+  document.getElementById('canvasWrap').style.display = 'none';
+  document.getElementById('infoGrid').style.display   = 'none';
+  document.getElementById('samplesWrap').style.display = 'none';
+  document.getElementById('exportWrap').style.display  = 'none';
+  $log.style.display = 'none'; $log.innerHTML = '';
+
+  setProgress(5, 'Decoding audio…');
+  await tick();
+
+  // Decode
+  const arrayBuf = await file.arrayBuffer();
+  const decCtx   = new AudioContext();
+  let srcBuf;
+  try {
+    srcBuf = await decCtx.decodeAudioData(arrayBuf);
+  } catch(e) {
+    setProgress(0, 'Error', 'Could not decode audio file.');
+    log('Decode failed: ' + e.message, 'err');
+    return;
+  }
+  await decCtx.close();
+  G.audioBuffer = srcBuf;
+  log(`Decoded: ${srcBuf.duration.toFixed(1)}s  ${srcBuf.sampleRate}Hz  ${srcBuf.numberOfChannels}ch`, 'ok');
+
+  // Analyse
+  await analyseAudio(srcBuf);
+  detectGearShifts();
+
+  setProgress(60, 'Finding loop points…');
+  await tick();
+
+  // Extract loops at all target RPMs
+  const data   = srcBuf.getChannelData(0);
+  const sr     = srcBuf.sampleRate;
+  G.loops = [];
+
+  for (let ti = 0; ti < TARGET_RPMS.length; ti++) {
+    const tRPM = TARGET_RPMS[ti];
+    setProgress(60 + 30 * ti / TARGET_RPMS.length, 'Finding loop points…', `${tRPM} RPM`);
+    await tick();
+    const loop = findLoop(tRPM, data, sr);
+    if (loop) {
+      G.loops.push(loop);
+      const q = loop.score > 0.6 ? 'good' : loop.score > 0.3 ? 'ok' : 'short';
+      log(`${tRPM} RPM → ${loop.startSec.toFixed(2)}s  loop ${(loop.endSec-loop.startSec).toFixed(2)}s  quality: ${q}`);
+    } else {
+      log(`${tRPM} RPM → not found in recording`, 'warn');
+    }
+  }
+
+  setProgress(95, 'Rendering visualisation…');
+  await tick();
+
+  // Show canvas
+  document.getElementById('canvasWrap').style.display = 'block';
+  await tick();
+  drawWaveform(srcBuf);
+  drawRPM(srcBuf);
+
+  // Stats
+  document.getElementById('statDur').textContent  = srcBuf.duration.toFixed(1);
+  document.getElementById('statSr').innerHTML     = `${(srcBuf.sampleRate/1000).toFixed(1)}<span class="info-unit">kHz</span>`;
+  document.getElementById('statCyl').textContent  = G.cylPairs * 2;
+  document.getElementById('statIdle').textContent = G.idleRPM.toFixed(0);
+  document.getElementById('statMax').textContent  = G.maxRPM.toFixed(0);
+  document.getElementById('statGear').textContent = G.gearShifts.length;
+  document.getElementById('infoGrid').style.display = 'grid';
+
+  renderSampleGrid();
+
+  document.getElementById('exportWrap').style.display = 'block';
+  setProgress(100, `Done — ${G.loops.length} loops extracted`);
+  log(`✓ Ready to export. ${G.loops.length}/${TARGET_RPMS.length} RPM zones extracted.`, 'ok');
+}
+
+// ─── Export ZIP ───────────────────────────────────────────────────────────────
+document.getElementById('exportBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('exportBtn');
+  btn.disabled = true;
+  btn.textContent = 'Rendering samples…';
+
+  const name = document.getElementById('engineName').value.trim() || 'Custom Engine';
+  const id   = document.getElementById('engineId').value.trim().replace(/\s+/g,'_').toLowerCase() || 'custom_engine';
+
+  const zip = new SimpleZip();
+  const sampleZones = [];
+  const encoder = new TextEncoder();
+
+  for (let i = 0; i < G.loops.length; i++) {
+    const loop = G.loops[i];
+    const fname = loop.targetRPM < 1000 ? 'idle' : `${loop.targetRPM}`;
+    btn.textContent = `Rendering ${fname}… (${i+1}/${G.loops.length})`;
+
+    const rendered = await renderLoop(loop, G.audioBuffer);
+    if (!rendered) continue;
+
+    const wav = audioBufferToWav(rendered);
+    zip.add(`samples/${fname}.wav`, wav);
+
+    sampleZones.push({
+      rpm:       loop.targetRPM,
+      file:      `samples/${fname}.wav`,
+      loopStart: 0,
+      loopEnd:   rendered.duration,
+      score:     parseFloat(loop.score.toFixed(3)),
+    });
+  }
+
+  // engine.json
+  const profile = {
+    id, name,
+    cylinderConfig: `V${G.cylPairs * 2}`,
+    cylPairs: G.cylPairs,
+    idleRPM:  Math.round(G.idleRPM),
+    redlineRPM: Math.round(G.maxRPM * 1.05),
+    sampleZones,
+    transients: { pops: [], bangs: [], crackles: [] },
+    metadata: {
+      duration:           parseFloat(G.audioBuffer.duration.toFixed(1)),
+      sampleRate:         G.audioBuffer.sampleRate,
+      detectedGearShifts: G.gearShifts.length,
+      analysisDate:       new Date().toISOString().slice(0,10),
+    },
+  };
+
+  zip.add('engine.json', encoder.encode(JSON.stringify(profile, null, 2)));
+
+  // README
+  const readme = `# ${name} — TesRadar Engine Pack\n\nGenerated: ${new Date().toISOString().slice(0,10)}\nCylinders: ${G.cylPairs*2}  |  Idle: ${Math.round(G.idleRPM)} RPM  |  Redline: ${Math.round(G.maxRPM)} RPM\n\nDrop the engine-packs/${id}/ folder into TesRadar public/ directory.\n`;
+  zip.add('README.md', encoder.encode(readme));
+
+  btn.textContent = 'Creating ZIP…';
+  const zipBytes = zip.generate();
+  const blob = new Blob([zipBytes], { type: 'application/zip' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${id}_engine-pack.zip`;
+  a.click();
+
+  btn.disabled = false;
+  btn.textContent = '⬇ Download Engine Pack ZIP';
+  log(`✓ ZIP exported: ${id}_engine-pack.zip  (${(zipBytes.length/1024).toFixed(0)} KB)`, 'ok');
+});
+
+// ─── File handling ────────────────────────────────────────────────────────────
+document.getElementById('fileInput').addEventListener('change', e => {
+  if (e.target.files[0]) runAnalysis(e.target.files[0]);
+});
+
+const drop = document.getElementById('drop');
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('over'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('over'));
+drop.addEventListener('drop', e => {
+  e.preventDefault(); drop.classList.remove('over');
+  const f = e.dataTransfer.files[0];
+  if (f) runAnalysis(f);
+});
+
+// Auto-fill engine name from filename
+document.getElementById('fileInput').addEventListener('change', e => {
+  const f = e.target.files[0];
+  if (!f) return;
+  const base = f.name.replace(/\.[^.]+$/, '').replace(/[-_]+/g,' ');
+  if (!document.getElementById('engineName').value) {
+    document.getElementById('engineName').value = base;
+    document.getElementById('engineId').value = base.toLowerCase().replace(/[^a-z0-9]+/g,'_').slice(0,30);
+  }
+});
+
+// Utility: yield to browser between heavy frames
+function tick() { return new Promise(r => setTimeout(r, 0)); }
+</script>
+</body>
+</html>

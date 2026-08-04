@@ -91,7 +91,8 @@
     }
   ],
   "rewrites": [
-    { "source": "/admin", "destination": "/admin.html" }
+    { "source": "/admin",          "destination": "/admin.html" },
+    { "source": "/engine-builder", "destination": "/engine-builder.html" }
   ],
   "headers": [
     {
