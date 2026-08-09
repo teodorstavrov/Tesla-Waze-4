@@ -94,10 +94,20 @@ const REGIONS: Record<string, { bbox: BBox; redisCountry: string }> = {
   //   BE-N  50.600–51.505  Flanders, Brussels, Antwerp (denser coverage)
   'BE-S': { bbox: { minLat: 49.497, minLng: 2.546, maxLat: 50.600, maxLng: 6.408 }, redisCountry: 'BE' },
   'BE-N': { bbox: { minLat: 50.600, minLng: 2.546, maxLat: 51.505, maxLng: 6.408 }, redisCountry: 'BE' },
+
+  // ── Germany (4 lat bands, Redis key 'DE') ─────────────────────────────
+  //   DE-1  47.270–49.500  Bayern south, Baden-Württemberg
+  //   DE-2  49.500–51.500  Bayern north, Hessen, Rheinland-Pfalz, Thüringen, Sachsen south
+  //   DE-3  51.500–53.000  NRW, Brandenburg, Sachsen-Anhalt, Sachsen north
+  //   DE-4  53.000–55.059  Hamburg, Bremen, Niedersachsen north, Schleswig-Holstein, Mecklenburg-Vorpommern
+  'DE-1': { bbox: { minLat: 47.270, minLng: 5.867, maxLat: 49.500, maxLng: 15.042 }, redisCountry: 'DE' },
+  'DE-2': { bbox: { minLat: 49.500, minLng: 5.867, maxLat: 51.500, maxLng: 15.042 }, redisCountry: 'DE' },
+  'DE-3': { bbox: { minLat: 51.500, minLng: 5.867, maxLat: 53.000, maxLng: 15.042 }, redisCountry: 'DE' },
+  'DE-4': { bbox: { minLat: 53.000, minLng: 5.867, maxLat: 55.059, maxLng: 15.042 }, redisCountry: 'DE' },
 }
 
 // Countries that split multiple regions into a single Redis key
-const MULTI_REGION_COUNTRIES = new Set(['NO', 'SE', 'FI', 'NL', 'BE'])
+const MULTI_REGION_COUNTRIES = new Set(['NO', 'SE', 'FI', 'NL', 'BE', 'DE'])
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   const secret = process.env['CRON_SECRET']

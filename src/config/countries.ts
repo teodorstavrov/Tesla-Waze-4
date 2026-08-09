@@ -10,7 +10,7 @@
 //   3. Add to COUNTRY_LIST so the picker shows it.
 //   That's it — no other files need touching for basic support.
 
-export type CountryCode = 'BG' | 'NO' | 'SE' | 'FI' | 'NL' | 'BE'
+export type CountryCode = 'BG' | 'NO' | 'SE' | 'FI' | 'NL' | 'BE' | 'DE'
 
 export interface CountryFeatures {
   /** Whether this country has average-speed camera section data. */
@@ -28,7 +28,7 @@ export interface CountryConfig {
   searchCode:  string                              // Nominatim countrycodes param
   searchLang:  string                              // Accept-Language for Nominatim + reverse geocode
   bounds:      [[number, number], [number, number]] // [[sw lat,lng], [ne lat,lng]]
-  locale:      'bg' | 'en' | 'no' | 'sv' | 'fi' | 'nl'   // default UI locale
+  locale:      'bg' | 'en' | 'no' | 'sv' | 'fi' | 'nl' | 'de'   // default UI locale
   features:    CountryFeatures                     // which product features are active
 }
 
@@ -134,6 +134,23 @@ export const COUNTRIES: Record<CountryCode, CountryConfig> = {
       speedSections: false,  // no verified official BE trajectcontrole dataset yet — EV-focused onboarding
     },
   },
+
+  DE: {
+    code:       'DE',
+    name:       'Germany',
+    nativeName: 'Deutschland',
+    flag:       '🇩🇪',
+    center:     [52.5200, 13.4050],   // Berlin
+    zoom:       14,
+    minZoom:    6,
+    searchCode: 'de',
+    searchLang: 'de,en',
+    bounds:     [[47.270, 5.867], [55.059, 15.042]],
+    locale:     'de',
+    features: {
+      speedSections: false,  // Germany uses fixed speed cameras, not average-speed sections
+    },
+  },
 }
 
 // Ordered list used by the country picker UI
@@ -144,4 +161,5 @@ export const COUNTRY_LIST: CountryConfig[] = [
   COUNTRIES.FI,
   COUNTRIES.NL,
   COUNTRIES.BE,
+  COUNTRIES.DE,
 ]
