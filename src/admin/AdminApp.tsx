@@ -226,6 +226,20 @@ function Dashboard({ secret }: { secret: string }) {
 
   useEffect(() => { void loadAll() }, [loadAll])
 
+  // Auto-refresh visitor data every 60 seconds
+  useEffect(() => {
+    const iv = setInterval(async () => {
+      const headers = { Authorization: `Bearer ${secret}` }
+      const vr = await fetch('/api/admin/visitors', { headers })
+      if (vr.ok) {
+        const vd = await vr.json() as { visitors: VisitorInfo[]; stats: VisitorStats }
+        setVisitors(vd.visitors)
+        setVisitorStats(vd.stats)
+      }
+    }, 60_000)
+    return () => clearInterval(iv)
+  }, [secret])
+
   async function triggerSync() {
     setSyncing(true); setSyncMsg('')
     try {
@@ -374,7 +388,7 @@ function Dashboard({ secret }: { secret: string }) {
         )}
 
         {/* Visitor tracking */}
-        <VisitorStatsPanel visitors={visitors} stats={visitorStats} />
+        <VisitorStatsPanel visitors={visitors} stats={visitorStats} onRefresh={loadAll} />
 
         {/* Export / Import permanent markers */}
         <div style={{ padding: '10px 18px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', gap: 8 }}>
@@ -776,6 +790,8 @@ function AdminMap({ events, userStations, comments, meetups, visitors, addMode, 
   const commentMarkersRef   = useRef<Map<string, L.Marker>>(new Map())
   const meetupMarkersRef    = useRef<Map<string, L.Marker>>(new Map())
   const visitorLayerRef     = useRef<L.CircleMarker[]>([])
+  const visitorsRef         = useRef<VisitorInfo[]>(visitors)
+  const [mapReady, setMapReady] = useState(false)
   const addModeRef          = useRef(addMode)
   const onClickRef          = useRef(onMapClick)
   const onDeleteRef         = useRef(onDelete)
@@ -785,6 +801,7 @@ function AdminMap({ events, userStations, comments, meetups, visitors, addMode, 
   const onDeleteMeetupRef   = useRef(onDeleteMeetup)
 
   // Keep refs in sync (avoids stale closures in Leaflet handlers)
+  visitorsRef.current         = visitors
   addModeRef.current          = addMode
   onClickRef.current          = onMapClick
   onDeleteRef.current         = onDelete
@@ -817,6 +834,7 @@ function AdminMap({ events, userStations, comments, meetups, visitors, addMode, 
       })
 
       mapRef.current = map
+      setMapReady(true)
     })
 
     return () => {
@@ -1112,27 +1130,32 @@ function AdminMap({ events, userStations, comments, meetups, visitors, addMode, 
       // Remove all previous visitor dots
       visitorLayerRef.current.forEach((m) => m.remove())
       visitorLayerRef.current = []
-      // Draw new dots
-      for (const v of visitors) {
-        const color  = v.online ? '#86efac' : '#166534'
-        const fill   = v.online ? 'rgba(134,239,172,0.55)' : 'rgba(22,101,52,0.55)'
-        const radius = v.online ? 7 : 5
+      // Use ref so we always have the latest data even if map init races visitor fetch
+      const current = visitorsRef.current
+      for (const v of current) {
+        const isOnline   = v.online
+        const color      = isOnline ? '#86efac' : '#4ade80'
+        const fillColor  = isOnline ? '#86efac' : '#166534'
+        const fillOpacity = isOnline ? 0.7 : 0.5
+        const radius     = isOnline ? 8 : 6
         const dot = L.circleMarker([v.lat, v.lng], {
           radius,
           color,
-          fillColor:   fill,
-          fillOpacity: 1,
-          weight:      v.online ? 2 : 1,
-          opacity:     0.9,
+          fillColor,
+          fillOpacity,
+          weight:      isOnline ? 2 : 1.5,
+          opacity:     1,
+          pane:        'markerPane',  // above tiles and polylines
         }).addTo(map)
         dot.bindTooltip(
-          `${COUNTRY_FLAGS[v.country.toUpperCase()] ?? v.country} · ${v.online ? '🟢 Online' : '⬤ 24ч'}`,
-          { direction: 'top', offset: [0, -4] }
+          `${COUNTRY_FLAGS[v.country.toUpperCase()] ?? v.country} · ${isOnline ? '🟢 Online' : '🔵 24ч'}`,
+          { direction: 'top', offset: [0, -4], permanent: false }
         )
         visitorLayerRef.current.push(dot)
       }
     })
-  }, [visitors])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visitors, mapReady])
 
   return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
 }
@@ -1708,7 +1731,7 @@ function StatBox({ label, value, small = false }: { label: string; value: React.
 
 // ── Visitor tracking panel ───────────────────────────────────────────────
 
-function VisitorStatsPanel({ visitors, stats }: { visitors: VisitorInfo[]; stats: VisitorStats | null }) {
+function VisitorStatsPanel({ visitors, stats, onRefresh }: { visitors: VisitorInfo[]; stats: VisitorStats | null; onRefresh: () => void }) {
   const [open, setOpen] = useState(false)
   const online   = stats?.online ?? 0
   const h24      = stats?.h24    ?? 0
@@ -1734,7 +1757,15 @@ function VisitorStatsPanel({ visitors, stats }: { visitors: VisitorInfo[]; stats
             </span>
           )}
         </span>
-        <span style={{ color: '#666', fontSize: 12 }}>{open ? '▲' : '▼'}</span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span
+            role="button"
+            onClick={(e) => { e.stopPropagation(); onRefresh() }}
+            title="Опресни"
+            style={{ color: '#555', fontSize: 13, cursor: 'pointer', lineHeight: 1 }}
+          >↻</span>
+          <span style={{ color: '#666', fontSize: 12 }}>{open ? '▲' : '▼'}</span>
+        </span>
       </button>
 
       {open && (
