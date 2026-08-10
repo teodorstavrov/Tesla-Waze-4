@@ -253,6 +253,35 @@ function Dashboard({ secret }: { secret: string }) {
     finally { setSyncing(false) }
   }
 
+  async function triggerCameraSync(country: string) {
+    setSyncing(true); setSyncMsg(`Syncing ${country} cameras…`)
+    try {
+      const cronSecret = prompt('Enter CRON_SECRET:')
+      if (!cronSecret) { setSyncing(false); setSyncMsg(''); return }
+
+      // Camera sync regions per country
+      const REGIONS: Record<string, string[]> = {
+        DE: ['DE-1','DE-2','DE-3','DE-4'],
+        SE: ['SE-1','SE-2','SE-3','SE-4','SE-5'],
+        FI: ['FI-1','FI-2','FI-3'],
+        NL: ['NL-1','NL-2A','NL-2B','NL-2C','NL-3'],
+        BE: ['BE-S','BE-N'],
+        BG: ['BG'],
+      }
+      const regions = REGIONS[country] ?? [country]
+      let total = 0
+      for (const region of regions) {
+        setSyncMsg(`Syncing cameras ${region} (${regions.indexOf(region)+1}/${regions.length})…`)
+        const r = await fetch(`/api/cron/sync-cameras?country=${region}&secret=${encodeURIComponent(cronSecret)}`)
+        const d = await r.json() as Record<string, unknown>
+        if (!r.ok) { setSyncMsg(`❌ ${region}: ${String(d.error)}`); return }
+        total += (d.total ?? d.cameras ?? d.newCameras ?? 0) as number
+      }
+      setSyncMsg(`✅ ${country} cameras synced — ${total} total`)
+    } catch { setSyncMsg('❌ Network error') }
+    finally { setSyncing(false) }
+  }
+
   async function deleteEvent(id: string) {
     await fetch(`/api/admin/events?id=${id}`, { method: 'DELETE', headers })
     setEvents((prev) => prev.filter((e) => e.id !== id))
@@ -376,12 +405,20 @@ function Dashboard({ secret }: { secret: string }) {
             <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               <button style={{ ...S.btn, background: '#e31937', color: '#fff', flex: 1 }}
                 onClick={() => { void triggerSync() }} disabled={syncing}>
-                {syncing ? 'Syncing…' : '↻ Sync'}
+                {syncing ? 'Syncing…' : '↻ Stations'}
               </button>
               <button style={{ ...S.btn, background: 'rgba(255,255,255,0.07)', color: '#ccc' }}
                 onClick={() => { void loadAll() }}>
                 ↺
               </button>
+            </div>
+            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
+              {(['DE','SE','FI','NL','BE','BG'] as const).map((cc) => (
+                <button key={cc} style={{ ...S.btn, fontSize: 11, padding: '5px 10px', background: 'rgba(255,255,255,0.05)', color: '#aaa' }}
+                  onClick={() => { void triggerCameraSync(cc) }} disabled={syncing}>
+                  📷 {cc}
+                </button>
+              ))}
             </div>
             {syncMsg && <div style={{ fontSize: 12, color: '#888', marginTop: 8 }}>{syncMsg}</div>}
           </div>
