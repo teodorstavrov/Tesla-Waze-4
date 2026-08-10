@@ -13,6 +13,15 @@ import { useState, useEffect, useRef } from 'react'
 import { isTeslaBrowser } from '@/lib/browser'
 import { gpsStore } from '@/features/gps/gpsStore'
 import { countryStore } from '@/lib/countryStore'
+import { COUNTRY_LIST } from '@/config/countries'
+
+function countryFromCoords(lat: number, lng: number): string {
+  for (const c of COUNTRY_LIST) {
+    const [[swLat, swLng], [neLat, neLng]] = c.bounds
+    if (lat >= swLat && lat <= neLat && lng >= swLng && lng <= neLng) return c.code
+  }
+  return 'unknown'
+}
 
 const HEARTBEAT_MS = 5 * 60_000   // 5 min — reduces Redis commands ~5x vs 60s
 
@@ -46,15 +55,17 @@ export function OnlineCounter() {
 
     async function heartbeat() {
       // Location: GPS if active, else country center
-      const gpsPos  = gpsStore.getPosition()
-      const country = countryStore.getCode() ?? 'unknown'
+      const gpsPos = gpsStore.getPosition()
       let lat: number
       let lng: number
+      let country: string
       if (gpsPos) {
-        lat = gpsPos.lat
-        lng = gpsPos.lng
+        lat     = gpsPos.lat
+        lng     = gpsPos.lng
+        country = countryFromCoords(lat, lng)   // derive from actual position
       } else {
         ;[lat, lng] = countryStore.getCountryOrDefault().center
+        country     = countryStore.getCode() ?? 'unknown'
       }
 
       try {
