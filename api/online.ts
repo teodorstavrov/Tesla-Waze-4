@@ -10,9 +10,10 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { redis, isRedisConfigured } from './_lib/db/redis.js'
 
-const KEY         = 'teslaradar:online:v1'
-const TTL_S       = 7 * 60  // session considered online for 7 min (matches 5-min heartbeat + buffer)
-const KEY_EXPIRY  = 15 * 60 // delete entire key if no activity for 15 min
+const KEY          = 'teslaradar:online:v1'
+const VISITORS_KEY = 'teslaradar:visitors:v1'
+const TTL_S        = 7 * 60  // session considered online for 7 min (matches 5-min heartbeat + buffer)
+const KEY_EXPIRY   = 15 * 60 // delete entire key if no activity for 15 min
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -39,6 +40,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ['EXPIRE', KEY, KEY_EXPIRY],
       ])
       const count = (results[2] as number) ?? 1
+
+      // Visitor location tracking (optional — fire-and-forget, never delays response)
+      const rawLat      = typeof body?.lat       === 'number' ? body.lat       : null
+      const rawLng      = typeof body?.lng       === 'number' ? body.lng       : null
+      const rawCountry  = typeof body?.country   === 'string' ? body.country.slice(0, 10)  : 'unknown'
+      const rawFirst    = typeof body?.firstSeen === 'number' && (body.firstSeen as number) > 0 ? (body.firstSeen as number) : now
+      if (
+        rawLat !== null && rawLng !== null &&
+        isFinite(rawLat) && isFinite(rawLng) &&
+        rawLat >= -90 && rawLat <= 90 &&
+        rawLng >= -180 && rawLng <= 180
+      ) {
+        const lat  = Math.round(rawLat * 10) / 10   // ~11 km precision for privacy
+        const lng  = Math.round(rawLng * 10) / 10
+        const record = JSON.stringify({ lat, lng, country: rawCountry, lastSeen: now, firstSeen: rawFirst })
+        void redis.hset(VISITORS_KEY, sid, record)
+      }
+
       return res.status(200).json({ count })
     }
 

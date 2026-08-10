@@ -24,6 +24,26 @@ interface Stats {
   providers: Record<string, { status: string; count: number }> | null
 }
 
+interface VisitorInfo {
+  lat:     number
+  lng:     number
+  country: string
+  online:  boolean
+}
+
+interface VisitorStats {
+  online:    number
+  h24:       number
+  h7d:       number
+  h30d:      number
+  byCountry: Record<string, { h24: number; h7d: number; h30d: number }>
+}
+
+const COUNTRY_FLAGS: Record<string, string> = {
+  BG: '🇧🇬 BG', NO: '🇳🇴 NO', SE: '🇸🇪 SE',
+  FI: '🇫🇮 FI', NL: '🇳🇱 NL', BE: '🇧🇪 BE', DE: '🇩🇪 DE',
+}
+
 interface RoadEvent {
   id: string
   type: EventType
@@ -152,6 +172,8 @@ function Dashboard({ secret }: { secret: string }) {
   const [userStations, setUserStations] = useState<UserStation[]>([])
   const [comments,     setComments]     = useState<StationComment[]>([])
   const [meetups,      setMeetups]      = useState<AdminMeetup[]>([])
+  const [visitors,     setVisitors]     = useState<VisitorInfo[]>([])
+  const [visitorStats, setVisitorStats] = useState<VisitorStats | null>(null)
   const [syncing, setSyncing] = useState(false)
   const [syncMsg, setSyncMsg] = useState('')
   const [addMode, setAddMode] = useState(false)
@@ -162,18 +184,24 @@ function Dashboard({ secret }: { secret: string }) {
   const headers = { Authorization: `Bearer ${secret}` }
 
   const loadAll = useCallback(async () => {
-    const [sr, er, usr, cr, mr] = await Promise.all([
+    const [sr, er, usr, cr, mr, vr] = await Promise.all([
       fetch('/api/admin/stats',             { headers }),
       fetch('/api/admin/events',            { headers }),
       fetch('/api/admin/user-stations',     { headers }),
       fetch('/api/admin/station-comments',  { headers }),
       fetch('/api/admin/meetups',           { headers }),
+      fetch('/api/admin/visitors',          { headers }),
     ])
     if (sr.ok)  setStats(await sr.json() as Stats)
     if (er.ok)  setEvents(((await er.json()) as { events: RoadEvent[] }).events)
     if (usr.ok) setUserStations(((await usr.json()) as { stations: UserStation[] }).stations)
     if (cr.ok)  setComments(((await cr.json()) as { comments: StationComment[] }).comments)
     if (mr.ok)  setMeetups(((await mr.json()) as { meetups: AdminMeetup[] }).meetups)
+    if (vr.ok) {
+      const vd = await vr.json() as { visitors: VisitorInfo[]; stats: VisitorStats }
+      setVisitors(vd.visitors)
+      setVisitorStats(vd.stats)
+    }
   }, [secret]) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function deleteMeetup(id: string) {
@@ -345,6 +373,9 @@ function Dashboard({ secret }: { secret: string }) {
           </div>
         )}
 
+        {/* Visitor tracking */}
+        <VisitorStatsPanel visitors={visitors} stats={visitorStats} />
+
         {/* Export / Import permanent markers */}
         <div style={{ padding: '10px 18px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', gap: 8 }}>
           <button
@@ -435,6 +466,7 @@ function Dashboard({ secret }: { secret: string }) {
           userStations={userStations}
           comments={comments}
           meetups={meetups}
+          visitors={visitors}
           addMode={addMode}
           editingEventId={editingEvent?.id ?? null}
           onMapClick={(lat, lng) => { void addEvent(lat, lng) }}
@@ -724,6 +756,7 @@ interface AdminMapProps {
   userStations:     UserStation[]
   comments:         StationComment[]
   meetups:          AdminMeetup[]
+  visitors:         VisitorInfo[]
   addMode:          boolean
   editingEventId:   string | null
   onMapClick:       (lat: number, lng: number) => void
@@ -734,7 +767,7 @@ interface AdminMapProps {
   onDeleteMeetup:   (id: string) => void
 }
 
-function AdminMap({ events, userStations, comments, meetups, addMode, editingEventId, onMapClick, onDelete, onEdit, onApproveStation, onRejectStation, onDeleteMeetup }: AdminMapProps) {
+function AdminMap({ events, userStations, comments, meetups, visitors, addMode, editingEventId, onMapClick, onDelete, onEdit, onApproveStation, onRejectStation, onDeleteMeetup }: AdminMapProps) {
   const containerRef        = useRef<HTMLDivElement>(null)
   const mapRef              = useRef<L.Map | null>(null)
   const markersRef          = useRef<Map<string, L.Marker>>(new Map())
@@ -742,6 +775,7 @@ function AdminMap({ events, userStations, comments, meetups, addMode, editingEve
   const stationMarkersRef   = useRef<Map<string, L.Marker>>(new Map())
   const commentMarkersRef   = useRef<Map<string, L.Marker>>(new Map())
   const meetupMarkersRef    = useRef<Map<string, L.Marker>>(new Map())
+  const visitorLayerRef     = useRef<L.CircleMarker[]>([])
   const addModeRef          = useRef(addMode)
   const onClickRef          = useRef(onMapClick)
   const onDeleteRef         = useRef(onDelete)
@@ -791,6 +825,8 @@ function AdminMap({ events, userStations, comments, meetups, addMode, editingEve
       markersRef.current.clear()
       stationMarkersRef.current.clear()
       commentMarkersRef.current.clear()
+      visitorLayerRef.current.forEach((m) => m.remove())
+      visitorLayerRef.current = []
     }
   }, [])
 
@@ -1066,6 +1102,37 @@ function AdminMap({ events, userStations, comments, meetups, addMode, editingEve
       }
     })
   }, [comments])
+
+  // Visitor dots layer — light green (online) / dark green (recent offline)
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map) return
+    void import('leaflet').then((Lm) => {
+      const L = Lm.default
+      // Remove all previous visitor dots
+      visitorLayerRef.current.forEach((m) => m.remove())
+      visitorLayerRef.current = []
+      // Draw new dots
+      for (const v of visitors) {
+        const color  = v.online ? '#86efac' : '#166534'
+        const fill   = v.online ? 'rgba(134,239,172,0.55)' : 'rgba(22,101,52,0.55)'
+        const radius = v.online ? 7 : 5
+        const dot = L.circleMarker([v.lat, v.lng], {
+          radius,
+          color,
+          fillColor:   fill,
+          fillOpacity: 1,
+          weight:      v.online ? 2 : 1,
+          opacity:     0.9,
+        }).addTo(map)
+        dot.bindTooltip(
+          `${COUNTRY_FLAGS[v.country.toUpperCase()] ?? v.country} · ${v.online ? '🟢 Online' : '⬤ 24ч'}`,
+          { direction: 'top', offset: [0, -4] }
+        )
+        visitorLayerRef.current.push(dot)
+      }
+    })
+  }, [visitors])
 
   return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
 }
@@ -1635,6 +1702,99 @@ function StatBox({ label, value, small = false }: { label: string; value: React.
     <div>
       <div style={{ fontSize: 11, color: '#666', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 2 }}>{label}</div>
       <div style={{ fontSize: small ? 13 : 20, fontWeight: 700, color: '#fff' }}>{value}</div>
+    </div>
+  )
+}
+
+// ── Visitor tracking panel ───────────────────────────────────────────────
+
+function VisitorStatsPanel({ visitors, stats }: { visitors: VisitorInfo[]; stats: VisitorStats | null }) {
+  const [open, setOpen] = useState(false)
+  const online   = stats?.online ?? 0
+  const h24      = stats?.h24    ?? 0
+
+  return (
+    <div style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+      <button
+        onClick={() => setOpen((v) => !v)}
+        style={{
+          width: '100%', padding: '12px 18px', background: 'none', border: 'none',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          color: '#e2e8f0', cursor: 'pointer', fontSize: 13, fontWeight: 600,
+        }}
+      >
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          👥 Посетители
+          {online > 0 && (
+            <span style={{
+              background: 'rgba(134,239,172,0.2)', color: '#86efac',
+              borderRadius: 99, padding: '1px 8px', fontSize: 11, fontWeight: 700,
+            }}>
+              {online} online
+            </span>
+          )}
+        </span>
+        <span style={{ color: '#666', fontSize: 12 }}>{open ? '▲' : '▼'}</span>
+      </button>
+
+      {open && (
+        <div style={{ padding: '0 14px 14px' }}>
+          {/* Summary row */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 6, marginBottom: 12 }}>
+            {[
+              { label: 'Online', value: online, color: '#86efac', bg: 'rgba(134,239,172,0.12)' },
+              { label: '24ч',    value: stats?.h24  ?? 0, color: '#60a5fa', bg: 'rgba(96,165,250,0.1)' },
+              { label: '7д',     value: stats?.h7d  ?? 0, color: '#a78bfa', bg: 'rgba(167,139,250,0.1)' },
+              { label: '30д',    value: stats?.h30d ?? 0, color: '#f9a8d4', bg: 'rgba(249,168,212,0.1)' },
+            ].map(({ label, value, color, bg }) => (
+              <div key={label} style={{ background: bg, border: `1px solid ${color}33`, borderRadius: 8, padding: '7px 4px', textAlign: 'center' }}>
+                <div style={{ fontSize: 18, fontWeight: 800, color, lineHeight: 1 }}>{value}</div>
+                <div style={{ fontSize: 9, color: '#666', marginTop: 2 }}>{label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* By country — 24h */}
+          {h24 > 0 && stats?.byCountry && (
+            <>
+              <div style={{ fontSize: 10, color: '#555', marginBottom: 6, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase' }}>24ч по държава</div>
+              {Object.entries(stats.byCountry)
+                .filter(([, v]) => v.h24 > 0)
+                .sort((a, b) => b[1].h24 - a[1].h24)
+                .map(([code, v]) => (
+                  <Row
+                    key={code}
+                    label={COUNTRY_FLAGS[code.toUpperCase()] ?? code}
+                    count={v.h24}
+                    total={h24}
+                    color="#60a5fa"
+                  />
+                ))
+              }
+            </>
+          )}
+
+          {/* By country — 7d */}
+          {(stats?.h7d ?? 0) > 0 && stats?.byCountry && (
+            <>
+              <div style={{ fontSize: 10, color: '#555', marginBottom: 6, marginTop: 10, fontWeight: 700, letterSpacing: '0.07em', textTransform: 'uppercase' }}>7д по държава</div>
+              {Object.entries(stats.byCountry)
+                .filter(([, v]) => v.h7d > 0)
+                .sort((a, b) => b[1].h7d - a[1].h7d)
+                .map(([code, v]) => (
+                  <Row key={code} label={COUNTRY_FLAGS[code.toUpperCase()] ?? code} count={v.h7d} total={stats.h7d} color="#a78bfa" />
+                ))
+              }
+            </>
+          )}
+
+          {h24 === 0 && (
+            <div style={{ fontSize: 12, color: '#555', textAlign: 'center', padding: '8px 0' }}>
+              Няма посетители за последните 24ч
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

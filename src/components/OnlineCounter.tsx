@@ -11,32 +11,57 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { isTeslaBrowser } from '@/lib/browser'
+import { gpsStore } from '@/features/gps/gpsStore'
+import { countryStore } from '@/lib/countryStore'
 
 const HEARTBEAT_MS = 5 * 60_000   // 5 min — reduces Redis commands ~5x vs 60s
 
-function getSessionId(): string {
-  const KEY = 'tesradar:sid'
-  let sid = localStorage.getItem(KEY)
+function getSessionData(): { sid: string; firstSeen: number } {
+  const SID_KEY = 'tesradar:sid'
+  const FS_KEY  = 'tesradar:firstSeen'
+  let sid       = localStorage.getItem(SID_KEY)
+  let firstSeen = parseInt(localStorage.getItem(FS_KEY) ?? '0', 10)
+  const now     = Math.floor(Date.now() / 1000)
   if (!sid) {
-    sid = crypto.randomUUID()
-    localStorage.setItem(KEY, sid)
+    sid       = crypto.randomUUID()
+    firstSeen = now
+    localStorage.setItem(SID_KEY, sid)
+    localStorage.setItem(FS_KEY, String(firstSeen))
+  } else if (!firstSeen) {
+    firstSeen = now
+    localStorage.setItem(FS_KEY, String(firstSeen))
   }
-  return sid
+  return { sid, firstSeen }
 }
 
 export function OnlineCounter() {
   const [count, setCount] = useState<number | null>(null)
-  const sidRef = useRef<string | null>(null)
+  const sidRef       = useRef<string | null>(null)
+  const firstSeenRef = useRef<number>(0)
 
   useEffect(() => {
-    sidRef.current = getSessionId()
+    const { sid, firstSeen } = getSessionData()
+    sidRef.current       = sid
+    firstSeenRef.current = firstSeen
 
     async function heartbeat() {
+      // Location: GPS if active, else country center
+      const gpsPos  = gpsStore.getPosition()
+      const country = countryStore.getCode() ?? 'unknown'
+      let lat: number
+      let lng: number
+      if (gpsPos) {
+        lat = gpsPos.lat
+        lng = gpsPos.lng
+      } else {
+        ;[lat, lng] = countryStore.getCountryOrDefault().center
+      }
+
       try {
         const res = await fetch('/api/online', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ sid: sidRef.current }),
+          body:    JSON.stringify({ sid: sidRef.current, firstSeen: firstSeenRef.current, lat, lng, country }),
         })
         if (res.ok) {
           const data = await res.json() as { count?: number }

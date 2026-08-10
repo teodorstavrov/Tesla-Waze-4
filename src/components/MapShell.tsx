@@ -202,6 +202,10 @@ function _applyCourseUp(container: HTMLElement, heading: number): void {
       _lastCounterScale = counterScaleStr
       container.style.setProperty('--marker-counter-scale', counterScaleStr)
     }
+    // Keep popup/tooltip counter-rotation in sync.
+    // CSS uses this to rotate popup/tooltip content by +N deg to cancel
+    // the map container's -N deg, keeping labels always horizontal on screen.
+    container.style.setProperty('--map-rot-deg', _rotationDeg.toFixed(2))
   }
 }
 
@@ -215,6 +219,7 @@ function _clearCourseUp(container: HTMLElement): void {
   _lastWrittenTransform = ''
   _lastCounterScale = ''
   container.style.removeProperty('--marker-counter-scale')
+  container.style.removeProperty('--map-rot-deg')
   if (container.style.transform) {
     container.style.transform = 'translateZ(0)'
     container.style.transformOrigin = ''

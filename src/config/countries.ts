@@ -39,7 +39,7 @@ export const COUNTRIES: Record<CountryCode, CountryConfig> = {
     nativeName: 'България',
     flag:       '🇧🇬',
     center:     [42.6977, 23.3219],    // Sofia
-    zoom:       15,
+    zoom:       16,
     minZoom:    6,
     searchCode: 'bg',
     searchLang: 'bg,en',
@@ -56,7 +56,7 @@ export const COUNTRIES: Record<CountryCode, CountryConfig> = {
     nativeName: 'Norge',
     flag:       '🇳🇴',
     center:     [59.9139, 10.7522],    // Oslo
-    zoom:       15,
+    zoom:       16,
     minZoom:    5,
     searchCode: 'no',
     searchLang: 'en,no',
@@ -73,7 +73,7 @@ export const COUNTRIES: Record<CountryCode, CountryConfig> = {
     nativeName: 'Sverige',
     flag:       '🇸🇪',
     center:     [59.3293, 18.0686],    // Stockholm
-    zoom:       15,
+    zoom:       16,
     minZoom:    5,
     searchCode: 'se',
     searchLang: 'en,sv',
@@ -90,7 +90,7 @@ export const COUNTRIES: Record<CountryCode, CountryConfig> = {
     nativeName: 'Suomi',
     flag:       '🇫🇮',
     center:     [60.1699, 24.9384],    // Helsinki
-    zoom:       15,
+    zoom:       16,
     minZoom:    5,
     searchCode: 'fi',
     searchLang: 'en,fi',
@@ -107,7 +107,7 @@ export const COUNTRIES: Record<CountryCode, CountryConfig> = {
     nativeName: 'Nederland',
     flag:       '🇳🇱',
     center:     [52.3676, 4.9041],    // Amsterdam
-    zoom:       15,
+    zoom:       16,
     minZoom:    6,
     searchCode: 'nl',
     searchLang: 'nl,en',
@@ -124,7 +124,7 @@ export const COUNTRIES: Record<CountryCode, CountryConfig> = {
     nativeName: 'België',
     flag:       '🇧🇪',
     center:     [50.8503, 4.3517],    // Brussels
-    zoom:       15,
+    zoom:       16,
     minZoom:    7,
     searchCode: 'be',
     searchLang: 'nl,fr,en',
@@ -141,7 +141,7 @@ export const COUNTRIES: Record<CountryCode, CountryConfig> = {
     nativeName: 'Deutschland',
     flag:       '🇩🇪',
     center:     [52.5200, 13.4050],   // Berlin
-    zoom:       14,
+    zoom:       15,
     minZoom:    6,
     searchCode: 'de',
     searchLang: 'de,en',

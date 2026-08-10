@@ -92,6 +92,34 @@ export const BELGIUM_EAST_BBOX: BBox = {
   maxLng:  6.408,   // Wallonia, Liège, Namur, Luxembourg province
 }
 
+/** Bbox covering all of Germany */
+export const GERMANY_BBOX: BBox = {
+  minLat: 47.270,
+  minLng:  5.867,
+  maxLat: 55.059,
+  maxLng: 15.042,
+}
+
+/**
+ * Germany split into west/east for OCM fetching — Germany has one of the
+ * densest charger networks in Europe; one bbox risks silently truncating at
+ * 3 000 stations and missing entire regions.
+ * Split at lng 10.5: west covers NRW, Hessen, Baden-Württemberg, Bayern west;
+ *                    east covers Berlin, Brandenburg, Sachsen, Bayern east.
+ */
+export const GERMANY_WEST_BBOX: BBox = {
+  minLat: 47.270,
+  minLng:  5.867,
+  maxLat: 55.059,
+  maxLng: 10.500,
+}
+export const GERMANY_EAST_BBOX: BBox = {
+  minLat: 47.270,
+  minLng: 10.500,
+  maxLat: 55.059,
+  maxLng: 15.042,
+}
+
 /**
  * Parse a comma-separated bbox string: "minLat,minLng,maxLat,maxLng".
  * Returns null if invalid.

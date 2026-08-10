@@ -80,6 +80,27 @@ export const redis = {
     await _cmd(['EXPIRE', key, ttlSeconds])
   },
 
+  /** Set a single hash field (raw string, not compressed). */
+  async hset(key: string, field: string, value: string): Promise<void> {
+    await _cmd(['HSET', key, field, value])
+  },
+
+  /** Get all fields and values of a hash. Returns null if key is missing. */
+  async hgetall(key: string): Promise<Record<string, string> | null> {
+    const raw = await _cmd(['HGETALL', key])
+    if (!raw) return null
+    if (Array.isArray(raw)) {
+      if (raw.length === 0) return null
+      const result: Record<string, string> = {}
+      for (let i = 0; i + 1 < raw.length; i += 2) {
+        result[String(raw[i])] = String(raw[i + 1] ?? '')
+      }
+      return result
+    }
+    if (typeof raw === 'object') return raw as Record<string, string>
+    return null
+  },
+
   /** Send multiple commands in one HTTP request (Upstash pipeline).
    *  Returns results in the same order as commands. */
   async pipeline(commands: (string | number)[][]): Promise<unknown[]> {

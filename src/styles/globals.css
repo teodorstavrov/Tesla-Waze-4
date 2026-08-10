@@ -239,6 +239,24 @@ body,
   transform-origin: center center;
 }
 
+/* ── Course-up popup/tooltip counter-rotation ────────────────────────────
+ * When #map rotates by −N deg (course-up), popups and tooltips rotate with
+ * the map container. --map-rot-deg (set by MapShell._applyCourseUp) holds
+ * the current heading angle; these rules apply +N deg counter-rotation so
+ * all labels remain horizontal on screen regardless of map heading.
+ * Cleared to 0 (property removed) when course-up is inactive.
+ */
+.leaflet-popup-content-wrapper,
+.leaflet-popup-tip-container {
+  transform: rotate(calc(var(--map-rot-deg, 0) * 1deg));
+  transform-origin: 50% 50%;
+}
+
+.leaflet-tooltip {
+  transform: rotate(calc(var(--map-rot-deg, 0) * 1deg)) !important;
+  transform-origin: 50% 50%;
+}
+
 @keyframes gps-pulse {
   0%,
   100% {
