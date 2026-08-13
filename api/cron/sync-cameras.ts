@@ -129,9 +129,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   const t0 = Date.now()
   try {
-    const newCams = await fetchCamerasFromOverpass(config.bbox, `${config.redisCountry}-tmp`)
+    const isMulti = MULTI_REGION_COUNTRIES.has(config.redisCountry)
+    // Multi-region: use a tmp key so fetchCamerasFromOverpass doesn't overwrite
+    // the merged country key mid-sync. Single-region: write directly to real key.
+    const fetchKey = isMulti ? `${config.redisCountry}-tmp` : config.redisCountry
+    const newCams = await fetchCamerasFromOverpass(config.bbox, fetchKey)
 
-    if (MULTI_REGION_COUNTRIES.has(config.redisCountry)) {
+    if (isMulti) {
       // Read existing cameras DIRECTLY from Redis (bypass in-memory cache).
       // The memory cache can be stale when Vercel reuses function instances
       // across multiple sequential cron calls — always get fresh data here.
@@ -158,9 +162,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         syncedAt: new Date().toISOString(),
       })
     } else {
+      // Single-region: fetchCamerasFromOverpass already wrote to correct Redis key.
+      // Just update the in-memory cache to match.
+      const redisKey = redisKeyForCountry(config.redisCountry)
+      cacheSet(redisKey, newCams, 24 * 60 * 60 * 1000)
       res.status(200).json({
         region,
         cameras: newCams.length,
+        total: newCams.length,
         elapsedMs: Date.now() - t0,
         syncedAt: new Date().toISOString(),
       })

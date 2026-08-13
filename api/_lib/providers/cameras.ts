@@ -22,7 +22,7 @@ export interface SpeedCamera {
 }
 
 const MEM_CACHE_TTL_MS = 24 * 60 * 60 * 1000  // 24h in-memory cache
-const FETCH_TIMEOUT    = 55_000                 // 55s — cron only, large bbox
+const FETCH_TIMEOUT    = 120_000                // 120s — allows large bboxes (DE/NO)
 const OVERPASS_ENDPOINTS = [
   'https://overpass-api.de/api/interpreter',
   'https://overpass.kumi.systems/api/interpreter',
@@ -35,7 +35,7 @@ export function redisKeyForCountry(country: string): string {
 
 function buildQuery(bboxStr: string): string {
   return [
-    '[out:json][timeout:50];',
+    '[out:json][timeout:100];',
     '(',
     `  node["highway"="speed_camera"](${bboxStr});`,
     `  node["enforcement"="maxspeed"](${bboxStr});`,
@@ -53,6 +53,7 @@ interface OverpassNode {
 
 interface OverpassResponse {
   elements: OverpassNode[]
+  remark?:  string
 }
 
 async function _overpassQuery(q: string, url: string): Promise<OverpassResponse> {
@@ -69,7 +70,12 @@ async function _overpassQuery(q: string, url: string): Promise<OverpassResponse>
     FETCH_TIMEOUT,
   )
   if (!res.ok) throw new Error(`Overpass HTTP ${res.status}`)
-  return res.json() as Promise<OverpassResponse>
+  const data = await res.json() as OverpassResponse
+  // Overpass returns 200 with empty elements and a remark on timeout/error
+  if (data.remark && data.remark.toLowerCase().includes('time')) {
+    throw new Error(`Overpass timeout: ${data.remark}`)
+  }
+  return data
 }
 
 function _normalize(el: OverpassNode): SpeedCamera | null {
