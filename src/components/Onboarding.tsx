@@ -12,7 +12,7 @@
 // When `bullets` is present: body renders as a tagline; bullets appear below.
 // When `note` is present: small print shown below body/bullets.
 
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { countryStore } from '@/lib/countryStore'
 import { getLang } from '@/lib/locale'
 import type { CountryConfig } from '@/config/countries'
@@ -113,6 +113,8 @@ function getSteps(country: CountryConfig): Step[] {
 
 export function Onboarding() {
   const [step, setStep] = useState(0)
+  const touchStartY  = useRef(0)
+  const touchMoved   = useRef(false)
 
   // Country must be chosen first (CountryPicker handles that step)
   if (!countryStore.isChosen()) return null
@@ -146,20 +148,40 @@ export function Onboarding() {
   const hasBullets = Boolean(current.bullets?.length)
 
   return (
+    // Outer: scrollable backdrop. Scroll detection prevents tap-advance during scroll.
     <div
       id="onboarding-root"
-      onClick={advance}
+      onTouchStart={(e) => {
+        touchStartY.current = e.touches[0]?.clientY ?? 0
+        touchMoved.current  = false
+      }}
+      onTouchMove={(e) => {
+        if (Math.abs((e.touches[0]?.clientY ?? 0) - touchStartY.current) > 8)
+          touchMoved.current = true
+      }}
+      onClick={() => { if (!touchMoved.current) advance() }}
       style={{
         position: 'fixed', inset: 0, zIndex: 900,
         background: 'rgba(0,0,0,0.88)',
         backdropFilter: 'blur(10px)',
         WebkitBackdropFilter: 'blur(10px)',
+        overflowY: 'auto',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        WebkitOverflowScrolling: 'touch' as any,
+        touchAction: 'pan-y',
         display: 'flex', flexDirection: 'column',
-        alignItems: 'center', justifyContent: 'center',
-        padding: '32px 24px', gap: 0,
-        textAlign: 'center', touchAction: 'manipulation',
       }}
     >
+    {/* Inner: min-height 100% so content is centered when it fits,
+        scrollable when it's taller than the viewport (small phones). */}
+    <div style={{
+      minHeight: '100%',
+      display: 'flex', flexDirection: 'column',
+      alignItems: 'center', justifyContent: 'center',
+      padding: '32px 24px', gap: 0,
+      textAlign: 'center', boxSizing: 'border-box',
+      width: '100%',
+    }}>
       {/* Step dots */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 28 }}>
         {steps.map((_, i) => (
@@ -272,6 +294,7 @@ export function Onboarding() {
           ? 'TesRadar е независим проект, който не е обвързан с Tesla или други компании.'
           : 'TesRadar is an independent project not affiliated with Tesla or any other company.'}
       </div>
+    </div>{/* end inner centering wrapper */}
     </div>
   )
 }
