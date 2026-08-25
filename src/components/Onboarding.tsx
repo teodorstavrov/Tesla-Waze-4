@@ -145,6 +145,9 @@ export function Onboarding() {
       {/* ── Scrollable content area ─────────────────────────────────────── */}
       <div style={{
         flex: 1,
+        // CRITICAL for iOS Safari: without minHeight:0, the flex item expands
+        // to fit content (min-height:auto default) and overflowY never activates.
+        minHeight: 0,
         overflowY: 'auto',
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         WebkitOverflowScrolling: 'touch' as any,
