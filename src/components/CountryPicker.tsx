@@ -8,7 +8,15 @@
 //   2. IN-APP      — opened on demand via openCountryPicker() (globe button
 //      in LeftControls). Same portal modal, but dismissible.
 //
-// Same portal + module-function pattern as RatingModal / SupportModal.
+// Mobile layout (sticky header + scrollable list + sticky footer):
+//   ┌─────────────────────────┐
+//   │  logo + title (fixed)   │  flexShrink: 0
+//   ├─────────────────────────┤
+//   │  country buttons        │  flex: 1, minHeight: 0, overflowY: auto
+//   │  (scrollable)           │  → works on any phone size
+//   ├─────────────────────────┤
+//   │  Continue button (fixed)│  flexShrink: 0
+//   └─────────────────────────┘
 
 import { useState, useEffect, useCallback } from 'react'
 import { createPortal } from 'react-dom'
@@ -99,58 +107,71 @@ export function CountryPicker() {
 
   return createPortal(
     <div style={{
-      position:        'fixed',
-      inset:           0,
-      zIndex:          950,
-      display:         'flex',
-      flexDirection:   'column',
-      alignItems:      'center',
-      justifyContent:  'center',
-      padding:         '32px 24px',
-      background:      'rgba(0,0,0,0.92)',
-      opacity:         shown ? 1 : 0,
-      transition:      isTeslaBrowser ? undefined : 'opacity 0.22s ease',
+      position:      'fixed',
+      inset:         0,
+      zIndex:        950,
+      display:       'flex',
+      flexDirection: 'column',
+      background:    'rgba(0,0,0,0.92)',
+      opacity:       shown ? 1 : 0,
+      transition:    isTeslaBrowser ? undefined : 'opacity 0.22s ease',
     }}>
-      {/* Backdrop close (in-app mode only) */}
+      {/* Backdrop close (in-app mode only) — behind all content */}
       {!_isFirstLoad && (
         // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
         <div
           onClick={close}
-          style={{ position: 'absolute', inset: 0 }}
+          style={{ position: 'absolute', inset: 0, zIndex: 0 }}
         />
       )}
 
-      {/* Card */}
+      {/* ── Header: logo + title (always visible at top) ────────────── */}
       <div style={{
-        position:      'relative',
+        flexShrink:    0,
         zIndex:        1,
-        width:         'min(380px, calc(100vw - 40px))',
         display:       'flex',
         flexDirection: 'column',
         alignItems:    'center',
-        gap:           20,
+        padding:       '28px 24px 16px',
+        gap:           14,
         textAlign:     'center',
       }}>
-        {/* Logo */}
         <img
           src="/new-medium_tran.png"
           alt="TesRadar"
-          style={{ height: 68, width: 'auto', borderRadius: 14 }}
+          style={{ height: 62, width: 'auto', borderRadius: 14 }}
         />
-
-        {/* Title */}
         <div>
-          <div style={{ fontSize: 21, fontWeight: 800, color: '#fff', marginBottom: 8 }}>
+          <div style={{ fontSize: 21, fontWeight: 800, color: '#fff', marginBottom: 6 }}>
             Select your country
           </div>
           <div style={{ fontSize: 14, color: 'rgba(255,255,255,0.45)', lineHeight: 1.5, maxWidth: 300 }}>
             TesRadar will use this to set your map, search, and language defaults.
           </div>
         </div>
+      </div>
 
-        {/* Country options */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: '100%' }}>
-
+      {/* ── Country list — scrollable ────────────────────────────────── */}
+      {/*  CRITICAL: minHeight:0 forces iOS Safari to respect flex:1     */}
+      {/*  constraint instead of expanding to content height, enabling   */}
+      {/*  overflowY:auto to actually activate.                          */}
+      <div style={{
+        flex:    1,
+        minHeight: 0,
+        zIndex:  1,
+        overflowY: 'auto',
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        WebkitOverflowScrolling: 'touch' as any,
+        touchAction: 'pan-y',
+        padding: '0 24px 8px',
+      }}>
+        <div style={{
+          display:       'flex',
+          flexDirection: 'column',
+          gap:           10,
+          maxWidth:      380,
+          margin:        '0 auto',
+        }}>
           {COUNTRY_LIST.map((country) => {
             const isSelected = selected === country.code
             return (
@@ -158,19 +179,19 @@ export function CountryPicker() {
                 key={country.code}
                 onClick={() => setSelected(country.code)}
                 style={{
-                  display:     'flex',
-                  alignItems:  'center',
-                  gap:         16,
-                  padding:     '14px 18px',
+                  display:      'flex',
+                  alignItems:   'center',
+                  gap:          16,
+                  padding:      '14px 18px',
                   borderRadius: 14,
-                  background:  isSelected ? 'rgba(227,25,55,0.14)' : 'rgba(255,255,255,0.06)',
-                  border:      `2px solid ${isSelected ? '#e31937' : 'rgba(255,255,255,0.12)'}`,
-                  color:       '#fff',
-                  cursor:      'pointer',
-                  touchAction: 'manipulation',
-                  transition:  isTeslaBrowser ? undefined : 'border-color 0.15s ease, background 0.15s ease',
-                  width:       '100%',
-                  textAlign:   'left',
+                  background:   isSelected ? 'rgba(227,25,55,0.14)' : 'rgba(255,255,255,0.06)',
+                  border:       `2px solid ${isSelected ? '#e31937' : 'rgba(255,255,255,0.12)'}`,
+                  color:        '#fff',
+                  cursor:       'pointer',
+                  touchAction:  'manipulation',
+                  transition:   isTeslaBrowser ? undefined : 'border-color 0.15s ease, background 0.15s ease',
+                  width:        '100%',
+                  textAlign:    'left',
                 }}
               >
                 <span style={{ fontSize: 30, lineHeight: 1 }}>{country.flag}</span>
@@ -189,23 +210,40 @@ export function CountryPicker() {
             )
           })}
         </div>
+      </div>
 
-        {/* Confirm */}
+      {/* ── Footer: confirm button — always visible ──────────────────── */}
+      <div style={{
+        flexShrink:     0,
+        zIndex:         1,
+        display:        'flex',
+        flexDirection:  'column',
+        alignItems:     'center',
+        gap:            10,
+        padding:        '12px 24px',
+        paddingBottom:  'max(20px, env(safe-area-inset-bottom, 20px))',
+        background:     'rgba(0,0,0,0.6)',
+        borderTop:      '1px solid rgba(255,255,255,0.06)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+      }}>
         <button
           onClick={handleConfirm}
           disabled={!selected}
           style={{
-            width:       '100%',
-            padding:     '15px 0',
+            width:        '100%',
+            maxWidth:     380,
+            padding:      '15px 0',
             borderRadius: 14,
-            border:      'none',
-            background:  selected ? '#e31937' : 'rgba(255,255,255,0.10)',
-            color:       selected ? '#fff' : 'rgba(255,255,255,0.28)',
-            fontSize:    16,
-            fontWeight:  700,
-            cursor:      selected ? 'pointer' : 'default',
-            touchAction: 'manipulation',
-            transition:  isTeslaBrowser ? undefined : 'background 0.15s ease',
+            border:       'none',
+            background:   selected ? '#e31937' : 'rgba(255,255,255,0.10)',
+            color:        selected ? '#fff' : 'rgba(255,255,255,0.28)',
+            fontSize:     16,
+            fontWeight:   700,
+            cursor:       selected ? 'pointer' : 'default',
+            touchAction:  'manipulation',
+            transition:   isTeslaBrowser ? undefined : 'background 0.15s ease',
+            boxShadow:    selected ? '0 4px 20px rgba(227,25,55,0.35)' : 'none',
           }}
         >
           {_isFirstLoad ? 'Continue →' : 'Switch country'}
@@ -216,12 +254,12 @@ export function CountryPicker() {
           <button
             onClick={close}
             style={{
-              background: 'none',
-              border:     'none',
-              color:      'rgba(255,255,255,0.35)',
-              fontSize:   14,
-              cursor:     'pointer',
-              padding:    '4px 0',
+              background:  'none',
+              border:      'none',
+              color:       'rgba(255,255,255,0.35)',
+              fontSize:    14,
+              cursor:      'pointer',
+              padding:     '4px 0',
               touchAction: 'manipulation',
             }}
           >
