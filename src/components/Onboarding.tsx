@@ -2,17 +2,19 @@
 // Shown only on first visit (localStorage flag).
 // 3-step carousel — large text, single tap to advance, designed for Tesla.
 //
-// Country-aware: steps are derived from the selected country config.
-//   - EN locale (Norway): step 1 = full welcome screen with benefit bullets
-//   - BG locale (Bulgaria): step 1 = standard welcome paragraph
-//   - features.speedSections = true  → camera/section step
-//   - features.speedSections = false → EV-focused step
+// Layout (mobile-first):
+//   ┌─────────────────────────┐
+//   │  scrollable content     │  flex: 1, overflowY: auto
+//   │  (dots, icon, text,     │  → never clips on small phones
+//   │   bullets, hint)        │
+//   ├─────────────────────────┤
+//   │  sticky CTA footer      │  flexShrink: 0
+//   │  (button always visible)│  → always reachable regardless of content height
+//   └─────────────────────────┘
 //
-// Step interface supports optional `bullets[]` and `note` fields.
-// When `bullets` is present: body renders as a tagline; bullets appear below.
-// When `note` is present: small print shown below body/bullets.
+// Country-aware: steps are derived from the selected country config.
 
-import { useState, useRef } from 'react'
+import { useState } from 'react'
 import { countryStore } from '@/lib/countryStore'
 import { getLang } from '@/lib/locale'
 import type { CountryConfig } from '@/config/countries'
@@ -24,18 +26,12 @@ interface Step {
   title:    string
   body:     string
   hint:     string | null
-  /** When present: rendered as bullet list below the tagline (body). */
   bullets?: string[]
-  /** When present: small print below body / bullets. */
   note?:    string
 }
 
 function getSteps(country: CountryConfig): Step[] {
   const isBg = getLang() === 'bg'
-
-  // ── Step 1: Welcome ───────────────────────────────────────────────────
-  // EN: full welcome screen with tagline + benefit bullets + early-version note
-  // BG: standard single-paragraph welcome
 
   const step1: Step = isBg ? {
     icon:    '⚡',
@@ -62,8 +58,6 @@ function getSteps(country: CountryConfig): Step[] {
     ],
     hint: null,
   }
-
-  // ── Step 2: Feature highlight ─────────────────────────────────────────
 
   const step2: Step = country.features.speedSections
     ? (isBg ? {
@@ -94,8 +88,6 @@ function getSteps(country: CountryConfig): Step[] {
         hint:    null,
       })
 
-  // ── Step 3: Navigation, saving places, reporting ──────────────────────
-
   const step3: Step = isBg ? {
     icon:  '🗺️',
     title: 'Навигация и репортване',
@@ -113,31 +105,23 @@ function getSteps(country: CountryConfig): Step[] {
 
 export function Onboarding() {
   const [step, setStep] = useState(0)
-  const touchStartY  = useRef(0)
-  const touchMoved   = useRef(false)
 
-  // Country must be chosen first (CountryPicker handles that step)
   if (!countryStore.isChosen()) return null
+  if (typeof localStorage !== 'undefined' && localStorage.getItem(STORAGE_KEY)) return null
 
-  // Already onboarded — render nothing
-  if (typeof localStorage !== 'undefined' && localStorage.getItem(STORAGE_KEY)) {
-    return null
-  }
+  const country     = countryStore.getCountryOrDefault()
+  const steps       = getSteps(country)
+  const isBg        = getLang() === 'bg'
+  const isLast      = step === steps.length - 1
+  const current     = steps[step]!
+  const hasBullets  = Boolean(current.bullets?.length)
 
-  const country  = countryStore.getCountryOrDefault()
-  const steps    = getSteps(country)
-  const isBg     = getLang() === 'bg'
-  const isLast   = step === steps.length - 1
-  const current  = steps[step]!
-
-  const nextLabel  = isBg ? 'Напред'    : 'Next'
-  const startLabel = isBg ? 'Започни'   : 'Get started'
-  const tapHint    = isBg ? 'Докоснете навсякъде за продължение' : 'Tap anywhere to continue'
+  const nextLabel  = isBg ? 'Напред'  : 'Next'
+  const startLabel = isBg ? 'Започни' : 'Get started'
 
   function advance() {
     if (isLast) {
       localStorage.setItem(STORAGE_KEY, '1')
-      // Remove from DOM directly — avoids re-render cost
       const el = document.getElementById('onboarding-root')
       if (el) el.style.display = 'none'
     } else {
@@ -145,156 +129,163 @@ export function Onboarding() {
     }
   }
 
-  const hasBullets = Boolean(current.bullets?.length)
-
   return (
-    // Outer: scrollable backdrop. Scroll detection prevents tap-advance during scroll.
     <div
       id="onboarding-root"
-      onTouchStart={(e) => {
-        touchStartY.current = e.touches[0]?.clientY ?? 0
-        touchMoved.current  = false
-      }}
-      onTouchMove={(e) => {
-        if (Math.abs((e.touches[0]?.clientY ?? 0) - touchStartY.current) > 8)
-          touchMoved.current = true
-      }}
-      onClick={() => { if (!touchMoved.current) advance() }}
       style={{
         position: 'fixed', inset: 0, zIndex: 900,
         background: 'rgba(0,0,0,0.88)',
         backdropFilter: 'blur(10px)',
         WebkitBackdropFilter: 'blur(10px)',
+        display: 'flex',
+        flexDirection: 'column',
+        // no overflow here — each section handles its own
+      }}
+    >
+      {/* ── Scrollable content area ─────────────────────────────────────── */}
+      <div style={{
+        flex: 1,
         overflowY: 'auto',
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         WebkitOverflowScrolling: 'touch' as any,
+        // Allow vertical pan (scroll) — block horizontal
         touchAction: 'pan-y',
-        display: 'flex', flexDirection: 'column',
-      }}
-    >
-    {/* Inner: min-height 100% so content is centered when it fits,
-        scrollable when it's taller than the viewport (small phones). */}
-    <div style={{
-      minHeight: '100%',
-      display: 'flex', flexDirection: 'column',
-      alignItems: 'center', justifyContent: 'center',
-      padding: '32px 24px', gap: 0,
-      textAlign: 'center', boxSizing: 'border-box',
-      width: '100%',
-    }}>
-      {/* Step dots */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 28 }}>
-        {steps.map((_, i) => (
-          <div key={i} style={{
-            width:  i === step ? 20 : 6,
-            height: 6,
-            borderRadius: 3,
-            background: i === step ? '#e31937' : 'rgba(255,255,255,0.2)',
-            transition: 'width 0.25s ease, background 0.25s ease',
-          }} />
-        ))}
-      </div>
-
-      {/* Icon */}
-      <div style={{ fontSize: 52, marginBottom: 16, lineHeight: 1 }}>
-        {current.icon}
-      </div>
-
-      {/* Title */}
-      <div style={{
-        fontSize: 24, fontWeight: 800, color: '#fff',
-        letterSpacing: '-0.3px', marginBottom: 12,
-        maxWidth: 360,
       }}>
-        {current.title}
-      </div>
-
-      {/* Body — tagline when bullets are present */}
-      <div style={{
-        fontSize:   hasBullets ? 15 : 15,
-        color:      hasBullets ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.7)',
-        fontWeight: hasBullets ? 400 : 400,
-        lineHeight: 1.6,
-        maxWidth:   340,
-        marginBottom: hasBullets ? 16 : (current.hint ? 16 : 36),
-        fontStyle:  hasBullets ? 'italic' : undefined,
-      }}>
-        {current.body}
-      </div>
-
-      {/* Bullet list — shown for EN welcome step */}
-      {hasBullets && (
         <div style={{
-          width: '100%', maxWidth: 340,
-          marginBottom: current.note ? 10 : (current.hint ? 16 : 36),
-          display: 'flex', flexDirection: 'column', gap: 6,
-          textAlign: 'left',
+          display: 'flex', flexDirection: 'column',
+          alignItems: 'center', textAlign: 'center',
+          padding: '40px 24px 24px',
+          // minHeight 100% so content centers vertically when shorter than viewport
+          minHeight: '100%',
+          boxSizing: 'border-box',
         }}>
-          {current.bullets!.map((b) => (
-            <div key={b} style={{
-              padding: '9px 14px',
-              borderRadius: 10,
-              background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.08)',
-              fontSize: 14,
-              color: 'rgba(255,255,255,0.78)',
-              lineHeight: 1.4,
-              fontWeight: 500,
+          {/* Step dots */}
+          <div style={{ display: 'flex', gap: 6, marginBottom: 28 }}>
+            {steps.map((_, i) => (
+              <div key={i} style={{
+                width:  i === step ? 20 : 6,
+                height: 6,
+                borderRadius: 3,
+                background: i === step ? '#e31937' : 'rgba(255,255,255,0.2)',
+                transition: 'width 0.25s ease, background 0.25s ease',
+              }} />
+            ))}
+          </div>
+
+          {/* Icon */}
+          <div style={{ fontSize: 52, marginBottom: 16, lineHeight: 1 }}>
+            {current.icon}
+          </div>
+
+          {/* Title */}
+          <div style={{
+            fontSize: 24, fontWeight: 800, color: '#fff',
+            letterSpacing: '-0.3px', marginBottom: 12,
+            maxWidth: 360,
+          }}>
+            {current.title}
+          </div>
+
+          {/* Body */}
+          <div style={{
+            fontSize: 15,
+            color:    hasBullets ? 'rgba(255,255,255,0.5)' : 'rgba(255,255,255,0.7)',
+            lineHeight: 1.6,
+            maxWidth: 340,
+            marginBottom: hasBullets ? 16 : (current.hint ? 16 : 8),
+            fontStyle: hasBullets ? 'italic' : undefined,
+          }}>
+            {current.body}
+          </div>
+
+          {/* Bullet list */}
+          {hasBullets && (
+            <div style={{
+              width: '100%', maxWidth: 340,
+              marginBottom: current.note ? 10 : (current.hint ? 16 : 8),
+              display: 'flex', flexDirection: 'column', gap: 6,
+              textAlign: 'left',
             }}>
-              {b}
+              {current.bullets!.map((b) => (
+                <div key={b} style={{
+                  padding: '9px 14px',
+                  borderRadius: 10,
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  fontSize: 14,
+                  color: 'rgba(255,255,255,0.78)',
+                  lineHeight: 1.4,
+                  fontWeight: 500,
+                }}>
+                  {b}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
+          )}
 
-      {/* Small note — early version / built for Tesla */}
-      {current.note && (
-        <div style={{
-          marginBottom: current.hint ? 16 : 36,
-          fontSize: 11,
-          color: 'rgba(255,255,255,0.3)',
-          letterSpacing: '0.03em',
-          maxWidth: 340,
-          lineHeight: 1.5,
-        }}>
-          {current.note}
-        </div>
-      )}
+          {/* Note */}
+          {current.note && (
+            <div style={{
+              marginBottom: current.hint ? 16 : 8,
+              fontSize: 11, color: 'rgba(255,255,255,0.3)',
+              letterSpacing: '0.03em', maxWidth: 340, lineHeight: 1.5,
+            }}>
+              {current.note}
+            </div>
+          )}
 
-      {/* Hint badge */}
-      {current.hint && (
-        <div style={{
-          marginBottom: 36,
-          padding: '8px 16px', borderRadius: 10,
-          background: 'rgba(255,255,255,0.07)',
-          border: '1px solid rgba(255,255,255,0.12)',
-          fontSize: 13, color: 'rgba(255,255,255,0.55)',
-        }}>
-          {current.hint}
+          {/* Hint badge */}
+          {current.hint && (
+            <div style={{
+              marginBottom: 8,
+              padding: '8px 16px', borderRadius: 10,
+              background: 'rgba(255,255,255,0.07)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              fontSize: 13, color: 'rgba(255,255,255,0.55)',
+            }}>
+              {current.hint}
+            </div>
+          )}
         </div>
-      )}
+      </div>
 
-      {/* CTA button */}
+      {/* ── Sticky CTA footer — always visible ─────────────────────────── */}
       <div style={{
-        padding: '14px 48px', borderRadius: 14,
-        background: '#e31937',
-        color: '#fff', fontSize: 17, fontWeight: 700,
-        letterSpacing: '0.01em',
-        boxShadow: '0 4px 20px rgba(227,25,55,0.4)',
+        flexShrink: 0,
+        display: 'flex', flexDirection: 'column', alignItems: 'center',
+        padding: '16px 24px',
+        // Respect iOS home-indicator safe area
+        paddingBottom: 'max(24px, env(safe-area-inset-bottom, 24px))',
+        background: 'rgba(0,0,0,0.6)',
+        borderTop: '1px solid rgba(255,255,255,0.06)',
+        backdropFilter: 'blur(8px)',
+        WebkitBackdropFilter: 'blur(8px)',
+        gap: 12,
       }}>
-        {isLast ? startLabel : nextLabel}
-      </div>
+        {/* CTA button */}
+        <button
+          onClick={advance}
+          style={{
+            width: '100%', maxWidth: 340,
+            padding: '15px 48px', borderRadius: 14,
+            background: '#e31937', border: 'none',
+            color: '#fff', fontSize: 17, fontWeight: 700,
+            letterSpacing: '0.01em',
+            boxShadow: '0 4px 20px rgba(227,25,55,0.4)',
+            cursor: 'pointer',
+            touchAction: 'manipulation',
+          }}
+        >
+          {isLast ? startLabel : nextLabel}
+        </button>
 
-      <div style={{ marginTop: 14, fontSize: 12, color: 'rgba(255,255,255,0.22)' }}>
-        {tapHint}
+        {/* Disclaimer */}
+        <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.18)', maxWidth: 340, lineHeight: 1.4, textAlign: 'center' }}>
+          {isBg
+            ? 'TesRadar е независим проект, който не е обвързан с Tesla или други компании.'
+            : 'TesRadar is an independent project not affiliated with Tesla or any other company.'}
+        </div>
       </div>
-
-      <div style={{ marginTop: 10, fontSize: 10, color: 'rgba(255,255,255,0.15)', maxWidth: 340, lineHeight: 1.4 }}>
-        {isBg
-          ? 'TesRadar е независим проект, който не е обвързан с Tesla или други компании.'
-          : 'TesRadar is an independent project not affiliated with Tesla or any other company.'}
-      </div>
-    </div>{/* end inner centering wrapper */}
     </div>
   )
 }
