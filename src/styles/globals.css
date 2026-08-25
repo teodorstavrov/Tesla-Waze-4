@@ -532,6 +532,50 @@ body,
   border-radius: 15px !important;
 }
 
+/* ─── Height-adaptive buttons — short-viewport Tesla screens ────────── */
+/*
+   Column: 7 × 88px buttons + 7 × 8px gaps + ~9px separator = 681px.
+   Logo occupies top ~66px; clock occupies bottom ~70px.
+   Minimum safe viewport: 681 + 66 + 70 + 16px clearance = 833px.
+   Model S/X 2022+ landscape (2200×1300) renders ~750-820px viewport →
+   column overflows and covers the logo at top and clock at bottom.
+
+   Strategy: two breakpoints reduce button + gap sizes proportionally.
+   min-width: 481px keeps these rules away from the ≤480px phone block.
+*/
+
+@media (max-height: 840px) and (min-width: 481px) {
+  /* Moderate height (760–840px): gentle 10px reduction */
+  .left-controls-xl {
+    gap: 7px !important;
+  }
+  .left-controls-xl .icon-btn {
+    width: 78px !important;
+    height: 78px !important;
+    border-radius: 15px !important;
+  }
+  .left-controls-xl .icon-btn svg {
+    width: 28px !important;
+    height: 28px !important;
+  }
+}
+
+@media (max-height: 760px) and (min-width: 481px) {
+  /* Short height (≤760px): Model S/X 2022+ — aggressive reduction */
+  .left-controls-xl {
+    gap: 6px !important;
+  }
+  .left-controls-xl .icon-btn {
+    width: 68px !important;
+    height: 68px !important;
+    border-radius: 13px !important;
+  }
+  .left-controls-xl .icon-btn svg {
+    width: 24px !important;
+    height: 24px !important;
+  }
+}
+
 /* ─── Mobile responsiveness (≤480px phones) ─────────────────────────── */
 @media (max-width: 480px) {
   /* Left controls — shrink from 88px to 56px */
