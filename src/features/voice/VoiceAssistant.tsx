@@ -180,10 +180,28 @@ export function VoiceAssistant() {
         setErrorMsg(lbl('Не чух нищо. Опитай отново.', 'No speech detected. Try again.'))
       } else if (e.error === 'not-allowed') {
         setPhase('error')
-        setErrorMsg(lbl('Достъпът до микрофона е отказан.', 'Microphone access denied.'))
+        setErrorMsg(lbl(
+          'Достъпът до микрофона е отказан. Провери разрешенията в браузъра.',
+          'Microphone access denied. Check browser permissions.',
+        ))
+      } else if (e.error === 'service-not-allowed') {
+        setPhase('error')
+        setErrorMsg(lbl(
+          'Гласовото разпознаване не е разрешено на това устройство. На iOS: Настройки → Поверителност → Говор и диктовка → включи за браузъра.',
+          'Speech recognition not allowed on this device. On iOS: Settings → Privacy → Speech & Dictation → enable for your browser.',
+        ))
+      } else if (e.error === 'network') {
+        setPhase('error')
+        setErrorMsg(lbl(
+          'Няма връзка за разпознаване на реч. Провери интернет.',
+          'No network connection for speech recognition.',
+        ))
       } else {
         setPhase('error')
-        setErrorMsg(lbl(`Грешка: ${e.error}`, `Error: ${e.error}`))
+        setErrorMsg(lbl(
+          `Гласовото разпознаване не е налично в този браузър (${e.error}).`,
+          `Speech recognition unavailable in this browser (${e.error}).`,
+        ))
       }
     }
 
