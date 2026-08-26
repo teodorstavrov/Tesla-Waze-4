@@ -8,6 +8,7 @@ import { routeStore } from '@/features/route/routeStore'
 import { langStore, t } from '@/lib/locale'
 import { v8SportEngine, v8MuscleEngine, v8AmgEngine, v8W12Engine } from '@/features/v8sound/v8Engine'
 import { v8HeaderEngine } from '@/features/v8sound/audioEngine'
+import { openVoiceAssistant, MicButtonIcon } from '@/features/voice/VoiceAssistant'
 
 export function BottomDock() {
   // Re-render on language change so button labels update
@@ -252,6 +253,24 @@ export function BottomDock() {
       >
         <AlertIcon />
         {t('dock.report')}
+      </button>
+
+      {/* AI Voice — TesRadar AI */}
+      <button
+        className="icon-btn"
+        onClick={openVoiceAssistant}
+        title="TesRadar AI"
+        aria-label="TesRadar AI — voice assistant"
+        style={{
+          width: 'clamp(58px, 17vw, 83px)', height: 'clamp(58px, 17vw, 83px)',
+          borderRadius: 'clamp(12px, 4vw, 16px)',
+          background: 'rgba(255,255,255,0.5)',
+          borderColor: 'rgba(255,255,255,0.3)',
+          color: '#111',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.18)',
+        }}
+      >
+        <MicButtonIcon />
       </button>
 
       {/* Route */}
