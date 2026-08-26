@@ -30,7 +30,7 @@ export function FloatingTitleCard() {
       <img
         src="/new-medium_tran_blue.png"
         alt="TesRadar"
-        style={{ height: 54, width: 'auto', display: 'block', borderRadius: 12 }}
+        style={{ height: 'clamp(36px, 6vh, 54px)', width: 'auto', display: 'block', borderRadius: 12 }}
       />
 
       {/* Hide rating button during navigation — TurnInstruction sits below */}

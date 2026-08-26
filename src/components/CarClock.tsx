@@ -46,7 +46,7 @@ export function CarClock() {
       }}
     >
       <span style={{
-        fontSize:           30,
+        fontSize:           'clamp(18px, 3.3vh, 30px)',
         fontWeight:         700,
         color:              '#ffffff',
         fontVariantNumeric: 'tabular-nums',

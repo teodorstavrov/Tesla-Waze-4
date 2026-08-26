@@ -117,7 +117,7 @@ export function BottomDock() {
       transform: 'translateX(-50%)',
       zIndex: 400,
       display: 'flex',
-      gap: 'clamp(6px, 2.5vw, 13px)',
+      gap: 'clamp(5px, calc((100vh - 150px) / 100), 13px)',
       alignItems: 'center',
     }}>
       {/* V8 Sound cycle: off → sport → muscle → header → s63 → off */}
@@ -170,8 +170,8 @@ export function BottomDock() {
           aria-label={v8Label}
           disabled={v8Loading}
           style={{
-            width: 'clamp(58px, 17vw, 83px)', height: 'clamp(58px, 17vw, 83px)',
-            borderRadius: 'clamp(12px, 4vw, 16px)',
+            width: 'clamp(48px, calc((100vh - 195px) / 7 * 0.94), 83px)', height: 'clamp(48px, calc((100vh - 195px) / 7 * 0.94), 83px)',
+            borderRadius: 'clamp(10px, calc((100vh - 195px) / 7 * 0.72 * 0.22), 16px)',
             background:  v8Mode === 'muscle' ? 'rgba(245,158,11,0.25)'
                        : v8Mode === 'sport'  ? 'rgba(227,25,55,0.25)'
                        : v8Mode === 'header' ? 'rgba(16,185,129,0.25)'
@@ -207,8 +207,8 @@ export function BottomDock() {
       <button
         className="icon-btn"
         style={{
-          width: 'clamp(58px, 17vw, 83px)', height: 'clamp(58px, 17vw, 83px)',
-          borderRadius: 'clamp(12px, 4vw, 16px)',
+          width: 'clamp(48px, calc((100vh - 195px) / 7 * 0.94), 83px)', height: 'clamp(48px, calc((100vh - 195px) / 7 * 0.94), 83px)',
+          borderRadius: 'clamp(10px, calc((100vh - 195px) / 7 * 0.72 * 0.22), 16px)',
           background: 'rgba(255,255,255,0.5)',
           borderColor: 'rgba(255,255,255,0.3)',
           color: '#111',
@@ -231,14 +231,14 @@ export function BottomDock() {
         style={{
           display: 'flex',
           alignItems: 'center',
-          gap: 'clamp(6px, 2vw, 10px)',
-          padding: '0 clamp(14px, 4.5vw, 32px)',
-          height: 'clamp(58px, 17vw, 83px)',
-          borderRadius: 'clamp(30px, 9vw, 42px)',
+          gap: 'clamp(5px, calc((100vh - 150px) / 120), 10px)',
+          padding: '0 clamp(10px, 2.5vh, 32px)',
+          height: 'clamp(48px, calc((100vh - 195px) / 7 * 0.94), 83px)',
+          borderRadius: 'clamp(24px, calc((100vh - 195px) / 7 * 0.47), 42px)',
           background: '#e31937',
           border: 'none',
           color: '#fff',
-          fontSize: 'clamp(13px, 3.5vw, 16px)',
+          fontSize: 'clamp(11px, 1.8vh, 16px)',
           fontWeight: 700,
           letterSpacing: '0.04em',
           cursor: 'pointer',
@@ -262,8 +262,8 @@ export function BottomDock() {
         title="TesRadar AI"
         aria-label="TesRadar AI — voice assistant"
         style={{
-          width: 'clamp(58px, 17vw, 83px)', height: 'clamp(58px, 17vw, 83px)',
-          borderRadius: 'clamp(12px, 4vw, 16px)',
+          width: 'clamp(48px, calc((100vh - 195px) / 7 * 0.94), 83px)', height: 'clamp(48px, calc((100vh - 195px) / 7 * 0.94), 83px)',
+          borderRadius: 'clamp(10px, calc((100vh - 195px) / 7 * 0.72 * 0.22), 16px)',
           background: 'rgba(255,255,255,0.5)',
           borderColor: 'rgba(255,255,255,0.3)',
           color: '#111',
@@ -301,8 +301,8 @@ export function BottomDock() {
         <button
           className="icon-btn"
           style={{
-            width: 'clamp(58px, 17vw, 83px)', height: 'clamp(58px, 17vw, 83px)',
-            borderRadius: 'clamp(12px, 4vw, 16px)',
+            width: 'clamp(48px, calc((100vh - 195px) / 7 * 0.94), 83px)', height: 'clamp(48px, calc((100vh - 195px) / 7 * 0.94), 83px)',
+            borderRadius: 'clamp(10px, calc((100vh - 195px) / 7 * 0.72 * 0.22), 16px)',
             background: routeActive ? 'rgba(43,127,255,0.5)' : 'rgba(255,255,255,0.5)',
             borderColor: routeActive ? '#2B7FFF' : 'rgba(255,255,255,0.3)',
             color: routeActive ? '#fff' : '#111',

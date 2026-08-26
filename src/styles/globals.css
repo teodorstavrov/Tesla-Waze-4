@@ -557,6 +557,7 @@ body,
    min-width: 481px keeps these rules away from the ≤480px phone block.
 */
 @media (min-width: 481px) {
+  /* ── Left controls ─────────────────────────────────── */
   .left-controls-xl {
     gap: clamp(4px, calc((100vh - 150px) / 100), 8px) !important;
   }
@@ -568,6 +569,20 @@ body,
   .left-controls-xl .icon-btn svg {
     width:  clamp(18px, calc((100vh - 195px) / 7 * 0.36), 32px) !important;
     height: clamp(18px, calc((100vh - 195px) / 7 * 0.36), 32px) !important;
+  }
+
+  /* ── Right controls — 72% of left button size (63/88 ratio) ──────── */
+  .right-controls {
+    gap: clamp(4px, calc((100vh - 150px) / 100), 8px) !important;
+  }
+  .right-controls .icon-btn {
+    width:         clamp(42px, calc((100vh - 195px) / 7 * 0.72), 63px) !important;
+    height:        clamp(42px, calc((100vh - 195px) / 7 * 0.72), 63px) !important;
+    border-radius: clamp(10px, calc((100vh - 195px) / 7 * 0.72 * 0.22), 15px) !important;
+  }
+  .right-controls .icon-btn svg {
+    width:  clamp(14px, calc((100vh - 195px) / 7 * 0.72 * 0.36), 26px) !important;
+    height: clamp(14px, calc((100vh - 195px) / 7 * 0.72 * 0.36), 26px) !important;
   }
 }
 
