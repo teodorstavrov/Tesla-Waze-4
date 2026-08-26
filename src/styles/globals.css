@@ -532,47 +532,34 @@ body,
   border-radius: 15px !important;
 }
 
-/* ─── Height-adaptive buttons — short-viewport Tesla screens ────────── */
+/* ─── Fluid button sizing — all Tesla screen sizes ───────────────────── */
 /*
-   Column: 7 × 88px buttons + 7 × 8px gaps + ~9px separator = 681px.
-   Logo occupies top ~66px; clock occupies bottom ~70px.
-   Minimum safe viewport: 681 + 66 + 70 + 16px clearance = 833px.
-   Model S/X 2022+ landscape (2200×1300) renders ~750-820px viewport →
-   column overflows and covers the logo at top and clock at bottom.
+   The left-column container is positioned top:74px (below logo) to
+   bottom:76px (above clock), so it is physically bounded on every model.
+   Button size scales continuously with viewport height via clamp():
 
-   Strategy: two breakpoints reduce button + gap sizes proportionally.
+     btn = clamp(52px, (100vh - 195px) / 7, 88px)
+
+   Where 195px = 74 (logo zone) + 76 (clock zone) + 9 (separator) + avg gaps.
+   Verification:
+     Model S/X 2022  (~760px): (760-195)/7 = 80.7px  ✓
+     Model 3/Y 2021+ (~900px): (900-195)/7 = 100.7 → capped 88px ✓
+     Cybertruck/S 17"(~1050px): capped at 88px        ✓
+
    min-width: 481px keeps these rules away from the ≤480px phone block.
 */
-
-@media (max-height: 840px) and (min-width: 481px) {
-  /* Moderate height (760–840px): gentle 10px reduction */
+@media (min-width: 481px) {
   .left-controls-xl {
-    gap: 7px !important;
+    gap: clamp(4px, calc((100vh - 150px) / 100), 8px) !important;
   }
   .left-controls-xl .icon-btn {
-    width: 78px !important;
-    height: 78px !important;
-    border-radius: 15px !important;
+    width:         clamp(52px, calc((100vh - 195px) / 7), 88px) !important;
+    height:        clamp(52px, calc((100vh - 195px) / 7), 88px) !important;
+    border-radius: clamp(11px, calc((100vh - 195px) / 7 * 0.18), 16px) !important;
   }
   .left-controls-xl .icon-btn svg {
-    width: 28px !important;
-    height: 28px !important;
-  }
-}
-
-@media (max-height: 760px) and (min-width: 481px) {
-  /* Short height (≤760px): Model S/X 2022+ — aggressive reduction */
-  .left-controls-xl {
-    gap: 6px !important;
-  }
-  .left-controls-xl .icon-btn {
-    width: 68px !important;
-    height: 68px !important;
-    border-radius: 13px !important;
-  }
-  .left-controls-xl .icon-btn svg {
-    width: 24px !important;
-    height: 24px !important;
+    width:  clamp(18px, calc((100vh - 195px) / 7 * 0.36), 32px) !important;
+    height: clamp(18px, calc((100vh - 195px) / 7 * 0.36), 32px) !important;
   }
 }
 

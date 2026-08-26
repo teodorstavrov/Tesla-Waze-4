@@ -37,14 +37,18 @@ export function LeftControls() {
     <div
       className="left-controls-xl"
       style={{
-        position: 'absolute',
-        left: 12,
-        top: '50%',
-        transform: 'translateY(-50%)',
-        zIndex: 400,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 8,
+        position:        'absolute',
+        left:            12,
+        // Constrain between logo (top ~66px) and clock (bottom ~68px)
+        // with 8px clearance each side → always visible on every Tesla model.
+        // justify-content:center keeps buttons vertically centered in the safe zone.
+        // gap + button sizes are controlled fluidly by CSS class (clamp + vh units).
+        top:             74,   // 12 logo-top + 54 logo-height + 8 clearance
+        bottom:          76,   // 30 clock-bottom + 38 clock-height + 8 clearance
+        zIndex:          400,
+        display:         'flex',
+        flexDirection:   'column',
+        justifyContent:  'center',
       }}
     >
       <div style={{ position: 'relative' }}>

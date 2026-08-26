@@ -524,15 +524,23 @@ export function MapShell() {
       }
 
       // ── Perspective offset pan ────────────────────────────────────────────
-      // In course-up mode (map rotation active) + known heading: pan to a point
-      // N meters ahead of the car so the avatar lands at ~70% from screen top
-      // (horizontally centered, 20% below the map midpoint).
-      // Active whenever course-up is on — not only during navigation.
+      // Course-up (Tesla): pan ahead in heading direction; CSS scale accounted
+      //   for in _lookaheadMeters → avatar at 70% from screen top.
+      // North-up on mobile: pan map center northward by the same visual offset
+      //   (no CSS scale in north-up) → avatar always at 70% from top on phones.
       // Fallback: standard centered follow (car at screen center, 50%/50%).
       let panTarget: [number, number] = [pos.lat, pos.lng]
       if (courseUp && pos.heading != null && _courseUpActive) {
         const lm = _lookaheadMeters(pos.lat, map.getZoom())
         panTarget = _offsetInHeading(pos.lat, pos.lng, pos.heading, lm)
+      } else if (!courseUp && !isTeslaBrowser) {
+        // North-up on mobile: pan map center north (screen-up) so the avatar
+        // lands at PERSPECTIVE_VISUAL_FRACTION below center = ~70% from top.
+        // No CSS scale is applied in north-up mode, so divide by 1 (not _mapScale).
+        const metersPerLeafletPx =
+          (156543.03392 * Math.cos(pos.lat * Math.PI / 180)) / Math.pow(2, map.getZoom())
+        const lm = window.innerHeight * PERSPECTIVE_VISUAL_FRACTION * metersPerLeafletPx
+        panTarget = _offsetInHeading(pos.lat, pos.lng, 0, lm)
       }
 
       followStore.beginProgrammaticMove()
