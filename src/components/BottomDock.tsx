@@ -8,6 +8,7 @@ import { routeStore } from '@/features/route/routeStore'
 import { langStore, t } from '@/lib/locale'
 import { v8SportEngine, v8MuscleEngine, v8AmgEngine, v8W12Engine } from '@/features/v8sound/v8Engine'
 import { v8HeaderEngine } from '@/features/v8sound/audioEngine'
+import { openVoiceAssistant } from '@/features/voice/VoiceAssistant'
 
 export function BottomDock() {
   // Re-render on language change so button labels update
@@ -252,6 +253,24 @@ export function BottomDock() {
       >
         <AlertIcon />
         {t('dock.report')}
+      </button>
+
+      {/* AI Voice Assistant */}
+      <button
+        className="icon-btn"
+        onClick={openVoiceAssistant}
+        title="TesRadar AI"
+        aria-label="TesRadar AI voice assistant"
+        style={{
+          width: 'clamp(58px, 17vw, 83px)', height: 'clamp(58px, 17vw, 83px)',
+          borderRadius: 'clamp(12px, 4vw, 16px)',
+          background: 'rgba(255,255,255,0.5)',
+          borderColor: 'rgba(255,255,255,0.3)',
+          color: '#111',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.18)',
+        }}
+      >
+        <MicIcon />
       </button>
 
       {/* Route */}
@@ -505,6 +524,18 @@ function AlertIcon() {
       <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
       <line x1="12" y1="9" x2="12" y2="13" />
       <line x1="12" y1="17" x2="12.01" y2="17" />
+    </svg>
+  )
+}
+
+function MicIcon() {
+  return (
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="9" y="2" width="6" height="12" rx="3" />
+      <path d="M5 10a7 7 0 0 0 14 0" />
+      <line x1="12" y1="17" x2="12" y2="21" />
+      <line x1="9"  y1="21" x2="15" y2="21" />
     </svg>
   )
 }
