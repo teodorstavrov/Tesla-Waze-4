@@ -1,6 +1,6 @@
 // ─── Map defaults ─────────────────────────────────────────────────────
 export const DEFAULT_CENTER: [number, number] = [42.6977, 23.3219] // Sofia, Bulgaria
-export const DEFAULT_ZOOM = 16
+export const DEFAULT_ZOOM = 18
 export const MIN_ZOOM = 6
 export const MAX_ZOOM = 19
 
