@@ -241,15 +241,10 @@ body,
   transform-origin: center center;
 }
 
-/* ── GPS avatar (HeadingAvatar) viewport scaling ─────────────────────────
- * The avatar is NOT a .marker-scale-wrap (its rotation is done imperatively).
- * We apply just the viewport scale on the outer .gps-avatar-root container.
- * The inner .gps-avatar-arrow handles rotation + course-up counter-scale.
- */
-.gps-avatar-root {
-  transform: scale(var(--marker-viewport-scale, 1));
-  transform-origin: center center;
-}
+/* NOTE: .gps-avatar-root cannot be scaled via CSS — Leaflet overwrites its
+ * transform with an inline translate() for marker positioning. Viewport scale
+ * is applied imperatively inside HeadingAvatar.tsx, folded into the
+ * .gps-avatar-arrow transform: rotate(Xdeg) scale(counterScale × vpScale). */
 
 /* ── Course-up popup/tooltip counter-rotation ────────────────────────────
  * When #map rotates by −N deg (course-up), popups and tooltips rotate with

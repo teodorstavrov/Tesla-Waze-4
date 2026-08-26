@@ -95,7 +95,7 @@ export function TripSummaryBanner({ onClick }: { onClick?: () => void } = {}) {
         touchAction:         interactive ? 'manipulation' : undefined,
         background:          'rgba(0,0,0,0.55)',
         borderRadius:        10,
-        padding:             '7px 13px',
+        padding:             'clamp(5px, 1vh, 7px) clamp(9px, 1.8vh, 13px)',
         display:             'grid',
         gridTemplateColumns: isPhone ? `repeat(${cols}, 1fr)` : '1fr 1fr',
         gap:                 isPhone ? '4px 10px' : '4px 16px',
@@ -123,9 +123,9 @@ function StatRow({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-        <span style={{ fontSize: 12, lineHeight: 1 }}>{icon}</span>
+        <span style={{ fontSize: 'clamp(9px, 1.3vh, 12px)', lineHeight: 1 }}>{icon}</span>
         <span style={{
-          fontSize:           16,
+          fontSize:           'clamp(12px, 2vh, 16px)' as string,
           fontWeight:         700,
           color:              accent ?? '#ffffff',
           fontVariantNumeric: 'tabular-nums',

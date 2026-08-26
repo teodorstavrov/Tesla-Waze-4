@@ -116,10 +116,10 @@ export function EventPanel() {
         aria-label={label}
         className={isTeslaBrowser ? 'glass tesla-overlay-inner' : 'glass'}
         style={{
-          padding:       '20px 22px',
+          padding:       'clamp(12px, 2.5vh, 20px) clamp(14px, 2.8vh, 22px)',
           display:       'flex',
           flexDirection: 'column',
-          gap:           14,
+          gap:           'clamp(9px, 1.8vh, 14px)',
           ...(isTeslaBrowser ? {} : {
             opacity:    isVisible ? 1 : 0,
             transform:  isVisible ? 'scale(1)' : 'scale(0.97)',
@@ -134,16 +134,16 @@ export function EventPanel() {
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <div style={{
-                width: 52, height: 52, borderRadius: '50%', flexShrink: 0,
+                width: 'clamp(38px, 6.5vh, 52px)', height: 'clamp(38px, 6.5vh, 52px)', borderRadius: '50%', flexShrink: 0,
                 background: `${color}22`, border: `2px solid ${color}`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 24,
+                fontSize: 'clamp(18px, 3vh, 24px)',
               }}>
                 {emoji}
               </div>
 
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 19, fontWeight: 700, color }}>
+                <div style={{ fontSize: 'clamp(14px, 2.3vh, 19px)', fontWeight: 700, color }}>
                   {label}
                 </div>
                 {timeLine && (
@@ -163,7 +163,7 @@ export function EventPanel() {
                   background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)',
                   color: 'var(--text-secondary)', cursor: 'pointer',
                   padding: 0, borderRadius: '50%', lineHeight: 1, flexShrink: 0,
-                  width: 42, height: 42, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: 'clamp(32px, 5.5vh, 42px)', height: 'clamp(32px, 5.5vh, 42px)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   position: 'relative',
                 }}
               >
@@ -213,9 +213,9 @@ export function EventPanel() {
                 onClick={() => { void handleConfirm() }}
                 disabled={confirming || denying}
                 style={{
-                  flex: 1, padding: '14px 0', borderRadius: 10,
+                  flex: 1, padding: 'clamp(9px, 1.8vh, 14px) 0', borderRadius: 10,
                   background: 'rgba(34,197,94,0.2)', border: '1.5px solid rgba(34,197,94,0.6)',
-                  color: '#22c55e', fontSize: 18, fontWeight: 700,
+                  color: '#22c55e', fontSize: 'clamp(13px, 2.2vh, 18px)', fontWeight: 700,
                   cursor: 'pointer', touchAction: 'manipulation',
                   opacity: confirming ? 0.6 : 1,
                 }}
@@ -226,9 +226,9 @@ export function EventPanel() {
                 onClick={() => { void handleDeny() }}
                 disabled={confirming || denying}
                 style={{
-                  flex: 1, padding: '14px 0', borderRadius: 10,
+                  flex: 1, padding: 'clamp(9px, 1.8vh, 14px) 0', borderRadius: 10,
                   background: 'rgba(239,68,68,0.12)', border: '1.5px solid rgba(239,68,68,0.4)',
-                  color: '#f87171', fontSize: 18, fontWeight: 700,
+                  color: '#f87171', fontSize: 'clamp(13px, 2.2vh, 18px)', fontWeight: 700,
                   cursor: 'pointer', touchAction: 'manipulation',
                   opacity: denying ? 0.6 : 1,
                 }}

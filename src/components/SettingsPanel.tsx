@@ -98,7 +98,7 @@ function PanelContent() {
         top:        '50%',
         transform:  'translateY(-50%)',
         zIndex:     460,
-        width:      300,
+        width:      'clamp(240px, 30vw, 300px)',
         background: 'rgba(12,12,20,0.97)',
         border:     '1px solid rgba(255,255,255,0.12)',
         borderRadius: 16,
@@ -107,8 +107,8 @@ function PanelContent() {
     >
       {/* Header */}
       <div style={{
-        padding:       '14px 20px 10px',
-        fontSize:      12,
+        padding:       'clamp(10px, 1.5vh, 14px) clamp(14px, 2.5vh, 20px) clamp(7px, 1vh, 10px)',
+        fontSize:      'clamp(9px, 1.2vh, 12px)',
         fontWeight:    700,
         color:         'rgba(255,255,255,0.35)',
         letterSpacing: '0.12em',
@@ -241,9 +241,9 @@ function Row({
         width:        '100%',
         display:      'flex',
         alignItems:   'center',
-        gap:          14,
-        padding:      '0 20px',
-        height:       56,
+        gap:          'clamp(10px, 1.8vh, 14px)',
+        padding:      '0 clamp(14px, 2.5vh, 20px)',
+        height:       'clamp(44px, 7vh, 56px)',
         background:   'none',
         border:       'none',
         borderBottom: '1px solid rgba(255,255,255,0.05)',
@@ -254,12 +254,12 @@ function Row({
       }}
     >
       <span style={{
-        width: 28, display: 'flex', alignItems: 'center',
+        width: 'clamp(22px, 3.5vh, 28px)', display: 'flex', alignItems: 'center',
         justifyContent: 'center', flexShrink: 0, opacity: 0.65,
       }}>
         {icon}
       </span>
-      <span style={{ flex: 1, fontSize: 15, fontWeight: 500 }}>
+      <span style={{ flex: 1, fontSize: 'clamp(12px, 2vh, 15px)', fontWeight: 500 }}>
         {label}
       </span>
       {state !== undefined && (

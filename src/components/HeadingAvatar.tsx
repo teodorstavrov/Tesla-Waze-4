@@ -31,8 +31,8 @@ import { getMap, getCourseUpScale } from '@/components/MapShell'
 import { gpsStore } from '@/features/gps/gpsStore'
 import type { GpsPosition } from '@/features/gps/types'
 
-const ICON_SIZE = 56
-const ICON_ANCHOR: L.PointExpression = [28, 28]
+const ICON_SIZE = 44
+const ICON_ANCHOR: L.PointExpression = [22, 22]
 
 // ── Icon HTML builders ────────────────────────────────────────────
 
@@ -95,7 +95,13 @@ export function HeadingAvatar() {
       const wrap = el?.querySelector<HTMLElement>('.gps-avatar-arrow')
       if (wrap) {
         const counterScale = 1 / getCourseUpScale()
-        wrap.style.transform = `rotate(${Math.round(pos.heading ?? 0)}deg) scale(${counterScale})`
+        // Also apply viewport scale so avatar shrinks proportionally on smaller screens.
+        // CSS transform on .gps-avatar-root is overridden by Leaflet's inline positioning
+        // transform, so we must fold the viewport scale into this imperative update instead.
+        const vpScale = parseFloat(
+          getComputedStyle(document.documentElement).getPropertyValue('--marker-viewport-scale') || '1'
+        )
+        wrap.style.transform = `rotate(${Math.round(pos.heading ?? 0)}deg) scale(${(counterScale * vpScale).toFixed(4)})`
       }
     })
 

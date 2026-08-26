@@ -71,7 +71,7 @@ export function StationPanel() {
         aria-label={station?.name ?? ''}
         className={isTeslaBrowser ? 'glass tesla-overlay-inner' : 'glass'}
         style={{
-          padding:       '16px 20px',
+          padding:       'clamp(10px, 2vh, 16px) clamp(12px, 2.5vh, 20px)',
           display:       'flex',
           flexDirection: 'column',
           gap:           12,
@@ -88,14 +88,14 @@ export function StationPanel() {
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{
-                  fontSize: 18, fontWeight: 700,
+                  fontSize: 'clamp(14px, 2.2vh, 18px)', fontWeight: 700,
                   color: 'var(--text-primary)',
                   whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                 }}>
                   {station.name}
                 </div>
                 {(station.address || station.city) && (
-                  <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginTop: 2 }}>
+                  <div style={{ fontSize: 'clamp(11px, 1.7vh, 14px)', color: 'var(--text-secondary)', marginTop: 2 }}>
                     {[station.address, station.city].filter(Boolean).join(', ')}
                   </div>
                 )}
@@ -203,12 +203,12 @@ export function StationPanel() {
                 }}
                 style={{
                   flex: 1,
-                  padding: '11px 0',
+                  padding: 'clamp(7px, 1.4vh, 11px) 0',
                   borderRadius: 10,
                   background: '#2B7FFF22',
                   border: '1.5px solid #2B7FFF55',
                   color: '#2B7FFF',
-                  fontSize: 15,
+                  fontSize: 'clamp(12px, 1.9vh, 15px)',
                   fontWeight: 700,
                   cursor: 'pointer',
                   touchAction: 'manipulation',
