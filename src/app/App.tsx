@@ -58,7 +58,6 @@ import { DeviceModeBanner } from '@/components/DeviceModeBanner'
 import { UpgradeModal } from '@/components/UpgradeModal'
 import { isPhone } from '@/lib/browser'
 import { PricingModal } from '@/components/PricingModal'
-import { VoiceAssistant } from '@/features/voice/VoiceAssistant'
 import { alertEngine } from '@/features/audio/alertEngine'
 import { batteryTracker } from '@/features/planning/batteryTracker'
 import { useThemeStore } from '@/features/theme/store'
@@ -184,9 +183,6 @@ export function App() {
 
       {/* Layer 4: alert toast (above everything) */}
       <AlertToast />
-
-      {/* Voice AI assistant — always mounted, overlay appears on demand */}
-      <VoiceAssistant />
 
       {/* Layer 5: first-visit onboarding (above toast, dismissable) */}
       <Suspense fallback={null}><Onboarding /></Suspense>
