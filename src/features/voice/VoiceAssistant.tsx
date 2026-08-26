@@ -17,7 +17,7 @@ import { routeStore } from '@/features/route/routeStore'
 import { eventStore } from '@/features/events/eventStore'
 import { countryStore } from '@/lib/countryStore'
 import { TESLA_MODELS } from '@/features/planning/vehicleConfig'
-import { haversineM } from '@/lib/geo'
+import { haversineMeters } from '@/lib/geo'
 import { getLang } from '@/lib/locale'
 import { isTeslaBrowser } from '@/lib/browser'
 
@@ -68,7 +68,7 @@ function buildContext() {
 
   // Nearby events (20 km radius)
   const eventsNearby = gps
-    ? events.filter(e => haversineM(gps.lat, gps.lng, e.lat, e.lng) < 20_000).length
+    ? events.filter(e => haversineMeters(gps.lat, gps.lng, e.lat, e.lng) < 20_000).length
     : 0
 
   return {
