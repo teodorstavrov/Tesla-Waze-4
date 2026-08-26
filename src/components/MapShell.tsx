@@ -591,7 +591,6 @@ export function MapShell() {
     const profile = getActivePerformanceProfile()
     const tileOptions = {
       attribution,
-      subdomains:        'abcd',
       maxZoom:           MAX_ZOOM,
       keepBuffer:        profile.tileKeepBuffer,
       updateWhenIdle:    profile.tileUpdateWhenIdle,
