@@ -589,9 +589,15 @@ export function MapShell() {
       mapMode === 'satellite' ? TILE_SATELLITE_ATTRIBUTION : TILE_ATTRIBUTION
 
     const profile = getActivePerformanceProfile()
+    // Dark mode: CSS filter on the tile layer container simulates a dark map.
+    // Applied only on non-satellite OSM tiles (satellite already looks dark).
+    const isDarkTile = mapMode !== 'satellite' && theme === 'dark'
+
     const tileOptions = {
       attribution,
+      subdomains:        'abc',           // OSM standard subdomains a/b/c
       maxZoom:           MAX_ZOOM,
+      className:         isDarkTile ? 'map-tiles-dark' : '',
       keepBuffer:        profile.tileKeepBuffer,
       updateWhenIdle:    profile.tileUpdateWhenIdle,
       updateWhenZooming: profile.tileUpdateWhenZooming,

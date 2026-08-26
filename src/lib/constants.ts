@@ -5,22 +5,19 @@ export const MIN_ZOOM = 6
 export const MAX_ZOOM = 19
 
 // ─── Tile providers ───────────────────────────────────────────────────
-// Stadia Maps — free tier (200k tiles/month, no API key for non-commercial).
-// Equivalent styles to the former CartoDB tiles; no {s} subdomain needed.
-export const TILE_DARK =
-  'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}.png'
-export const TILE_LIGHT =
-  'https://tiles.stadiamaps.com/tiles/alidade_smooth/{z}/{x}/{y}.png'
-export const TILE_VOYAGER =
-  'https://tiles.stadiamaps.com/tiles/osm_bright/{z}/{x}/{y}.png'
-export const TILE_VOYAGER_DARK =
-  'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}.png'
+// OpenStreetMap — completely free, no API key, unlimited use.
+// All raster modes share the same OSM URL; dark appearance is achieved
+// via CSS filter (invert + hue-rotate) added as a className on the tile layer.
+export const TILE_LIGHT        = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+export const TILE_DARK         = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+export const TILE_VOYAGER      = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+export const TILE_VOYAGER_DARK = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
 // ArcGIS World Imagery — free for non-commercial use, no key required
 export const TILE_SATELLITE =
   'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
 
 export const TILE_ATTRIBUTION =
-  '&copy; <a href="https://stadiamaps.com/">Stadia Maps</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 export const TILE_SATELLITE_ATTRIBUTION =
   'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP'
 

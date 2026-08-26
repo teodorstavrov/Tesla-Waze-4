@@ -306,6 +306,14 @@ body,
   transition: opacity 0.45s ease;
 }
 
+/* ─── Dark map tiles — OSM inverted for night/dark mode ────────────────
+   Applied as className on the Leaflet tile layer when theme === 'dark'.
+   invert(100%) flips light→dark; hue-rotate(180deg) restores natural
+   colours (sky=blue, vegetation=green); brightness/saturate fine-tune. */
+.map-tiles-dark {
+  filter: invert(100%) hue-rotate(180deg) brightness(0.85) saturate(0.9) contrast(1.05);
+}
+
 /* ─── Tesla browser: suppress all expensive animations ─────────────────
    data-tesla is set on <html> by main.tsx when isTeslaBrowser is true.   */
 /* data-tesla is set on <html> by main.tsx when isTeslaBrowser is true.  */
