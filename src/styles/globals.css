@@ -235,7 +235,9 @@ body,
  * element keeps its original dimensions so touch targets stay correct.
  */
 .marker-scale-wrap {
-  transform: scale(var(--marker-counter-scale, 1));
+  /* counter-scale: undoes CSS map rotation enlargement (course-up)          */
+  /* viewport-scale: shrinks markers proportionally on smaller Tesla screens */
+  transform: scale(calc(var(--marker-counter-scale, 1) * var(--marker-viewport-scale, 1)));
   transform-origin: center center;
 }
 

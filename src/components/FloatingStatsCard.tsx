@@ -146,10 +146,10 @@ export function FloatingStatsCard() {
     <div
       className="glass"
       style={{
-        padding: '8px clamp(10px, 3vw, 16px)',
+        padding: 'clamp(5px, 0.9vh, 8px) clamp(8px, 1.5vh, 16px)',
         display: 'flex',
         alignItems: 'center',
-        gap: 'clamp(10px, 3vw, 18px)',
+        gap: 'clamp(7px, 1.8vh, 18px)',
         userSelect: 'none',
         WebkitUserSelect: 'none',
       }}
@@ -173,8 +173,8 @@ export function FloatingStatsCard() {
         }}
       >
         {muted
-          ? <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
-          : <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+          ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><line x1="23" y1="9" x2="17" y2="15"/><line x1="17" y1="9" x2="23" y2="15"/></svg>
+          : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
         }
       </button>
 
@@ -209,12 +209,12 @@ export function FloatingStatsCard() {
       style={{
         background:   '#6366f1',
         border:       'none',
-        borderRadius: 'clamp(10px, 3vw, 14px)',
+        borderRadius: 'clamp(8px, 1.4vh, 14px)',
         color:        '#fff',
-        fontSize:     'clamp(11px, 2.8vw, 13px)',
+        fontSize:     'clamp(9px, 1.3vh, 13px)',
         fontWeight:   700,
         letterSpacing: '0.06em',
-        padding:      '6px clamp(14px, 3.5vw, 22px)',
+        padding:      'clamp(4px, 0.7vh, 6px) clamp(10px, 1.8vh, 22px)',
         cursor:       'pointer',
         boxShadow:    '0 4px 16px rgba(99,102,241,0.4)',
         touchAction:  'manipulation',
@@ -283,10 +283,10 @@ function BatteryStat({
 
   // Tesla live data gets a larger, more prominent display
   const isTeslaLive = hasTeslaData && !dimmed
-  const numSize     = isTeslaLive ? 20 : 16
+  const numSize     = isTeslaLive ? 'clamp(13px, 2vh, 20px)' : 'clamp(11px, 1.7vh, 16px)'
 
   const inner = (
-    <div style={{ textAlign: 'center', minWidth: isTeslaLive ? 52 : 40 }}>
+    <div style={{ textAlign: 'center', minWidth: isTeslaLive ? 'clamp(36px, 5.5vh, 52px)' : 'clamp(28px, 4.5vh, 40px)' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 3, justifyContent: 'center' }}>
         {hasLevel && (
           <BatteryIcon level={level} color={dimmed ? 'var(--text-secondary)' : battColor} />
@@ -302,7 +302,7 @@ function BatteryStat({
       {/* Tesla live: show label with green dot indicator */}
       <div style={{
         display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
-        fontSize: isTeslaLive ? 10 : 9,
+        fontSize: isTeslaLive ? 'clamp(8px, 1.1vh, 10px)' : 'clamp(7px, 1vh, 9px)',
         color: labelColor,
         letterSpacing: '0.07em',
         textTransform: 'uppercase',
@@ -387,14 +387,14 @@ function Stat({
   return (
     <div style={{ textAlign: 'center', minWidth: 34 }} title={title}>
       <div style={{
-        fontSize: 16, fontWeight: 700,
+        fontSize: 'clamp(11px, 1.7vh, 16px)', fontWeight: 700,
         color: accent ?? 'var(--text-primary)',
         lineHeight: 1.2,
       }}>
         {value}
       </div>
       <div style={{
-        fontSize: 9, color: 'var(--text-secondary)',
+        fontSize: 'clamp(7px, 1vh, 9px)', color: 'var(--text-secondary)',
         letterSpacing: '0.07em', textTransform: 'uppercase', marginTop: 1,
       }}>
         {label}

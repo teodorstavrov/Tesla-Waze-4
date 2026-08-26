@@ -87,7 +87,7 @@ export function DonationNudge({ qrImageUrl, donationLink }: { qrImageUrl: string
         display:   'flex',
         alignItems: 'flex-end',
         justifyContent: 'center',
-        paddingBottom: 100,   // above bottom dock
+        paddingBottom: 'clamp(60px, 12vh, 100px)',   // above bottom dock
         pointerEvents: 'none',
       }}
     >
@@ -117,10 +117,10 @@ export function DonationNudge({ qrImageUrl, donationLink }: { qrImageUrl: string
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
           <div>
-            <div style={{ fontSize: 16, fontWeight: 800, color: '#fff', lineHeight: 1.2 }}>
+            <div style={{ fontSize: 'clamp(12px, 1.8vh, 16px)', fontWeight: 800, color: '#fff', lineHeight: 1.2 }}>
               {t('nudge.title')}
             </div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 5, lineHeight: 1.55 }}>
+            <div style={{ fontSize: 'clamp(10px, 1.3vh, 12px)', color: 'rgba(255,255,255,0.5)', marginTop: 5, lineHeight: 1.55 }}>
               {t('nudge.subtitle')}
             </div>
           </div>
@@ -153,7 +153,7 @@ export function DonationNudge({ qrImageUrl, donationLink }: { qrImageUrl: string
             onClick={donationLink ? () => window.open(donationLink, '_blank', 'noopener,noreferrer') : undefined}
             style={{
               flexShrink: 0,
-              width: 90, height: 90,
+              width: 'clamp(60px, 9vh, 90px)', height: 'clamp(60px, 9vh, 90px)',
               borderRadius: 10,
               background: '#fff',
               padding: 4,
@@ -167,13 +167,13 @@ export function DonationNudge({ qrImageUrl, donationLink }: { qrImageUrl: string
               alt={t('nudge.qrAlt')}
               width={82}
               height={82}
-              style={{ width: 82, height: 82, display: 'block', borderRadius: 6 }}
+              style={{ width: '100%', height: '100%', display: 'block', borderRadius: 6 }}
             />
           </div>
 
           {/* Text side */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 8 }}>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>
+            <div style={{ fontSize: 'clamp(10px, 1.3vh, 12px)', color: 'rgba(255,255,255,0.45)', lineHeight: 1.5 }}>
               {t('nudge.scanHint')}
             </div>
             <button
