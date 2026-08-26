@@ -241,6 +241,16 @@ body,
   transform-origin: center center;
 }
 
+/* ── GPS avatar (HeadingAvatar) viewport scaling ─────────────────────────
+ * The avatar is NOT a .marker-scale-wrap (its rotation is done imperatively).
+ * We apply just the viewport scale on the outer .gps-avatar-root container.
+ * The inner .gps-avatar-arrow handles rotation + course-up counter-scale.
+ */
+.gps-avatar-root {
+  transform: scale(var(--marker-viewport-scale, 1));
+  transform-origin: center center;
+}
+
 /* ── Course-up popup/tooltip counter-rotation ────────────────────────────
  * When #map rotates by −N deg (course-up), popups and tooltips rotate with
  * the map container. --map-rot-deg (set by MapShell._applyCourseUp) holds

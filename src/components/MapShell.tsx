@@ -519,9 +519,10 @@ export function MapShell() {
       const courseUp = settingsStore.get().headingMode === 'course-up'
       if (courseUp && pos.heading != null) {
         _applyCourseUp(container, pos.heading)
-      } else {
+      } else if (!courseUp) {
         _clearCourseUp(container)
       }
+      // courseUp && heading == null (stationary) → preserve last rotation
 
       // ── Perspective offset pan ────────────────────────────────────────────
       // Course-up (Tesla): pan ahead in heading direction; CSS scale accounted
@@ -530,10 +531,15 @@ export function MapShell() {
       //   (no CSS scale in north-up) → avatar always at 70% from top on phones.
       // Fallback: standard centered follow (car at screen center, 50%/50%).
       let panTarget: [number, number] = [pos.lat, pos.lng]
-      if (courseUp && pos.heading != null && _courseUpActive) {
+      if (courseUp) {
+        // Perspective pan — always active in course-up mode.
+        // Moving: use real GPS heading. Stationary: use last map rotation (_rotationDeg = 0 if never moved).
+        // _lookaheadMeters compensates for CSS scale; when _mapScale=1 (not yet rotating) it degrades
+        // gracefully to the same formula used by the north-up mobile branch.
+        const heading = pos.heading ?? _rotationDeg
         const lm = _lookaheadMeters(pos.lat, map.getZoom())
-        panTarget = _offsetInHeading(pos.lat, pos.lng, pos.heading, lm)
-      } else if (!courseUp && !isTeslaBrowser) {
+        panTarget = _offsetInHeading(pos.lat, pos.lng, heading, lm)
+      } else if (!isTeslaBrowser) {
         // North-up on mobile: pan map center north (screen-up) so the avatar
         // lands at PERSPECTIVE_VISUAL_FRACTION below center = ~70% from top.
         // No CSS scale is applied in north-up mode, so divide by 1 (not _mapScale).

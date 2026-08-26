@@ -109,8 +109,8 @@ export function RightControls() {
               <div style={{
                 position: 'absolute', right: 71, top: '50%', transform: 'translateY(-50%)',
                 background: 'rgba(12,12,20,0.93)', border: '1px solid rgba(255,255,255,0.15)',
-                borderRadius: 8, padding: '5px 10px',
-                fontSize: 12, fontWeight: 600, color: '#22c55e',
+                borderRadius: 8, padding: 'clamp(4px, 0.8vh, 5px) clamp(7px, 1.5vh, 10px)',
+                fontSize: 'clamp(9px, 1.3vh, 12px)', fontWeight: 600, color: '#22c55e',
                 whiteSpace: 'nowrap', pointerEvents: 'none',
               }}>
                 {trafficLabel}
@@ -133,8 +133,8 @@ export function RightControls() {
               <div style={{
                 position: 'absolute', right: 71, top: '50%', transform: 'translateY(-50%)',
                 background: 'rgba(12,12,20,0.93)', border: '1px solid rgba(255,255,255,0.15)',
-                borderRadius: 8, padding: '5px 10px',
-                fontSize: 12, fontWeight: 600, color: '#f97316',
+                borderRadius: 8, padding: 'clamp(4px, 0.8vh, 5px) clamp(7px, 1.5vh, 10px)',
+                fontSize: 'clamp(9px, 1.3vh, 12px)', fontWeight: 600, color: '#f97316',
                 whiteSpace: 'nowrap', pointerEvents: 'none',
               }}>
                 {roadworksLabel}

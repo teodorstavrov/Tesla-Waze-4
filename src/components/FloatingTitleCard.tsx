@@ -40,14 +40,14 @@ export function FloatingTitleCard() {
           title={t('controls.rateApp')}
           aria-label={t('controls.rateApp')}
           style={{
-            width: 42, height: 42,
+            width: 'clamp(28px, 4vh, 42px)', height: 'clamp(28px, 4vh, 42px)',
             borderRadius: 10,
             background: isTeslaBrowser ? 'rgba(13,13,19,0.97)' : 'rgba(18,18,26,0.82)',
             border: '1px solid rgba(255,255,255,0.14)',
             backdropFilter: isTeslaBrowser ? undefined : 'blur(10px)',
             WebkitBackdropFilter: isTeslaBrowser ? undefined : 'blur(10px)',
             color: '#fbbf24',
-            fontSize: 20,
+            fontSize: 'clamp(14px, 2.2vh, 20px)',
             lineHeight: 1,
             cursor: 'pointer',
             display: 'flex',
