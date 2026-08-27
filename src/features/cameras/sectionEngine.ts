@@ -28,6 +28,40 @@ const PREWARN_M       = 2000  // show approach warning when 2km from start
 const NEARBY_KM       = 10    // only process sections within 10km (pre-filter)
 const WARN_COOLDOWN_S = 30    // re-warn at most every 30s if still over limit
 const MIN_SPEED_KMH   = 5     // ignore GPS noise below 5 km/h
+const DEVIATION_M     = 50    // abandon if car deviates >50m from section centerline
+const DEVIATION_MIN_ENTRY_M = 300 // only check deviation once 300m inside (avoids on-ramp false positives)
+
+// ── Geometry helper ───────────────────────────────────────────────────
+// Perpendicular distance (meters) from [lat, lng] point to the straight-line
+// segment between segStart and segEnd. Projects to a local Cartesian plane —
+// accurate enough for road segments up to ~100 km.
+function _pointToSegmentDistanceM(
+  point:    [number, number],
+  segStart: [number, number],
+  segEnd:   [number, number],
+): number {
+  const toRad = (d: number) => d * Math.PI / 180
+  const R = 6_371_000   // Earth radius in metres
+  const cosLat = Math.cos(toRad(segStart[0]))
+
+  // Project to local XY (metres) relative to segStart
+  const ax = 0
+  const ay = 0
+  const bx = (segEnd[1]   - segStart[1]) * cosLat * R * toRad(1)
+  const by = (segEnd[0]   - segStart[0])             * R * toRad(1)
+  const px = (point[1]    - segStart[1]) * cosLat * R * toRad(1)
+  const py = (point[0]    - segStart[0])             * R * toRad(1)
+
+  const dx = bx - ax
+  const dy = by - ay
+  const lenSq = dx * dx + dy * dy
+  if (lenSq === 0) return Math.sqrt(px * px + py * py)
+
+  const t  = Math.max(0, Math.min(1, (px * dx + py * dy) / lenSq))
+  const cx = ax + t * dx
+  const cy = ay + t * dy
+  return Math.sqrt((px - cx) ** 2 + (py - cy) ** 2)
+}
 
 // ── State ─────────────────────────────────────────────────────────────
 
@@ -55,6 +89,11 @@ export const sectionStore = {
   subscribe(fn: Listener): () => void {
     _listeners.add(fn)
     return () => { _listeners.delete(fn) }
+  },
+  /** Manually dismiss the exit summary card (X button). */
+  clearLastExit(): void {
+    _state = { ..._state, lastExit: null }
+    _emit()
   },
   clearHistory(): void {
     _state = { ..._state, history: [], lastExit: null }
@@ -95,6 +134,18 @@ function _isReverseOf(candidate: SpeedSection, exited: SpeedSection): boolean {
   const endMatchesStart =
     haversineMeters([candidate.endLat, candidate.endLng], [exited.startLat, exited.startLng]) < 500
   return startMatchesEnd && endMatchesStart
+}
+
+// ── Exit sound ────────────────────────────────────────────────────────
+// Double-beep: ascending for OK, descending for violation.
+function _playExitSound(ok: boolean): void {
+  if (ok) {
+    audioManager.beep(780, 140)
+    setTimeout(() => audioManager.beep(1040, 180), 200)
+  } else {
+    audioManager.beep(480, 220)
+    setTimeout(() => audioManager.beep(320, 300), 270)
+  }
 }
 
 // ── Engine ────────────────────────────────────────────────────────────
@@ -150,8 +201,30 @@ function _onPosition(pos: GpsPosition): void {
     const distToEnd     = haversineMeters([pos.lat, pos.lng], [sess.section.endLat,   sess.section.endLng])
     const distToStart_s = haversineMeters([pos.lat, pos.lng], [sess.section.startLat, sess.section.startLng])
 
-    // Abandon: car has left the section corridor without passing either camera.
-    // Covers: turned around, took an off-ramp, GPS re-acquired off-road.
+    // ── Deviation check: >50m perpendicular from section centerline ──
+    // Only active once the car has moved DEVIATION_MIN_ENTRY_M inside the section
+    // (avoids false positives on on-ramps and near the cameras themselves).
+    // Does NOT trigger near the end camera (within EXIT_M * 3) so motorway
+    // interchanges at the exit don't falsely abort a legitimate traversal.
+    if (sess.distM > DEVIATION_MIN_ENTRY_M && distToEnd > EXIT_M * 3) {
+      const deviationM = _pointToSegmentDistanceM(
+        [pos.lat, pos.lng],
+        [sess.section.startLat, sess.section.startLng],
+        [sess.section.endLat,   sess.section.endLng],
+      )
+      if (deviationM > DEVIATION_M) {
+        // Car left the section corridor — abandon silently, no summary
+        _emaAvg = null
+        _lastEmittedAvg = -1; _lastEmittedDistBkt = -1; _lastEmittedWarned = false
+        _state = { ..._state, session: null }
+        _prevPos = pos
+        _emit()
+        return
+      }
+    }
+
+    // Abandon: car has left the section corridor without passing either camera
+    // (secondary catch-all: turned around, GPS jump, extreme off-road).
     // Silent close — no exit result, no sound.
     if (distToStart_s + distToEnd > sess.section.lengthM * 1.6) {
       _emaAvg = null
@@ -169,7 +242,7 @@ function _onPosition(pos: GpsPosition): void {
         ? Math.round((sess.distM / elapsedFinalS) * 3.6)
         : sess.avgKmh
       const exitOk = finalAvg <= sess.section.limitKmh
-      audioManager.beep(exitOk ? 880 : 440, exitOk ? 160 : 280)
+      _playExitSound(exitOk)
       _emaAvg = null
       _lastEmittedAvg = -1; _lastEmittedDistBkt = -1; _lastEmittedWarned = false
       _lastExitedSection = sess.section
@@ -180,31 +253,27 @@ function _onPosition(pos: GpsPosition): void {
         limitKmh:  sess.section.limitKmh,
         timestamp: now,
       }
+      // lastExit stays until manually dismissed — no auto-clear
       _state = { session: null, preWarn: null, lastExit: exitEntry, history: [..._state.history, exitEntry] }
       _prevPos = pos
       _emit()
-      setTimeout(() => { _state = { ..._state, lastExit: null }; _emit() }, 20_000)
       return
     }
 
     // Normal exit at END camera (forward or mid-section traversal).
     if (!sess.reversed && distToEnd <= EXIT_M) {
-      // Finalise: full section length / elapsed when entered at start; tracked
-      // portion only when entered mid-section (offsetM > 0 means we don't know
-      // the time from the actual start camera).
       const elapsedFinalS = (now - sess.enteredAt) / 1000
       const distForAvg    = sess.offsetM > 0 ? sess.distM : sess.section.lengthM
       const finalAvg = elapsedFinalS > 0
         ? Math.round((distForAvg / elapsedFinalS) * 3.6)
         : sess.avgKmh
 
-      // Beep on exit — higher pitch if OK, lower if violation
       const exitOk = finalAvg <= sess.section.limitKmh
-      audioManager.beep(exitOk ? 880 : 440, exitOk ? 160 : 280)
+      _playExitSound(exitOk)
 
-      _emaAvg = null   // reset EMA for next section
+      _emaAvg = null
       _lastEmittedAvg = -1; _lastEmittedDistBkt = -1; _lastEmittedWarned = false
-      _lastExitedSection = sess.section   // used to block reverse-direction false trigger
+      _lastExitedSection = sess.section
       _lastExitAt        = now
       const exitEntry: SectionExit = {
         section:   sess.section,
@@ -212,6 +281,7 @@ function _onPosition(pos: GpsPosition): void {
         limitKmh:  sess.section.limitKmh,
         timestamp: now,
       }
+      // lastExit stays until manually dismissed — no auto-clear
       _state = {
         session:  null,
         preWarn:  null,
@@ -220,13 +290,6 @@ function _onPosition(pos: GpsPosition): void {
       }
       _prevPos = pos
       _emit()
-
-      // Clear lastExit after 20s — history bar is the persistent record
-      setTimeout(() => {
-        _state = { ..._state, lastExit: null }
-        _emit()
-      }, 20_000)
-
       return
     }
 

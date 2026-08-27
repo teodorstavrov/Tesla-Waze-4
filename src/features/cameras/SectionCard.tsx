@@ -289,41 +289,82 @@ function PreWarnView({ preWarn }: { preWarn: { section: SpeedSection; distM: num
   )
 }
 
-// ── ExitResultView — shown for 20s after leaving a section ───────────
+// ── ExitResultView — shown after leaving a section, stays until X tapped ─
 
 function ExitResultView({ exit }: { exit: import('./sectionTypes').SectionExit }) {
   const ok = exit.avgKmh <= exit.limitKmh
+  const accentColor = ok ? '#22c55e' : '#ef4444'
+  const diffKmh = exit.avgKmh - exit.limitKmh
+
   return (
     <div
       className={isTeslaBrowser ? 'glass tesla-overlay-inner' : 'glass'}
       style={{
         padding: '14px 16px',
-        background: 'rgba(10, 10, 18, 0.96)',
+        background: 'rgba(10, 10, 18, 0.97)',
+        border: `1px solid ${ok ? 'rgba(34,197,94,0.30)' : 'rgba(239,68,68,0.30)'}`,
       }}
     >
+      {/* Header row: section name + X close button */}
       <div style={{
-        fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)',
-        textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 10,
-        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        marginBottom: 10, gap: 6,
       }}>
-        {exit.section.road} · {exit.section.name}
+        <div style={{
+          fontSize: 10, fontWeight: 700, color: 'rgba(255,255,255,0.4)',
+          textTransform: 'uppercase', letterSpacing: '0.08em',
+          overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          flex: 1,
+        }}>
+          {exit.section.road} · {exit.section.name}
+        </div>
+        <button
+          onClick={() => sectionStore.clearLastExit()}
+          style={{
+            width: 28, height: 28, borderRadius: 6, flexShrink: 0,
+            background: 'rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.15)',
+            color: 'rgba(255,255,255,0.55)',
+            fontSize: 14, fontWeight: 700, lineHeight: 1,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', touchAction: 'manipulation',
+          }}
+          aria-label="Close"
+        >
+          ✕
+        </button>
       </div>
+
+      {/* Main result row */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-        <span style={{ fontSize: 40, lineHeight: 1, flexShrink: 0 }}>
+        <span style={{ fontSize: 38, lineHeight: 1, flexShrink: 0 }}>
           {ok ? '✅' : '⚠️'}
         </span>
         <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 17, fontWeight: 800, color: ok ? '#22c55e' : '#ef4444', lineHeight: 1.2 }}>
+          <div style={{ fontSize: 17, fontWeight: 800, color: accentColor, lineHeight: 1.2 }}>
             {ok ? t('sections.exitOk') : t('sections.exitViolation')}
           </div>
           <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 6, lineHeight: 1.5 }}>
             {t('sections.avg')}:{' '}
-            <strong style={{ color: ok ? '#22c55e' : '#ef4444' }}>{exit.avgKmh}</strong>{' '}
+            <strong style={{ color: accentColor }}>{exit.avgKmh}</strong>{' '}
             {t('sections.kmh')}
             {'  ·  '}{t('sections.limit')}:{' '}
             <strong style={{ color: '#fff' }}>{exit.limitKmh}</strong>{' '}
             {t('sections.kmh')}
           </div>
+          {/* Excess speed badge */}
+          {!ok && (
+            <div style={{
+              marginTop: 8,
+              display: 'inline-flex', alignItems: 'center', gap: 4,
+              padding: '3px 8px', borderRadius: 12,
+              background: 'rgba(239,68,68,0.15)',
+              border: '1px solid rgba(239,68,68,0.35)',
+              fontSize: 11, fontWeight: 700, color: '#f87171',
+            }}>
+              +{diffKmh} {t('sections.kmh')} {t('sections.overLimit')}
+            </div>
+          )}
         </div>
       </div>
     </div>
