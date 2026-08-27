@@ -377,14 +377,11 @@ export function VoiceAssistant() {
       void askAI(text)
 
     } catch (err) {
-      console.error('[VoiceAssistant] STT fetch error:', err)
+      // Show the real error — helps diagnose during Tesla browser testing
+      const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err)
+      console.error('[VoiceAssistant] STT fetch threw:', msg)
       setPhase('error')
-      // Distinguish network failure from unexpected crash
-      const isNetErr = err instanceof TypeError && String(err.message).toLowerCase().includes('fetch')
-      setErrorMsg(isNetErr
-        ? lbl('Няма интернет връзка.', 'No internet connection.')
-        : lbl(`Неочаквана грешка: ${String(err)}`, `Unexpected error: ${String(err)}`),
-      )
+      setErrorMsg(lbl(`Грешка при STT: ${msg}`, `STT error: ${msg}`))
     }
   }
 
