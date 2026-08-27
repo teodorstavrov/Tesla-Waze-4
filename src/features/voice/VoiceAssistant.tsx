@@ -44,6 +44,28 @@ import {
   getBestMimeType,
 } from './micCapability'
 
+// ── Daily AI usage limit ───────────────────────────────────────────────────
+const AI_DAILY_KEY   = 'teslaradar:ai_daily'
+const AI_DAILY_LIMIT = 20
+
+function _getAiUsageToday(): number {
+  try {
+    const raw = localStorage.getItem(AI_DAILY_KEY)
+    if (!raw) return 0
+    const data = JSON.parse(raw) as { date: string; count: number }
+    const today = new Date().toISOString().slice(0, 10)  // "2026-08-28"
+    return data.date === today ? (data.count ?? 0) : 0
+  } catch { return 0 }
+}
+
+function _incrementAiUsage(): void {
+  try {
+    const today = new Date().toISOString().slice(0, 10)
+    const count = _getAiUsageToday() + 1
+    localStorage.setItem(AI_DAILY_KEY, JSON.stringify({ date: today, count }))
+  } catch { /* storage full — ignore */ }
+}
+
 // ── Module-level trigger ───────────────────────────────────────────────────
 let _trigger: (() => void) | null = null
 export function openVoiceAssistant(): void { _trigger?.() }
@@ -491,6 +513,21 @@ export function VoiceAssistant() {
 
   // ── AI call ──────────────────────────────────────────────────────────────
   async function askAI(question: string) {
+    // ── Daily limit check ───────────────────────────────────────────────────
+    const usedToday = _getAiUsageToday()
+    if (usedToday >= AI_DAILY_LIMIT) {
+      const remaining = lbl(
+        `Достигна дневния лимит от ${AI_DAILY_LIMIT} гласови въпроса. Пробвай утре. 🔒`,
+        `Daily limit of ${AI_DAILY_LIMIT} voice questions reached. Try again tomorrow. 🔒`,
+      )
+      setAnswer(remaining)
+      setPhase('answer')
+      speak(remaining)
+      if (dismissTimer.current) clearTimeout(dismissTimer.current)
+      dismissTimer.current = setTimeout(dismiss, 12_000)
+      return
+    }
+
     const ctrl = new AbortController()
     const t = setTimeout(() => ctrl.abort(), 25_000)  // 25s timeout
 
@@ -529,6 +566,9 @@ export function VoiceAssistant() {
         setErrorMsg(data.error ?? lbl(`AI грешка ${res.status}`, `AI error ${res.status}`))
         return
       }
+
+      // Successful AI response — count it toward the daily limit
+      _incrementAiUsage()
 
       const ans = data.answer ?? ''
       setAnswer(ans)

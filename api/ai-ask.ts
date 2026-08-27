@@ -16,8 +16,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 // Preferred model keywords — matched against whatever Groq lists as available.
 // Order: prefer smaller/faster instruct models (no reasoning/thinking models — they leak chain-of-thought).
 const PREFER_KEYWORDS = ['8b', '9b', '11b', '17b', 'gemma', '27b', '32b', '70b', 'maverick', 'versatile']
-// Models to skip (embedding, STT, vision-only, TTS, reasoning/thinking models that leak chain-of-thought)
-const SKIP_RE = /whisper|tts|embed|vision|guard|tool|distil|speculative|specdec|scout|-r1\b|reason|think/i
+// Models to skip (embedding, STT, vision-only, TTS, reasoning/thinking models, qwen — qwen3 rejects response_format)
+const SKIP_RE = /whisper|tts|embed|vision|guard|tool|distil|speculative|specdec|scout|-r1\b|reason|think|qwen/i
 
 interface AiContext {
   lat:              number | null
@@ -246,33 +246,54 @@ set_country         — change country (with value: "BG","NO","SE","FI","NL","BE
     return
   }
 
-  // ── Call with first available model ───────────────────────────────────
-  const model = availableModels[0]
-  let r: Response
-  try {
-    r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
-      body: JSON.stringify({
-        model,
-        max_tokens:      400,
-        temperature:     0.4,
-        messages,
-        response_format: { type: 'json_object' },  // force JSON output
-      }),
-    })
-  } catch (err) {
-    res.status(500).json({ error: `Groq unreachable: ${String(err)}` }); return
+  // ── Call with model fallback — skips on 400/404, tries next model ────────
+  let r: Response | null = null
+  let usedModel = ''
+  let lastError = ''
+
+  for (const model of availableModels) {
+    let attempt: Response
+    try {
+      attempt = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+        body: JSON.stringify({
+          model,
+          max_tokens:      400,
+          temperature:     0.4,
+          messages,
+          response_format: { type: 'json_object' },  // force JSON output
+        }),
+      })
+    } catch (err) {
+      res.status(500).json({ error: `Groq unreachable: ${String(err)}` }); return
+    }
+
+    if (attempt.ok) {
+      r = attempt
+      usedModel = model
+      break
+    }
+
+    // 400 = model doesn't support json_object mode; 404 = model removed — skip both
+    const errText = await attempt.text()
+    lastError = `Groq ${attempt.status} (${model}): ${errText.slice(0, 120)}`
+    console.warn(`[ai-ask] skipping ${model} (${attempt.status}):`, errText.slice(0, 80))
+
+    if (attempt.status !== 400 && attempt.status !== 404) {
+      // 5xx or rate-limit (429) — don't try more models, surface the error
+      res.status(502).json({ error: lastError }); return
+    }
+    // 400 / 404 → continue to next model
   }
 
-  if (!r.ok) {
-    const errText = await r.text()
-    res.status(502).json({ error: `Groq ${r.status} (${model}): ${errText.slice(0, 200)}` }); return
+  if (!r) {
+    res.status(502).json({ error: `All models failed. Last error: ${lastError}` }); return
   }
 
   const data    = await r.json() as GroqChatResponse
   const content = data.choices[0]?.message?.content?.trim() ?? ''
-  console.log(`[ai-ask] answered with model ${data.model ?? model}: ${content.slice(0, 120)}`)
+  console.log(`[ai-ask] answered with model ${data.model ?? usedModel}: ${content.slice(0, 120)}`)
 
   // Parse the JSON response from the model
   let parsed: { answer?: string; intent?: AiIntent }
