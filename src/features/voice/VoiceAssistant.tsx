@@ -21,10 +21,20 @@ import { batteryStore }        from '@/features/planning/batteryStore'
 import { routeStore }          from '@/features/route/routeStore'
 import { eventStore }          from '@/features/events/eventStore'
 import { countryStore }        from '@/lib/countryStore'
+import { settingsStore }       from '@/features/settings/settingsStore'
+import { uiStore }             from '@/features/settings/uiStore'
+import { savedPlacesStore }    from '@/features/places/savedPlacesStore'
+import { filterStore }         from '@/features/ev/filterStore'
+import { followStore }         from '@/features/follow/followStore'
+import { getMap }              from '@/components/MapShell'
+import { useThemeStore }       from '@/features/theme/store'
 import { TESLA_MODELS }        from '@/features/planning/vehicleConfig'
 import { haversineMeters }     from '@/lib/geo'
-import { getLang }             from '@/lib/locale'
+import { getLang, langStore }  from '@/lib/locale'
+import type { Lang }           from '@/lib/locale'
+import type { CountryCode }    from '@/config/countries'
 import { isTeslaBrowser }      from '@/lib/browser'
+import { searchNominatim }     from '@/features/search/nominatim'
 import {
   requestMicrophone,
   releaseMicrophone,
@@ -42,12 +52,19 @@ type Phase = 'idle' | 'listening' | 'recording' | 'processing' | 'answer' | 'err
 
 // ── Context builder ────────────────────────────────────────────────────────
 function buildContext() {
-  const gps     = gpsStore.getPosition()
-  const profile = vehicleProfileStore.get()
-  const battery = batteryStore.getState()
-  const route   = routeStore.getState()
-  const events  = eventStore.getState().events
-  const country = countryStore.getCode() ?? 'BG'
+  const gps      = gpsStore.getPosition()
+  const profile  = vehicleProfileStore.get()
+  const battery  = batteryStore.getState()
+  const route    = routeStore.getState()
+  const events   = eventStore.getState().events
+  const country  = countryStore.getCode() ?? 'BG'
+  const settings = settingsStore.get()
+  const places   = savedPlacesStore.getAll()
+
+  const modelCfg   = profile ? TESLA_MODELS.find(m => m.name === profile.model) : null
+  const trimCfg    = modelCfg?.trims.find(t => t.id === profile?.trim) ?? null
+  const themeState = useThemeStore.getState()
+  const uiState    = uiStore.getState()
 
   const batteryPct =
     battery?.currentBatteryPercent != null ? Math.round(battery.currentBatteryPercent)
@@ -56,14 +73,12 @@ function buildContext() {
 
   let rangeKm: number | null = null
   if (battery && profile) {
-    const modelCfg = TESLA_MODELS.find(m => m.name === profile.model)
-    const trimCfg  = modelCfg?.trims.find(t => t.id === profile.trim)
-    const effWhKm  = trimCfg?.efficiencyWhKm ?? 170
+    const effWhKm = trimCfg?.efficiencyWhKm ?? 170
     rangeKm = Math.round((battery.currentEnergyKwh * 1000) / effWhKm)
   }
 
   const vehicleName = profile
-    ? `Tesla ${profile.model} ${profile.trim} (${profile.year})`
+    ? `Tesla ${profile.model} ${trimCfg?.label ?? profile.trim} (${profile.year})`
     : null
 
   const routeActive = route.mode === 'navigating'
@@ -78,6 +93,12 @@ function buildContext() {
     ? events.filter(e => haversineMeters(gps.lat, gps.lng, e.lat, e.lng) < 20_000).length
     : 0
 
+  // Battery source label (for AI context)
+  const batterySourceLabel =
+    battery?.source === 'tesla_live'  ? 'Tesla live data' :
+    battery?.source === 'user_entered'? 'user entered'    :
+    battery?.source === 'estimated'   ? 'estimated'       : null
+
   return {
     lat:              gps?.lat ?? null,
     lng:              gps?.lng ?? null,
@@ -85,6 +106,30 @@ function buildContext() {
     batteryPct,
     rangeKm,
     vehicleName,
+    // ── Extended vehicle details ──────────────────────────────────────
+    batterySource:    batterySourceLabel,
+    degradationPct:   profile?.degradationPercent ?? null,
+    usableKwh:        battery?.usableKwhAfterDegradation != null
+                        ? Math.round(battery.usableKwhAfterDegradation * 10) / 10
+                        : null,
+    currentKwh:       battery?.currentEnergyKwh != null
+                        ? Math.round(battery.currentEnergyKwh * 10) / 10
+                        : null,
+    // ── App settings ──────────────────────────────────────────────────
+    headingMode:      settings.headingMode,      // 'course-up' | 'north-up'
+    showTraffic:      settings.showTraffic,
+    performanceMode:  settings.performanceMode,
+    // Map & theme
+    mapMode:          themeState.mapMode,        // 'normal' | 'voyager' | 'satellite'
+    appTheme:         themeState.theme,          // 'dark' | 'light'
+    // UI toggles
+    showClock:        uiState.showClock,
+    showRightPanel:   uiState.showRightControls,
+    evStationsVisible: filterStore.getState().filtersBarEnabled,
+    // ── Saved places ──────────────────────────────────────────────────
+    homeName:         places.home?.name ?? null,
+    workName:         places.work?.name ?? null,
+    // ── Route ─────────────────────────────────────────────────────────
     routeActive,
     routeDestination: route.destination?.name ?? null,
     routeDistKm:      route.remainingM != null ? Math.round(route.remainingM / 1000) : null,
@@ -92,6 +137,7 @@ function buildContext() {
     eventsNearby,
     chargersNearby:   0,
     countryCode:      country,
+    lang:             getLang(),
   }
 }
 
@@ -134,6 +180,8 @@ export function VoiceAssistant() {
   const recorderRef  = useRef<MediaRecorder | null>(null)
   const chunksRef    = useRef<Blob[]>([])
   const timerRef     = useRef<ReturnType<typeof setInterval> | null>(null)
+  const vadRef       = useRef<ReturnType<typeof setInterval> | null>(null)
+  const audioCtxRef  = useRef<AudioContext | null>(null)
   const dismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const dismiss = useCallback(() => {
@@ -141,7 +189,9 @@ export function VoiceAssistant() {
     try { recogRef.current?.abort() } catch { /* ignore */ }
     try { recorderRef.current?.stop() } catch { /* ignore */ }
     releaseMicrophone(streamRef.current); streamRef.current = null
-    if (timerRef.current) clearInterval(timerRef.current)
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
+    if (vadRef.current)   { clearInterval(vadRef.current);   vadRef.current = null }
+    if (audioCtxRef.current) { audioCtxRef.current.close().catch(() => {}); audioCtxRef.current = null }
     if (dismissTimer.current) clearTimeout(dismissTimer.current)
     setPhase('idle')
     setTranscript('')
@@ -299,12 +349,56 @@ export function VoiceAssistant() {
     setPhase('recording')
     setRecSeconds(0)
 
-    // Countdown timer + auto-stop at 10s
+    // ── Voice Activity Detection (VAD) ───────────────────────────────────
+    // Monitors audio level via AnalyserNode. Stops automatically after
+    // SILENCE_MS of silence, so the user never needs to tap Stop.
+    const SILENCE_THRESHOLD = 18   // 0-255 avg frequency; below = silence
+    const SILENCE_MS        = 1600 // ms of continuous silence before stopping
+    const MIN_RECORD_MS     = 700  // don't stop before first 700ms
+
+    const recordStart = Date.now()
+    let silenceStart: number | null = null
+
+    try {
+      type AC = typeof AudioContext
+      const ACtx = (window.AudioContext ?? (window as Record<string,unknown>)['webkitAudioContext']) as AC
+      const ctx = new ACtx()
+      audioCtxRef.current = ctx
+      if (ctx.state === 'suspended') await ctx.resume()
+
+      const analyser = ctx.createAnalyser()
+      analyser.fftSize = 512
+      ctx.createMediaStreamSource(stream).connect(analyser)
+      const freqData = new Uint8Array(analyser.frequencyBinCount)
+
+      vadRef.current = setInterval(() => {
+        analyser.getByteFrequencyData(freqData)
+        let sum = 0
+        for (let i = 0; i < freqData.length; i++) sum += freqData[i]
+        const avg = sum / freqData.length
+        const elapsed = Date.now() - recordStart
+
+        if (avg < SILENCE_THRESHOLD) {
+          if (silenceStart === null) silenceStart = Date.now()
+          if (elapsed > MIN_RECORD_MS && Date.now() - silenceStart > SILENCE_MS) {
+            if (vadRef.current) { clearInterval(vadRef.current); vadRef.current = null }
+            stopRecording()
+          }
+        } else {
+          silenceStart = null  // speech detected — reset silence timer
+        }
+      }, 80)
+    } catch (err) {
+      // VAD unavailable — fall back to manual Stop button (already present)
+      console.warn('[VAD] AudioContext unavailable, using manual stop:', err)
+    }
+
+    // Hard 20s ceiling regardless of VAD
     timerRef.current = setInterval(() => {
       setRecSeconds(s => {
-        if (s >= 9) {
+        if (s >= 19) {
           stopRecording()
-          return 10
+          return 20
         }
         return s + 1
       })
@@ -405,8 +499,13 @@ export function VoiceAssistant() {
       try { ctx = buildContext() } catch (e) {
         console.error('[askAI] buildContext threw:', e)
         ctx = { lat: null, lng: null, speedKmh: null, batteryPct: null, rangeKm: null,
-          vehicleName: null, routeActive: false, routeDestination: null, routeDistKm: null,
-          routeEtaTime: null, eventsNearby: 0, chargersNearby: 0, countryCode: 'BG' }
+          vehicleName: null, batterySource: null, degradationPct: null, usableKwh: null,
+          currentKwh: null, headingMode: 'course-up', showTraffic: false,
+          performanceMode: 'auto', mapMode: 'voyager', appTheme: 'dark',
+          showClock: true, showRightPanel: true, evStationsVisible: true,
+          homeName: null, workName: null,
+          routeActive: false, routeDestination: null, routeDistKm: null,
+          routeEtaTime: null, eventsNearby: 0, chargersNearby: 0, countryCode: 'BG', lang: 'bg' }
       }
 
       const res = await fetch('/api/ai-ask', {
@@ -417,8 +516,12 @@ export function VoiceAssistant() {
       })
       clearTimeout(t)
 
-      let data: { answer?: string; error?: string }
-      try { data = await res.json() as { answer?: string; error?: string } }
+      let data: {
+        answer?:  string
+        error?:   string
+        intent?:  { type: string; destination: string; viaHemus: boolean; action: string; value?: string }
+      }
+      try { data = await res.json() as typeof data }
       catch { data = { error: `HTTP ${res.status} (non-JSON)` } }
 
       if (!res.ok || data.error) {
@@ -432,8 +535,21 @@ export function VoiceAssistant() {
       setPhase('answer')
       speak(ans)
 
-      if (dismissTimer.current) clearTimeout(dismissTimer.current)
-      dismissTimer.current = setTimeout(dismiss, 14_000)
+      // ── Navigation intent ─────────────────────────────────────────────────
+      if (data.intent?.type === 'navigate' && data.intent.destination) {
+        void handleNavigateIntent(data.intent.destination, data.intent.viaHemus === true)
+
+      // ── Action intent (toggle settings, zoom, center, lang, country…) ────
+      } else if (data.intent?.type === 'action' && data.intent.action) {
+        handleActionIntent(data.intent.action, data.intent.value)
+        // Actions are instant — dismiss overlay quickly so user sees the result
+        if (dismissTimer.current) clearTimeout(dismissTimer.current)
+        dismissTimer.current = setTimeout(dismiss, 3_500)
+
+      } else {
+        if (dismissTimer.current) clearTimeout(dismissTimer.current)
+        dismissTimer.current = setTimeout(dismiss, 14_000)
+      }
 
     } catch (err) {
       clearTimeout(t)
@@ -442,6 +558,166 @@ export function VoiceAssistant() {
       setPhase('error')
       setErrorMsg(lbl(`AI: ${msg}`, `AI: ${msg}`))
     }
+  }
+
+  // ── Handle action intent from AI (toggle settings, zoom, etc.) ─────────
+  function handleActionIntent(action: string, value?: string) {
+    const theme = useThemeStore.getState()
+
+    switch (action) {
+      // ── Traffic ──
+      case 'toggle_traffic':
+        settingsStore.toggleTraffic()
+        break
+
+      // ── Satellite / map mode ──
+      case 'toggle_satellite':
+        theme.toggleSatellite()
+        break
+      case 'map_mode_satellite':
+        useThemeStore.setState({ mapMode: 'satellite' })
+        break
+      case 'map_mode_voyager':
+        useThemeStore.setState({ mapMode: 'voyager' })
+        break
+      case 'map_mode_normal':
+        useThemeStore.setState({ mapMode: 'normal' })
+        break
+
+      // ── Night / theme ──
+      case 'toggle_night':
+        theme.toggleNight()
+        break
+      case 'toggle_dark_mode':
+        theme.toggleTheme()
+        break
+
+      // ── Clock ──
+      case 'toggle_clock':
+        uiStore.toggleClock()
+        break
+
+      // ── Right controls panel ──
+      case 'toggle_right_panel':
+        uiStore.toggleRightControls()
+        break
+
+      // ── EV stations ──
+      case 'toggle_ev_stations':
+        filterStore.toggleFiltersBarEnabled()
+        break
+
+      // ── Map heading / rotation ──
+      case 'heading_course_up':
+        settingsStore.setHeadingMode('course-up')
+        break
+      case 'heading_north_up':
+        settingsStore.setHeadingMode('north-up')
+        break
+
+      // ── Zoom ──
+      case 'zoom_in':
+        getMap()?.zoomIn(1)
+        break
+      case 'zoom_out':
+        getMap()?.zoomOut(1)
+        break
+
+      // ── Center on GPS ──
+      case 'center': {
+        const map = getMap()
+        const pos = gpsStore.getPosition()
+        if (map && pos) {
+          followStore.beginProgrammaticMove()
+          map.once('moveend', () => followStore.endProgrammaticMove())
+          map.setView([pos.lat, pos.lng], 15, { animate: !isTeslaBrowser, duration: 0.4 })
+        }
+        followStore.setFollowing(true)
+        break
+      }
+
+      // ── Language change ──
+      case 'set_lang':
+        if (value) langStore.setLang(value as Lang)
+        break
+
+      // ── Country change ──
+      case 'set_country':
+        if (value) countryStore.setCountry(value as CountryCode)
+        break
+
+      default:
+        console.warn('[VoiceAction] Unknown action:', action)
+    }
+  }
+
+  // ── Handle navigation intent from AI ────────────────────────────────────
+  async function handleNavigateIntent(destination: string, viaHemus: boolean) {
+    const lower = destination.toLowerCase().trim()
+
+    // ── Special: saved home / work places ────────────────────────────────
+    const isHome = lower === 'home' || lower === 'вкъщи' || lower === 'у дома' || lower === 'домашен адрес'
+    const isWork = lower === 'work' || lower === 'работа' || lower === 'на работа' || lower === 'офис'
+
+    if (isHome || isWork) {
+      const placeType = isHome ? 'home' : 'work'
+      const place = savedPlacesStore.get(placeType)
+      if (place) {
+        console.log(`[VoiceNav] Navigating to saved ${placeType}: "${place.name}" (${place.lat}, ${place.lng})`)
+        const currentViaHemus = routeStore.getState().viaHemus
+        if (viaHemus !== currentViaHemus) await routeStore.toggleViaHemus()
+        await routeStore.navigateTo({ lat: place.lat, lng: place.lng, name: place.name })
+        if (dismissTimer.current) clearTimeout(dismissTimer.current)
+        dismissTimer.current = setTimeout(dismiss, 3_000)
+        return
+      }
+      // Saved place not configured — inform user
+      const noPlaceMsg = isHome
+        ? lbl('Нямаш запазен домашен адрес. Добави го от Настройки → Записани места.', 'No home address saved. Add it in Settings → Saved Places.')
+        : lbl('Нямаш запазен работен адрес. Добави го от Настройки → Записани места.', 'No work address saved. Add it in Settings → Saved Places.')
+      setAnswer(noPlaceMsg)
+      speak(noPlaceMsg)
+      if (dismissTimer.current) clearTimeout(dismissTimer.current)
+      dismissTimer.current = setTimeout(dismiss, 10_000)
+      return
+    }
+
+    // ── Named destination: geocode via Nominatim ──────────────────────────
+    let results: Awaited<ReturnType<typeof searchNominatim>>
+    try {
+      results = await searchNominatim(destination)
+    } catch (err) {
+      console.error('[VoiceNav] Nominatim failed:', err)
+      if (dismissTimer.current) clearTimeout(dismissTimer.current)
+      dismissTimer.current = setTimeout(dismiss, 14_000)
+      return
+    }
+
+    const first = results[0]
+    if (!first) {
+      console.warn('[VoiceNav] No results for:', destination)
+      const notFoundMsg = lbl(
+        `Не намерих "${destination}" на картата.`,
+        `Could not find "${destination}" on the map.`,
+      )
+      setAnswer(notFoundMsg)
+      speak(notFoundMsg)
+      if (dismissTimer.current) clearTimeout(dismissTimer.current)
+      dismissTimer.current = setTimeout(dismiss, 10_000)
+      return
+    }
+
+    console.log(`[VoiceNav] Navigating to "${first.displayName}" (${first.lat}, ${first.lng}) viaHemus=${viaHemus}`)
+
+    const currentViaHemus = routeStore.getState().viaHemus
+    if (viaHemus !== currentViaHemus) {
+      await routeStore.toggleViaHemus()
+    }
+
+    await routeStore.navigateTo({ lat: first.lat, lng: first.lng, name: first.shortName })
+
+    if (dismissTimer.current) clearTimeout(dismissTimer.current)
+    dismissTimer.current = setTimeout(dismiss, 3_000)
   }
 
   if (phase === 'idle') return null
@@ -463,10 +739,11 @@ export function VoiceAssistant() {
         background:          'rgba(0,0,0,0.88)',
         backdropFilter:      isTeslaBrowser ? undefined : 'blur(12px)',
         WebkitBackdropFilter: isTeslaBrowser ? undefined : 'blur(12px)',
-        padding:             '32px 24px',
-        gap:                 24,
+        padding:             '24px 20px',
+        gap:                 16,
         userSelect:          'none',
         WebkitUserSelect:    'none',
+        overflow:            'hidden',
       }}
     >
       {/* ── LISTENING (SpeechRecognition mode) ─────────────────────────── */}
@@ -487,7 +764,7 @@ export function VoiceAssistant() {
           ⏺ {lbl('Запис', 'Recording')} {recSeconds}s / 10s
         </div>
         <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', marginTop: -8 }}>
-          {lbl('Докосни Стоп когато приключиш', 'Tap Stop when done')}
+          {lbl('Говори — спира автоматично', 'Speak — stops automatically')}
         </div>
         <button onClick={stopRecording} style={{ ...cancelBtnStyle, background: 'rgba(227,25,55,0.2)', borderColor: '#e31937', color: '#fff' }}>
           {lbl('⏹ Стоп', '⏹ Stop')}
@@ -518,27 +795,28 @@ export function VoiceAssistant() {
         <div style={{
           display: 'flex', alignItems: 'center', gap: 8,
           fontSize: 12, color: 'rgba(255,255,255,0.38)', letterSpacing: '0.08em',
+          flexShrink: 0,
         }}>
           <span style={{ fontSize: 17 }}>🤖</span>TesRadar AI
         </div>
-        {transcript && (
-          <div style={{
-            fontSize: 14, color: 'rgba(255,255,255,0.32)', fontStyle: 'italic',
-            maxWidth: 360, textAlign: 'center',
-          }}>
-            &ldquo;{transcript}&rdquo;
-          </div>
-        )}
         <div style={{
-          maxWidth: 420, padding: '20px 26px', borderRadius: 20,
+          width: '100%', maxWidth: 460,
+          padding: '18px 22px', borderRadius: 20,
           background: 'rgba(255,255,255,0.07)',
           border: '1px solid rgba(255,255,255,0.13)',
-          fontSize: 20, fontWeight: 500, color: '#fff',
-          lineHeight: 1.6, textAlign: 'center',
+          // Adaptive font — shorter text = larger, longer = smaller so it always fits
+          fontSize: answer.length > 160 ? 15 : answer.length > 90 ? 17 : 20,
+          fontWeight: 500, color: '#fff',
+          lineHeight: 1.55, textAlign: 'center',
+          // Constrain height so it never overflows the screen
+          maxHeight: '52vh',
+          overflowY: 'auto',
+          WebkitOverflowScrolling: 'touch',
+          flexShrink: 1,
         }}>
           {answer}
         </div>
-        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.22)' }}>
+        <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.22)', flexShrink: 0 }}>
           {lbl('🔊 Докоснете за затваряне', '🔊 Tap to dismiss')}
         </div>
       </>}

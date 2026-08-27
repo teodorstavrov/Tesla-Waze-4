@@ -93,7 +93,7 @@ export function RightControls() {
     >
       {/* Action buttons — hidden on mobile phone, conditionally visible otherwise */}
       {!isPhone && showRightControls && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 8, opacity: 0.5 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(4px, 1vh, 8px)', opacity: 0.5 }}>
           <div style={{ position: 'relative' }}>
             <button
               className="icon-btn"

@@ -270,7 +270,8 @@ export function SearchBar() {
                   background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)',
                   color: 'var(--text-secondary)', cursor: 'pointer',
                   padding: 0, borderRadius: 8, lineHeight: 1, flexShrink: 0,
-                  width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: 'clamp(40px, 5vh, 44px)', height: 'clamp(40px, 5vh, 44px)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
                 }}
               >
                 <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"

@@ -552,7 +552,7 @@ export function VehicleProfileModal() {
           {/* Close button */}
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <button onClick={close} aria-label={t('vehicleProfile.close')} style={{
-              width: 32, height: 32,
+              width: 40, height: 40,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
               borderRadius: 8,
               background: 'rgba(255,255,255,0.06)',

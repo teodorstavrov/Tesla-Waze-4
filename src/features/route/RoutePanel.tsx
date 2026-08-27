@@ -485,10 +485,10 @@ function ChevronIcon({ open }: { open: boolean }) {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div style={{ textAlign: 'center' }}>
-      <div style={{ fontSize: 20, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
+      <div style={{ fontSize: 'clamp(14px, 2.2vh, 20px)', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>
         {value}
       </div>
-      <div style={{ fontSize: 12, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em', marginTop: 1 }}>
+      <div style={{ fontSize: 'clamp(9px, 1.4vh, 12px)', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em', marginTop: 1 }}>
         {label}
       </div>
     </div>
@@ -501,7 +501,9 @@ function CancelButton() {
       onClick={() => routeStore.clear()}
       aria-label={t('route.cancel')}
       style={{
-        flexShrink: 0, width: 36, height: 36, borderRadius: 8,
+        flexShrink: 0,
+        width: 'clamp(40px, 5vh, 44px)', height: 'clamp(40px, 5vh, 44px)',
+        borderRadius: 8,
         background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.16)',
         color: 'var(--text-secondary)', cursor: 'pointer', touchAction: 'manipulation',
         display: 'flex', alignItems: 'center', justifyContent: 'center',

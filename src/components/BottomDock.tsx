@@ -386,7 +386,7 @@ function V8VolumePanel({
         <button
           onPointerDown={dec}
           style={{
-            width: 36, height: 36, borderRadius: 9,
+            width: 44, height: 44, borderRadius: 9,
             background: 'rgba(255,255,255,0.08)',
             border: '1px solid rgba(255,255,255,0.14)',
             color: '#fff', fontSize: 20, fontWeight: 300,
@@ -427,7 +427,7 @@ function V8VolumePanel({
         <button
           onPointerDown={inc}
           style={{
-            width: 36, height: 36, borderRadius: 9,
+            width: 44, height: 44, borderRadius: 9,
             background: 'rgba(255,255,255,0.08)',
             border: '1px solid rgba(255,255,255,0.14)',
             color: '#fff', fontSize: 20, fontWeight: 300,
