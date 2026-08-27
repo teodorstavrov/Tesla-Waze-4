@@ -1,20 +1,28 @@
 // ─── POST /api/ai-ask ────────────────────────────────────────────────────
 //
-// Receives a natural-language question + driving context, calls Groq
-// (llama-3.1-8b-instant — free tier, fast), returns the answer.
+// Driving AI assistant — calls Groq chat completions (free tier).
+// Model selection is automatic: tries preferred models in order, skips any
+// that Groq returns 404 for. This handles Groq model deprecations gracefully.
 //
 // Required env var: GROQ_API_KEY  (console.groq.com → API Keys)
-// Free tier: 14 400 req/day, 30 req/min — more than enough.
 //
-// Body (JSON):
-//   question   string     transcribed voice / typed question
-//   context    object     see AiContext below
-//
-// Response:
-//   { answer: string }     on success
-//   { error:  string }     on failure
+// Body:   { question: string, context: AiContext }
+// Response: { answer: string } | { error: string }
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+
+// Preferred models — fastest/cheapest first. New models go at the top.
+// When Groq deprecates a model it returns 404; we skip it and try the next.
+const MODELS = [
+  'meta-llama/llama-4-scout-17b-16e-instruct',  // Llama 4 Scout (2025+)
+  'meta-llama/llama-4-maverick-17b-128e-instruct',
+  'llama-3.3-70b-versatile',
+  'llama-3.1-70b-versatile',
+  'llama3-70b-8192',
+  'gemma2-9b-it',
+  'llama3-8b-8192',
+  'mixtral-8x7b-32768',
+]
 
 interface AiContext {
   lat:              number | null
@@ -32,8 +40,13 @@ interface AiContext {
   countryCode:      string
 }
 
-interface GroqResponse {
+interface GroqChatResponse {
   choices: Array<{ message: { content: string } }>
+  model?: string
+}
+
+interface GroqError {
+  error?: { message?: string; code?: string }
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
@@ -55,63 +68,68 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   if (!question) { res.status(400).json({ error: 'Missing question' }); return }
 
-  // ── Build context block ───────────────────────────────────────────────
+  // ── Build context ─────────────────────────────────────────────────────
   const lines: string[] = []
-  if (ctx.vehicleName)    lines.push(`Vehicle: ${ctx.vehicleName}`)
+  if (ctx.vehicleName)        lines.push(`Vehicle: ${ctx.vehicleName}`)
   if (ctx.batteryPct != null) lines.push(`Battery: ${ctx.batteryPct}%`)
-  if (ctx.rangeKm    != null) lines.push(`Estimated range at current charge: ~${ctx.rangeKm} km`)
+  if (ctx.rangeKm    != null) lines.push(`Estimated range: ~${ctx.rangeKm} km`)
   if (ctx.lat != null && ctx.lng != null)
-    lines.push(`GPS: ${ctx.lat.toFixed(4)}°N, ${ctx.lng.toFixed(4)}°E  (country: ${ctx.countryCode})`)
-  if (ctx.speedKmh != null) lines.push(`Speed: ${ctx.speedKmh} km/h`)
+    lines.push(`GPS: ${ctx.lat.toFixed(4)}°N, ${ctx.lng.toFixed(4)}°E (${ctx.countryCode})`)
+  if (ctx.speedKmh != null)   lines.push(`Speed: ${ctx.speedKmh} km/h`)
   if (ctx.routeActive && ctx.routeDestination)
     lines.push(`Navigating to "${ctx.routeDestination}", ${ctx.routeDistKm} km left, ETA ${ctx.routeEtaTime ?? '?'}`)
   else
     lines.push('No active navigation.')
   lines.push(`Events within 20 km: ${ctx.eventsNearby}`)
-  lines.push(`EV chargers within 10 km: ${ctx.chargersNearby}`)
 
   const systemPrompt =
-`You are TesRadar AI — a real-time driving assistant for Tesla drivers in Europe (Bulgaria, Norway, Sweden, Finland, Germany, Netherlands, Belgium).
+`You are TesRadar AI — real-time driving assistant for Tesla drivers in Europe.
+Answer in the SAME LANGUAGE as the question.
+Rules: max 2-3 short sentences; driver is reading while driving — be direct and specific.
+Session data:\n${lines.join('\n')}`
 
-Answer in the SAME LANGUAGE as the question (Bulgarian → Bulgarian, English → English, Norwegian → Norwegian, etc.).
+  const messages = [
+    { role: 'system', content: systemPrompt },
+    { role: 'user',   content: question },
+  ]
 
-Rules:
-- Maximum 2–3 short sentences. The driver is reading while driving — be direct.
-- Use the context data below. Be specific with numbers.
-- If battery range vs destination: calculate and recommend charging if needed.
-- If critical data is missing (battery %, vehicle), ask for it concisely.
+  // ── Try each model until one works ────────────────────────────────────
+  let lastError = 'No available Groq model found'
 
-Session data:
-${lines.join('\n')}`
+  for (const model of MODELS) {
+    let r: Response
+    try {
+      r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
+        body: JSON.stringify({ model, max_tokens: 300, temperature: 0.4, messages }),
+      })
+    } catch (err) {
+      res.status(500).json({ error: `Groq unreachable: ${String(err)}` }); return
+    }
 
-  try {
-    const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method:  'POST',
-      headers: {
-        'Content-Type':  'application/json',
-        'Authorization': `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model:       'llama-3.3-70b-versatile',
-        max_tokens:  300,
-        temperature: 0.4,
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user',   content: question },
-        ],
-      }),
-    })
+    // 404 model_not_found → try next
+    if (r.status === 404) {
+      const body404 = await r.json() as GroqError
+      const code = body404?.error?.code ?? ''
+      if (code === 'model_not_found') {
+        console.log(`[ai-ask] model ${model} not found, trying next`)
+        lastError = `model_not_found: ${model}`
+        continue
+      }
+    }
 
     if (!r.ok) {
       const errText = await r.text()
-      res.status(502).json({ error: `Groq error ${r.status}: ${errText.slice(0, 200)}` }); return
+      res.status(502).json({ error: `Groq ${r.status}: ${errText.slice(0, 200)}` }); return
     }
 
-    const data   = await r.json() as GroqResponse
+    const data   = await r.json() as GroqChatResponse
     const answer = data.choices[0]?.message?.content?.trim() ?? ''
-    res.status(200).json({ answer })
-
-  } catch (err) {
-    res.status(500).json({ error: String(err) })
+    console.log(`[ai-ask] answered with model ${data.model ?? model}`)
+    res.status(200).json({ answer }); return
   }
+
+  // All models exhausted
+  res.status(502).json({ error: `All Groq models unavailable. Last: ${lastError}` })
 }
