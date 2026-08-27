@@ -321,24 +321,48 @@ export function VoiceAssistant() {
   }
 
   async function transcribeAndAsk(blob: Blob, mimeType: string) {
+    // Convert Blob → base64 via FileReader (reliable for any size, no stack limit)
+    let base64: string
     try {
-      // Convert Blob → base64
-      const arrayBuf = await blob.arrayBuffer()
-      const bytes    = new Uint8Array(arrayBuf)
-      let binary = ''
-      bytes.forEach(b => { binary += String.fromCharCode(b) })
-      const base64 = btoa(binary)
+      base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onload = () => {
+          const dataUrl = reader.result as string
+          // dataUrl = "data:audio/webm;base64,AAAA..."
+          const comma = dataUrl.indexOf(',')
+          resolve(comma >= 0 ? dataUrl.slice(comma + 1) : dataUrl)
+        }
+        reader.onerror = () => reject(new Error('FileReader failed'))
+        reader.readAsDataURL(blob)
+      })
+    } catch (err) {
+      console.error('[VoiceAssistant] FileReader error:', err)
+      setPhase('error')
+      setErrorMsg(lbl('Грешка при четене на аудио файла.', 'Failed to read audio data.'))
+      return
+    }
 
-      const res  = await fetch('/api/stt', {
+    try {
+      const res = await fetch('/api/stt', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ audio: base64, mimeType, lang: getLang() }),
       })
-      const data = await res.json() as { text?: string; error?: string }
+
+      let data: { text?: string; error?: string }
+      try {
+        data = await res.json() as { text?: string; error?: string }
+      } catch {
+        data = { error: `HTTP ${res.status}` }
+      }
 
       if (!res.ok || data.error) {
+        console.error('[VoiceAssistant] STT error response:', res.status, data.error)
         setPhase('error')
-        setErrorMsg(data.error ?? lbl('Грешка при разпознаване на реч.', 'Speech recognition error.'))
+        setErrorMsg(data.error ?? lbl(
+          `Грешка при разпознаване (${res.status}).`,
+          `Speech recognition error (${res.status}).`,
+        ))
         return
       }
 
@@ -353,9 +377,14 @@ export function VoiceAssistant() {
       void askAI(text)
 
     } catch (err) {
+      console.error('[VoiceAssistant] STT fetch error:', err)
       setPhase('error')
-      setErrorMsg(lbl('Няма интернет връзка.', 'No internet connection.'))
-      console.error('[VoiceAssistant] STT error:', err)
+      // Distinguish network failure from unexpected crash
+      const isNetErr = err instanceof TypeError && String(err.message).toLowerCase().includes('fetch')
+      setErrorMsg(isNetErr
+        ? lbl('Няма интернет връзка.', 'No internet connection.')
+        : lbl(`Неочаквана грешка: ${String(err)}`, `Unexpected error: ${String(err)}`),
+      )
     }
   }
 
