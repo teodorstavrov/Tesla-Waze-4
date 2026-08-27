@@ -27,10 +27,18 @@ interface AiContext {
   rangeKm:          number | null
   vehicleName:      string | null
   // Extended vehicle / battery details
+  vehicleModel:     string | null
+  vehicleYear:      number | null
+  vehicleTrim:      string | null
+  efficiencyWhKm:   number | null
   batterySource:    string | null   // 'Tesla live data' | 'user entered' | 'estimated'
   degradationPct:   number | null
   usableKwh:        number | null
   currentKwh:       number | null
+  // Tesla connection & live data
+  teslaConnected:   boolean
+  teslaVehicleName: string | null
+  chargingState:    string | null
   // App settings
   headingMode:      string          // 'course-up' | 'north-up'
   showTraffic:      boolean
@@ -100,8 +108,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   // ── Build context ─────────────────────────────────────────────────────
   const lines: string[] = []
 
-  // Vehicle
-  if (ctx.vehicleName)        lines.push(`Vehicle: ${ctx.vehicleName}`)
+  // Vehicle profile
+  if (ctx.vehicleName)           lines.push(`Vehicle: ${ctx.vehicleName}`)
+  if (ctx.vehicleModel)          lines.push(`Model: Tesla ${ctx.vehicleModel}`)
+  if (ctx.vehicleYear)           lines.push(`Year: ${ctx.vehicleYear}`)
+  if (ctx.vehicleTrim)           lines.push(`Trim: ${ctx.vehicleTrim}`)
+  if (ctx.efficiencyWhKm != null) lines.push(`Efficiency: ~${ctx.efficiencyWhKm} Wh/km`)
 
   // Battery — rich details
   if (ctx.batteryPct != null) {
@@ -113,6 +125,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   if (ctx.degradationPct != null)
     lines.push(`Battery degradation: ${ctx.degradationPct}%`)
   if (ctx.rangeKm != null)    lines.push(`Estimated range: ~${ctx.rangeKm} km`)
+
+  // Tesla connection & live data
+  if (ctx.teslaConnected) {
+    const name = ctx.teslaVehicleName ? ` (${ctx.teslaVehicleName})` : ''
+    lines.push(`Tesla account: connected${name}`)
+    if (ctx.chargingState) lines.push(`Charging state: ${ctx.chargingState}`)
+  } else {
+    lines.push('Tesla account: not connected')
+  }
 
   // GPS & speed
   if (ctx.lat != null && ctx.lng != null)

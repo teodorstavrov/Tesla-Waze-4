@@ -28,6 +28,8 @@ import { filterStore }         from '@/features/ev/filterStore'
 import { followStore }         from '@/features/follow/followStore'
 import { getMap }              from '@/components/MapShell'
 import { useThemeStore }       from '@/features/theme/store'
+import { teslaStore }          from '@/features/tesla/teslaStore'
+import { teslaVehicleStore }   from '@/features/tesla/teslaVehicleStore'
 import { TESLA_MODELS }        from '@/features/planning/vehicleConfig'
 import { haversineMeters }     from '@/lib/geo'
 import { getLang, langStore }  from '@/lib/locale'
@@ -121,6 +123,20 @@ function buildContext() {
     battery?.source === 'user_entered'? 'user entered'    :
     battery?.source === 'estimated'   ? 'estimated'       : null
 
+  // Tesla connection & live vehicle data
+  const teslaConn  = teslaStore.getState()
+  const teslaSnap  = teslaVehicleStore.getSnapshot()
+  const teslaConnected = teslaConn.connected
+  const teslaVehicleName = teslaConn.vehicleName  // name from Tesla account (may differ from profile)
+  let chargingState: string | null = null
+  if (teslaSnap) {
+    if (teslaSnap.sleeping)                                chargingState = 'sleeping'
+    else if (teslaSnap.chargingState === 'Charging')       chargingState = 'charging'
+    else if (teslaSnap.chargingState === 'Complete')       chargingState = 'charge complete'
+    else if (teslaSnap.chargingState === 'Stopped')        chargingState = 'not charging'
+    else if (teslaSnap.chargingState === 'Disconnected')   chargingState = 'charger disconnected'
+  }
+
   return {
     lat:              gps?.lat ?? null,
     lng:              gps?.lng ?? null,
@@ -129,6 +145,10 @@ function buildContext() {
     rangeKm,
     vehicleName,
     // ── Extended vehicle details ──────────────────────────────────────
+    vehicleModel:     profile?.model ?? null,
+    vehicleYear:      profile?.year ?? null,
+    vehicleTrim:      trimCfg?.label ?? profile?.trim ?? null,
+    efficiencyWhKm:   trimCfg?.efficiencyWhKm ?? null,
     batterySource:    batterySourceLabel,
     degradationPct:   profile?.degradationPercent ?? null,
     usableKwh:        battery?.usableKwhAfterDegradation != null
@@ -137,6 +157,10 @@ function buildContext() {
     currentKwh:       battery?.currentEnergyKwh != null
                         ? Math.round(battery.currentEnergyKwh * 10) / 10
                         : null,
+    // ── Tesla connection & live data ──────────────────────────────────
+    teslaConnected,
+    teslaVehicleName,
+    chargingState,                          // 'charging' | 'charge complete' | 'not charging' | 'charger disconnected' | 'sleeping' | null
     // ── App settings ──────────────────────────────────────────────────
     headingMode:      settings.headingMode,      // 'course-up' | 'north-up'
     showTraffic:      settings.showTraffic,
@@ -536,8 +560,10 @@ export function VoiceAssistant() {
       try { ctx = buildContext() } catch (e) {
         console.error('[askAI] buildContext threw:', e)
         ctx = { lat: null, lng: null, speedKmh: null, batteryPct: null, rangeKm: null,
-          vehicleName: null, batterySource: null, degradationPct: null, usableKwh: null,
-          currentKwh: null, headingMode: 'course-up', showTraffic: false,
+          vehicleName: null, vehicleModel: null, vehicleYear: null, vehicleTrim: null,
+          efficiencyWhKm: null, batterySource: null, degradationPct: null, usableKwh: null,
+          currentKwh: null, teslaConnected: false, teslaVehicleName: null, chargingState: null,
+          headingMode: 'course-up', showTraffic: false,
           performanceMode: 'auto', mapMode: 'voyager', appTheme: 'dark',
           showClock: true, showRightPanel: true, evStationsVisible: true,
           homeName: null, workName: null,
