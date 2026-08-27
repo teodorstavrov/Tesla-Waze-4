@@ -204,11 +204,11 @@ export function VoiceAssistant() {
         setPhase('idle')
         void startWithMediaRecorder()
       } else if (e.error === 'network') {
-        setPhase('error')
-        setErrorMsg(lbl(
-          'Няма интернет връзка за гласово разпознаване.',
-          'No network connection for speech recognition.',
-        ))
+        // Chrome SR sends audio to Google servers — Tesla browser can't reach them.
+        // Fall through to MediaRecorder + Groq Whisper fallback.
+        console.warn('[VoiceAssistant] SR network error (Google STT unreachable) → MediaRecorder fallback')
+        setPhase('idle')
+        void startWithMediaRecorder()
       } else {
         // Anything else → attempt MediaRecorder fallback
         console.warn('[VoiceAssistant] SR error, trying MediaRecorder fallback:', e.error)
