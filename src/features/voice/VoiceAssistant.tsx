@@ -397,17 +397,33 @@ export function VoiceAssistant() {
 
   // ── AI call ──────────────────────────────────────────────────────────────
   async function askAI(question: string) {
+    const ctrl = new AbortController()
+    const t = setTimeout(() => ctrl.abort(), 25_000)  // 25s timeout
+
     try {
-      const res  = await fetch('/api/ai-ask', {
+      let ctx: ReturnType<typeof buildContext>
+      try { ctx = buildContext() } catch (e) {
+        console.error('[askAI] buildContext threw:', e)
+        ctx = { lat: null, lng: null, speedKmh: null, batteryPct: null, rangeKm: null,
+          vehicleName: null, routeActive: false, routeDestination: null, routeDistKm: null,
+          routeEtaTime: null, eventsNearby: 0, chargersNearby: 0, countryCode: 'BG' }
+      }
+
+      const res = await fetch('/api/ai-ask', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ question, context: buildContext() }),
+        body:    JSON.stringify({ question, context: ctx }),
+        signal:  ctrl.signal,
       })
-      const data = await res.json() as { answer?: string; error?: string }
+      clearTimeout(t)
+
+      let data: { answer?: string; error?: string }
+      try { data = await res.json() as { answer?: string; error?: string } }
+      catch { data = { error: `HTTP ${res.status} (non-JSON)` } }
 
       if (!res.ok || data.error) {
         setPhase('error')
-        setErrorMsg(data.error ?? lbl('Грешка при свързване с AI.', 'AI connection error.'))
+        setErrorMsg(data.error ?? lbl(`AI грешка ${res.status}`, `AI error ${res.status}`))
         return
       }
 
@@ -419,9 +435,12 @@ export function VoiceAssistant() {
       if (dismissTimer.current) clearTimeout(dismissTimer.current)
       dismissTimer.current = setTimeout(dismiss, 14_000)
 
-    } catch {
+    } catch (err) {
+      clearTimeout(t)
+      const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err)
+      console.error('[askAI] fetch threw:', msg)
       setPhase('error')
-      setErrorMsg(lbl('Няма интернет връзка.', 'No internet connection.'))
+      setErrorMsg(lbl(`AI: ${msg}`, `AI: ${msg}`))
     }
   }
 
