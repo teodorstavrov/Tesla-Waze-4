@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="bg">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>TesRadar — Mic Diagnostics</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg:    #0a0a12;
+    --card:  #12121e;
+    --brd:   rgba(255,255,255,0.09);
+    --red:   #e31937;
+    --green: #22c55e;
+    --amber: #eab308;
+    --gray:  rgba(255,255,255,0.45);
+    --text:  #f2f2f2;
+  }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, sans-serif;
+    padding: 20px 16px 40px;
+    min-height: 100dvh;
+  }
+  h1 {
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin-bottom: 4px;
+  }
+  .sub {
+    font-size: 12px;
+    color: var(--gray);
+    margin-bottom: 24px;
+  }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--brd);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 16px;
+  }
+  .card-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--gray);
+    margin-bottom: 12px;
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--brd);
+    font-size: 14px;
+  }
+  .row:last-child { border-bottom: none; }
+  .label { color: rgba(255,255,255,0.65); }
+  .val   { font-weight: 600; font-size: 13px; max-width: 55%; text-align: right; word-break: break-all; }
+  .ok    { color: var(--green); }
+  .warn  { color: var(--amber); }
+  .fail  { color: var(--red); }
+  .na    { color: var(--gray); }
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 18px;
+    border-radius: 14px;
+    border: none;
+    background: var(--red);
+    color: #fff;
+    font-size: 17px;
+    font-weight: 700;
+    cursor: pointer;
+    touch-action: manipulation;
+    margin-bottom: 12px;
+  }
+  .btn:disabled { opacity: 0.4; }
+  .btn-sec {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid var(--brd);
+    color: rgba(255,255,255,0.6);
+    font-size: 15px;
+    font-weight: 500;
+  }
+  #log {
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    line-height: 1.7;
+    color: rgba(255,255,255,0.55);
+    white-space: pre-wrap;
+    word-break: break-all;
+    padding: 14px;
+    background: rgba(0,0,0,0.4);
+    border-radius: 10px;
+    border: 1px solid var(--brd);
+    min-height: 80px;
+    max-height: 320px;
+    overflow-y: auto;
+    margin-top: 12px;
+  }
+  #ua {
+    font-size: 11px;
+    color: rgba(255,255,255,0.35);
+    word-break: break-all;
+    line-height: 1.5;
+    margin-top: 8px;
+  }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .badge-ok   { background: rgba(34,197,94,0.15);  color: var(--green); border: 1px solid rgba(34,197,94,0.3);  }
+  .badge-fail { background: rgba(227,25,55,0.15);   color: var(--red);   border: 1px solid rgba(227,25,55,0.3); }
+  .badge-warn { background: rgba(234,179,8,0.15);   color: var(--amber); border: 1px solid rgba(234,179,8,0.3);}
+</style>
+</head>
+<body>
+
+<h1>🎤 TesRadar — Voice Diagnostics</h1>
+<div class="sub">Тест на микрофона в Tesla Browser · tesradar.tech</div>
+
+<!-- Static environment checks (no user gesture needed) -->
+<div class="card">
+  <div class="card-title">Environment</div>
+  <div class="row"><span class="label">Secure Context (HTTPS)</span><span class="val" id="s-secure">—</span></div>
+  <div class="row"><span class="label">Protocol</span>             <span class="val" id="s-proto">—</span></div>
+  <div class="row"><span class="label">Hostname</span>             <span class="val" id="s-host">—</span></div>
+</div>
+
+<div class="card">
+  <div class="card-title">Browser API Support</div>
+  <div class="row"><span class="label">mediaDevices</span>               <span class="val" id="a-md">—</span></div>
+  <div class="row"><span class="label">getUserMedia</span>               <span class="val" id="a-gum">—</span></div>
+  <div class="row"><span class="label">MediaRecorder</span>             <span class="val" id="a-mr">—</span></div>
+  <div class="row"><span class="label">SpeechRecognition</span>         <span class="val" id="a-sr">—</span></div>
+  <div class="row"><span class="label">webkitSpeechRecognition</span>   <span class="val" id="a-wsr">—</span></div>
+  <div class="row"><span class="label">AudioContext</span>              <span class="val" id="a-ac">—</span></div>
+  <div class="row"><span class="label">MediaRecorder mime type</span>   <span class="val" id="a-mime">—</span></div>
+</div>
+
+<div class="card">
+  <div class="card-title">Permission State</div>
+  <div class="row"><span class="label">Microphone permission</span><span class="val" id="p-mic">—</span></div>
+</div>
+
+<!-- getUserMedia test — requires user gesture -->
+<div class="card">
+  <div class="card-title">Live Microphone Test</div>
+  <div class="row"><span class="label">Stream created</span><span class="val" id="t-stream">not tested</span></div>
+  <div class="row"><span class="label">Error (if any)</span> <span class="val" id="t-err" class="fail">—</span></div>
+</div>
+
+<button class="btn" id="btn-test" onclick="runTest()">🎤 TEST MICROPHONE</button>
+<button class="btn btn-sec" id="btn-copy" onclick="copyLog()" style="display:none">📋 Копирай резултата</button>
+
+<div class="card-title" style="margin-top:8px">Console Log</div>
+<div id="log">Натисни TEST MICROPHONE за да започнеш...</div>
+
+<div id="ua"></div>
+
+<script>
+// ── Static checks (no user gesture needed) ─────────────────────────────────
+function ok(id, val, cls) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.textContent = val;
+  el.className = 'val ' + (cls || '');
+}
+
+function bool(v) { return v ? ['✅ Yes', 'ok'] : ['❌ No', 'fail']; }
+
+function runStaticChecks() {
+  // Secure context
+  var sc = window.isSecureContext;
+  ok('s-secure', sc ? '✅ Yes' : '❌ NO — mic will be blocked!', sc ? 'ok' : 'fail');
+  ok('s-proto',  location.protocol, location.protocol === 'https:' ? 'ok' : 'fail');
+  ok('s-host',   location.hostname, 'na');
+
+  // API checks
+  var hasMD   = 'mediaDevices' in navigator;
+  var hasGUM  = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  var hasMR   = typeof MediaRecorder !== 'undefined';
+  var hasSR   = typeof window.SpeechRecognition !== 'undefined';
+  var hasWSR  = typeof window.webkitSpeechRecognition !== 'undefined';
+
+  ok('a-md',  bool(hasMD)[0],  bool(hasMD)[1]);
+  ok('a-gum', bool(hasGUM)[0], bool(hasGUM)[1]);
+  ok('a-mr',  bool(hasMR)[0],  bool(hasMR)[1]);
+  ok('a-sr',  bool(hasSR)[0],  bool(hasSR)[1]);
+  ok('a-wsr', bool(hasWSR)[0], bool(hasWSR)[1]);
+
+  // AudioContext
+  var AC = window.AudioContext || window.webkitAudioContext;
+  ok('a-ac', AC ? '✅ Available' : '❌ Not available', AC ? 'ok' : 'warn');
+
+  // MediaRecorder mime type
+  if (hasMR) {
+    var candidates = ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus', 'audio/mp4'];
+    var best = candidates.find(function(m) {
+      try { return MediaRecorder.isTypeSupported(m); } catch(e) { return false; }
+    });
+    ok('a-mime', best || '⚠️ none (will use default)', best ? 'ok' : 'warn');
+  } else {
+    ok('a-mime', 'N/A', 'na');
+  }
+
+  // Permission query
+  if (navigator.permissions && navigator.permissions.query) {
+    navigator.permissions.query({ name: 'microphone' }).then(function(r) {
+      var cls = r.state === 'granted' ? 'ok' : r.state === 'prompt' ? 'warn' : 'fail';
+      var emoji = r.state === 'granted' ? '✅' : r.state === 'prompt' ? '⚠️' : '❌';
+      ok('p-mic', emoji + ' ' + r.state, cls);
+    }).catch(function() {
+      ok('p-mic', '⚠️ API not available', 'warn');
+    });
+  } else {
+    ok('p-mic', '⚠️ Permissions API missing', 'warn');
+  }
+
+  // User agent
+  document.getElementById('ua').textContent = 'UA: ' + navigator.userAgent;
+}
+
+// ── Live microphone test (user gesture required) ───────────────────────────
+var _logLines = [];
+
+function log(line) {
+  _logLines.push(line);
+  document.getElementById('log').textContent = _logLines.join('\n');
+}
+
+function runTest() {
+  document.getElementById('btn-test').disabled = true;
+  document.getElementById('btn-test').textContent = '⏳ Testing...';
+  _logLines = [];
+  log('=== TesRadar Mic Diagnostics ===');
+  log('Time: ' + new Date().toISOString());
+  log('');
+  log('isSecureContext:         ' + window.isSecureContext);
+  log('protocol:                ' + location.protocol);
+  log('hostname:                ' + location.hostname);
+  log('');
+  log('navigator.mediaDevices:  ' + ('mediaDevices' in navigator));
+  log('getUserMedia:            ' + !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia));
+  log('MediaRecorder:           ' + (typeof MediaRecorder !== 'undefined'));
+  log('SpeechRecognition:       ' + (typeof window.SpeechRecognition !== 'undefined'));
+  log('webkitSpeechRecognition: ' + (typeof window.webkitSpeechRecognition !== 'undefined'));
+  log('');
+
+  if (!window.isSecureContext) {
+    log('❌ FAIL: Not a secure context. Mic blocked by browser.');
+    ok('t-stream', '❌ Blocked', 'fail');
+    ok('t-err', 'isSecureContext === false', 'fail');
+    finish(false);
+    return;
+  }
+
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    log('❌ FAIL: navigator.mediaDevices.getUserMedia not available.');
+    ok('t-stream', '❌ API missing', 'fail');
+    ok('t-err', 'getUserMedia unavailable', 'fail');
+    finish(false);
+    return;
+  }
+
+  log('▶ Requesting getUserMedia({audio: true})...');
+
+  navigator.mediaDevices.getUserMedia({
+    audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+    video: false
+  }).then(function(stream) {
+    var tracks = stream.getAudioTracks();
+    log('✅ Stream created!');
+    log('   Audio tracks: ' + tracks.length);
+    if (tracks.length > 0) {
+      var t = tracks[0];
+      log('   Track label:  ' + (t.label || '(none)'));
+      log('   Track state:  ' + t.readyState);
+      try {
+        var s = t.getSettings();
+        log('   SampleRate:   ' + (s.sampleRate || 'unknown'));
+        log('   ChannelCount: ' + (s.channelCount || 'unknown'));
+      } catch(e) { log('   (getSettings not available)'); }
+    }
+
+    // Stop tracks immediately
+    stream.getTracks().forEach(function(t) { t.stop(); });
+    log('   Stream released.');
+
+    // MediaRecorder test
+    if (typeof MediaRecorder !== 'undefined') {
+      var candidates = ['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus','audio/mp4'];
+      var mime = candidates.find(function(m){
+        try { return MediaRecorder.isTypeSupported(m); } catch(e){ return false; }
+      });
+      log('');
+      log('MediaRecorder mime: ' + (mime || 'default (browser chooses)'));
+    }
+
+    // SpeechRecognition
+    log('');
+    var SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SR) {
+      log('SpeechRecognition: ✅ available (' + (window.SpeechRecognition ? 'standard' : 'webkit-prefixed') + ')');
+    } else {
+      log('SpeechRecognition: ❌ not available — MediaRecorder fallback will be used');
+    }
+
+    ok('t-stream', '✅ Success', 'ok');
+    ok('t-err', '—', 'na');
+    finish(true);
+
+  }).catch(function(err) {
+    log('❌ getUserMedia FAILED');
+    log('   name:    ' + err.name);
+    log('   message: ' + err.message);
+
+    var diagnosis = '';
+    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+      diagnosis = 'Microphone permission denied.\n   Possible causes:\n   1. User denied the prompt\n   2. OS blocked mic access\n   3. Permissions-Policy header blocks it\n   4. Tesla browser system policy';
+    } else if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError') {
+      diagnosis = 'No microphone device found on this hardware.';
+    } else if (err.name === 'NotReadableError') {
+      diagnosis = 'Mic is in use by another application.';
+    } else if (err.name === 'SecurityError') {
+      diagnosis = 'SecurityError — likely Permissions-Policy header blocking mic.';
+    } else {
+      diagnosis = 'Unknown error: ' + err.name;
+    }
+    log('   Diagnosis: ' + diagnosis);
+
+    ok('t-stream', '❌ Failed', 'fail');
+    ok('t-err', err.name + ': ' + err.message, 'fail');
+    finish(false);
+  });
+}
+
+function finish(success) {
+  log('');
+  log('=== Done ===');
+  var btn = document.getElementById('btn-test');
+  btn.disabled = false;
+  btn.textContent = success ? '✅ Test complete — re-run?' : '❌ Failed — re-run?';
+  document.getElementById('btn-copy').style.display = 'block';
+}
+
+function copyLog() {
+  var ua = 'UA: ' + navigator.userAgent + '\n\n';
+  navigator.clipboard.writeText(ua + _logLines.join('\n')).then(function() {
+    document.getElementById('btn-copy').textContent = '✅ Копирано!';
+    setTimeout(function() {
+      document.getElementById('btn-copy').textContent = '📋 Копирай резултата';
+    }, 2000);
+  }).catch(function() {
+    // Fallback for Tesla (clipboard API may be restricted)
+    var ta = document.createElement('textarea');
+    ta.value = ua + _logLines.join('\n');
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand('copy');
+    document.body.removeChild(ta);
+    document.getElementById('btn-copy').textContent = '✅ Копирано!';
+    setTimeout(function() {
+      document.getElementById('btn-copy').textContent = '📋 Копирай резултата';
+    }, 2000);
+  });
+}
+
+// Run static checks immediately
+runStaticChecks();
+</script>
+</body>
+</html>
