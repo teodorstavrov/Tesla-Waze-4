@@ -108,15 +108,24 @@ Session data:\n${lines.join('\n')}`
       res.status(500).json({ error: `Groq unreachable: ${String(err)}` }); return
     }
 
-    // 404 model_not_found → try next
-    if (r.status === 404) {
-      const body404 = await r.json() as GroqError
-      const code = body404?.error?.code ?? ''
-      if (code === 'model_not_found') {
-        console.log(`[ai-ask] model ${model} not found, trying next`)
-        lastError = `model_not_found: ${model}`
+    // 404 model_not_found OR 400 decommissioned → try next model
+    if (r.status === 404 || r.status === 400) {
+      const bodyErr = await r.json() as GroqError
+      const code = bodyErr?.error?.code ?? ''
+      const msg  = bodyErr?.error?.message ?? ''
+      const isModelGone =
+        code === 'model_not_found' ||
+        code === 'model_decommissioned' ||
+        msg.includes('does not exist') ||
+        msg.includes('decommissioned') ||
+        msg.includes('no longer supported')
+      if (isModelGone) {
+        console.log(`[ai-ask] model ${model} unavailable (${r.status}), trying next`)
+        lastError = `${r.status} ${code || 'unavailable'}: ${model}`
         continue
       }
+      // Real 400 error (bad request, not model issue)
+      res.status(400).json({ error: `Groq 400: ${msg.slice(0, 200)}` }); return
     }
 
     if (!r.ok) {
