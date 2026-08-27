@@ -99,14 +99,14 @@ export function SupportModal({ qrImageUrl, donationLink }: SupportModalProps) {
           position:  'relative',
           zIndex:    1,
           width:     'min(460px, calc(100vw - 40px))',
-          padding:   '28px 24px 24px',
+          padding:   'clamp(16px, 3.5vh, 28px) clamp(16px, 3vh, 24px)',
           borderRadius: 20,
           background: 'rgba(18, 18, 26, 0.98)',
           border:    '1px solid rgba(255,255,255,0.12)',
           boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
           display:   'flex',
           flexDirection: 'column',
-          gap:       20,
+          gap:       'clamp(12px, 2.5vh, 20px)',
           opacity:    shown ? 1 : 0,
           transform:  shown ? 'scale(1)' : 'scale(0.96)',
           transition: 'opacity 0.22s ease-out, transform 0.22s ease-out',
@@ -116,7 +116,7 @@ export function SupportModal({ qrImageUrl, donationLink }: SupportModalProps) {
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 }}>
           <div style={{ flex: 1 }}>
             <div style={{
-              fontSize: 20, fontWeight: 700,
+              fontSize: 'clamp(15px, 2.5vh, 20px)', fontWeight: 700,
               color: '#f2f2f2',
               lineHeight: 1.2,
               letterSpacing: '-0.01em',
@@ -150,7 +150,7 @@ export function SupportModal({ qrImageUrl, donationLink }: SupportModalProps) {
                 flexDirection: 'column',
                 alignItems: 'center',
                 gap: 10,
-                padding: '20px 16px',
+                padding: 'clamp(12px, 2.5vh, 20px) clamp(10px, 2vh, 16px)',
                 borderRadius: 14,
                 background: donationLink ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.04)',
                 border: donationLink ? '1px solid rgba(255,255,255,0.16)' : '1px solid rgba(255,255,255,0.08)',
@@ -167,7 +167,7 @@ export function SupportModal({ qrImageUrl, donationLink }: SupportModalProps) {
                   width={192}
                   height={192}
                   style={{
-                    width: 192, height: 192,
+                    width: 'clamp(120px, 20vh, 192px)', height: 'clamp(120px, 20vh, 192px)',
                     borderRadius: 10,
                     display: 'block',
                     background: '#fff',
@@ -193,12 +193,12 @@ export function SupportModal({ qrImageUrl, donationLink }: SupportModalProps) {
               onClick={() => setView('contact')}
               style={{
                 width: '100%',
-                padding: '15px 0',
+                padding: 'clamp(10px, 1.8vh, 15px) 0',
                 borderRadius: 14,
                 background: 'rgba(255,255,255,0.07)',
                 border: '1px solid rgba(255,255,255,0.14)',
                 color: '#f2f2f2',
-                fontSize: 15,
+                fontSize: 'clamp(12px, 1.9vh, 15px)',
                 fontWeight: 600,
                 letterSpacing: '0.02em',
                 cursor: 'pointer',
@@ -217,7 +217,7 @@ export function SupportModal({ qrImageUrl, donationLink }: SupportModalProps) {
               <img
                 src="/new-medium_tran.png"
                 alt="TesRadar"
-                style={{ height: 70, width: 'auto', display: 'block', borderRadius: 10 }}
+                style={{ height: 'clamp(45px, 8.5vh, 70px)', width: 'auto', display: 'block', borderRadius: 10 }}
               />
             </div>
 
@@ -362,12 +362,12 @@ function ContactForm({ onBack }: { onBack: () => void }) {
           onClick={onBack}
           style={{
             flex: '0 0 auto',
-            padding: '14px 18px',
+            padding: 'clamp(10px, 1.7vh, 14px) clamp(12px, 2.2vh, 18px)',
             borderRadius: 12,
             background: 'rgba(255,255,255,0.07)',
             border: '1px solid rgba(255,255,255,0.14)',
             color: '#f2f2f2',
-            fontSize: 14,
+            fontSize: 'clamp(12px, 1.8vh, 14px)',
             fontWeight: 600,
             cursor: 'pointer',
             touchAction: 'manipulation',
@@ -380,12 +380,12 @@ function ContactForm({ onBack }: { onBack: () => void }) {
           disabled={state === 'sending'}
           style={{
             flex: 1,
-            padding: '14px 0',
+            padding: 'clamp(10px, 1.7vh, 14px) 0',
             borderRadius: 12,
             background: state === 'sending' ? 'rgba(227,25,55,0.5)' : '#e31937',
             border: 'none',
             color: '#fff',
-            fontSize: 15,
+            fontSize: 'clamp(12px, 1.9vh, 15px)',
             fontWeight: 700,
             cursor: state === 'sending' ? 'default' : 'pointer',
             touchAction: 'manipulation',

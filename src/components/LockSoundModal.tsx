@@ -149,14 +149,14 @@ export function LockSoundModal() {
         width:         'min(480px, calc(100vw - 32px))',
         maxHeight:     'calc(100vh - 48px)',
         overflowY:     'auto',
-        padding:       '24px 20px 20px',
+        padding:       'clamp(16px, 3vh, 24px) clamp(14px, 2.5vh, 20px)',
         borderRadius:  20,
         background:    'rgba(14, 14, 22, 0.99)',
         border:        '1px solid rgba(255,255,255,0.12)',
         boxShadow:     '0 24px 64px rgba(0,0,0,0.7)',
         display:       'flex',
         flexDirection: 'column',
-        gap:           18,
+        gap:           'clamp(12px, 2.2vh, 18px)',
         opacity:       shown ? 1 : 0,
         transform:     shown ? 'scale(1)' : 'scale(0.96)',
         transition:    isTeslaBrowser ? undefined : 'opacity 0.22s ease-out, transform 0.22s ease-out',
@@ -164,7 +164,7 @@ export function LockSoundModal() {
         {/* Header */}
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 10 }}>
           <div>
-            <div style={{ fontSize: 19, fontWeight: 800, color: '#f2f2f2', lineHeight: 1.2 }}>
+            <div style={{ fontSize: 'clamp(14px, 2.3vh, 19px)', fontWeight: 800, color: '#f2f2f2', lineHeight: 1.2 }}>
               {view === 'browse'   ? '🔔 Tesla Lock Sounds'                              : null}
               {view === 'checkout' ? `${selectedSound?.emoji ?? '🔔'} ${selectedSound?.label}` : null}
               {view === 'success'  ? t('lockSound.successHeader')                        : null}
@@ -196,7 +196,7 @@ export function LockSoundModal() {
                 display:       'flex',
                 alignItems:    'center',
                 gap:           12,
-                padding:       '12px 14px',
+                padding:       'clamp(8px, 1.5vh, 12px) clamp(10px, 1.8vh, 14px)',
                 borderRadius:  12,
                 background:    'rgba(255,255,255,0.05)',
                 border:        '1px solid rgba(255,255,255,0.10)',
@@ -210,7 +210,7 @@ export function LockSoundModal() {
                   onClick={() => handlePlay(s.id)}
                   title={playing === s.id ? t('lockSound.pause') : t('lockSound.play')}
                   style={{
-                    flexShrink: 0, width: 38, height: 38,
+                    flexShrink: 0, width: 'clamp(30px, 4.8vh, 38px)', height: 'clamp(30px, 4.8vh, 38px)',
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     borderRadius: 10,
                     background: playing === s.id ? 'rgba(227,25,55,0.2)' : 'rgba(255,255,255,0.08)',
@@ -226,12 +226,12 @@ export function LockSoundModal() {
                   onClick={() => handleSelect(s.id)}
                   style={{
                     flexShrink: 0,
-                    padding: '8px 14px',
+                    padding: 'clamp(5px, 1vh, 8px) clamp(10px, 1.8vh, 14px)',
                     borderRadius: 10,
                     background: '#e31937',
                     border: 'none',
                     color: '#fff',
-                    fontSize: 13,
+                    fontSize: 'clamp(11px, 1.6vh, 13px)',
                     fontWeight: 700,
                     cursor: 'pointer',
                     touchAction: 'manipulation',
@@ -314,7 +314,7 @@ export function LockSoundModal() {
                 type="submit"
                 disabled={sending}
                 style={{
-                  padding: '14px 0', borderRadius: 12, border: 'none',
+                  padding: 'clamp(10px, 1.7vh, 14px) 0', borderRadius: 12, border: 'none',
                   background: sending ? 'rgba(227,25,55,0.5)' : '#e31937',
                   color: '#fff', fontSize: 15, fontWeight: 700,
                   cursor: sending ? 'default' : 'pointer', touchAction: 'manipulation',

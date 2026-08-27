@@ -92,15 +92,15 @@ export function TurnInstruction() {
           userSelect: 'none', WebkitUserSelect: 'none',
           background: '#22c55e',
           borderRadius: 12,
-          padding: '8px 10px 9px',
+          padding: 'clamp(5px, 1vh, 8px) clamp(7px, 1.3vh, 10px) clamp(6px, 1.1vh, 9px)',
           boxShadow: isTeslaBrowser ? 'none' : '0 2px 12px rgba(0,0,0,0.55)',
-          minWidth: 72,
+          minWidth: 'clamp(52px, 9vh, 72px)',
           ...(isTeslaBrowser ? { contain: 'layout style paint' as React.CSSProperties['contain'] } : {}),
         }}
       >
-        <span style={{ fontSize: 38, lineHeight: 1 }}>✅</span>
+        <span style={{ fontSize: 'clamp(26px, 4.8vh, 38px)', lineHeight: 1 }}>✅</span>
         <span style={{
-          fontSize: 14, fontWeight: 800, color: '#fff',
+          fontSize: 'clamp(11px, 1.8vh, 14px)', fontWeight: 800, color: '#fff',
           whiteSpace: 'nowrap',
           maxWidth: 96, overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'center',
         }}>
@@ -125,9 +125,9 @@ export function TurnInstruction() {
         userSelect: 'none', WebkitUserSelect: 'none',
         background: '#2B7FFF',
         borderRadius: 12,
-        padding: '8px 10px 9px',
+        padding: 'clamp(5px, 1vh, 8px) clamp(7px, 1.3vh, 10px) clamp(6px, 1.1vh, 9px)',
         boxShadow: isTeslaBrowser ? 'none' : '0 2px 12px rgba(0,0,0,0.55)',
-        minWidth: 72,
+        minWidth: 'clamp(52px, 9vh, 72px)',
         // Tesla: paint containment — re-renders (every 20m of movement) do NOT
         // invalidate paint regions outside this element. The map tile layer
         // is unaffected by distance counter updates.
@@ -140,7 +140,7 @@ export function TurnInstruction() {
       {/* Distance to the maneuver point */}
       {distToNextStepM !== null && distToNextStepM > 15 && (
         <div style={{
-          fontSize: 17,
+          fontSize: 'clamp(13px, 2vh, 17px)',
           fontWeight: 900,
           color: '#fff',
           letterSpacing: '-0.3px',
@@ -155,7 +155,7 @@ export function TurnInstruction() {
       {/* Exit label — only for roundabouts that have an exit number */}
       {isRab && exitLabel && (
         <div style={{
-          fontSize: 13,
+          fontSize: 'clamp(10px, 1.5vh, 13px)',
           fontWeight: 700,
           color: 'rgba(255,255,255,0.92)',
           letterSpacing: '0.1px',
@@ -179,7 +179,8 @@ export function TurnInstruction() {
 
 function RoundaboutIcon({ exit }: { exit: number | undefined }) {
   return (
-    <svg width="55" height="55" viewBox="0 0 46 46" fill="none" aria-hidden="true">
+    <svg width="55" height="55" viewBox="0 0 46 46" fill="none" aria-hidden="true"
+      style={{ width: 'clamp(38px, 6.5vh, 55px)', height: 'clamp(38px, 6.5vh, 55px)' }}>
       {/* Nearly-full CCW arc — gap at top marks entry/exit */}
       <path
         d="M 35 16 A 14 14 0 1 0 11 16"
@@ -211,7 +212,7 @@ function TurnArrow({ rotation }: { rotation: number }) {
       width="55" height="55" viewBox="0 0 24 24"
       fill="none"
       strokeLinecap="round" strokeLinejoin="round"
-      style={{ transform: `rotate(${rotation}deg)`, transition: isTeslaBrowser ? undefined : 'transform 0.3s ease' }}
+      style={{ width: 'clamp(38px, 6.5vh, 55px)', height: 'clamp(38px, 6.5vh, 55px)', transform: `rotate(${rotation}deg)`, transition: isTeslaBrowser ? undefined : 'transform 0.3s ease' }}
       aria-hidden="true"
     >
       <line x1="12" y1="19" x2="12" y2="5" stroke="#ffffff" strokeWidth="2.8" />

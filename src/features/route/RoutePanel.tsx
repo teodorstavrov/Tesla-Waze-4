@@ -163,7 +163,7 @@ export function RoutePanel() {
                 {t('route.to')}
               </div>
               <div style={{
-                fontSize: 16, fontWeight: 600, color: 'var(--text-primary)',
+                fontSize: 'clamp(12px, 2vh, 16px)', fontWeight: 600, color: 'var(--text-primary)',
                 whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', marginTop: 1,
               }}>
                 {destination.name}
@@ -285,7 +285,7 @@ export function RoutePanel() {
                       {est.note}
                     </div>
                   </div>
-                  <div style={{ fontSize: 22, fontWeight: 800, color: col, flexShrink: 0, marginLeft: 12 }}>
+                  <div style={{ fontSize: 'clamp(16px, 2.7vh, 22px)', fontWeight: 800, color: col, flexShrink: 0, marginLeft: 12 }}>
                     ~{est.arrivalBatteryPercent}%
                   </div>
                 </div>
@@ -300,12 +300,12 @@ export function RoutePanel() {
               aria-label={t('route.start')}
               style={{
                 width: '100%',
-                height: 58,
+                height: 'clamp(44px, 7vh, 58px)',
                 borderRadius: 12,
                 background: 'linear-gradient(135deg, #22c55e, #16a34a)',
                 border: 'none',
                 color: '#fff',
-                fontSize: 20,
+                fontSize: 'clamp(15px, 2.5vh, 20px)',
                 fontWeight: 800,
                 letterSpacing: '0.06em',
                 cursor: 'pointer',
@@ -376,12 +376,12 @@ export function RoutePanel() {
                   marginLeft: stationsOnRoute.length > 0 ? 0 : 'auto',
                   marginTop: stationsOnRoute.length > 0 ? 8 : 0,
                   flexShrink: 0,
-                  padding: '9px 22px',
+                  padding: 'clamp(6px, 1.2vh, 9px) clamp(14px, 2.8vh, 22px)',
                   borderRadius: 10,
                   background: 'rgba(255,255,255,0.10)',
                   border: '1px solid rgba(255,255,255,0.20)',
                   color: 'var(--text-secondary)',
-                  fontSize: 15, fontWeight: 700,
+                  fontSize: 'clamp(12px, 1.9vh, 15px)', fontWeight: 700,
                   cursor: 'pointer', touchAction: 'manipulation',
                   letterSpacing: '0.04em',
                 }}

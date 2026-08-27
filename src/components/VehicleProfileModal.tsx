@@ -432,24 +432,24 @@ export function VehicleProfileModal() {
           flexShrink: 0,
           background: 'linear-gradient(160deg, #1a1a28 0%, #12121e 100%)',
           borderRight: '1px solid rgba(255,255,255,0.07)',
-          padding: '28px 24px 28px',
+          padding: 'clamp(16px, 3.5vh, 28px) clamp(16px, 3vh, 24px)',
           display: 'flex',
           flexDirection: 'column',
-          gap: 20,
+          gap: 'clamp(12px, 2.5vh, 20px)',
         }}>
           {/* Header */}
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: '#e31937', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>
               TesRadar
             </div>
-            <div style={{ fontSize: 22, fontWeight: 700, color: '#f2f2f2', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+            <div style={{ fontSize: 'clamp(16px, 2.7vh, 22px)', fontWeight: 700, color: '#f2f2f2', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
               {t('vehicleProfile.title')}
             </div>
           </div>
 
           {/* Car image — fixed-height frame, no reflow on model change */}
           <div style={{
-            height: 130,
+            height: 'clamp(80px, 16vh, 130px)',
             display: 'flex',
             alignItems: 'flex-end',
             justifyContent: 'center',
@@ -510,12 +510,12 @@ export function VehicleProfileModal() {
                         key={t.id}
                         onClick={() => setTrim(t.id)}
                         style={{
-                          padding: '11px 14px',
+                          padding: 'clamp(8px, 1.5vh, 11px) clamp(10px, 2vh, 14px)',
                           borderRadius: 10,
                           border: `1px solid ${sel ? 'rgba(227,25,55,0.6)' : 'rgba(255,255,255,0.10)'}`,
                           background: sel ? 'rgba(227,25,55,0.12)' : 'rgba(255,255,255,0.03)',
                           color: sel ? '#fff' : 'rgba(255,255,255,0.55)',
-                          fontSize: 15,
+                          fontSize: 'clamp(12px, 2vh, 15px)',
                           fontWeight: sel ? 600 : 400,
                           cursor: 'pointer', touchAction: 'manipulation',
                           textAlign: 'left',
@@ -523,7 +523,7 @@ export function VehicleProfileModal() {
                         }}
                       >
                         <span>{t.label}</span>
-                        <span style={{ fontSize: 13, color: sel ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.4)', fontWeight: 400 }}>
+                        <span style={{ fontSize: 'clamp(10px, 1.5vh, 13px)', color: sel ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.4)', fontWeight: 400 }}>
                           {t.usableKwh} kWh
                         </span>
                       </button>
@@ -543,11 +543,11 @@ export function VehicleProfileModal() {
         {/* ── RIGHT PANEL ────────────────────────────────────────────── */}
         <div style={{
           flex: 1,
-          padding: '28px 28px 24px',
+          padding: 'clamp(16px, 3.5vh, 28px) clamp(16px, 3.5vh, 28px) clamp(14px, 3vh, 24px)',
           overflowY: 'auto',
           display: 'flex',
           flexDirection: 'column',
-          gap: 20,
+          gap: 'clamp(12px, 2.5vh, 20px)',
         }}>
           {/* Close button */}
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
@@ -581,12 +581,12 @@ export function VehicleProfileModal() {
                     key={y}
                     onClick={() => handleYearChange(y)}
                     style={{
-                      padding: '8px 14px',
+                      padding: 'clamp(6px, 1.2vh, 8px) clamp(10px, 2vh, 14px)',
                       borderRadius: 8,
                       border: `1px solid ${sel ? 'rgba(227,25,55,0.6)' : 'rgba(255,255,255,0.10)'}`,
                       background: sel ? 'rgba(227,25,55,0.15)' : 'rgba(255,255,255,0.04)',
                       color: sel ? '#fff' : 'rgba(255,255,255,0.55)',
-                      fontSize: 15,
+                      fontSize: 'clamp(12px, 2vh, 15px)',
                       fontWeight: sel ? 700 : 400,
                       cursor: 'pointer',
                       touchAction: 'manipulation',
@@ -647,7 +647,7 @@ export function VehicleProfileModal() {
                     ↺ Tesla
                   </button>
                 )}
-                <div style={{ fontSize: 26, fontWeight: 800, color: col, letterSpacing: '-0.03em', lineHeight: 1 }}>
+                <div style={{ fontSize: 'clamp(18px, 3.2vh, 26px)', fontWeight: 800, color: col, letterSpacing: '-0.03em', lineHeight: 1 }}>
                   {Math.round(battery)}%
                 </div>
               </div>
@@ -719,12 +719,12 @@ export function VehicleProfileModal() {
                 onChange={(e) => setDegrad(e.target.value)}
                 style={{
                   flex: 1,
-                  padding: '11px 14px',
+                  padding: 'clamp(8px, 1.5vh, 11px) clamp(10px, 2vh, 14px)',
                   borderRadius: 10,
                   background: 'rgba(255,255,255,0.05)',
                   border: '1px solid rgba(255,255,255,0.12)',
                   color: '#f2f2f2',
-                  fontSize: 16,
+                  fontSize: 'clamp(13px, 2vh, 16px)',
                   outline: 'none',
                   fontFamily: 'inherit',
                 }}
@@ -788,12 +788,12 @@ export function VehicleProfileModal() {
             <button
               onClick={close}
               style={{
-                padding: '14px 20px',
+                padding: 'clamp(10px, 1.8vh, 14px) clamp(14px, 2.5vh, 20px)',
                 borderRadius: 12,
                 background: 'rgba(255,255,255,0.05)',
                 border: '1px solid rgba(255,255,255,0.10)',
                 color: 'rgba(255,255,255,0.45)',
-                fontSize: 16, fontWeight: 500,
+                fontSize: 'clamp(13px, 2vh, 16px)', fontWeight: 500,
                 cursor: 'pointer', touchAction: 'manipulation',
                 whiteSpace: 'nowrap',
               }}
@@ -805,12 +805,12 @@ export function VehicleProfileModal() {
               disabled={!canSave}
               style={{
                 flex: 1,
-                padding: '14px 0',
+                padding: 'clamp(10px, 1.8vh, 14px) 0',
                 borderRadius: 12,
                 background: canSave ? '#e31937' : 'rgba(227,25,55,0.25)',
                 border: 'none',
                 color: canSave ? '#fff' : 'rgba(255,255,255,0.3)',
-                fontSize: 17, fontWeight: 700,
+                fontSize: 'clamp(13px, 2.2vh, 17px)', fontWeight: 700,
                 cursor: canSave ? 'pointer' : 'default',
                 touchAction: 'manipulation',
                 letterSpacing: '0.02em',
@@ -943,12 +943,12 @@ function StepBtn({ label, onClick }: { label: string; onClick: () => void }) {
     <button
       onClick={onClick}
       style={{
-        width: 38, height: 38, flexShrink: 0,
+        width: 'clamp(28px, 4.8vh, 38px)', height: 'clamp(28px, 4.8vh, 38px)', flexShrink: 0,
         borderRadius: 10,
         border: '1px solid rgba(255,255,255,0.12)',
         background: 'rgba(255,255,255,0.06)',
         color: '#f2f2f2',
-        fontSize: 20, fontWeight: 300, lineHeight: 1,
+        fontSize: 'clamp(15px, 2.8vh, 20px)', fontWeight: 300, lineHeight: 1,
         cursor: 'pointer', touchAction: 'manipulation',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}
