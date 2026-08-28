@@ -25,12 +25,16 @@ import { settingsStore }       from '@/features/settings/settingsStore'
 import { uiStore }             from '@/features/settings/uiStore'
 import { savedPlacesStore }    from '@/features/places/savedPlacesStore'
 import { filterStore }         from '@/features/ev/filterStore'
+import { evStore }             from '@/features/ev/evStore'
+import { roadworksStore }      from '@/features/roadworks/roadworksStore'
+import { meetupStore }         from '@/features/meetups/meetupStore'
+import { nextOccurrence }      from '@/features/meetups/recurrence'
 import { followStore }         from '@/features/follow/followStore'
 import { getMap }              from '@/components/MapShell'
 import { useThemeStore }       from '@/features/theme/store'
 import { teslaStore }          from '@/features/tesla/teslaStore'
 import { teslaVehicleStore }   from '@/features/tesla/teslaVehicleStore'
-import { TESLA_MODELS }        from '@/features/planning/vehicleConfig'
+import { VEHICLE_CONFIGS }     from '@/features/planning/vehicleConfig'
 import { haversineMeters }     from '@/lib/geo'
 import { getLang, langStore }  from '@/lib/locale'
 import type { Lang }           from '@/lib/locale'
@@ -85,7 +89,7 @@ function buildContext() {
   const settings = settingsStore.get()
   const places   = savedPlacesStore.getAll()
 
-  const modelCfg   = profile ? TESLA_MODELS.find(m => m.name === profile.model) : null
+  const modelCfg   = profile ? VEHICLE_CONFIGS.find(m => m.model === profile.model) : null
   const trimCfg    = modelCfg?.trims.find(t => t.id === profile?.trim) ?? null
   const themeState = useThemeStore.getState()
   const uiState    = uiStore.getState()
@@ -171,7 +175,10 @@ function buildContext() {
     // UI toggles
     showClock:        uiState.showClock,
     showRightPanel:   uiState.showRightControls,
-    evStationsVisible: filterStore.getState().filtersBarEnabled,
+    settingsOpen:     uiState.settingsOpen,
+    evStationsVisible: evStore.getState().markersVisible,
+    evFiltersVisible:  filterStore.getState().filtersBarEnabled,
+    showRoadworks:    roadworksStore.getState().visible,
     // ── Saved places ──────────────────────────────────────────────────
     homeName:         places.home?.name ?? null,
     workName:         places.work?.name ?? null,
@@ -181,9 +188,52 @@ function buildContext() {
     routeDistKm:      route.remainingM != null ? Math.round(route.remainingM / 1000) : null,
     routeEtaTime,
     eventsNearby,
-    chargersNearby:   0,
+    chargersNearby: gps
+      ? evStore.getState().stations.filter(
+          s => haversineMeters(gps.lat, gps.lng, s.lat, s.lng) < 10_000,
+        ).length
+      : 0,
     countryCode:      country,
     lang:             getLang(),
+    // ── Community meetups (СЪБИТИЯ) ───────────────────────────────────
+    meetups:          _buildMeetupsContext(),
+  }
+}
+
+// ── Meetup context builder ─────────────────────────────────────────────────
+// Returns a compact text summary of upcoming community meetups (СЪБИТИЯ)
+// for the AI system prompt. Max 5 upcoming events, sorted soonest-first.
+function _buildMeetupsContext(): string {
+  try {
+    const now  = new Date()
+    const all  = meetupStore.getState().meetups
+    if (!all.length) return 'No community events scheduled.'
+
+    const upcoming = all
+      .map(m => {
+        const base = new Date(m.date)
+        const next = nextOccurrence(base, m.recurrence, now)
+        return { m, next }
+      })
+      .filter(({ next }) => next >= now)
+      .sort((a, b) => a.next.getTime() - b.next.getTime())
+      .slice(0, 5)
+
+    if (!upcoming.length) return 'No upcoming community events.'
+
+    const lang = getLang()
+    return upcoming.map(({ m, next }) => {
+      const dateStr = next.toLocaleString(
+        lang === 'bg' ? 'bg-BG' : lang === 'no' ? 'nb-NO' : 'en-GB',
+        { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' },
+      )
+      const recur = m.recurrence && m.recurrence !== 'none' ? ` (recurring)` : ''
+      const org   = m.organizer ? `, organizer: ${m.organizer}` : ''
+      const phone = m.organizerPhone ? `, tel: ${m.organizerPhone}` : ''
+      return `• "${m.title}" — ${dateStr}${recur}${org}${phone}`
+    }).join('\n')
+  } catch {
+    return ''
   }
 }
 
@@ -563,12 +613,14 @@ export function VoiceAssistant() {
           vehicleName: null, vehicleModel: null, vehicleYear: null, vehicleTrim: null,
           efficiencyWhKm: null, batterySource: null, degradationPct: null, usableKwh: null,
           currentKwh: null, teslaConnected: false, teslaVehicleName: null, chargingState: null,
-          headingMode: 'course-up', showTraffic: false,
-          performanceMode: 'auto', mapMode: 'voyager', appTheme: 'dark',
-          showClock: true, showRightPanel: true, evStationsVisible: true,
+          headingMode: 'course-up', showTraffic: false, performanceMode: 'auto',
+          mapMode: 'voyager', appTheme: 'dark',
+          showClock: true, showRightPanel: true, settingsOpen: false,
+          evStationsVisible: true, evFiltersVisible: true, showRoadworks: false,
           homeName: null, workName: null,
           routeActive: false, routeDestination: null, routeDistKm: null,
-          routeEtaTime: null, eventsNearby: 0, chargersNearby: 0, countryCode: 'BG', lang: 'bg' }
+          routeEtaTime: null, eventsNearby: 0, chargersNearby: 0,
+          countryCode: 'BG', lang: 'bg', meetups: '' }
       }
 
       const res = await fetch('/api/ai-ask', {
@@ -636,6 +688,11 @@ export function VoiceAssistant() {
         settingsStore.toggleTraffic()
         break
 
+      // ── Roadworks / road closures ──
+      case 'toggle_roadworks':
+        roadworksStore.toggle()
+        break
+
       // ── Satellite / map mode ──
       case 'toggle_satellite':
         theme.toggleSatellite()
@@ -668,8 +725,21 @@ export function VoiceAssistant() {
         uiStore.toggleRightControls()
         break
 
-      // ── EV stations ──
+      // ── Settings panel ──
+      case 'open_settings':
+        uiStore.openSettings()
+        break
+      case 'close_settings':
+        uiStore.closeSettings()
+        break
+
+      // ── EV station markers on map ──
       case 'toggle_ev_stations':
+        evStore.toggleMarkersVisible()
+        break
+
+      // ── EV filter bar (filter chips UI) ──
+      case 'toggle_ev_filters':
         filterStore.toggleFiltersBarEnabled()
         break
 
@@ -701,6 +771,30 @@ export function VoiceAssistant() {
         followStore.setFollowing(true)
         break
       }
+
+      // ── Cancel active navigation ──
+      case 'cancel_route':
+        routeStore.clear()
+        break
+
+      // ── Performance mode ──
+      case 'performance_auto':
+        settingsStore.setPerformanceMode('auto')
+        break
+      case 'performance_quality':
+        settingsStore.setPerformanceMode('quality')
+        break
+      case 'performance_performance':
+        settingsStore.setPerformanceMode('performance')
+        break
+
+      // ── Community meetups list (СЪБИТИЯ) ──
+      case 'open_meetups':
+        meetupStore.openList()
+        break
+      case 'close_meetups':
+        meetupStore.closeList()
+        break
 
       // ── Language change ──
       case 'set_lang':
@@ -745,6 +839,76 @@ export function VoiceAssistant() {
       speak(noPlaceMsg)
       if (dismissTimer.current) clearTimeout(dismissTimer.current)
       dismissTimer.current = setTimeout(dismiss, 10_000)
+      return
+    }
+
+    // ── Nearest EV charger ───────────────────────────────────────────────
+    if (lower === '__nearest_charger__'
+      || lower.includes('nearest charger') || lower.includes('nearest station')
+      || lower.includes('nearest charging')) {
+      const pos      = gpsStore.getPosition()
+      const stations = evStore.getState().stations
+      if (!pos || stations.length === 0) {
+        const msg = lbl(
+          'Няма данни за зарядни станции или GPS.',
+          'No charger data or GPS available.',
+        )
+        setAnswer(msg); speak(msg)
+        if (dismissTimer.current) clearTimeout(dismissTimer.current)
+        dismissTimer.current = setTimeout(dismiss, 8_000)
+        return
+      }
+      // Find nearest by haversine
+      let nearest = stations[0]!
+      let nearestDist = haversineMeters(pos.lat, pos.lng, nearest.lat, nearest.lng)
+      for (const s of stations) {
+        const d = haversineMeters(pos.lat, pos.lng, s.lat, s.lng)
+        if (d < nearestDist) { nearest = s; nearestDist = d }
+      }
+      const name = nearest.name ?? lbl('Зарядна станция', 'Charging station')
+      console.log(`[VoiceNav] Nearest charger: "${name}" ${Math.round(nearestDist)}m away`)
+      const currentViaHemus = routeStore.getState().viaHemus
+      if (viaHemus !== currentViaHemus) await routeStore.toggleViaHemus()
+      await routeStore.navigateTo({ lat: nearest.lat, lng: nearest.lng, name })
+      if (dismissTimer.current) clearTimeout(dismissTimer.current)
+      dismissTimer.current = setTimeout(dismiss, 3_000)
+      return
+    }
+
+    // ── Community meetup: by sentinel or title match ─────────────────────
+    const isNextMeetup = lower === '__next_meetup__'
+      || lower.includes('следващото събитие') || lower.includes('next event')
+      || lower.includes('next meetup')        || lower.includes('следващата среща')
+      || lower.includes('следващото')         || lower.includes('nearest event')
+
+    const allMeetups = meetupStore.getState().meetups
+    let targetMeetup = null
+
+    if (isNextMeetup) {
+      // Find the soonest upcoming meetup
+      const now = new Date()
+      const upcoming = allMeetups
+        .map(m => ({ m, next: nextOccurrence(new Date(m.date), m.recurrence, now) }))
+        .filter(({ next }) => next >= now)
+        .sort((a, b) => a.next.getTime() - b.next.getTime())
+      targetMeetup = upcoming[0]?.m ?? null
+    } else {
+      // Try to match a meetup by title (case-insensitive, partial)
+      const dl = destination.toLowerCase()
+      targetMeetup = allMeetups.find(m =>
+        m.title.toLowerCase() === dl ||
+        m.title.toLowerCase().includes(dl) ||
+        dl.includes(m.title.toLowerCase()),
+      ) ?? null
+    }
+
+    if (targetMeetup) {
+      console.log(`[VoiceNav] Navigating to meetup: "${targetMeetup.title}" (${targetMeetup.lat}, ${targetMeetup.lng})`)
+      const currentViaHemus = routeStore.getState().viaHemus
+      if (viaHemus !== currentViaHemus) await routeStore.toggleViaHemus()
+      await routeStore.navigateTo({ lat: targetMeetup.lat, lng: targetMeetup.lng, name: targetMeetup.title })
+      if (dismissTimer.current) clearTimeout(dismissTimer.current)
+      dismissTimer.current = setTimeout(dismiss, 3_000)
       return
     }
 

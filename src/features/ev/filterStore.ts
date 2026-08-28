@@ -69,8 +69,10 @@ export const filterStore = {
     return _state
   },
 
-  /** Returns evStore.stations with active filters applied */
+  /** Returns evStore.stations with active filters applied.
+   *  Returns [] when filtersBarEnabled is false (EV layer hidden by user). */
   getFilteredStations(): NormalizedStation[] {
+    if (!_state.filtersBarEnabled) return []
     const stations = evStore.getState().stations
     if (!_state.connector && !_state.minPowerKw && !_state.onlyAvailable) return stations
     return stations.filter((s) => matchesFilters(s, _state))
