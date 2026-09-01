@@ -33,14 +33,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   if (req.method !== 'GET')     { res.status(405).json({ error: 'Method not allowed' }); return }
 
   if (!isRedisConfigured()) {
-    return res.status(200).json({ visitors: [], stats: EMPTY_STATS })
+    res.status(200).json({ visitors: [], stats: EMPTY_STATS }); return
   }
 
   const now = Math.floor(Date.now() / 1000)
 
   const raw = await redis.hgetall(VISITORS_KEY)
   if (!raw) {
-    return res.status(200).json({ visitors: [], stats: EMPTY_STATS })
+    res.status(200).json({ visitors: [], stats: EMPTY_STATS }); return
   }
 
   // Parse all session records

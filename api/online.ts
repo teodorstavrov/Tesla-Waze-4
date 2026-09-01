@@ -28,7 +28,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   try {
     if (req.method === 'POST') {
-      const body = req.body as { sid?: unknown }
+      const body = req.body as { sid?: unknown; lat?: unknown; lng?: unknown; country?: unknown; firstSeen?: unknown }
       const sid  = typeof body?.sid === 'string' ? body.sid.slice(0, 40) : null
       if (!sid) return res.status(400).json({ error: 'sid required' })
 

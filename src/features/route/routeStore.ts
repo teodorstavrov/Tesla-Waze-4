@@ -363,6 +363,9 @@ export const routeStore = {
     try {
       const routes = viaHemus
         ? await fetchRouteViaHemus([gps.lat, gps.lng], [dest.lat, dest.lng], _abort.signal)
+            // viaHemus fallback: if Valhalla is down, use OSRM (won't force A2 but navigation still works)
+            .catch(() => fetchValhalla([gps.lat, gps.lng], [dest.lat, dest.lng], _abort!.signal, 1))
+            .catch(() => fetchOSRM([gps.lat, gps.lng], [dest.lat, dest.lng], _abort!.signal))
         : await fetchValhalla([gps.lat, gps.lng], [dest.lat, dest.lng], _abort.signal)
             .catch(() => fetchOSRM([gps.lat, gps.lng], [dest.lat, dest.lng], _abort!.signal))
       const primary = routes[0]!
@@ -474,6 +477,8 @@ export const routeStore = {
       // Single route — no alternatives popup on reroute; forceRefresh bypasses cache
       const routes = viaHemus
         ? await fetchRouteViaHemus([gps.lat, gps.lng], [dest.lat, dest.lng], _abort.signal, true)
+            .catch(() => fetchValhalla([gps.lat, gps.lng], [dest.lat, dest.lng], _abort!.signal, 0, true))
+            .catch(() => fetchOSRM([gps.lat, gps.lng], [dest.lat, dest.lng], _abort!.signal, 0, true))
         : await fetchValhalla([gps.lat, gps.lng], [dest.lat, dest.lng], _abort.signal, 0, true)
             .catch(() => fetchOSRM([gps.lat, gps.lng], [dest.lat, dest.lng], _abort!.signal, 0, true))
       const primary = routes[0]!

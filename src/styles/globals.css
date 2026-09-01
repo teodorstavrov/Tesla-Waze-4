@@ -551,45 +551,101 @@ body,
 /*
    The left-column container is positioned top:74px (below logo) to
    bottom:76px (above clock), so it is physically bounded on every model.
-   Button size scales continuously with viewport height via clamp():
+   Button size scales continuously with viewport height via clamp().
 
-     btn = clamp(52px, (100vh - 195px) / 7, 88px)
+   Uses var(--vh, 100vh): --vh is set by main.tsx to window.innerHeight (px).
+   This guards against Tesla firmware where 100vh > window.innerHeight
+   (browser chrome included in 100vh — a known Chromium edge-case).
+
+     btn = clamp(52px, (--vh - 195px) / 7, 88px)
 
    Where 195px = 74 (logo zone) + 76 (clock zone) + 9 (separator) + avg gaps.
-   Verification:
-     Model S/X 2022  (~760px): (760-195)/7 = 80.7px  ✓
-     Model 3/Y 2021+ (~900px): (900-195)/7 = 100.7 → capped 88px ✓
-     Cybertruck/S 17"(~1050px): capped at 88px        ✓
+   Verification (--vh = window.innerHeight):
+     Model S/X 2022  (innerHeight ~760px): (760-195)/7 = 80.7px  ✓
+     Model 3/Y 2021+ (innerHeight ~900px): (900-195)/7 = 100.7 → capped 88px ✓
+     Cybertruck/S 17"(innerHeight ~1050px): capped at 88px        ✓
+     Model 3/Y DPR=2 (innerHeight ~540px): (540-195)/7 = 49.3 → min 52px ✓
 
    min-width: 481px keeps these rules away from the ≤480px phone block.
 */
 @media (min-width: 481px) {
   /* ── Left controls ─────────────────────────────────── */
   .left-controls-xl {
-    gap: clamp(4px, calc((100vh - 150px) / 100), 8px) !important;
+    gap: clamp(4px, calc((var(--vh, 100vh) - 150px) / 100), 8px) !important;
   }
   .left-controls-xl .icon-btn {
-    width:         clamp(52px, calc((100vh - 195px) / 7), 88px) !important;
-    height:        clamp(52px, calc((100vh - 195px) / 7), 88px) !important;
-    border-radius: clamp(11px, calc((100vh - 195px) / 7 * 0.18), 16px) !important;
+    width:         clamp(52px, calc((var(--vh, 100vh) - 195px) / 7), 88px) !important;
+    height:        clamp(52px, calc((var(--vh, 100vh) - 195px) / 7), 88px) !important;
+    border-radius: clamp(11px, calc((var(--vh, 100vh) - 195px) / 7 * 0.18), 16px) !important;
   }
   .left-controls-xl .icon-btn svg {
-    width:  clamp(18px, calc((100vh - 195px) / 7 * 0.36), 32px) !important;
-    height: clamp(18px, calc((100vh - 195px) / 7 * 0.36), 32px) !important;
+    width:  clamp(18px, calc((var(--vh, 100vh) - 195px) / 7 * 0.36), 32px) !important;
+    height: clamp(18px, calc((var(--vh, 100vh) - 195px) / 7 * 0.36), 32px) !important;
   }
 
   /* ── Right controls — 72% of left button size (63/88 ratio) ──────── */
   .right-controls {
-    gap: clamp(4px, calc((100vh - 150px) / 100), 8px) !important;
+    gap: clamp(4px, calc((var(--vh, 100vh) - 150px) / 100), 8px) !important;
   }
   .right-controls .icon-btn {
-    width:         clamp(42px, calc((100vh - 195px) / 7 * 0.72), 63px) !important;
-    height:        clamp(42px, calc((100vh - 195px) / 7 * 0.72), 63px) !important;
-    border-radius: clamp(10px, calc((100vh - 195px) / 7 * 0.72 * 0.22), 15px) !important;
+    width:         clamp(42px, calc((var(--vh, 100vh) - 195px) / 7 * 0.72), 63px) !important;
+    height:        clamp(42px, calc((var(--vh, 100vh) - 195px) / 7 * 0.72), 63px) !important;
+    border-radius: clamp(10px, calc((var(--vh, 100vh) - 195px) / 7 * 0.72 * 0.22), 15px) !important;
   }
   .right-controls .icon-btn svg {
-    width:  clamp(14px, calc((100vh - 195px) / 7 * 0.72 * 0.36), 26px) !important;
-    height: clamp(14px, calc((100vh - 195px) / 7 * 0.72 * 0.36), 26px) !important;
+    width:  clamp(14px, calc((var(--vh, 100vh) - 195px) / 7 * 0.72 * 0.36), 26px) !important;
+    height: clamp(14px, calc((var(--vh, 100vh) - 195px) / 7 * 0.72 * 0.36), 26px) !important;
+  }
+}
+
+/* ─── Tesla: 5-button layout on small viewports (DPR=2, innerHeight ~540px) ─
+   Model 3/Y with DPR=2 reports window.innerHeight ≈ 540px.
+   The base 7-button formula gives 52px (minimum) for 390px container.
+   Hiding Bell + Support (secondary features) leaves 5 buttons, allowing:
+
+     btn = clamp(60px, (--vh - 179px) / 5, 88px)
+
+   Where 179px = 74 (logo) + 76 (clock) + 9 (separator) + 4 gaps × 5px.
+   Verification at 540px: (540-179)/5 = 72.2px → 72px buttons ✓
+   Container check: 5×72 + 4×5 + 9 = 369px ≤ 390px ✓  (17% bigger than 52px)
+
+   At innerHeight ≥ 700px (Model S/X DPR=1, ~760px): all 7 buttons restored.
+*/
+[data-tesla] .left-controls-xl {
+  gap: clamp(4px, calc((var(--vh, 100vh) - 130px) / 80), 10px) !important;
+}
+[data-tesla] .left-controls-xl .icon-btn {
+  width:         clamp(60px, calc((var(--vh, 100vh) - 179px) / 5), 88px) !important;
+  height:        clamp(60px, calc((var(--vh, 100vh) - 179px) / 5), 88px) !important;
+  border-radius: clamp(13px, calc((var(--vh, 100vh) - 179px) / 5 * 0.18), 16px) !important;
+}
+[data-tesla] .left-controls-xl .icon-btn svg {
+  width:  clamp(22px, calc((var(--vh, 100vh) - 179px) / 5 * 0.36), 32px) !important;
+  height: clamp(22px, calc((var(--vh, 100vh) - 179px) / 5 * 0.36), 32px) !important;
+}
+
+/* Bell + Support: hidden on Tesla (< 700px) — secondary features, not needed while driving.
+   Lock Sound and Support are less critical than GPS, Zoom, Orientation, Battery. */
+[data-tesla] .left-ctrl-secondary {
+  display: none;
+}
+
+/* Large Tesla screens (Model S/X 17" at DPR=1, innerHeight ~760px): restore all 7 buttons */
+@media (min-height: 700px) {
+  [data-tesla] .left-ctrl-secondary {
+    display: contents;
+  }
+  [data-tesla] .left-controls-xl {
+    gap: clamp(4px, calc((var(--vh, 100vh) - 150px) / 100), 8px) !important;
+  }
+  [data-tesla] .left-controls-xl .icon-btn {
+    width:         clamp(52px, calc((var(--vh, 100vh) - 195px) / 7), 88px) !important;
+    height:        clamp(52px, calc((var(--vh, 100vh) - 195px) / 7), 88px) !important;
+    border-radius: clamp(11px, calc((var(--vh, 100vh) - 195px) / 7 * 0.18), 16px) !important;
+  }
+  [data-tesla] .left-controls-xl .icon-btn svg {
+    width:  clamp(18px, calc((var(--vh, 100vh) - 195px) / 7 * 0.36), 32px) !important;
+    height: clamp(18px, calc((var(--vh, 100vh) - 195px) / 7 * 0.36), 32px) !important;
   }
 }
 

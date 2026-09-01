@@ -1768,7 +1768,7 @@ function StatBox({ label, value, small = false }: { label: string; value: React.
 
 // ── Visitor tracking panel ───────────────────────────────────────────────
 
-function VisitorStatsPanel({ visitors, stats, onRefresh }: { visitors: VisitorInfo[]; stats: VisitorStats | null; onRefresh: () => void }) {
+function VisitorStatsPanel({ visitors: _visitors, stats, onRefresh }: { visitors: VisitorInfo[]; stats: VisitorStats | null; onRefresh: () => void }) {
   const [open, setOpen] = useState(false)
   const online   = stats?.online ?? 0
   const h24      = stats?.h24    ?? 0

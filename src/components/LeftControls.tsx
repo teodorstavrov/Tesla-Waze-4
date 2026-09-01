@@ -112,14 +112,17 @@ export function LeftControls() {
           👑
         </button>
       )}
-      <button className="icon-btn" onClick={openLockSoundModal}
-        title="Tesla Lock Sounds" aria-label="Tesla Lock Sounds">
-        <BellIcon />
-      </button>
-      <button className="icon-btn" onClick={openSupportModal}
-        title={t('controls.support')} aria-label={t('controls.support')}>
-        <HeartIcon />
-      </button>
+      {/* Secondary: hidden on Tesla small screens (< 700px) to free space for larger buttons */}
+      <div className="left-ctrl-secondary" style={{ display: 'contents' }}>
+        <button className="icon-btn" onClick={openLockSoundModal}
+          title="Tesla Lock Sounds" aria-label="Tesla Lock Sounds">
+          <BellIcon />
+        </button>
+        <button className="icon-btn" onClick={openSupportModal}
+          title={t('controls.support')} aria-label={t('controls.support')}>
+          <HeartIcon />
+        </button>
+      </div>
     </div>
   )
 }

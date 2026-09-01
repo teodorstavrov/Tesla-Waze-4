@@ -55,7 +55,7 @@ function speedToRpm(kmh: number, gears: ReadonlyArray<GearBand>): number {
   return g.minRpm + (span === 0 ? 0 : (speed - prevMax) / span) * (topRpm - g.minRpm)
 }
 
-function makeClipCurve(amount: number): Float32Array {
+function makeClipCurve(amount: number): Float32Array<ArrayBuffer> {
   const n = 512; const c = new Float32Array(n)
   for (let i = 0; i < n; i++) {
     const x = (i * 2) / n - 1
@@ -185,7 +185,8 @@ class V8EngineSound {
   private _prevTs  = 0
   private _braking = false
 
-  constructor(private readonly cfg: V8Config) {}
+  private readonly cfg: V8Config
+  constructor(cfg: V8Config) { this.cfg = cfg }
 
   get isRunning(): boolean { return this._running }
 

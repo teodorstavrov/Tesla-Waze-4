@@ -29,7 +29,7 @@ function speedToRpm(kmh: number, gears: ReadonlyArray<GearBand>): number {
 
 function rpmToHz(rpm: number): number { return (rpm / 60) * 4 }
 
-function makeClipCurve(amount: number): Float32Array {
+function makeClipCurve(amount: number): Float32Array<ArrayBuffer> {
   const n = 512; const c = new Float32Array(n)
   for (let i = 0; i < n; i++) {
     const x = (i * 2) / n - 1
@@ -103,7 +103,8 @@ class HybridAudioEngine {
   private _speedDecreasing = false
   private _prevGpsKmh      = 0
 
-  constructor(private readonly cfg: HybridConfig) {}
+  private readonly cfg: HybridConfig
+  constructor(cfg: HybridConfig) { this.cfg = cfg }
 
   get isRunning(): boolean { return this._running }
   get isLoading(): boolean { return this._loading }

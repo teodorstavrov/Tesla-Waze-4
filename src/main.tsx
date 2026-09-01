@@ -15,16 +15,23 @@ injectSpeedInsights()
 // Mark <html> so CSS can suppress expensive animations on Tesla
 if (isTeslaBrowser) document.documentElement.setAttribute('data-tesla', '')
 
-// ── Viewport-proportional marker scale ────────────────────────────────────
-// Keeps map markers proportional to left-button size across all Tesla models.
-// Formula matches left-button clamp: (vh - 195) / (7 × 88px-max) → range 0.55–1.
-// Set as CSS var so .marker-scale-wrap can multiply it with the counter-scale.
-function _setMarkerViewportScale() {
-  const scale = Math.min(1, Math.max(0.55, (window.innerHeight - 195) / 616))
+// ── Viewport CSS variables ─────────────────────────────────────────────────
+// Set --vh / --vw to actual window.innerHeight / innerWidth on every resize.
+// These are used in CSS clamp() formulas instead of 100vh/100vw so that layouts
+// work correctly even on Tesla firmware where 100vh > window.innerHeight
+// (known Chromium bug: browser chrome height is included in 100vh on some builds).
+// --marker-viewport-scale keeps map markers proportional to left-button size.
+// Formula: (vh - 195) / (7 × 88px-max) → range 0.55–1.
+function _updateViewportVars() {
+  const h = window.innerHeight
+  const w = window.innerWidth
+  document.documentElement.style.setProperty('--vh', `${h}px`)
+  document.documentElement.style.setProperty('--vw', `${w}px`)
+  const scale = Math.min(1, Math.max(0.55, (h - 195) / 616))
   document.documentElement.style.setProperty('--marker-viewport-scale', scale.toFixed(4))
 }
-_setMarkerViewportScale()
-window.addEventListener('resize', _setMarkerViewportScale, { passive: true })
+_updateViewportVars()
+window.addEventListener('resize', _updateViewportVars, { passive: true })
 
 // Register service worker for offline tile caching
 if ('serviceWorker' in navigator) {

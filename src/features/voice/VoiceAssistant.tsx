@@ -50,6 +50,54 @@ import {
   getBestMimeType,
 } from './micCapability'
 
+// ── Web Speech API type declarations ──────────────────────────────────────
+// SpeechRecognition and its event types are not universally defined in all
+// TypeScript DOM lib versions. Declaring them here makes VoiceAssistant.tsx
+// fully self-contained regardless of TypeScript version.
+
+interface SpeechRecognitionResultItem {
+  readonly transcript: string
+  readonly confidence: number
+}
+interface SpeechRecognitionResult {
+  readonly isFinal: boolean
+  readonly length: number
+  [index: number]: SpeechRecognitionResultItem
+}
+interface SpeechRecognitionResultList {
+  readonly length: number
+  [index: number]: SpeechRecognitionResult
+}
+type SpeechRecognitionEventType = Event & {
+  readonly results: SpeechRecognitionResultList
+  readonly resultIndex: number
+}
+type SpeechRecognitionErrorEventType = Event & {
+  readonly error: string
+}
+
+// The SpeechRecognition interface — minimal shape we actually use.
+interface SpeechRecognition extends EventTarget {
+  lang:            string
+  continuous:      boolean
+  interimResults:  boolean
+  maxAlternatives: number
+  start():  void
+  abort():  void
+  stop():   void
+  onresult: ((ev: SpeechRecognitionEventType) => void) | null
+  onerror:  ((ev: SpeechRecognitionErrorEventType) => void) | null
+  onend:    (() => void) | null
+}
+
+declare global {
+  interface Window {
+    // Vendor-prefixed Web Speech API constructors
+    SpeechRecognition?: new () => SpeechRecognition
+    webkitSpeechRecognition?: new () => SpeechRecognition
+  }
+}
+
 // ── Daily AI usage limit ───────────────────────────────────────────────────
 const AI_DAILY_KEY   = 'teslaradar:ai_daily'
 const AI_DAILY_LIMIT = 20
@@ -118,7 +166,7 @@ function buildContext() {
   }
 
   const eventsNearby = gps
-    ? events.filter(e => haversineMeters(gps.lat, gps.lng, e.lat, e.lng) < 20_000).length
+    ? events.filter(e => haversineMeters([gps.lat, gps.lng], [e.lat, e.lng]) < 20_000).length
     : 0
 
   // Battery source label (for AI context)
@@ -144,7 +192,7 @@ function buildContext() {
   return {
     lat:              gps?.lat ?? null,
     lng:              gps?.lng ?? null,
-    speedKmh:         gps?.speed != null ? Math.round(gps.speed * 3.6) : null,
+    speedKmh:         gps?.speedKmh ?? null,
     batteryPct,
     rangeKm,
     vehicleName,
@@ -190,7 +238,7 @@ function buildContext() {
     eventsNearby,
     chargersNearby: gps
       ? evStore.getState().stations.filter(
-          s => haversineMeters(gps.lat, gps.lng, s.lat, s.lng) < 10_000,
+          s => haversineMeters([gps.lat, gps.lng], [s.lat, s.lng]) < 10_000,
         ).length
       : 0,
     countryCode:      country,
@@ -271,7 +319,7 @@ export function VoiceAssistant() {
   const [errorMsg,   setErrorMsg]   = useState('')
   const [recSeconds, setRecSeconds] = useState(0)
 
-  const recogRef     = useRef<InstanceType<typeof window.SpeechRecognition> | null>(null)
+  const recogRef     = useRef<SpeechRecognition | null>(null)
   const streamRef    = useRef<MediaStream | null>(null)
   const recorderRef  = useRef<MediaRecorder | null>(null)
   const chunksRef    = useRef<Blob[]>([])
@@ -304,11 +352,7 @@ export function VoiceAssistant() {
 
   // ── Path A: SpeechRecognition ────────────────────────────────────────────
   function startWithSpeechRecognition() {
-    const w = window as Record<string, unknown>
-    const SR = (
-      (w['SpeechRecognition'] as typeof window.SpeechRecognition | undefined) ??
-      (w['webkitSpeechRecognition'] as typeof window.SpeechRecognition | undefined)
-    )
+    const SR = window.SpeechRecognition ?? window.webkitSpeechRecognition
     if (!SR) return false
 
     setPhase('listening')
@@ -323,7 +367,7 @@ export function VoiceAssistant() {
     r.maxAlternatives = 1
     r.continuous      = false
 
-    r.onresult = (e: SpeechRecognitionEvent) => {
+    r.onresult = (e: SpeechRecognitionEventType) => {
       const text = e.results[0]?.[0]?.transcript?.trim() ?? ''
       if (!text) return
       setTranscript(text)
@@ -331,7 +375,7 @@ export function VoiceAssistant() {
       void askAI(text)
     }
 
-    r.onerror = (e: SpeechRecognitionErrorEvent) => {
+    r.onerror = (e: SpeechRecognitionErrorEventType) => {
       console.error('[VoiceAssistant] SR error:', e.error, {
         isSecureContext: window.isSecureContext,
         protocol:        location.protocol,
@@ -457,7 +501,7 @@ export function VoiceAssistant() {
 
     try {
       type AC = typeof AudioContext
-      const ACtx = (window.AudioContext ?? (window as Record<string,unknown>)['webkitAudioContext']) as AC
+      const ACtx = (window.AudioContext ?? (window as unknown as Record<string,unknown>)['webkitAudioContext']) as AC
       const ctx = new ACtx()
       audioCtxRef.current = ctx
       if (ctx.state === 'suspended') await ctx.resume()
@@ -578,6 +622,15 @@ export function VoiceAssistant() {
   // ── Entry point ──────────────────────────────────────────────────────────
   function startListening() {
     dismiss()  // reset any previous state
+
+    // Tesla browser has webkitSpeechRecognition but it always fails with a
+    // "network" error because the car's network blocks Google's STT servers.
+    // Skip the SR attempt entirely and go straight to MediaRecorder → Groq Whisper.
+    if (isTeslaBrowser) {
+      void startWithMediaRecorder()
+      return
+    }
+
     if (isSpeechRecognitionSupported()) {
       startWithSpeechRecognition()
     } else {
@@ -782,10 +835,10 @@ export function VoiceAssistant() {
         settingsStore.setPerformanceMode('auto')
         break
       case 'performance_quality':
-        settingsStore.setPerformanceMode('quality')
+        settingsStore.setPerformanceMode('normal')
         break
       case 'performance_performance':
-        settingsStore.setPerformanceMode('performance')
+        settingsStore.setPerformanceMode('tesla_amd_lite')
         break
 
       // ── Community meetups list (СЪБИТИЯ) ──
@@ -860,9 +913,9 @@ export function VoiceAssistant() {
       }
       // Find nearest by haversine
       let nearest = stations[0]!
-      let nearestDist = haversineMeters(pos.lat, pos.lng, nearest.lat, nearest.lng)
+      let nearestDist = haversineMeters([pos.lat, pos.lng], [nearest.lat, nearest.lng])
       for (const s of stations) {
-        const d = haversineMeters(pos.lat, pos.lng, s.lat, s.lng)
+        const d = haversineMeters([pos.lat, pos.lng], [s.lat, s.lng])
         if (d < nearestDist) { nearest = s; nearestDist = d }
       }
       const name = nearest.name ?? lbl('Зарядна станция', 'Charging station')

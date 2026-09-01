@@ -39,7 +39,7 @@ export function isMicrophoneSupported(): boolean {
 
 /** Whether either flavour of SpeechRecognition exists */
 export function isSpeechRecognitionSupported(): boolean {
-  const w = window as Record<string, unknown>
+  const w = window as unknown as Record<string, unknown>
   return !!(w['SpeechRecognition'] ?? w['webkitSpeechRecognition'])
 }
 
@@ -152,7 +152,7 @@ export function getMicErrorMessage(type: MicErrorType, lang = 'bg'): string {
 // Safe to call at any time — never throws.
 
 export async function getMicrophoneDiagnostics(): Promise<MicDiagnostics> {
-  const w = window as Record<string, unknown>
+  const w = window as unknown as Record<string, unknown>
 
   const d: MicDiagnostics = {
     isSecureContext:             window.isSecureContext,

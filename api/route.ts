@@ -2,16 +2,31 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 
 const VALHALLA_BASE = 'https://valhalla1.openstreetmap.de'
 
+async function tryFetch(body: unknown, timeoutMs: number): Promise<Response> {
+  return fetch(`${VALHALLA_BASE}/route`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify(body),
+    signal:  AbortSignal.timeout(timeoutMs),
+  })
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== 'POST') return res.status(405).end()
 
   try {
-    const upstream = await fetch(`${VALHALLA_BASE}/route`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify(req.body),
-      signal:  AbortSignal.timeout(15_000),
-    })
+    // First attempt — 12 s timeout
+    let upstream = await tryFetch(req.body, 12_000).catch(() => null)
+
+    // Single retry on transient 5xx (e.g. 502 Bad Gateway from valhalla1)
+    if (!upstream || (upstream.status >= 500 && upstream.status < 600)) {
+      await new Promise<void>((r) => setTimeout(r, 2_000))
+      upstream = await tryFetch(req.body, 12_000).catch(() => null)
+    }
+
+    if (!upstream) {
+      return res.status(503).json({ error: 'Routing service unavailable' })
+    }
 
     if (!upstream.ok) {
       const txt = await upstream.text().catch(() => '')

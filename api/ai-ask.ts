@@ -87,10 +87,6 @@ interface ActionIntent {
 
 type AiIntent = NavigateIntent | ActionIntent
 
-interface GroqError {
-  error?: { message?: string; code?: string }
-}
-
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS')
