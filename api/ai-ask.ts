@@ -16,8 +16,8 @@ import type { VercelRequest, VercelResponse } from '@vercel/node'
 // Preferred model keywords — matched against whatever Groq lists as available.
 // Order: prefer smaller/faster instruct models (no reasoning/thinking models — they leak chain-of-thought).
 const PREFER_KEYWORDS = ['8b', '9b', '11b', '17b', 'gemma', '27b', '32b', '70b', 'maverick', 'versatile']
-// Models to skip (embedding, STT, vision-only, TTS, reasoning/thinking models, qwen — qwen3 rejects response_format)
-const SKIP_RE = /whisper|tts|embed|vision|guard|tool|distil|speculative|specdec|scout|-r1\b|reason|think|qwen/i
+// Models to skip (embedding, STT, vision-only, TTS, reasoning/thinking models, qwen — qwen3 rejects response_format, compound — routing model with tiny context)
+const SKIP_RE = /whisper|tts|embed|vision|guard|tool|distil|speculative|specdec|scout|-r1\b|reason|think|qwen|compound/i
 
 interface AiContext {
   lat:              number | null
@@ -466,11 +466,11 @@ set_country            — change country (with value: "BG","NO","SE","FI","NL",
     lastError = `Groq ${attempt.status} (${model}): ${errText.slice(0, 120)}`
     console.warn(`[ai-ask] skipping ${model} (${attempt.status}):`, errText.slice(0, 80))
 
-    if (attempt.status !== 400 && attempt.status !== 404) {
+    if (attempt.status !== 400 && attempt.status !== 404 && attempt.status !== 413) {
       // 5xx or rate-limit (429) — don't try more models, surface the error
       res.status(502).json({ error: lastError }); return
     }
-    // 400 / 404 → continue to next model
+    // 400 / 404 / 413 (request too large for this model) → continue to next model
   }
 
   if (!r) {
