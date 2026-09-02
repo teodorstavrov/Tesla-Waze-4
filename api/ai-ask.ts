@@ -466,11 +466,13 @@ set_country            — change country (with value: "BG","NO","SE","FI","NL",
     lastError = `Groq ${attempt.status} (${model}): ${errText.slice(0, 120)}`
     console.warn(`[ai-ask] skipping ${model} (${attempt.status}):`, errText.slice(0, 80))
 
-    if (attempt.status !== 400 && attempt.status !== 404 && attempt.status !== 413) {
-      // 5xx or rate-limit (429) — don't try more models, surface the error
+    if (attempt.status !== 400 && attempt.status !== 404 && attempt.status !== 413 && attempt.status !== 429) {
+      // 5xx — don't try more models, surface the error
       res.status(502).json({ error: lastError }); return
     }
-    // 400 / 404 / 413 (request too large for this model) → continue to next model
+    // 400 = json_object not supported, 404 = model removed,
+    // 413 = request too large for this model, 429 = per-model rate limit
+    // → all four: skip to next model (Groq rate limits are per-model, not global)
   }
 
   if (!r) {
