@@ -119,7 +119,7 @@ async function _handle(req: VercelRequest, res: VercelResponse): Promise<void> {
     Buffer.from(`\r\n--${boundary}--\r\n`, 'utf8'),
   ])
 
-  console.log(`[stt] Sending ${audioBuf.length} bytes audio (${mimeType}, lang=${whisperLang}) to Groq`)
+  console.log(`[stt] Sending ${audioBuf.length} bytes audio (${mimeType}, lang=auto) to Groq`)
 
   // ── Call Groq Whisper ──────────────────────────────────────────────────
   let groqRes: Response
