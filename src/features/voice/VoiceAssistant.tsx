@@ -1082,6 +1082,15 @@ export function VoiceAssistant() {
         }}>
           <span style={{ fontSize: 17 }}>🤖</span>TesRadar AI
         </div>
+        {transcript && (
+          <div style={{
+            fontSize: 13, color: 'rgba(255,255,255,0.38)', fontStyle: 'italic',
+            maxWidth: 460, textAlign: 'center', lineHeight: 1.45,
+            flexShrink: 0,
+          }}>
+            &ldquo;{transcript}&rdquo;
+          </div>
+        )}
         <div style={{
           width: '100%', maxWidth: 460,
           padding: '18px 22px', borderRadius: 20,
