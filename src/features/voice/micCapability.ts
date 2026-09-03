@@ -66,8 +66,12 @@ export function getBestMimeType(): string | null {
  * Request microphone access.
  * MUST be called synchronously inside a real user-gesture event handler.
  * Throws DOMException on denial — caller maps via getMicErrorType().
+ *
+ * @param rawAudio  When true, disable browser-side echo/noise/gain processing.
+ *   Use for Tesla browser: its Chromium audio filters distort the signal and
+ *   hurt Whisper STT accuracy. Raw audio gives Whisper a cleaner input.
  */
-export async function requestMicrophone(): Promise<MediaStream> {
+export async function requestMicrophone(rawAudio = false): Promise<MediaStream> {
   if (!window.isSecureContext) {
     throw new DOMException('Not a secure context — HTTPS required', 'SecurityError')
   }
@@ -75,12 +79,20 @@ export async function requestMicrophone(): Promise<MediaStream> {
     throw new DOMException('getUserMedia not available in this browser', 'NotSupportedError')
   }
   return navigator.mediaDevices.getUserMedia({
-    audio: {
-      echoCancellation:  true,
-      noiseSuppression:  true,
-      autoGainControl:   true,
-      channelCount:      1,
-    },
+    audio: rawAudio
+      ? {
+          // Raw signal for Whisper — browser processing can distort speech in car environments
+          echoCancellation: false,
+          noiseSuppression: false,
+          autoGainControl:  false,
+          channelCount:     1,
+        }
+      : {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl:  true,
+          channelCount:     1,
+        },
     video: false,
   })
 }

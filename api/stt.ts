@@ -70,21 +70,21 @@ async function _handle(req: VercelRequest, res: VercelResponse): Promise<void> {
     res.status(400).json({ error: `Audio buffer too small (${audioBuf.length} bytes)` }); return
   }
 
-  const whisperLang = LANG[lang] ?? 'bg'
+  // Do NOT force a specific language — let Whisper auto-detect.
+  // Forcing the app's UI language (e.g. 'bg') causes Whisper to misrecognise
+  // commands spoken in a different language (e.g. English).
+  // Whisper-large-v3 auto-detection is very accurate across all supported langs.
   const ext = mimeType.startsWith('audio/mp4') ? 'mp4'
             : mimeType.startsWith('audio/ogg') ? 'ogg'
             : 'webm'
 
-  // Whisper prompt — domain-specific vocabulary helps accuracy for noisy car environments.
-  // Primes the model to expect navigation commands and Bulgarian place names.
-  const WHISPER_PROMPT: Record<string, string> = {
-    bg: 'TesRadar, Tesla, навигирай, зарядна станция, АМ Хемус, автомагистрала, батерия, заряд, км, София, Варна, Пловдив, Бургас, Велико Търново, Русе, Стара Загора, Ямбол, Шумен, Пазарджик, Видин, Враца, Плевен, Ловеч, Габрово, Силистра, Добрич, Хасково, Кърджали, Благоевград, Перник, Кюстендил, Монтана, Виден',
-    en: 'TesRadar, Tesla, navigate, charging station, Hemus motorway, battery, charge, Sofia, Varna, Plovdiv, Burgas',
-    no: 'TesRadar, Tesla, naviger, ladestasjon, batteri, lading',
-    sv: 'TesRadar, Tesla, navigera, laddstation, batteri, laddning',
-    fi: 'TesRadar, Tesla, navigoi, latauspiste, akku, lataus',
-  }
-  const whisperPrompt = WHISPER_PROMPT[whisperLang] ?? WHISPER_PROMPT['bg']!
+  // Multilingual prompt covers all supported countries + domain vocabulary.
+  // Provides Whisper with context regardless of which language the driver uses.
+  const whisperPrompt =
+    'TesRadar, Tesla, навигирай, зарядна станция, батерия, АМ Хемус, ' +
+    'navigate, charging station, battery, Hemus motorway, ' +
+    'naviger, ladestasjon, navigera, laddstation, navigoi, latauspiste, ' +
+    'Sofia, Варна, Varna, Пловдив, Plovdiv, Бургас, Burgas, Oslo, Stockholm'
 
   // ── Build multipart/form-data manually ────────────────────────────────
   // Using Buffer.concat — no FormData/Blob dependency (works Node 16/18/20).
@@ -109,9 +109,10 @@ async function _handle(req: VercelRequest, res: VercelResponse): Promise<void> {
   )
 
   const formBody = Buffer.concat([
-    textPart('model',           'whisper-large-v3-turbo'),
+    textPart('model',           'whisper-large-v3'),
     textPart('response_format', 'json'),
-    textPart('language',        whisperLang),
+    // No 'language' field → Whisper auto-detects. Forcing a language causes
+    // misrecognition when the driver switches between Bulgarian and English.
     textPart('prompt',          whisperPrompt),
     filePart,
     audioBuf,

@@ -422,7 +422,9 @@ export function VoiceAssistant() {
 
     let stream: MediaStream
     try {
-      stream = await requestMicrophone()
+      // Tesla browser: pass rawAudio=true to skip browser-side echo/noise filtering
+      // which distorts the signal and hurts Whisper STT accuracy in car environments.
+      stream = await requestMicrophone(isTeslaBrowser)
     } catch (err) {
       const type = getMicErrorType(err)
       console.error('[VoiceAssistant] getUserMedia error:', {
