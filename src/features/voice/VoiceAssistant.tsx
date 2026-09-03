@@ -468,7 +468,7 @@ export function VoiceAssistant() {
       const blob = new Blob(chunksRef.current, { type: mimeType ?? 'audio/webm' })
       chunksRef.current = []
 
-      if (blob.size < 1000) {
+      if (blob.size < 300) {
         setPhase('error')
         setErrorMsg(lbl('Записът е твърде кратък. Опитай отново.', 'Recording too short. Try again.'))
         return
@@ -491,13 +491,19 @@ export function VoiceAssistant() {
 
     // ── Voice Activity Detection (VAD) ───────────────────────────────────
     // Monitors audio level via AnalyserNode. Stops automatically after
-    // SILENCE_MS of silence, so the user never needs to tap Stop.
-    const SILENCE_THRESHOLD = 18   // 0-255 avg frequency; below = silence
-    const SILENCE_MS        = 1600 // ms of continuous silence before stopping
-    const MIN_RECORD_MS     = 700  // don't stop before first 700ms
+    // SILENCE_MS of silence (only after MIN_RECORD_MS has passed),
+    // so the user never needs to tap Stop.
+    //
+    // Tesla browser quirk: AudioContext may read all-zero frequency data
+    // (microphone not connected to analyser yet), which looks like silence.
+    // MIN_RECORD_MS guards against stopping before the user has a chance to speak.
+    const SILENCE_THRESHOLD = 14   // 0-255 avg frequency; below = silence (lowered so speech easily beats it)
+    const SILENCE_MS        = 2200 // ms of continuous silence before stopping (give pauses room)
+    const MIN_RECORD_MS     = 3000 // don't stop before first 3 s (time for user to start speaking)
 
     const recordStart = Date.now()
     let silenceStart: number | null = null
+    let speechDetectedEver = false   // once real speech is seen, use a tighter silence window
 
     try {
       type AC = typeof AudioContext
@@ -518,14 +524,20 @@ export function VoiceAssistant() {
         const avg = sum / freqData.length
         const elapsed = Date.now() - recordStart
 
-        if (avg < SILENCE_THRESHOLD) {
+        if (avg >= SILENCE_THRESHOLD) {
+          speechDetectedEver = true
+          silenceStart = null  // speech detected — reset silence timer
+        } else {
           if (silenceStart === null) silenceStart = Date.now()
-          if (elapsed > MIN_RECORD_MS && Date.now() - silenceStart > SILENCE_MS) {
+          // Only auto-stop when:
+          //   • we're past the minimum recording window, AND
+          //   • silence has lasted long enough (shorter window after actual speech is heard)
+          const silenceDuration = Date.now() - silenceStart
+          const requiredSilence = speechDetectedEver ? SILENCE_MS : SILENCE_MS + 800
+          if (elapsed > MIN_RECORD_MS && silenceDuration > requiredSilence) {
             if (vadRef.current) { clearInterval(vadRef.current); vadRef.current = null }
             stopRecording()
           }
-        } else {
-          silenceStart = null  // speech detected — reset silence timer
         }
       }, 80)
     } catch (err) {
