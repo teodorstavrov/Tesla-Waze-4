@@ -86,27 +86,37 @@ export function RoutePanel() {
       ? (remainingM / route.distanceM) * route.durationS
       : route?.durationS ?? 0
 
+  const containerStyle = isPhone ? {
+    // Mobile: full-width bottom sheet above BottomDock
+    position:  'absolute' as const,
+    bottom:    104,
+    left:      8,
+    right:     8,
+    zIndex:    500,
+    padding:   '12px 14px',
+    maxHeight: 'calc(100dvh - 220px)',
+    overflowY: 'auto' as const,
+  } : {
+    // Desktop + Tesla: identical visual size.
+    // maxHeight + overflow-y guard against the panel going off-screen on
+    // smaller Tesla displays without changing the look.
+    position:  'absolute' as const,
+    bottom:    24,
+    left:      'calc(25% - 40px)',
+    transform: 'translateX(-50%)',
+    width:     'min(400px, calc(50vw - 220px))',
+    zIndex:    500,
+    padding:   '14px 18px',
+    maxHeight: 'calc(100dvh - 140px)',
+    overflowY: 'auto' as const,
+    WebkitOverflowScrolling: 'touch' as const,
+  }
+
+  const innerGap = 10
+
   return (
     <div
-      style={isPhone ? {
-        // Mobile: full-width bottom sheet above BottomDock (24 + ~70px buttons + 8px gap)
-        position:  'absolute',
-        bottom:    104,
-        left:      8,
-        right:     8,
-        zIndex:    500,
-        padding:   '12px 14px',
-        maxHeight: 'calc(100dvh - 220px)',
-        overflowY: 'auto',
-      } : {
-        position:  'absolute',
-        bottom:    24,
-        left:      'calc(25% - 40px)',
-        transform: 'translateX(-50%)',
-        width:     'min(400px, calc(50vw - 220px))',
-        zIndex:    500,
-        padding:   '14px 18px',
-      }}
+      style={containerStyle}
       className="glass route-panel-container"
     >
       {status === 'loading' && (
@@ -127,7 +137,7 @@ export function RoutePanel() {
       )}
 
       {status === 'ok' && route && destination && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: innerGap }}>
 
           {/* Deviation banner */}
           {deviated && (
