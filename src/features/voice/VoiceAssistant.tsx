@@ -492,62 +492,106 @@ export function VoiceAssistant() {
     setRecSeconds(0)
 
     // ── Voice Activity Detection (VAD) ───────────────────────────────────
-    // Monitors audio level via AnalyserNode. Stops automatically after
-    // SILENCE_MS of silence (only after MIN_RECORD_MS has passed),
-    // so the user never needs to tap Stop.
     //
-    // Tesla browser quirk: AudioContext may read all-zero frequency data
-    // (microphone not connected to analyser yet), which looks like silence.
-    // MIN_RECORD_MS guards against stopping before the user has a chance to speak.
-    const SILENCE_THRESHOLD = 14   // 0-255 avg frequency; below = silence (lowered so speech easily beats it)
-    const SILENCE_MS        = 2200 // ms of continuous silence before stopping (give pauses room)
-    const MIN_RECORD_MS     = 3000 // don't stop before first 3 s (time for user to start speaking)
+    // Tesla browser: we SKIP AudioContext entirely.
+    // Creating and closing an AudioContext triggers Tesla's car audio system
+    // to resume its previous media source (radio) when the context closes —
+    // the OS treats AudioContext teardown as "audio session ended → resume media".
+    // Instead, on Tesla we use chunk-size VAD: MediaRecorder chunks during
+    // silence are tiny (<150 bytes per 200ms slot); speech chunks are large.
+    //
+    // Desktop browsers: use the accurate AnalyserNode (frequency-domain) VAD.
 
-    const recordStart = Date.now()
-    let silenceStart: number | null = null
-    let speechDetectedEver = false   // once real speech is seen, use a tighter silence window
+    const TESLA_AUTO_STOP_MS = 12_000  // max recording on Tesla (no VAD fallback needed beyond this)
+    const recordStart        = Date.now()
 
-    try {
-      type AC = typeof AudioContext
-      const ACtx = (window.AudioContext ?? (window as unknown as Record<string,unknown>)['webkitAudioContext']) as AC
-      const ctx = new ACtx()
-      audioCtxRef.current = ctx
-      if (ctx.state === 'suspended') await ctx.resume()
+    if (isTeslaBrowser) {
+      // ── Chunk-size VAD (Tesla) ─────────────────────────────────────────
+      // No AudioContext → no radio interference.
+      // Silence ≈ tiny chunks; speech ≈ large chunks.
+      const CHUNK_SILENCE_BYTES = 150   // chunk smaller than this = silence
+      const SILENCE_MS          = 2000  // ms of consecutive silence chunks → stop
+      const MIN_RECORD_MS       = 2500  // don't stop before 2.5 s
 
-      const analyser = ctx.createAnalyser()
-      analyser.fftSize = 512
-      ctx.createMediaStreamSource(stream).connect(analyser)
-      const freqData = new Uint8Array(analyser.frequencyBinCount)
+      let silenceStart: number | null = null
+      let speechDetectedEver = false
 
       vadRef.current = setInterval(() => {
-        analyser.getByteFrequencyData(freqData)
-        let sum = 0
-        for (let i = 0; i < freqData.length; i++) sum += freqData[i]
-        const avg = sum / freqData.length
         const elapsed = Date.now() - recordStart
+        const chunks  = chunksRef.current
+        if (chunks.length === 0) return
 
-        if (avg >= SILENCE_THRESHOLD) {
+        // Look at the last chunk to decide if we're in silence
+        const lastChunk = chunks[chunks.length - 1]!
+        const isSilent  = lastChunk.size < CHUNK_SILENCE_BYTES
+
+        if (!isSilent) {
           speechDetectedEver = true
-          silenceStart = null  // speech detected — reset silence timer
+          silenceStart = null
         } else {
           if (silenceStart === null) silenceStart = Date.now()
-          // Only auto-stop when:
-          //   • we're past the minimum recording window, AND
-          //   • silence has lasted long enough (shorter window after actual speech is heard)
-          const silenceDuration = Date.now() - silenceStart
-          const requiredSilence = speechDetectedEver ? SILENCE_MS : SILENCE_MS + 800
+          const silenceDuration   = Date.now() - silenceStart
+          const requiredSilence   = speechDetectedEver ? SILENCE_MS : SILENCE_MS + 1000
           if (elapsed > MIN_RECORD_MS && silenceDuration > requiredSilence) {
             if (vadRef.current) { clearInterval(vadRef.current); vadRef.current = null }
             stopRecording()
           }
         }
-      }, 80)
-    } catch (err) {
-      // VAD unavailable — fall back to manual Stop button (already present)
-      console.warn('[VAD] AudioContext unavailable, using manual stop:', err)
+
+        // Hard ceiling without a separate timer
+        if (elapsed >= TESLA_AUTO_STOP_MS) {
+          if (vadRef.current) { clearInterval(vadRef.current); vadRef.current = null }
+          stopRecording()
+        }
+      }, 200)  // same cadence as MediaRecorder chunks
+
+    } else {
+      // ── AnalyserNode VAD (desktop) ─────────────────────────────────────
+      const SILENCE_THRESHOLD = 14
+      const SILENCE_MS        = 2200
+      const MIN_RECORD_MS     = 3000
+
+      let silenceStart: number | null = null
+      let speechDetectedEver = false
+
+      try {
+        type AC = typeof AudioContext
+        const ACtx = (window.AudioContext ?? (window as unknown as Record<string,unknown>)['webkitAudioContext']) as AC
+        const ctx = new ACtx()
+        audioCtxRef.current = ctx
+        if (ctx.state === 'suspended') await ctx.resume()
+
+        const analyser = ctx.createAnalyser()
+        analyser.fftSize = 512
+        ctx.createMediaStreamSource(stream).connect(analyser)
+        const freqData = new Uint8Array(analyser.frequencyBinCount)
+
+        vadRef.current = setInterval(() => {
+          analyser.getByteFrequencyData(freqData)
+          let sum = 0
+          for (let i = 0; i < freqData.length; i++) sum += freqData[i]
+          const avg     = sum / freqData.length
+          const elapsed = Date.now() - recordStart
+
+          if (avg >= SILENCE_THRESHOLD) {
+            speechDetectedEver = true
+            silenceStart = null
+          } else {
+            if (silenceStart === null) silenceStart = Date.now()
+            const silenceDuration = Date.now() - silenceStart
+            const requiredSilence = speechDetectedEver ? SILENCE_MS : SILENCE_MS + 800
+            if (elapsed > MIN_RECORD_MS && silenceDuration > requiredSilence) {
+              if (vadRef.current) { clearInterval(vadRef.current); vadRef.current = null }
+              stopRecording()
+            }
+          }
+        }, 80)
+      } catch (err) {
+        console.warn('[VAD] AudioContext unavailable, using manual stop:', err)
+      }
     }
 
-    // Hard 20s ceiling regardless of VAD
+    // Hard 20s ceiling (desktop); Tesla uses its own ceiling inside the chunk VAD above
     timerRef.current = setInterval(() => {
       setRecSeconds(s => {
         if (s >= 19) {
