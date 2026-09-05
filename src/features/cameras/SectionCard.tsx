@@ -16,7 +16,9 @@ import { t, langStore } from '@/lib/locale'
 import { PremiumBadge } from '@/components/PremiumBadge'
 import type { SectionSession, SpeedSection, SectionExit } from './sectionTypes'
 
-const CARD_W = 320
+// Tesla shows the card in the top-right corner above the map controls.
+// Desktop uses the full 320px; Tesla uses 75% (240px) to avoid blocking the map.
+const CARD_W = isTeslaBrowser ? 240 : 320
 
 export function SectionCard() {
   useSyncExternalStore(langStore.subscribe, langStore.getLang, langStore.getLang)
@@ -104,13 +106,15 @@ function ActiveView({ session }: { session: SectionSession }) {
                    :                                 '#fff'
 
   const barColor = avgOverLimit ? '#ef4444' : avgRatio > 0.93 ? '#f97316' : '#3b82f6'
-  const limitFontSize = section.limitKmh >= 100 ? 15 : 19
+  // 25% smaller on Tesla to avoid blocking the map
+  const S = isTeslaBrowser ? 0.75 : 1
+  const limitFontSize = section.limitKmh >= 100 ? Math.round(15 * S) : Math.round(19 * S)
 
   return (
     <div
       className={isTeslaBrowser ? 'glass tesla-overlay-inner' : 'glass'}
       style={{
-        padding: '10px 16px 10px',
+        padding: `${Math.round(10*S)}px ${Math.round(16*S)}px`,
         background: 'rgba(10, 10, 18, 0.96)',
         '--text-primary':   '#f2f2f2',
         '--text-secondary': 'rgba(255,255,255,0.45)',
@@ -118,7 +122,7 @@ function ActiveView({ session }: { session: SectionSession }) {
       } as React.CSSProperties}
     >
       <div style={{
-        display: 'flex', alignItems: 'center', gap: 5, marginBottom: 10,
+        display: 'flex', alignItems: 'center', gap: Math.round(5*S), marginBottom: Math.round(8*S),
       }}>
         <span style={{
           fontSize: 10, fontWeight: 700,
@@ -135,20 +139,21 @@ function ActiveView({ session }: { session: SectionSession }) {
         display:        'flex',
         alignItems:     'center',
         justifyContent: 'space-between',
-        gap:            4,
+        gap:            Math.round(4*S),
       }}>
         <HudCell
           value={currentSpeed !== null ? String(currentSpeed) : '—'}
           valueColor={speedColor}
           label={t('sections.kmh')}
+          scale={S}
         />
 
         <div style={{
-          width:          60,
-          height:         60,
+          width:          Math.round(60*S),
+          height:         Math.round(60*S),
           borderRadius:   '50%',
           background:     '#ffffff',
-          border:         '5px solid #dc2626',
+          border:         `${Math.round(5*S)}px solid #dc2626`,
           display:        'flex',
           alignItems:     'center',
           justifyContent: 'center',
@@ -169,11 +174,12 @@ function ActiveView({ session }: { session: SectionSession }) {
           value={String(avgKmh)}
           valueColor={avgColor}
           label={t('sections.avg')}
+          scale={S}
         />
 
-        <div style={{ textAlign: 'center', minWidth: 52 }}>
+        <div style={{ textAlign: 'center', minWidth: Math.round(52*S) }}>
           <div style={{
-            fontSize:           26,
+            fontSize:           Math.round(26*S),
             fontWeight:         800,
             lineHeight:         1,
             color:              'var(--text-primary)',
@@ -191,8 +197,8 @@ function ActiveView({ session }: { session: SectionSession }) {
       </div>
 
       <div style={{
-        marginTop:    10,
-        height:       4,
+        marginTop:    Math.round(8*S),
+        height:       Math.round(4*S),
         borderRadius: 2,
         background:   'var(--glass-border)',
         overflow:     'hidden',
@@ -208,15 +214,16 @@ function ActiveView({ session }: { session: SectionSession }) {
   )
 }
 
-function HudCell({ value, valueColor, label }: {
+function HudCell({ value, valueColor, label, scale = 1 }: {
   value:      string
   valueColor: string
   label:      string
+  scale?:     number
 }) {
   return (
-    <div style={{ textAlign: 'center', minWidth: 64 }}>
+    <div style={{ textAlign: 'center', minWidth: Math.round(64 * scale) }}>
       <div style={{
-        fontSize:           40,
+        fontSize:           Math.round(40 * scale),
         fontWeight:         900,
         lineHeight:         1,
         letterSpacing:      '-0.02em',

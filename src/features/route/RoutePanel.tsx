@@ -98,19 +98,17 @@ export function RoutePanel() {
     overflowY: 'auto' as const,
   } : isTeslaBrowser ? {
     // Tesla touchscreen:
-    //   • left: 64px clears the left controls column
-    //   • right: 64px clears the right controls column
+    //   • Centered on screen with left:50% + translateX(-50%)
+    //   • width: min(700px, 100vw - 150px) — fills available space, caps at 700px
     //   • bottom: 100px clears the bottom dock buttons
-    //   • maxWidth caps at 700px on very wide displays (e.g. Model S/X)
-    //   • no fixed width — stretches to fill all available horizontal space
+    //   • padding reduced vs desktop for a more compact card
     position:  'absolute' as const,
     bottom:    100,
-    left:      68,
-    right:     68,
-    maxWidth:  700,
-    margin:    '0 auto',
+    left:      '50%',
+    transform: 'translateX(-50%)',
+    width:     'min(700px, calc(100vw - 150px))',
     zIndex:    500,
-    padding:   '14px 18px',
+    padding:   '10px 14px',
     maxHeight: 'calc(100dvh - 230px)',
     overflowY: 'auto' as const,
     WebkitOverflowScrolling: 'touch' as const,
@@ -127,7 +125,7 @@ export function RoutePanel() {
     overflowY: 'auto' as const,
   }
 
-  const innerGap = 10
+  const innerGap = isTeslaBrowser ? 7 : 10
 
   return (
     <div
