@@ -96,10 +96,24 @@ export function RoutePanel() {
     padding:   '12px 14px',
     maxHeight: 'calc(100dvh - 220px)',
     overflowY: 'auto' as const,
+  } : isTeslaBrowser ? {
+    // Tesla touchscreen:
+    //   • left: 64px clears the left controls column
+    //   • bottom: 90px clears the bottom dock buttons (Report / mic / nav)
+    //   • width: min(460px, calc(100vw - 140px)) — fills available space
+    //     leaving ~70px for right controls; caps at 460px on large displays
+    //   • maxHeight keeps it within screen bounds and scrolls if needed
+    position:  'absolute' as const,
+    bottom:    90,
+    left:      64,
+    width:     'min(460px, calc(100vw - 140px))',
+    zIndex:    500,
+    padding:   '14px 18px',
+    maxHeight: 'calc(100dvh - 220px)',
+    overflowY: 'auto' as const,
+    WebkitOverflowScrolling: 'touch' as const,
   } : {
-    // Desktop + Tesla: identical visual size.
-    // maxHeight + overflow-y guard against the panel going off-screen on
-    // smaller Tesla displays without changing the look.
+    // Desktop
     position:  'absolute' as const,
     bottom:    24,
     left:      'calc(25% - 40px)',
@@ -109,7 +123,6 @@ export function RoutePanel() {
     padding:   '14px 18px',
     maxHeight: 'calc(100dvh - 140px)',
     overflowY: 'auto' as const,
-    WebkitOverflowScrolling: 'touch' as const,
   }
 
   const innerGap = 10
