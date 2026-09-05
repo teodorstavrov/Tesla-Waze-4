@@ -166,6 +166,25 @@ interface AdminMeetup {
   interested:     string[]
 }
 
+// ── AI Stats types ───────────────────────────────────────────────────────
+
+interface AiLogRow {
+  ts:  number
+  q:   string
+  a:   string
+  out: 'intent' | 'qa' | 'error'
+  it:  string | null    // intentType: 'navigate' | 'action'
+  ln:  string | null    // language
+  ip:  string | null
+  er:  string | null    // error message
+}
+
+interface AiStats {
+  counts:    Record<string, string>   // field → string number
+  logs:      AiLogRow[]
+  logsTotal: number
+}
+
 function Dashboard({ secret }: { secret: string }) {
   const [stats,        setStats]        = useState<Stats | null>(null)
   const [events,       setEvents]       = useState<RoadEvent[]>([])
@@ -174,6 +193,7 @@ function Dashboard({ secret }: { secret: string }) {
   const [meetups,      setMeetups]      = useState<AdminMeetup[]>([])
   const [visitors,     setVisitors]     = useState<VisitorInfo[]>([])
   const [visitorStats, setVisitorStats] = useState<VisitorStats | null>(null)
+  const [aiStats,      setAiStats]      = useState<AiStats | null>(null)
   const [syncing, setSyncing] = useState(false)
   const [syncMsg, setSyncMsg] = useState('')
   const [addMode, setAddMode] = useState(false)
@@ -184,19 +204,21 @@ function Dashboard({ secret }: { secret: string }) {
   const headers = { Authorization: `Bearer ${secret}` }
 
   const loadAll = useCallback(async () => {
-    const [sr, er, usr, cr, mr, vr] = await Promise.all([
+    const [sr, er, usr, cr, mr, vr, air] = await Promise.all([
       fetch('/api/admin/stats',             { headers }),
       fetch('/api/admin/events',            { headers }),
       fetch('/api/admin/user-stations',     { headers }),
       fetch('/api/admin/station-comments',  { headers }),
       fetch('/api/admin/meetups',           { headers }),
       fetch('/api/admin/visitors',          { headers }),
+      fetch('/api/admin/ai-stats?limit=60', { headers }),
     ])
     if (sr.ok)  setStats(await sr.json() as Stats)
     if (er.ok)  setEvents(((await er.json()) as { events: RoadEvent[] }).events)
     if (usr.ok) setUserStations(((await usr.json()) as { stations: UserStation[] }).stations)
     if (cr.ok)  setComments(((await cr.json()) as { comments: StationComment[] }).comments)
     if (mr.ok)  setMeetups(((await mr.json()) as { meetups: AdminMeetup[] }).meetups)
+    if (air.ok) setAiStats(await air.json() as AiStats)
     if (vr.ok) {
       const vd = await vr.json() as { visitors: VisitorInfo[]; stats: VisitorStats }
       setVisitors(vd.visitors)
@@ -497,6 +519,9 @@ function Dashboard({ secret }: { secret: string }) {
           onEdit={setEditingEvent}
           onDelete={(id) => { void deleteEvent(id) }}
         />
+
+        {/* AI Assistant stats */}
+        <AiStatsPanel stats={aiStats} />
       </div>
 
       {/* ── Map ── */}
@@ -561,6 +586,139 @@ function countryFromCoords(lat: number, lng: number): string {
 }
 
 const LS_HIDE_PERMANENT = 'teslaradar:hidePermanent'
+
+// ── AI Stats panel ───────────────────────────────────────────────────────
+
+const OUTCOME_LABEL: Record<string, string> = { intent: '🎯 Команда', qa: '💬 Въпрос', error: '❌ Грешка' }
+const OUTCOME_COLOR: Record<string, string> = { intent: '#60a5fa', qa: '#4ade80', error: '#f87171' }
+
+function AiStatsPanel({ stats }: { stats: AiStats | null }) {
+  const [open, setOpen] = useState(false)
+
+  if (!stats) return null
+
+  const c = stats.counts
+  const total   = Number(c['total'] ?? 0)
+  const intents = Number(c['outcome:intent'] ?? 0)
+  const qa      = Number(c['outcome:qa']     ?? 0)
+  const errors  = Number(c['outcome:error']  ?? 0)
+
+  // Today's key: UTC date
+  const now = new Date()
+  const todayKey  = `day:${now.getUTCFullYear()}-${String(now.getUTCMonth()+1).padStart(2,'0')}-${String(now.getUTCDate()).padStart(2,'0')}`
+  // ISO week
+  const dt = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()))
+  const day = dt.getUTCDay() || 7; dt.setUTCDate(dt.getUTCDate() + 4 - day)
+  const jan1 = new Date(Date.UTC(dt.getUTCFullYear(), 0, 1))
+  const wk   = Math.ceil((((dt.getTime() - jan1.getTime()) / 86400000) + 1) / 7)
+  const weekKey   = `week:${dt.getUTCFullYear()}-W${String(wk).padStart(2,'0')}`
+  const monthKey  = `month:${now.getUTCFullYear()}-${String(now.getUTCMonth()+1).padStart(2,'0')}`
+
+  const today  = Number(c[todayKey]  ?? 0)
+  const week   = Number(c[weekKey]   ?? 0)
+  const month  = Number(c[monthKey]  ?? 0)
+
+  function fmtTs(ts: number) {
+    return new Date(ts).toLocaleString('bg-BG', { dateStyle: 'short', timeStyle: 'short' })
+  }
+
+  return (
+    <div style={{ padding: '14px 18px', borderTop: '1px solid rgba(255,255,255,0.07)' }}>
+      {/* Header */}
+      <button
+        onClick={() => setOpen(v => !v)}
+        style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          color: '#aaa', padding: 0, marginBottom: open ? 12 : 0 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+          🤖 AI Асистент
+        </span>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 15, fontWeight: 800, color: '#e8e8e8' }}>{total.toLocaleString()}</span>
+          <span style={{ fontSize: 13, color: '#555' }}>{open ? '▲' : '▼'}</span>
+        </span>
+      </button>
+
+      {open && (
+        <>
+          {/* Period counters */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 6, marginBottom: 12 }}>
+            {[['Днес', today, '#4ade80'], ['Седмица', week, '#60a5fa'], ['Месец', month, '#a78bfa']].map(([label, val, col]) => (
+              <div key={String(label)} style={{
+                background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
+                borderRadius: 8, padding: '8px 0', textAlign: 'center',
+              }}>
+                <div style={{ fontSize: 19, fontWeight: 800, color: String(col), lineHeight: 1 }}>{Number(val)}</div>
+                <div style={{ fontSize: 10, color: '#555', marginTop: 3 }}>{String(label)}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Outcome breakdown */}
+          {total > 0 && (
+            <div style={{ display: 'flex', gap: 5, marginBottom: 12 }}>
+              {(['intent', 'qa', 'error'] as const).map(out => {
+                const n = out === 'intent' ? intents : out === 'qa' ? qa : errors
+                const pct = total > 0 ? Math.round(n / total * 100) : 0
+                return (
+                  <div key={out} style={{
+                    flex: 1, background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
+                    borderRadius: 8, padding: '7px 6px', textAlign: 'center',
+                  }}>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: OUTCOME_COLOR[out] }}>{n}</div>
+                    <div style={{ fontSize: 9, color: '#555', marginTop: 2 }}>{OUTCOME_LABEL[out]}</div>
+                    <div style={{ fontSize: 9, color: '#444' }}>{pct}%</div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* Recent log entries */}
+          {stats.logs.length === 0 ? (
+            <div style={{ fontSize: 12, color: '#555', textAlign: 'center', padding: '10px 0' }}>Няма записи</div>
+          ) : (
+            <div style={{ fontSize: 11, color: '#888', marginBottom: 6 }}>
+              Последни {stats.logs.length} от {stats.logsTotal} записа (90 дни)
+            </div>
+          )}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {stats.logs.map((row, i) => (
+              <div key={i} style={{
+                background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.06)',
+                borderRadius: 8, padding: '8px 10px',
+                borderLeft: `3px solid ${OUTCOME_COLOR[row.out] ?? '#555'}`,
+              }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                  <span style={{ fontSize: 10, fontWeight: 600, color: OUTCOME_COLOR[row.out] ?? '#888' }}>
+                    {OUTCOME_LABEL[row.out] ?? row.out}
+                    {row.it ? ` · ${row.it}` : ''}
+                  </span>
+                  <span style={{ fontSize: 10, color: '#444' }}>{fmtTs(row.ts)}</span>
+                </div>
+                <div style={{ fontSize: 12, color: '#ccc', lineHeight: 1.4, marginBottom: row.a ? 4 : 0,
+                  wordBreak: 'break-word' }}>
+                  ❓ {row.q || '—'}
+                </div>
+                {row.a && (
+                  <div style={{ fontSize: 11, color: '#888', lineHeight: 1.4, wordBreak: 'break-word' }}>
+                    💬 {row.a}
+                  </div>
+                )}
+                {row.er && (
+                  <div style={{ fontSize: 11, color: '#f87171', marginTop: 3 }}>⚠ {row.er}</div>
+                )}
+                <div style={{ fontSize: 10, color: '#333', marginTop: 4 }}>
+                  {row.ln && `${row.ln} `}{row.ip && `· ${row.ip}`}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  )
+}
 
 // ── Event stats panel ────────────────────────────────────────────────────
 

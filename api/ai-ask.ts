@@ -12,6 +12,7 @@
 // NavigateIntent: { type: 'navigate', destination: string, viaHemus: boolean }
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
+import { logAiQuery }  from './_lib/ai/logQuery.js'
 
 // Preferred model keywords — matched against whatever Groq lists as available.
 // Order: prefer smaller/faster instruct models (no reasoning/thinking models — they leak chain-of-thought).
@@ -345,49 +346,112 @@ Or with value:
 - "navigate to nearest charger/station" / "до най-близката зарядна" / "до най-близкия чарджър" → destination: "__nearest_charger__"
 
 ━━━ AVAILABLE ACTION KEYS ━━━
-toggle_traffic         — turn traffic layer ON/OFF
-toggle_roadworks       — turn road closures layer ON/OFF
-toggle_satellite       — toggle satellite map ON/OFF
-map_mode_satellite     — switch to satellite view
-map_mode_voyager       — switch to Voyager (street/day) view
-map_mode_normal        — switch to standard night map view
-toggle_night           — toggle night mode (dark map + dark theme)
-toggle_dark_mode       — toggle dark/light app theme
-toggle_clock           — show/hide the clock display
-toggle_right_panel     — show/hide the right controls panel
-open_settings          — open the settings panel (gear menu)
-close_settings         — close the settings panel
-toggle_ev_stations     — show/hide EV charging station markers on map
-toggle_ev_filters      — show/hide EV filter bar UI
-heading_course_up      — set map to follow driving direction (course-up)
-heading_north_up       — set map to fixed north orientation
-zoom_in                — zoom the map in one step
-zoom_out               — zoom the map out one step
-center                 — center map on current GPS location and re-enable follow mode
-cancel_route           — cancel / stop the current navigation
-performance_auto       — set performance mode to auto
-performance_quality    — set performance mode to quality (better graphics)
-performance_performance — set performance mode to high performance
-open_meetups           — open community events / meetups list (СЪБИТИЯ)
-close_meetups          — close the meetups list
-set_lang               — change UI language (with value: "bg","en","no","sv","fi","nl","de")
-set_country            — change country (with value: "BG","NO","SE","FI","NL","BE","DE")
+CRITICAL: Use DIRECTIONAL keys (on/off) based on what the user asked — do NOT use toggle keys when the user clearly says "включи/включете" (turn on) or "изключи/изключете" (turn off) or "покажи" (show) or "скрий" (hide). Check the current state in "Current session data" to pick the right direction.
+
+TRAFFIC LAYER (current state: "Traffic layer: ON/OFF")
+  traffic_on             — turn traffic layer ON
+  traffic_off            — turn traffic layer OFF
+  toggle_traffic         — toggle (only when direction unclear)
+
+ROAD CLOSURES LAYER (current state: "Road closures layer: ON/OFF")
+  roadworks_on           — turn road closures layer ON
+  roadworks_off          — turn road closures layer OFF
+  toggle_roadworks       — toggle (only when direction unclear)
+
+MAP MODE
+  map_mode_satellite     — switch to satellite view
+  satellite_on           — same as map_mode_satellite
+  satellite_off          — exit satellite → back to Voyager
+  map_mode_voyager       — switch to Voyager (street/day) view
+  map_mode_normal        — switch to standard dark night map
+
+NIGHT / DAY MODE (current state: "App theme: dark/light", "Map mode: normal/voyager/satellite")
+  night_on               — activate NIGHT mode: dark map + dark theme
+  night_off              — deactivate NIGHT mode → day (Voyager map + light theme)
+  day_on                 — same as night_off: activate day mode
+  dark_on                — switch to dark app theme only (doesn't change map mode)
+  light_on               — switch to light app theme only
+  toggle_dark_mode       — toggle theme (only when direction unclear)
+
+EV CHARGING STATIONS (current state: "EV stations markers: visible/hidden")
+  ev_stations_on         — show EV charging station markers on map
+  ev_stations_off        — hide EV charging station markers
+  toggle_ev_stations     — toggle (only when direction unclear)
+
+EV FILTER BAR (current state: "EV filters bar: visible/hidden")
+  ev_filters_on          — show the EV filter bar UI
+  ev_filters_off         — hide the EV filter bar UI
+  toggle_ev_filters      — toggle (only when direction unclear)
+
+CLOCK (current state: "Clock: visible/hidden")
+  clock_on               — show the clock
+  clock_off              — hide the clock
+  toggle_clock           — toggle (only when direction unclear)
+
+RIGHT CONTROLS PANEL (current state: "Right controls panel: visible/hidden")
+  right_panel_on         — show the right controls panel
+  right_panel_off        — hide the right controls panel
+  toggle_right_panel     — toggle (only when direction unclear)
+
+SETTINGS PANEL (current state: "Settings panel: open/closed")
+  open_settings          — open the settings panel (gear menu)
+  close_settings         — close the settings panel
+
+MAP ORIENTATION
+  heading_course_up      — set map to follow driving direction (course-up)
+  heading_north_up       — set map to fixed north orientation
+
+MAP NAVIGATION
+  zoom_in                — zoom the map in one step
+  zoom_out               — zoom the map out one step
+  center                 — center map on current GPS location and re-enable follow mode
+  cancel_route           — cancel / stop the current navigation
+
+PERFORMANCE MODE
+  performance_auto       — set performance mode to auto
+  performance_quality    — set performance mode to quality (better graphics)
+  performance_performance — set performance mode to high performance
+
+COMMUNITY MEETUPS (СЪБИТИЯ)
+  open_meetups           — open community events / meetups list
+  close_meetups          — close the meetups list
+
+LANGUAGE & COUNTRY
+  set_lang               — change UI language (with value: "bg","en","no","sv","fi","nl","de")
+  set_country            — change country (with value: "BG","NO","SE","FI","NL","BE","DE")
 
 ━━━ EXAMPLES ━━━
-"Включи трафика"            → {"answer":"Включвам трафика.","intent":{"type":"action","action":"toggle_traffic"}}
-"Включи затворени пътища"   → {"answer":"Включвам слоя с пътни затваряния.","intent":{"type":"action","action":"toggle_roadworks"}}
-"Сателитна карта"           → {"answer":"Превключвам на сателитен изглед.","intent":{"type":"action","action":"map_mode_satellite"}}
-"Нощен режим"               → {"answer":"Включвам нощен режим.","intent":{"type":"action","action":"toggle_night"}}
-"Скрий часовника"           → {"answer":"Скривам часовника.","intent":{"type":"action","action":"toggle_clock"}}
-"Отвори настройките"        → {"answer":"Отварям настройките.","intent":{"type":"action","action":"open_settings"}}
-"Покажи зарядни станции"    → {"answer":"Показвам зарядни станции.","intent":{"type":"action","action":"toggle_ev_stations"}}
-"Покажи събитията"          → {"answer":"Отварям списъка с общностни събития.","intent":{"type":"action","action":"open_meetups"}}
-"Спри навигацията"          → {"answer":"Навигацията е спряна.","intent":{"type":"action","action":"cancel_route"}}
-"Производителност качество"  → {"answer":"Превключвам на режим качество.","intent":{"type":"action","action":"performance_quality"}}
-"Centreert de kaart"        → {"answer":"De kaart wordt gecentreerd.","intent":{"type":"action","action":"center"}}
-"Zoom in"                   → {"answer":"Zooming in.","intent":{"type":"action","action":"zoom_in"}}
-"Ориентирай картата на север" → {"answer":"Картата е ориентирана на север.","intent":{"type":"action","action":"heading_north_up"}}
-"Смени езика на английски"  → {"answer":"Превключвам на английски.","intent":{"type":"action","action":"set_lang","value":"en"}}
+"Включи трафика"              → {"answer":"Включвам трафика.","intent":{"type":"action","action":"traffic_on"}}
+"Изключи трафика"             → {"answer":"Изключвам трафика.","intent":{"type":"action","action":"traffic_off"}}
+"Включи затворени пътища"     → {"answer":"Включвам слоя с пътни затваряния.","intent":{"type":"action","action":"roadworks_on"}}
+"Изключи затворени пътища"    → {"answer":"Изключвам пътните затваряния.","intent":{"type":"action","action":"roadworks_off"}}
+"Сателитна карта"             → {"answer":"Превключвам на сателитен изглед.","intent":{"type":"action","action":"satellite_on"}}
+"Изключи сателита"            → {"answer":"Изключвам сателитния изглед.","intent":{"type":"action","action":"satellite_off"}}
+"Нощен режим"                 → {"answer":"Включвам нощен режим.","intent":{"type":"action","action":"night_on"}}
+"Включи нощен режим"          → {"answer":"Включвам нощен режим.","intent":{"type":"action","action":"night_on"}}
+"Изключи нощния режим"        → {"answer":"Превключвам на дневен режим.","intent":{"type":"action","action":"night_off"}}
+"Дневен режим"                → {"answer":"Превключвам на дневен режим.","intent":{"type":"action","action":"day_on"}}
+"Включи тъмната тема"         → {"answer":"Включвам тъмна тема.","intent":{"type":"action","action":"dark_on"}}
+"Включи светлата тема"        → {"answer":"Включвам светла тема.","intent":{"type":"action","action":"light_on"}}
+"Покажи зарядни станции"      → {"answer":"Показвам зарядни станции.","intent":{"type":"action","action":"ev_stations_on"}}
+"Скрий зарядните станции"     → {"answer":"Скривам зарядните станции.","intent":{"type":"action","action":"ev_stations_off"}}
+"Покажи EV филтрите"          → {"answer":"Показвам лентата с филтри.","intent":{"type":"action","action":"ev_filters_on"}}
+"Скрий EV филтрите"           → {"answer":"Скривам лентата с филтри.","intent":{"type":"action","action":"ev_filters_off"}}
+"Скрий часовника"             → {"answer":"Скривам часовника.","intent":{"type":"action","action":"clock_off"}}
+"Покажи часовника"            → {"answer":"Показвам часовника.","intent":{"type":"action","action":"clock_on"}}
+"Скрий десния панел"          → {"answer":"Скривам десния панел с контроли.","intent":{"type":"action","action":"right_panel_off"}}
+"Покажи десния панел"         → {"answer":"Показвам десния панел.","intent":{"type":"action","action":"right_panel_on"}}
+"Отвори настройките"          → {"answer":"Отварям настройките.","intent":{"type":"action","action":"open_settings"}}
+"Затвори настройките"         → {"answer":"Затварям настройките.","intent":{"type":"action","action":"close_settings"}}
+"Покажи събитията"            → {"answer":"Отварям списъка с общностни събития.","intent":{"type":"action","action":"open_meetups"}}
+"Спри навигацията"            → {"answer":"Навигацията е спряна.","intent":{"type":"action","action":"cancel_route"}}
+"Производителност качество"   → {"answer":"Превключвам на режим качество.","intent":{"type":"action","action":"performance_quality"}}
+"Centreert de kaart"          → {"answer":"De kaart wordt gecentreerd.","intent":{"type":"action","action":"center"}}
+"Zoom in"                     → {"answer":"Zooming in.","intent":{"type":"action","action":"zoom_in"}}
+"Zoom ut"                     → {"answer":"Zoomar ut.","intent":{"type":"action","action":"zoom_out"}}
+"Ориентирай картата на север"  → {"answer":"Картата е ориентирана на север.","intent":{"type":"action","action":"heading_north_up"}}
+"Следвай посоката ми"         → {"answer":"Картата следва посоката ти.","intent":{"type":"action","action":"heading_course_up"}}
+"Смени езика на английски"    → {"answer":"Превключвам на английски.","intent":{"type":"action","action":"set_lang","value":"en"}}
 "Смени държавата на Норвегия" → {"answer":"Превключвам към Норвегия.","intent":{"type":"action","action":"set_country","value":"NO"}}
 "Навигирай ме до Варна"     → {"answer":"Стартирам навигация до Варна.","intent":{"type":"navigate","destination":"Варна","viaHemus":false}}
 "Navigate home"             → {"answer":"Navigating home.","intent":{"type":"navigate","destination":"home","viaHemus":false}}
@@ -476,6 +540,7 @@ set_country            — change country (with value: "BG","NO","SE","FI","NL",
   }
 
   if (!r) {
+    logAiQuery({ ts: Date.now(), q: question, outcome: 'error', lang: ctx.lang, ip: _clientIp(req), err: `All models failed: ${lastError.slice(0, 200)}` })
     res.status(502).json({ error: `All models failed. Last error: ${lastError}` }); return
   }
 
@@ -502,6 +567,7 @@ set_country            — change country (with value: "BG","NO","SE","FI","NL",
     .trim()
 
   if (!answer) {
+    logAiQuery({ ts: Date.now(), q: question, outcome: 'error', lang: ctx.lang, ip: _clientIp(req), err: 'AI returned empty answer' })
     res.status(502).json({ error: 'AI returned empty answer' }); return
   }
 
@@ -519,5 +585,26 @@ set_country            — change country (with value: "BG","NO","SE","FI","NL",
     console.log(`[ai-ask] action intent: "${ai.action}"${ai.value ? ` value="${ai.value}"` : ''}`)
   }
 
+  // ── Log to Redis for admin statistics (fire-and-forget) ────────────────
+  const intentType = responseBody.intent?.type === 'navigate' ? 'navigate'
+                   : responseBody.intent?.type === 'action'   ? 'action'
+                   : undefined
+  logAiQuery({
+    ts:         Date.now(),
+    q:          question,
+    a:          answer,
+    outcome:    intentType ? 'intent' : 'qa',
+    intentType,
+    lang:       ctx.lang,
+    ip:         _clientIp(req),
+  })
+
   res.status(200).json(responseBody)
+}
+
+/** Extract anonymisable client IP from Vercel request headers */
+function _clientIp(req: VercelRequest): string | undefined {
+  const fwd = req.headers['x-forwarded-for']
+  if (typeof fwd === 'string') return fwd.split(',')[0]?.trim()
+  return req.socket?.remoteAddress
 }

@@ -907,6 +907,82 @@ export function VoiceAssistant() {
         meetupStore.closeList()
         break
 
+      // ── Explicit ON/OFF variants — state-checked so command always has the right effect ──
+
+      // Traffic
+      case 'traffic_on':
+        if (!settingsStore.get().showTraffic) settingsStore.toggleTraffic()
+        break
+      case 'traffic_off':
+        if (settingsStore.get().showTraffic) settingsStore.toggleTraffic()
+        break
+
+      // Road closures / roadworks
+      case 'roadworks_on':
+        if (!roadworksStore.getState().visible) roadworksStore.toggle()
+        break
+      case 'roadworks_off':
+        if (roadworksStore.getState().visible) roadworksStore.toggle()
+        break
+
+      // EV station markers
+      case 'ev_stations_on':
+        if (!evStore.getState().markersVisible) evStore.toggleMarkersVisible()
+        break
+      case 'ev_stations_off':
+        if (evStore.getState().markersVisible) evStore.toggleMarkersVisible()
+        break
+
+      // EV filter bar
+      case 'ev_filters_on':
+        if (!filterStore.getState().filtersBarEnabled) filterStore.toggleFiltersBarEnabled()
+        break
+      case 'ev_filters_off':
+        if (filterStore.getState().filtersBarEnabled) filterStore.toggleFiltersBarEnabled()
+        break
+
+      // Clock
+      case 'clock_on':
+        if (!uiStore.getState().showClock) uiStore.toggleClock()
+        break
+      case 'clock_off':
+        if (uiStore.getState().showClock) uiStore.toggleClock()
+        break
+
+      // Right controls panel
+      case 'right_panel_on':
+        if (!uiStore.getState().showRightControls) uiStore.toggleRightControls()
+        break
+      case 'right_panel_off':
+        if (uiStore.getState().showRightControls) uiStore.toggleRightControls()
+        break
+
+      // Night mode (dark map + dark theme) — always sets state explicitly
+      case 'night_on':
+        if (!(theme.theme === 'dark' && theme.mapMode === 'normal'))
+          useThemeStore.setState({ theme: 'dark', mapMode: 'normal', manualTheme: true })
+        break
+      case 'night_off':
+      case 'day_on':
+        useThemeStore.setState({ theme: 'light', mapMode: 'voyager', manualTheme: true })
+        break
+
+      // Dark / light theme only (doesn't change map mode)
+      case 'dark_on':
+        if (theme.theme !== 'dark') theme.toggleTheme()
+        break
+      case 'light_on':
+        if (theme.theme !== 'light') theme.toggleTheme()
+        break
+
+      // Satellite
+      case 'satellite_on':
+        if (theme.mapMode !== 'satellite') useThemeStore.setState({ mapMode: 'satellite' })
+        break
+      case 'satellite_off':
+        if (theme.mapMode === 'satellite') useThemeStore.setState({ mapMode: 'voyager' })
+        break
+
       // ── Language change ──
       case 'set_lang':
         if (value) langStore.setLang(value as Lang)

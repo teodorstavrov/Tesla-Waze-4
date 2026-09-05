@@ -101,6 +101,17 @@ export const redis = {
     return null
   },
 
+  /** ZREVRANGEBYSCORE key max min LIMIT 0 count — returns member strings, newest first. */
+  async zrevrangebyscore(key: string, max: string | number, min: string | number, limit: number): Promise<string[]> {
+    const raw = await _cmd(['ZREVRANGEBYSCORE', key, max, min, 'LIMIT', 0, limit]) as string[] | null
+    return raw ?? []
+  },
+
+  /** ZCARD key — returns number of members in a sorted set. */
+  async zcard(key: string): Promise<number> {
+    return (await _cmd(['ZCARD', key])) as number
+  },
+
   /** Send multiple commands in one HTTP request (Upstash pipeline).
    *  Returns results in the same order as commands. */
   async pipeline(commands: (string | number)[][]): Promise<unknown[]> {
