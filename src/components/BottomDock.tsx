@@ -120,89 +120,6 @@ export function BottomDock() {
       gap: 'clamp(5px, calc((100vh - 150px) / 100), 13px)',
       alignItems: 'center',
     }}>
-      {/* V8 Sound cycle: off → sport → muscle → header → s63 → off */}
-      <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-
-        {/* Engine Simulator toast — shown for 3s on mode change */}
-        {engineToast && v8Mode === 'off' && (
-          <div style={{
-            position: 'absolute',
-            bottom: '100%',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            marginBottom: 8,
-            background: 'rgba(18,18,26,0.92)',
-            border: '1px solid rgba(255,255,255,0.14)',
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)',
-            color: '#fff',
-            fontSize: 'clamp(10px, 1.5vh, 13px)',
-            fontWeight: 600,
-            padding: 'clamp(5px, 1vh, 7px) clamp(10px, 2vh, 14px)',
-            borderRadius: 10,
-            whiteSpace: 'nowrap',
-            boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
-            pointerEvents: 'none',
-            letterSpacing: '0.04em',
-          }}>
-            {t('dock.engineSimulator')}
-          </div>
-        )}
-
-        {/* Volume panel — visible while engine is running */}
-        {v8Mode !== 'off' && (
-          <V8VolumePanel
-            volume={v8Volume}
-            accentColor={
-              v8Mode === 'sport'  ? '#e31937'
-            : v8Mode === 'muscle' ? '#f59e0b'
-            : v8Mode === 'header' ? '#10b981'
-            : v8Mode === 's63'   ? '#8b5cf6'
-            :                       '#eab308'
-            }
-            onChange={setEngineVolume}
-          />
-        )}
-        <button
-          className="icon-btn"
-          onClick={handleV8Cycle}
-          title={v8Label}
-          aria-label={v8Label}
-          disabled={v8Loading}
-          style={{
-            width: 'clamp(48px, calc((100vh - 195px) / 7 * 0.94), 83px)', height: 'clamp(48px, calc((100vh - 195px) / 7 * 0.94), 83px)',
-            borderRadius: 'clamp(10px, calc((100vh - 195px) / 7 * 0.72 * 0.22), 16px)',
-            background:  v8Mode === 'muscle' ? 'rgba(245,158,11,0.25)'
-                       : v8Mode === 'sport'  ? 'rgba(227,25,55,0.25)'
-                       : v8Mode === 'header' ? 'rgba(16,185,129,0.25)'
-                       : v8Mode === 's63'   ? 'rgba(139,92,246,0.25)'
-                       : v8Mode === 'w12'   ? 'rgba(234,179,8,0.25)'
-                       : 'rgba(255,255,255,0.5)',
-            borderColor: v8Mode === 'muscle' ? '#f59e0b'
-                       : v8Mode === 'sport'  ? '#e31937'
-                       : v8Mode === 'header' ? '#10b981'
-                       : v8Mode === 's63'   ? '#8b5cf6'
-                       : v8Mode === 'w12'   ? '#eab308'
-                       : 'rgba(255,255,255,0.3)',
-            color:       v8Mode === 'muscle' ? '#f59e0b'
-                       : v8Mode === 'sport'  ? '#e31937'
-                       : v8Mode === 'header' ? '#10b981'
-                       : v8Mode === 's63'   ? '#8b5cf6'
-                       : v8Mode === 'w12'   ? '#eab308'
-                       : '#111',
-            boxShadow:   v8Mode === 'muscle' ? '0 0 0 3px rgba(245,158,11,0.25)'
-                       : v8Mode === 'sport'  ? '0 0 0 3px rgba(227,25,55,0.25)'
-                       : v8Mode === 'header' ? '0 0 0 3px rgba(16,185,129,0.25)'
-                       : v8Mode === 's63'   ? '0 0 0 3px rgba(139,92,246,0.25)'
-                       : v8Mode === 'w12'   ? '0 0 0 3px rgba(234,179,8,0.25)'
-                       : '0 2px 12px rgba(0,0,0,0.18)',
-            opacity: v8Loading ? 0.5 : 1,
-          }}
-        >
-          <V8Icon mode={v8Mode} loading={v8Loading} />
-        </button>
-      </div>
-
       {/* EV Stations toggle */}
       <button
         className="icon-btn"
@@ -315,6 +232,89 @@ export function BottomDock() {
           <RouteIcon />
         </button>
       </div>
+
+      {/* V8 Engine Simulator — rightmost, next to Route */}
+      <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+
+        {/* Engine Simulator toast — shown for 3s on mode change */}
+        {engineToast && v8Mode === 'off' && (
+          <div style={{
+            position: 'absolute',
+            bottom: '100%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            marginBottom: 8,
+            background: 'rgba(18,18,26,0.92)',
+            border: '1px solid rgba(255,255,255,0.14)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            color: '#fff',
+            fontSize: 'clamp(10px, 1.5vh, 13px)',
+            fontWeight: 600,
+            padding: 'clamp(5px, 1vh, 7px) clamp(10px, 2vh, 14px)',
+            borderRadius: 10,
+            whiteSpace: 'nowrap',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
+            pointerEvents: 'none',
+            letterSpacing: '0.04em',
+          }}>
+            {t('dock.engineSimulator')}
+          </div>
+        )}
+
+        {/* Volume panel — floats to the LEFT of the engine button */}
+        {v8Mode !== 'off' && (
+          <V8VolumePanel
+            volume={v8Volume}
+            accentColor={
+              v8Mode === 'sport'  ? '#e31937'
+            : v8Mode === 'muscle' ? '#f59e0b'
+            : v8Mode === 'header' ? '#10b981'
+            : v8Mode === 's63'   ? '#8b5cf6'
+            :                       '#eab308'
+            }
+            onChange={setEngineVolume}
+          />
+        )}
+        <button
+          className="icon-btn"
+          onClick={handleV8Cycle}
+          title={v8Label}
+          aria-label={v8Label}
+          disabled={v8Loading}
+          style={{
+            width: 'clamp(48px, calc((100vh - 195px) / 7 * 0.94), 83px)', height: 'clamp(48px, calc((100vh - 195px) / 7 * 0.94), 83px)',
+            borderRadius: 'clamp(10px, calc((100vh - 195px) / 7 * 0.72 * 0.22), 16px)',
+            background:  v8Mode === 'muscle' ? 'rgba(245,158,11,0.25)'
+                       : v8Mode === 'sport'  ? 'rgba(227,25,55,0.25)'
+                       : v8Mode === 'header' ? 'rgba(16,185,129,0.25)'
+                       : v8Mode === 's63'   ? 'rgba(139,92,246,0.25)'
+                       : v8Mode === 'w12'   ? 'rgba(234,179,8,0.25)'
+                       : 'rgba(255,255,255,0.5)',
+            borderColor: v8Mode === 'muscle' ? '#f59e0b'
+                       : v8Mode === 'sport'  ? '#e31937'
+                       : v8Mode === 'header' ? '#10b981'
+                       : v8Mode === 's63'   ? '#8b5cf6'
+                       : v8Mode === 'w12'   ? '#eab308'
+                       : 'rgba(255,255,255,0.3)',
+            color:       v8Mode === 'muscle' ? '#f59e0b'
+                       : v8Mode === 'sport'  ? '#e31937'
+                       : v8Mode === 'header' ? '#10b981'
+                       : v8Mode === 's63'   ? '#8b5cf6'
+                       : v8Mode === 'w12'   ? '#eab308'
+                       : '#111',
+            boxShadow:   v8Mode === 'muscle' ? '0 0 0 3px rgba(245,158,11,0.25)'
+                       : v8Mode === 'sport'  ? '0 0 0 3px rgba(227,25,55,0.25)'
+                       : v8Mode === 'header' ? '0 0 0 3px rgba(16,185,129,0.25)'
+                       : v8Mode === 's63'   ? '0 0 0 3px rgba(139,92,246,0.25)'
+                       : v8Mode === 'w12'   ? '0 0 0 3px rgba(234,179,8,0.25)'
+                       : '0 2px 12px rgba(0,0,0,0.18)',
+            opacity: v8Loading ? 0.5 : 1,
+          }}
+        >
+          <V8Icon mode={v8Mode} loading={v8Loading} />
+        </button>
+      </div>
     </div>
   )
 }
@@ -344,7 +344,7 @@ function V8VolumePanel({
   return (
     <div style={{
       position:          'absolute',
-      right:             'calc(100% + 10px)',
+      right:             'calc(100% + 10px)',   // always floats LEFT of the engine button
       top:               '50%',
       transform:         'translateY(-50%)',
       width:             collapsed ? 'auto' : 'clamp(160px, 28vh, 224px)',

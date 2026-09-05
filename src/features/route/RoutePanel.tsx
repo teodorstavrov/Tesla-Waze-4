@@ -99,17 +99,19 @@ export function RoutePanel() {
   } : isTeslaBrowser ? {
     // Tesla touchscreen:
     //   • left: 64px clears the left controls column
-    //   • bottom: 90px clears the bottom dock buttons (Report / mic / nav)
-    //   • width: min(460px, calc(100vw - 140px)) — fills available space
-    //     leaving ~70px for right controls; caps at 460px on large displays
-    //   • maxHeight keeps it within screen bounds and scrolls if needed
+    //   • right: 64px clears the right controls column
+    //   • bottom: 100px clears the bottom dock buttons
+    //   • maxWidth caps at 700px on very wide displays (e.g. Model S/X)
+    //   • no fixed width — stretches to fill all available horizontal space
     position:  'absolute' as const,
-    bottom:    90,
-    left:      64,
-    width:     'min(460px, calc(100vw - 140px))',
+    bottom:    100,
+    left:      68,
+    right:     68,
+    maxWidth:  700,
+    margin:    '0 auto',
     zIndex:    500,
     padding:   '14px 18px',
-    maxHeight: 'calc(100dvh - 220px)',
+    maxHeight: 'calc(100dvh - 230px)',
     overflowY: 'auto' as const,
     WebkitOverflowScrolling: 'touch' as const,
   } : {
