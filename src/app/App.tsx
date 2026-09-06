@@ -59,6 +59,7 @@ import { UpgradeModal } from '@/components/UpgradeModal'
 import { isPhone } from '@/lib/browser'
 import { PricingModal } from '@/components/PricingModal'
 import { VoiceAssistant } from '@/features/voice/VoiceAssistant'
+import { TeslaDebugPanel } from '@/components/TeslaDebugPanel'
 import { alertEngine } from '@/features/audio/alertEngine'
 import { batteryTracker } from '@/features/planning/batteryTracker'
 import { useThemeStore } from '@/features/theme/store'
@@ -223,6 +224,9 @@ export function App() {
 
       {/* Terms of Service + Privacy Policy modal */}
       <TermsModal />
+
+      {/* Tesla browser diagnostic panel — shown only with ?teslaDebug=1 */}
+      <TeslaDebugPanel />
     </div>
   )
 }

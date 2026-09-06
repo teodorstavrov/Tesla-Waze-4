@@ -83,12 +83,18 @@ function computeMapScale(): number {
 
 let _mapScale = computeMapScale()
 
-// Debounced resize — recompute scale on orientation change / window resize.
-// Runs outside React — no re-renders, no layout thrash per GPS tick.
+// Debounced resize — recompute scale on orientation change / window resize,
+// and notify Leaflet so it redraws to fill the new viewport dimensions.
+// This also handles the Tesla 2026.26 compat viewport meta update in main.tsx:
+// after the meta changes, the browser fires a resize event, which triggers
+// mapInstance.invalidateSize() so Leaflet redraws correctly at 1180×919.
 let _resizeTimer: ReturnType<typeof setTimeout> | null = null
 window.addEventListener('resize', () => {
   if (_resizeTimer) clearTimeout(_resizeTimer)
-  _resizeTimer = setTimeout(() => { _mapScale = computeMapScale() }, 200)
+  _resizeTimer = setTimeout(() => {
+    _mapScale = computeMapScale()
+    mapInstance?.invalidateSize({ animate: false })
+  }, 200)
 }, { passive: true })
 
 // ── Zoom compensation ─────────────────────────────────────────────

@@ -730,6 +730,42 @@ body,
   image-rendering: auto;
 }
 
+/* ─── Tesla 2026.26 compatibility mode ───────────────────────────────────────
+   data-tesla-zoomed is set by main.tsx when the new zoomed viewport (HW3
+   ~773×601) is detected. Simultaneously, the viewport meta is updated to
+   width=<physical_px> which restores window.innerWidth ≈ 1180 and 100vh ≈ 919px.
+   After that restoration ALL existing layout rules apply exactly as before.
+
+   The @media (max-height: 720px) guard makes these rules INACTIVE when
+   the viewport meta update has successfully restored height to ~919px. This
+   prevents incorrectly small buttons when everything is already working.
+
+   If the meta update doesn't fire (edge-case firmware), these rules keep
+   7 buttons visible and sized to fit the actual 601px viewport. */
+
+@media (max-height: 720px) {
+  /* Restore Bell + Support even though @media(min-height:700px) didn't fire */
+  [data-tesla-zoomed] .left-ctrl-secondary {
+    display: contents !important;
+  }
+
+  /* 7-button formula for actual small viewport.
+     At --vh≈601px: clamp(48, (601-195)/7, 60) = 58px.
+     7×58 + 6×5gap = 436px ≤ 451px available (601-74-76). Fits ✓ */
+  [data-tesla-zoomed] .left-controls-xl {
+    gap: clamp(3px, calc((var(--vh, 100vh) - 130px) / 90), 7px) !important;
+  }
+  [data-tesla-zoomed] .left-controls-xl .icon-btn {
+    width:         clamp(48px, calc((var(--vh, 100vh) - 195px) / 7), 60px) !important;
+    height:        clamp(48px, calc((var(--vh, 100vh) - 195px) / 7), 60px) !important;
+    border-radius: clamp(10px, calc((var(--vh, 100vh) - 195px) / 7 * 0.18), 13px) !important;
+  }
+  [data-tesla-zoomed] .left-controls-xl .icon-btn svg {
+    width:  clamp(16px, calc((var(--vh, 100vh) - 195px) / 7 * 0.36), 22px) !important;
+    height: clamp(16px, calc((var(--vh, 100vh) - 195px) / 7 * 0.36), 22px) !important;
+  }
+}
+
 /* ─── Scrollbar ──────────────────────────────────────────────────────── */
 ::-webkit-scrollbar {
   width: 4px;
