@@ -5,7 +5,7 @@
 // Alternative route pills for switching between OSRM alternatives.
 // Phase 26: expandable list of EV stations along the route.
 
-import { useMemo, useState, useEffect } from 'react'
+import { useMemo, useState, useEffect, type CSSProperties } from 'react'
 import { useSyncExternalStore } from 'react'
 import { routeStore } from './routeStore.js'
 import { evStore } from '@/features/ev/evStore'
@@ -76,9 +76,49 @@ export function RoutePanel() {
 
   if (status === 'idle') return null
 
-  // When panel is hidden — show TripSummaryBanner as the "show" trigger
+  // When panel is hidden — show a "show" trigger.
+  // During active navigation: TripSummaryBanner (shows ETA / km / battery info + is tappable).
+  // During preview mode (mode='ok'): TripSummaryBanner returns null (mode !== 'navigating'),
+  //   so we render a simple pill button instead so the user can always restore the panel.
   if (dismissed) {
-    return <TripSummaryBanner onClick={() => setDismissed(false)} />
+    if (mode === 'navigating') {
+      return <TripSummaryBanner onClick={() => setDismissed(false)} />
+    }
+    // Preview / route-selected-but-not-started — always-visible pill
+    const pillPos: CSSProperties = isPhone
+      ? { bottom: 104, left: 8 }
+      : isTeslaBrowser
+        ? { bottom: 100, left: 68 }
+        : { bottom: 24, left: 'calc(25% - 40px)', transform: 'translateX(-50%)' }
+    return (
+      <button
+        onClick={() => setDismissed(false)}
+        aria-label={t('routePanel.showPanel')}
+        style={{
+          position:             'absolute',
+          ...pillPos,
+          zIndex:               500,
+          background:           'rgba(0,0,0,0.55)',
+          backdropFilter:       'blur(6px)',
+          WebkitBackdropFilter: 'blur(6px)',
+          border:               '1px solid rgba(255,255,255,0.22)',
+          borderRadius:         10,
+          color:                '#fff',
+          fontSize:             isTeslaBrowser ? 12 : 14,
+          padding:              isTeslaBrowser ? '6px 14px' : '8px 16px',
+          cursor:               'pointer',
+          touchAction:          'manipulation',
+          userSelect:           'none',
+          WebkitUserSelect:     'none',
+          fontFamily:           'system-ui, sans-serif',
+          fontWeight:           700,
+          letterSpacing:        '0.04em',
+          whiteSpace:           'nowrap',
+        }}
+      >
+        ↑ {t('routePanel.showPanel')}
+      </button>
+    )
   }
 
   const remainingDurationS =
@@ -104,9 +144,9 @@ export function RoutePanel() {
     position:  'absolute' as const,
     bottom:    100,
     left:      68,
-    width:     'min(340px, calc(100vw - 160px))',
+    width:     'min(290px, calc(100vw - 160px))',
     zIndex:    500,
-    padding:   '8px 12px',
+    padding:   '7px 10px',
     maxHeight: 'calc(100dvh - 230px)',
     overflowY: 'auto' as const,
     WebkitOverflowScrolling: 'touch' as const,
