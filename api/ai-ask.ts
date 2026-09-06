@@ -17,8 +17,9 @@ import { logAiQuery }  from './_lib/ai/logQuery.js'
 // Preferred model keywords — matched against whatever Groq lists as available.
 // Order: prefer smaller/faster instruct models (no reasoning/thinking models — they leak chain-of-thought).
 const PREFER_KEYWORDS = ['8b', '9b', '11b', '17b', 'gemma', '27b', '32b', '70b', 'maverick', 'versatile']
-// Models to skip (embedding, STT, vision-only, TTS, reasoning/thinking models, qwen — qwen3 rejects response_format, compound — routing model with tiny context)
-const SKIP_RE = /whisper|tts|embed|vision|guard|tool|distil|speculative|specdec|scout|-r1\b|reason|think|qwen|compound/i
+// Models to skip (embedding, STT, vision-only, TTS, reasoning/thinking models, qwen — qwen3 rejects response_format,
+// compound — routing model with tiny context, allam — Arabic-only model with tiny context window)
+const SKIP_RE = /whisper|tts|embed|vision|guard|tool|distil|speculative|specdec|scout|-r1\b|reason|think|qwen|compound|allam/i
 
 interface AiContext {
   lat:              number | null
@@ -423,45 +424,20 @@ LANGUAGE & COUNTRY
 ━━━ EXAMPLES ━━━
 "Включи трафика"              → {"answer":"Включвам трафика.","intent":{"type":"action","action":"traffic_on"}}
 "Изключи трафика"             → {"answer":"Изключвам трафика.","intent":{"type":"action","action":"traffic_off"}}
-"Включи затворени пътища"     → {"answer":"Включвам слоя с пътни затваряния.","intent":{"type":"action","action":"roadworks_on"}}
-"Изключи затворени пътища"    → {"answer":"Изключвам пътните затваряния.","intent":{"type":"action","action":"roadworks_off"}}
-"Сателитна карта"             → {"answer":"Превключвам на сателитен изглед.","intent":{"type":"action","action":"satellite_on"}}
-"Изключи сателита"            → {"answer":"Изключвам сателитния изглед.","intent":{"type":"action","action":"satellite_off"}}
 "Нощен режим"                 → {"answer":"Включвам нощен режим.","intent":{"type":"action","action":"night_on"}}
-"Включи нощен режим"          → {"answer":"Включвам нощен режим.","intent":{"type":"action","action":"night_on"}}
-"Изключи нощния режим"        → {"answer":"Превключвам на дневен режим.","intent":{"type":"action","action":"night_off"}}
 "Дневен режим"                → {"answer":"Превключвам на дневен режим.","intent":{"type":"action","action":"day_on"}}
-"Включи тъмната тема"         → {"answer":"Включвам тъмна тема.","intent":{"type":"action","action":"dark_on"}}
-"Включи светлата тема"        → {"answer":"Включвам светла тема.","intent":{"type":"action","action":"light_on"}}
+"Сателитна карта"             → {"answer":"Превключвам на сателитен изглед.","intent":{"type":"action","action":"satellite_on"}}
 "Покажи зарядни станции"      → {"answer":"Показвам зарядни станции.","intent":{"type":"action","action":"ev_stations_on"}}
-"Скрий зарядните станции"     → {"answer":"Скривам зарядните станции.","intent":{"type":"action","action":"ev_stations_off"}}
-"Покажи EV филтрите"          → {"answer":"Показвам лентата с филтри.","intent":{"type":"action","action":"ev_filters_on"}}
-"Скрий EV филтрите"           → {"answer":"Скривам лентата с филтри.","intent":{"type":"action","action":"ev_filters_off"}}
-"Скрий часовника"             → {"answer":"Скривам часовника.","intent":{"type":"action","action":"clock_off"}}
-"Покажи часовника"            → {"answer":"Показвам часовника.","intent":{"type":"action","action":"clock_on"}}
-"Скрий десния панел"          → {"answer":"Скривам десния панел с контроли.","intent":{"type":"action","action":"right_panel_off"}}
-"Покажи десния панел"         → {"answer":"Показвам десния панел.","intent":{"type":"action","action":"right_panel_on"}}
-"Отвори настройките"          → {"answer":"Отварям настройките.","intent":{"type":"action","action":"open_settings"}}
-"Затвори настройките"         → {"answer":"Затварям настройките.","intent":{"type":"action","action":"close_settings"}}
-"Покажи събитията"            → {"answer":"Отварям списъка с общностни събития.","intent":{"type":"action","action":"open_meetups"}}
 "Спри навигацията"            → {"answer":"Навигацията е спряна.","intent":{"type":"action","action":"cancel_route"}}
-"Производителност качество"   → {"answer":"Превключвам на режим качество.","intent":{"type":"action","action":"performance_quality"}}
-"Centreert de kaart"          → {"answer":"De kaart wordt gecentreerd.","intent":{"type":"action","action":"center"}}
 "Zoom in"                     → {"answer":"Zooming in.","intent":{"type":"action","action":"zoom_in"}}
-"Zoom ut"                     → {"answer":"Zoomar ut.","intent":{"type":"action","action":"zoom_out"}}
-"Ориентирай картата на север"  → {"answer":"Картата е ориентирана на север.","intent":{"type":"action","action":"heading_north_up"}}
 "Следвай посоката ми"         → {"answer":"Картата следва посоката ти.","intent":{"type":"action","action":"heading_course_up"}}
 "Смени езика на английски"    → {"answer":"Превключвам на английски.","intent":{"type":"action","action":"set_lang","value":"en"}}
-"Смени държавата на Норвегия" → {"answer":"Превключвам към Норвегия.","intent":{"type":"action","action":"set_country","value":"NO"}}
 "Навигирай ме до Варна"     → {"answer":"Стартирам навигация до Варна.","intent":{"type":"navigate","destination":"Варна","viaHemus":false}}
 "Navigate home"             → {"answer":"Navigating home.","intent":{"type":"navigate","destination":"home","viaHemus":false}}
 "Колко заряд ми остава?"    → {"answer":"Батерията ти е на 74%, остават 52.3 кВтч — обхват ~340 км."}
 "Включен ли е трафикът?"    → {"answer":"Не, трафик слоят е изключен."}
-"Кога е следващото събитие?" → {"answer":"Следващото събитие е 'Tesla Sofia Gathering' в събота, 5 септември в 18:00 ч."}
-"Навигирай ме до следващото събитие" → {"answer":"Стартирам навигация до следващото събитие.","intent":{"type":"navigate","destination":"__next_meetup__","viaHemus":false}}
-"Навигирай до Tesla Sofia Gathering" → {"answer":"Стартирам навигация до Tesla Sofia Gathering.","intent":{"type":"navigate","destination":"Tesla Sofia Gathering","viaHemus":false}}
-"До най-близката зарядна"           → {"answer":"Навигирам до най-близката зарядна станция.","intent":{"type":"navigate","destination":"__nearest_charger__","viaHemus":false}}
-"Navigate to nearest charger"       → {"answer":"Navigating to the nearest charging station.","intent":{"type":"navigate","destination":"__nearest_charger__","viaHemus":false}}`
+"До най-близката зарядна"   → {"answer":"Навигирам до най-близката зарядна станция.","intent":{"type":"navigate","destination":"__nearest_charger__","viaHemus":false}}
+"Навигирай ме до следващото събитие" → {"answer":"Стартирам навигация до следващото събитие.","intent":{"type":"navigate","destination":"__next_meetup__","viaHemus":false}}`
 
   const messages = [
     { role: 'system', content: systemPrompt },
