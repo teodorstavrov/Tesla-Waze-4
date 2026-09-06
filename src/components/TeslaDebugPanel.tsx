@@ -1,34 +1,37 @@
 // ─── Tesla browser debug panel ─────────────────────────────────────────
 // Shown only when ?teslaDebug=1 is present in the URL.
-// Provides real-time viewport / DPR / UA diagnostics to verify that the
-// Tesla 2026.26 compatibility mode is working correctly on the real car.
+// Provides real-time viewport / DPR / detection-signal diagnostics for
+// verifying compatibility mode on the real Tesla car.
 //
-// Usage: open https://tesradar.tech/?teslaDebug=1 in the Tesla browser.
-// The panel is hidden in all other environments and has no production cost.
+// Usage: open https://tesradar.tech/?teslaDebug=1 in Tesla browser.
 
 import { useState, useEffect } from 'react'
-import { isTeslaBrowser, isTesla2026Zoomed, TESLA_COMPAT_VIEWPORT_W } from '@/lib/browser'
+import { isTeslaBrowser, isTesla2026Zoomed, TESLA_COMPAT_VIEWPORT_W, teslaZoomedSignals } from '@/lib/browser'
 
 const ENABLED = new URLSearchParams(window.location.search).get('teslaDebug') === '1'
 
-function Row({ label, value, ok }: { label: string; value: string; ok?: boolean }) {
+function Row({
+  label, value, ok,
+}: { label: string; value: string | number; ok?: boolean }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, minWidth: 260 }}>
-      <span style={{ color: 'rgba(180,255,180,0.7)', flexShrink: 0 }}>{label}</span>
+    <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, minWidth: 280 }}>
+      <span style={{ color: 'rgba(180,255,180,0.65)', flexShrink: 0, fontSize: 10 }}>{label}</span>
       <span style={{
-        fontWeight: 700,
+        fontWeight: 700, fontSize: 10.5,
         color: ok === true ? '#4ade80' : ok === false ? '#f87171' : '#fff',
         textAlign: 'right',
-        wordBreak: 'break-all',
       }}>{value}</span>
     </div>
   )
 }
 
+function Divider() {
+  return <div style={{ height: 1, background: 'rgba(74,222,128,0.15)', margin: '5px 0' }} />
+}
+
 export function TeslaDebugPanel() {
   const [tick, setTick] = useState(0)
 
-  // Refresh once per second so viewport values update if they change
   useEffect(() => {
     if (!ENABLED) return
     const id = setInterval(() => setTick(t => t + 1), 1000)
@@ -38,7 +41,8 @@ export function TeslaDebugPanel() {
   if (!ENABLED) return null
 
   const vv = window.visualViewport
-  const compatApplied = document.documentElement.hasAttribute('data-tesla-zoomed')
+  const compatActive = document.documentElement.hasAttribute('data-tesla-zoomed')
+  const { score, maxScore, confidence, matched, unmatched } = teslaZoomedSignals
 
   return (
     <div
@@ -47,50 +51,64 @@ export function TeslaDebugPanel() {
         top:        8,
         right:      8,
         zIndex:     99999,
-        background: 'rgba(0,0,0,0.88)',
+        background: 'rgba(0,0,0,0.92)',
         color:      '#d1ffd1',
         fontFamily: '"Courier New", Courier, monospace',
-        fontSize:   11,
-        lineHeight: 1.65,
+        lineHeight: 1.6,
         padding:    '10px 14px',
         borderRadius: 8,
-        border:     '1px solid rgba(74,222,128,0.4)',
-        boxShadow:  '0 4px 24px rgba(0,0,0,0.6)',
+        border:     `1px solid ${isTesla2026Zoomed ? 'rgba(74,222,128,0.5)' : 'rgba(248,113,113,0.5)'}`,
+        boxShadow:  '0 4px 24px rgba(0,0,0,0.7)',
         pointerEvents: 'none',
         userSelect: 'none',
         WebkitUserSelect: 'none',
+        maxWidth:   340,
       }}
       aria-hidden="true"
-      // re-render on tick (keeps values live)
       data-tick={tick}
     >
-      <div style={{ fontWeight: 700, fontSize: 12.5, marginBottom: 6, color: '#4ade80', letterSpacing: '0.05em' }}>
+      {/* Header */}
+      <div style={{ fontWeight: 700, fontSize: 13, marginBottom: 6, color: '#4ade80', letterSpacing: '0.05em' }}>
         ⚡ TesRadar Debug
       </div>
 
-      <Row label="Tesla browser:"      value={isTeslaBrowser ? 'YES ✓' : 'NO'} ok={isTeslaBrowser} />
-      <Row label="2026.26 detected:"   value={isTesla2026Zoomed ? 'YES ✓' : 'NO'} ok={isTesla2026Zoomed} />
-      <Row label="Compat active:"      value={compatApplied ? 'YES ✓' : 'NO'} ok={compatApplied} />
-      <Row label="Target layout px:"   value={`${TESLA_COMPAT_VIEWPORT_W}px`} />
+      {/* Summary */}
+      <Row label="Tesla-like browser:"    value={isTeslaBrowser    ? 'YES ✓' : 'NO ✗'} ok={isTeslaBrowser} />
+      <Row label="2026.26 detected:"      value={isTesla2026Zoomed ? 'YES ✓' : 'NO ✗'} ok={isTesla2026Zoomed} />
+      <Row label="Compat active:"         value={compatActive       ? 'YES ✓' : 'NO ✗'} ok={compatActive} />
+      <Row label="Detection confidence:"  value={`${confidence}% (${score}/${maxScore})`} ok={confidence >= 64} />
+      <Row label="Target layout width:"   value={`${TESLA_COMPAT_VIEWPORT_W}px`} />
 
-      <div style={{ height: 1, background: 'rgba(74,222,128,0.2)', margin: '6px 0' }} />
+      <Divider />
 
-      <Row label="innerWidth:"         value={`${window.innerWidth}px`} />
-      <Row label="innerHeight:"        value={`${window.innerHeight}px`} />
-      <Row label="screen:"             value={`${screen.width}×${screen.height}px`} />
-      <Row label="DPR:"                value={window.devicePixelRatio.toFixed(3)} />
+      {/* Viewport values */}
+      <Row label="innerWidth:"    value={`${window.innerWidth}px`} />
+      <Row label="innerHeight:"   value={`${window.innerHeight}px`} />
+      <Row label="screen:"        value={`${screen.width} × ${screen.height}px`} />
+      <Row label="DPR:"           value={window.devicePixelRatio.toFixed(3)} />
+      {vv && <>
+        <Row label="vvp.width:"   value={`${Math.round(vv.width)}px`} />
+        <Row label="vvp.height:"  value={`${Math.round(vv.height)}px`} />
+        <Row label="vvp.scale:"   value={vv.scale.toFixed(3)} />
+      </>}
 
-      {vv && (
-        <>
-          <Row label="vvp.width:"      value={`${Math.round(vv.width)}px`} />
-          <Row label="vvp.height:"     value={`${Math.round(vv.height)}px`} />
-          <Row label="vvp.scale:"      value={vv.scale.toFixed(3)} />
-        </>
-      )}
+      <Divider />
 
-      <div style={{ height: 1, background: 'rgba(74,222,128,0.2)', margin: '6px 0' }} />
+      {/* Signal breakdown */}
+      <div style={{ fontSize: 9.5, color: '#4ade80', fontWeight: 700, marginBottom: 3 }}>
+        DETECTION SIGNALS
+      </div>
+      {matched.map(s => (
+        <div key={s} style={{ fontSize: 9, color: '#4ade80', lineHeight: 1.5 }}>✓ {s}</div>
+      ))}
+      {unmatched.map(s => (
+        <div key={s} style={{ fontSize: 9, color: '#f87171', lineHeight: 1.5 }}>✗ {s}</div>
+      ))}
 
-      <div style={{ fontSize: 9, color: 'rgba(180,255,180,0.5)', wordBreak: 'break-all', maxWidth: 300 }}>
+      <Divider />
+
+      {/* User agent */}
+      <div style={{ fontSize: 8, color: 'rgba(180,255,180,0.4)', wordBreak: 'break-all' }}>
         {navigator.userAgent}
       </div>
     </div>
