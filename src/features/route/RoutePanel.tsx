@@ -98,17 +98,15 @@ export function RoutePanel() {
     overflowY: 'auto' as const,
   } : isTeslaBrowser ? {
     // Tesla touchscreen:
-    //   • Centered on screen with left:50% + translateX(-50%)
-    //   • width: min(700px, 100vw - 150px) — fills available space, caps at 700px
+    //   • Bottom-LEFT: left:68px clears the left-controls column (~60px wide)
+    //   • width: min(340px, …) — narrow enough to keep the map visible
     //   • bottom: 100px clears the bottom dock buttons
-    //   • padding reduced vs desktop for a more compact card
     position:  'absolute' as const,
     bottom:    100,
-    left:      '50%',
-    transform: 'translateX(-50%)',
-    width:     'min(700px, calc(100vw - 150px))',
+    left:      68,
+    width:     'min(340px, calc(100vw - 160px))',
     zIndex:    500,
-    padding:   '10px 14px',
+    padding:   '8px 12px',
     maxHeight: 'calc(100dvh - 230px)',
     overflowY: 'auto' as const,
     WebkitOverflowScrolling: 'touch' as const,
@@ -210,7 +208,9 @@ export function RoutePanel() {
                     key={i}
                     onClick={() => routeStore.selectRoute(i)}
                     style={{
-                      flex: 1, padding: '7px 8px', borderRadius: 8,
+                      flex: 1,
+                      padding: isTeslaBrowser ? '5px 6px' : '7px 8px',
+                      borderRadius: 8,
                       border: i === activeRouteIndex
                         ? '1px solid rgba(43,127,255,0.8)'
                         : '1px solid rgba(255,255,255,0.16)',
@@ -218,12 +218,13 @@ export function RoutePanel() {
                         ? 'rgba(43,127,255,0.18)'
                         : 'rgba(255,255,255,0.06)',
                       color: i === activeRouteIndex ? '#7DB8FF' : 'var(--text-secondary)',
-                      fontSize: 14, fontWeight: i === activeRouteIndex ? 600 : 400,
+                      fontSize: isTeslaBrowser ? 12 : 14,
+                      fontWeight: i === activeRouteIndex ? 600 : 400,
                       cursor: 'pointer', touchAction: 'manipulation', textAlign: 'center' as const,
                     }}
                   >
                     {i === 0 ? t('route.primary') : `${t('route.alt')} ${i}`}
-                    <div style={{ fontSize: 13, marginTop: 2, opacity: 0.8 }}>{formatDist(r.distanceM)}</div>
+                    <div style={{ fontSize: isTeslaBrowser ? 11 : 13, marginTop: 2, opacity: 0.8 }}>{formatDist(r.distanceM)}</div>
                   </button>
                 ))}
               </div>
@@ -231,7 +232,9 @@ export function RoutePanel() {
               <button
                 onClick={() => { void routeStore.toggleViaHemus() }}
                 style={{
-                  width: '100%', padding: '7px 10px', borderRadius: 8,
+                  width: '100%',
+                  padding: isTeslaBrowser ? '5px 8px' : '7px 10px',
+                  borderRadius: 8,
                   border: viaHemus
                     ? '1px solid rgba(251,191,36,0.8)'
                     : '1px solid rgba(255,255,255,0.16)',
@@ -239,7 +242,7 @@ export function RoutePanel() {
                     ? 'rgba(251,191,36,0.15)'
                     : 'rgba(255,255,255,0.06)',
                   color:      viaHemus ? '#fbbf24' : 'var(--text-secondary)',
-                  fontSize:   13,
+                  fontSize:   isTeslaBrowser ? 12 : 13,
                   fontWeight: viaHemus ? 700 : 400,
                   cursor:     'pointer',
                   touchAction: 'manipulation',
@@ -249,7 +252,7 @@ export function RoutePanel() {
                   gap:        6,
                 }}
               >
-                <span style={{ fontSize: 15 }}>🏔</span>
+                <span style={{ fontSize: isTeslaBrowser ? 13 : 15 }}>🏔</span>
                 <span>{t('route.viaHemus')}</span>
                 {viaHemus && (
                   <span style={{ fontSize: 11, opacity: 0.7, marginLeft: 4 }}>✓ активен</span>

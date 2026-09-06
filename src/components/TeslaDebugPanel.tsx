@@ -7,6 +7,8 @@
 
 import { useState, useEffect } from 'react'
 import { isTeslaBrowser, isTesla2026Zoomed, TESLA_COMPAT_VIEWPORT_W, teslaZoomedSignals } from '@/lib/browser'
+import { evStore } from '@/features/ev/evStore'
+import { filterStore } from '@/features/ev/filterStore'
 
 const ENABLED = new URLSearchParams(window.location.search).get('teslaDebug') === '1'
 
@@ -104,6 +106,28 @@ export function TeslaDebugPanel() {
       {unmatched.map(s => (
         <div key={s} style={{ fontSize: 9, color: '#f87171', lineHeight: 1.5 }}>✗ {s}</div>
       ))}
+
+      <Divider />
+
+      {/* EV station diagnostics */}
+      <div style={{ fontSize: 9.5, color: '#4ade80', fontWeight: 700, marginBottom: 3 }}>
+        EV STATIONS
+      </div>
+      {(() => {
+        const evState     = evStore.getState()
+        const filterState = filterStore.getState()
+        const filtered    = filterStore.getFilteredStations()
+        return <>
+          <Row label="markersVisible:"    value={evState.markersVisible     ? 'YES ✓' : 'NO ✗'} ok={evState.markersVisible} />
+          <Row label="filtersBarEnabled:" value={filterState.filtersBarEnabled ? 'YES ✓' : 'NO ✗ (hides all stations!)'} ok={filterState.filtersBarEnabled} />
+          <Row label="stations in store:" value={evState.stations.length} ok={evState.stations.length > 0} />
+          <Row label="stations filtered:" value={filtered.length} ok={filtered.length > 0} />
+          <Row label="fetch status:"      value={evState.status} ok={evState.status === 'ok'} />
+          {filterState.connector   != null && <Row label="connector filter:" value={filterState.connector} />}
+          {filterState.minPowerKw  != null && <Row label="minPower filter:"  value={`${filterState.minPowerKw} kW`} />}
+          {filterState.onlyAvailable       && <Row label="only available:"   value="YES" />}
+        </>
+      })()}
 
       <Divider />
 

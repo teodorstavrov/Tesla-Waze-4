@@ -12,13 +12,6 @@
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 
-const LANG: Record<string, string> = {
-  bg: 'bg', 'bg-BG': 'bg',
-  en: 'en', 'en-US': 'en',
-  no: 'no', 'nb-NO': 'no',
-  sv: 'sv', 'sv-SE': 'sv',
-  fi: 'fi', 'fi-FI': 'fi',
-}
 
 // ── Top-level wrapper: always return JSON, never drop the connection ────────
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
@@ -49,7 +42,8 @@ async function _handle(req: VercelRequest, res: VercelResponse): Promise<void> {
   const body     = req.body as Record<string, unknown> | null | undefined
   const audio    = typeof body?.audio    === 'string' ? body.audio    : ''
   const mimeType = typeof body?.mimeType === 'string' ? body.mimeType : 'audio/webm'
-  const lang     = typeof body?.lang     === 'string' ? body.lang     : 'bg'
+  // lang intentionally not forwarded to Whisper — auto-detection is more accurate
+  void (typeof body?.lang === 'string' ? body.lang : 'bg')
 
   if (!audio) {
     res.status(400).json({ error: 'Missing audio field (base64 string required)' }); return
