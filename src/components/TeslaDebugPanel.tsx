@@ -117,9 +117,11 @@ export function TeslaDebugPanel() {
         const evState     = evStore.getState()
         const filterState = filterStore.getState()
         const filtered    = filterStore.getFilteredStations()
+        const hidden      = document.hidden
         return <>
+          <Row label="doc.hidden:"        value={hidden ? 'YES ✗ (fetch blocked!)' : 'NO ✓'} ok={!hidden} />
           <Row label="markersVisible:"    value={evState.markersVisible     ? 'YES ✓' : 'NO ✗'} ok={evState.markersVisible} />
-          <Row label="filtersBarEnabled:" value={filterState.filtersBarEnabled ? 'YES ✓' : 'NO ✗ (hides all stations!)'} ok={filterState.filtersBarEnabled} />
+          <Row label="filtersBarEnabled:" value={filterState.filtersBarEnabled ? 'YES ✓' : 'NO ✗ (hides all!)'} ok={filterState.filtersBarEnabled} />
           <Row label="stations in store:" value={evState.stations.length} ok={evState.stations.length > 0} />
           <Row label="stations filtered:" value={filtered.length} ok={filtered.length > 0} />
           <Row label="fetch status:"      value={evState.status} ok={evState.status === 'ok'} />

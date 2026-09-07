@@ -320,6 +320,19 @@ export function EvMarkerLayer() {
       // Re-fetch when user switches country
       const unsubCountry = countryStore.subscribe(fetchCountry)
 
+      // Tesla browser: the tab may start as document.hidden=true (browser panel
+      // loading in background before the user focuses it).  evStore.fetch() has
+      // a document.hidden guard that returns early to save bandwidth.  Without a
+      // retry, the initial fetch is silently skipped and stations never appear.
+      // Re-fetch as soon as the tab becomes visible.
+      function onVisibilityChange(): void {
+        if (!document.hidden && evStore.getState().stations.length === 0) {
+          logger.ev.debug('Tab became visible with no stations — retrying fetch')
+          fetchCountry()
+        }
+      }
+      document.addEventListener('visibilitychange', onVisibilityChange)
+
       // Re-render on moveend (no re-fetch — we already have all country stations)
       function onMoveEnd(): void {
         if (moveTimer) clearTimeout(moveTimer)
@@ -342,6 +355,7 @@ export function EvMarkerLayer() {
         if (moveTimer) clearTimeout(moveTimer)
         map.off('moveend', onMoveEnd)
         map.off('zoomend', onZoomEnd)
+        document.removeEventListener('visibilitychange', onVisibilityChange)
         unsubEv(); unsubFilter(); unsubRoute(); unsubCountry()
         clearAll()
       }
