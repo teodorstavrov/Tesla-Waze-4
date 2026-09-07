@@ -5,21 +5,19 @@ export const MIN_ZOOM = 6
 export const MAX_ZOOM = 19
 
 // ─── Tile providers ───────────────────────────────────────────────────
-// CARTO Voyager — free, no API key, up to ~75k map views/month.
-// Voyager = clean colourful road map (light).
-// Dark Matter = Carto's dark style.
-// Both use a/b/c/d subdomains (see MapShell tileOptions.subdomains).
-export const TILE_LIGHT        = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'
-export const TILE_DARK         = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
-export const TILE_VOYAGER      = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png'
-export const TILE_VOYAGER_DARK = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
+// OpenStreetMap — completely free, no API key, no registration required.
+// Dark appearance is achieved via CSS filter (invert + hue-rotate) on the
+// tile layer className 'map-tiles-dark' — same source URL for all raster modes.
+export const TILE_LIGHT        = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+export const TILE_DARK         = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+export const TILE_VOYAGER      = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+export const TILE_VOYAGER_DARK = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
 // ArcGIS World Imagery — free for non-commercial use, no key required
 export const TILE_SATELLITE =
   'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
 
 export const TILE_ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors ' +
-  '&copy; <a href="https://carto.com/attributions">CARTO</a>'
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 export const TILE_SATELLITE_ATTRIBUTION =
   'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP'
 

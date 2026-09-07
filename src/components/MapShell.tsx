@@ -607,7 +607,7 @@ export function MapShell() {
 
     const tileOptions = {
       attribution,
-      subdomains:        'abcd',          // CARTO subdomains a/b/c/d
+      subdomains:        'abc',           // OSM standard subdomains a/b/c
       maxZoom:           MAX_ZOOM,
       className:         isDarkTile ? 'map-tiles-dark' : '',
       keepBuffer:        profile.tileKeepBuffer,
