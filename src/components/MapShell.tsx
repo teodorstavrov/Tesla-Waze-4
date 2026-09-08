@@ -25,7 +25,7 @@ import { logger } from '@/lib/logger'
 import {
   MIN_ZOOM, MAX_ZOOM,
   TILE_DARK, TILE_LIGHT, TILE_VOYAGER, TILE_VOYAGER_DARK, TILE_SATELLITE,
-  TILE_ATTRIBUTION, TILE_SATELLITE_ATTRIBUTION,
+  TILE_ATTRIBUTION, TILE_SATELLITE_ATTRIBUTION, MAPTILER_ENABLED,
   TILE_TRAFFIC,
 } from '@/lib/constants'
 import { countryStore } from '@/lib/countryStore'
@@ -601,13 +601,15 @@ export function MapShell() {
       mapMode === 'satellite' ? TILE_SATELLITE_ATTRIBUTION : TILE_ATTRIBUTION
 
     const profile = getActivePerformanceProfile()
-    // Dark mode: CSS filter on the tile layer container simulates a dark map.
-    // Applied only on non-satellite OSM tiles (satellite already looks dark).
-    const isDarkTile = mapMode !== 'satellite' && theme === 'dark'
+    // CSS dark filter: only for OSM tiles where dark mode is simulated via invert.
+    // MapTiler serves native dark tiles (streets-v2-dark) — no filter needed.
+    const isDarkTile = mapMode !== 'satellite' && theme === 'dark' && !MAPTILER_ENABLED
 
     const tileOptions = {
       attribution,
-      subdomains:        'abc',           // OSM standard subdomains a/b/c
+      // MapTiler URLs have no {s} placeholder — subdomains option is ignored
+      // but setting '' avoids a Leaflet console warning on unused substitution.
+      subdomains:        MAPTILER_ENABLED ? '' : 'abc',
       maxZoom:           MAX_ZOOM,
       className:         isDarkTile ? 'map-tiles-dark' : '',
       keepBuffer:        profile.tileKeepBuffer,
