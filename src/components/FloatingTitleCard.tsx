@@ -2,6 +2,7 @@
 import { useSyncExternalStore } from 'react'
 import { routeStore } from '@/features/route/routeStore'
 import { openRatingModal } from '@/components/RatingModal'
+import { openSupportModal } from '@/components/SupportModal'
 import { isTeslaBrowser } from '@/lib/browser'
 import { t, getLang, langStore } from '@/lib/locale'
 
@@ -33,33 +34,60 @@ export function FloatingTitleCard() {
         style={{ height: 'clamp(36px, 6vh, 54px)', width: 'auto', display: 'block', borderRadius: 12 }}
       />
 
-      {/* Hide rating button during navigation — TurnInstruction sits below */}
+      {/* Hide rating + support buttons during navigation — TurnInstruction sits below */}
       {!routeActive && (
-        <button
-          onClick={openRatingModal}
-          title={t('controls.rateApp')}
-          aria-label={t('controls.rateApp')}
-          style={{
-            width: 'clamp(28px, 4vh, 42px)', height: 'clamp(28px, 4vh, 42px)',
-            borderRadius: 10,
-            background: isTeslaBrowser ? 'rgba(13,13,19,0.97)' : 'rgba(18,18,26,0.82)',
-            border: '1px solid rgba(255,255,255,0.14)',
-            backdropFilter: isTeslaBrowser ? undefined : 'blur(10px)',
-            WebkitBackdropFilter: isTeslaBrowser ? undefined : 'blur(10px)',
-            color: '#fbbf24',
-            fontSize: 'clamp(14px, 2.2vh, 20px)',
-            lineHeight: 1,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            touchAction: 'manipulation',
-            boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
-            opacity: 0.5,
-          }}
-        >
-          ★
-        </button>
+        <>
+          <button
+            onClick={openRatingModal}
+            title={t('controls.rateApp')}
+            aria-label={t('controls.rateApp')}
+            style={{
+              width: 'clamp(28px, 4vh, 42px)', height: 'clamp(28px, 4vh, 42px)',
+              borderRadius: 10,
+              background: isTeslaBrowser ? 'rgba(13,13,19,0.97)' : 'rgba(18,18,26,0.82)',
+              border: '1px solid rgba(255,255,255,0.14)',
+              backdropFilter: isTeslaBrowser ? undefined : 'blur(10px)',
+              WebkitBackdropFilter: isTeslaBrowser ? undefined : 'blur(10px)',
+              color: '#fbbf24',
+              fontSize: 'clamp(14px, 2.2vh, 20px)',
+              lineHeight: 1,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              touchAction: 'manipulation',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+              opacity: 0.5,
+            }}
+          >
+            ★
+          </button>
+          <button
+            onClick={openSupportModal}
+            title={t('controls.support')}
+            aria-label={t('controls.support')}
+            style={{
+              width: 'clamp(28px, 4vh, 42px)', height: 'clamp(28px, 4vh, 42px)',
+              borderRadius: 10,
+              background: isTeslaBrowser ? 'rgba(13,13,19,0.97)' : 'rgba(18,18,26,0.82)',
+              border: '1px solid rgba(255,255,255,0.14)',
+              backdropFilter: isTeslaBrowser ? undefined : 'blur(10px)',
+              WebkitBackdropFilter: isTeslaBrowser ? undefined : 'blur(10px)',
+              color: '#f87171',
+              fontSize: 'clamp(13px, 2vh, 18px)',
+              lineHeight: 1,
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              touchAction: 'manipulation',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+              opacity: 0.5,
+            }}
+          >
+            ♥
+          </button>
+        </>
       )}
     </div>
   )

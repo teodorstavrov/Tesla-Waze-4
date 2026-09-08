@@ -46,12 +46,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   if (req.method !== 'GET') { res.status(405).end(); return }
 
   const limit = Math.min(Math.max(1, Number(req.query['limit'] ?? 50)), 200)
+  // `before`: cursor for pagination — exclusive upper bound (ms timestamp).
+  // Pass the `ts` of the oldest entry on the current page to fetch the next page.
+  const beforeParam = req.query['before']
+  const maxScore: string | number = beforeParam ? Number(beforeParam) - 1 : '+inf'
 
   try {
     // Fetch counts + recent logs + total log count in parallel
     const [counts, logsRaw, logsTotal] = await Promise.all([
       redis.hgetall(COUNTS_KEY),
-      redis.zrevrangebyscore(LOGS_KEY, '+inf', '-inf', limit),
+      redis.zrevrangebyscore(LOGS_KEY, maxScore, '-inf', limit),
       redis.zcard(LOGS_KEY),
     ])
 

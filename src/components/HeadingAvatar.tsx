@@ -31,8 +31,8 @@ import { getMap, getCourseUpScale } from '@/components/MapShell'
 import { gpsStore } from '@/features/gps/gpsStore'
 import type { GpsPosition } from '@/features/gps/types'
 
-const ICON_SIZE = 57
-const ICON_ANCHOR: L.PointExpression = [28, 28]
+const ICON_SIZE = 66   // was 57; +15% for better visibility on Tesla touchscreen
+const ICON_ANCHOR: L.PointExpression = [33, 33]   // half of ICON_SIZE, keeps avatar centered on GPS point
 
 // ── Icon HTML builders ────────────────────────────────────────────
 

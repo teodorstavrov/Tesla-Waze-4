@@ -66,7 +66,7 @@ const _profiles: Record<PerformanceMode, PerformanceProfile> = {
     tileFadeAnimation:     true,
     panAnimate:            true,
     mapMoveDebounceMs:     400,
-    rotationThresholdDeg:  0.8,
+    rotationThresholdDeg:  0.4,  // was 0.8; halved — with 0.85s CSS transition more frequent updates look smoother
     useOverlayBlur:        true,
     useMarkerAnimations:   true,
     evDebounceMs:          400,
@@ -80,7 +80,7 @@ const _profiles: Record<PerformanceMode, PerformanceProfile> = {
     tileFadeAnimation:     true,
     panAnimate:            true,
     mapMoveDebounceMs:     400,
-    rotationThresholdDeg:  0.8,
+    rotationThresholdDeg:  0.4,  // was 0.8; matches auto — finer updates for smoother 0.85s transition
     useOverlayBlur:        true,
     useMarkerAnimations:   true,
     evDebounceMs:          400,

@@ -362,11 +362,23 @@ body,
 /* The nuclear rule above kills #map transition too, but course-up rotation
    runs on the GPU compositor thread (translateZ + will-change) — it does NOT
    trigger layout or paint. Restoring only this transition is safe on Tesla.
-   0.18s (down from 0.25s): shorter window means GPS-tick transitions finish
-   before the next tick arrives even at 1Hz — eliminates transition queueing
-   that could cause micro-stutter when heading updates compound. */
+   0.85s ease-out: fills almost the full ~1Hz GPS interval so the map rotates
+   continuously rather than jumping every second. ease-out decelerates near the
+   target which masks heading quantization and looks physically natural.
+   0.85s < 1.0s GPS period → the transition always completes before the next
+   GPS tick, so transitions never queue or compound.
+   AMD Lite / Intel Legacy override this to `none` (lines below) — those
+   profiles cannot afford any concurrent GPU animation alongside tile fetches. */
 [data-tesla] #map {
-  transition: transform 0.18s linear !important;
+  transition: transform 0.85s ease-out !important;
+  /* image-rendering: pixelated forces nearest-neighbor compositing on the GPU
+     layer. The #map is promoted to its own layer (translateZ + will-change),
+     then scaled by ~1.887× and rotated. Without this, the GPU uses bilinear
+     filtering which blurs raster tiles (and their pre-rendered street names).
+     Nearest-neighbor keeps tile pixels crisp at the cost of slight aliasing on
+     diagonal lines — a good trade-off for legibility. */
+  image-rendering: pixelated;
+  image-rendering: -webkit-optimize-contrast; /* older Chromium / WebKit fallback */
 }
 
 /* ─── Tesla: strip backdrop-filter — the #1 overlay jitter source ────── */

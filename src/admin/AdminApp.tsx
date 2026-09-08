@@ -2,7 +2,7 @@
 // Left: stats + event list. Right: Leaflet map — click to add markers,
 // click marker popup → delete.
 
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import type L from 'leaflet'
 
 const EVENT_LABELS: Record<string, string> = {
@@ -194,6 +194,7 @@ function Dashboard({ secret }: { secret: string }) {
   const [visitors,     setVisitors]     = useState<VisitorInfo[]>([])
   const [visitorStats, setVisitorStats] = useState<VisitorStats | null>(null)
   const [aiStats,      setAiStats]      = useState<AiStats | null>(null)
+  const [activeView,   setActiveView]   = useState<'map' | 'voice-log'>('map')
   const [syncing, setSyncing] = useState(false)
   const [syncMsg, setSyncMsg] = useState('')
   const [addMode, setAddMode] = useState(false)
@@ -403,14 +404,28 @@ function Dashboard({ secret }: { secret: string }) {
         overflowY: 'auto',
       }}>
         {/* Header */}
-        <div style={{ padding: '18px 18px 12px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ padding: '18px 18px 10px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
             <div style={{ fontSize: 16, fontWeight: 700 }}>⚡ Admin</div>
             <button
               style={{ ...S.btn, padding: '5px 12px', background: 'rgba(255,255,255,0.07)', color: '#aaa' }}
               onClick={() => { sessionStorage.removeItem('admin_secret'); location.reload() }}>
               Logout
             </button>
+          </div>
+          {/* View switcher */}
+          <div style={{ display: 'flex', gap: 5 }}>
+            {(['map', 'voice-log'] as const).map(v => (
+              <button key={v} onClick={() => setActiveView(v)} style={{
+                flex: 1, padding: '6px 0', borderRadius: 7, border: '1px solid',
+                borderColor: activeView === v ? 'rgba(227,25,55,0.6)' : 'rgba(255,255,255,0.08)',
+                background: activeView === v ? 'rgba(227,25,55,0.15)' : 'rgba(255,255,255,0.04)',
+                color: activeView === v ? '#fff' : '#666',
+                cursor: 'pointer', fontSize: 12, fontWeight: activeView === v ? 700 : 400,
+              }}>
+                {v === 'map' ? '🗺 Карта' : '🎤 Гласови'}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -524,44 +539,48 @@ function Dashboard({ secret }: { secret: string }) {
         <AiStatsPanel stats={aiStats} />
       </div>
 
-      {/* ── Map ── */}
-      <div style={{ flex: 1, position: 'relative' }}>
-        {addMode && (
-          <div style={{
-            position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
-            background: 'rgba(34,197,94,0.15)', border: '1px solid #22c55e66',
-            color: '#4ade80', borderRadius: 8, padding: '8px 16px',
-            fontSize: 13, fontWeight: 600, zIndex: 1000, pointerEvents: 'none',
-            whiteSpace: 'nowrap',
-          }}>
-            📍 Кликни на картата за да добавиш: {EVENT_LABELS[selType]}
-          </div>
-        )}
-        <AdminMap
-          events={events}
-          userStations={userStations}
-          comments={comments}
-          meetups={meetups}
-          visitors={visitors}
-          addMode={addMode}
-          editingEventId={editingEvent?.id ?? null}
-          onMapClick={(lat, lng) => { void addEvent(lat, lng) }}
-          onDelete={(id) => { void deleteEvent(id) }}
-          onEdit={setEditingEvent}
-          onApproveStation={(id) => { void approveUserStation(id) }}
-          onRejectStation={(id)  => { void rejectUserStation(id) }}
-          onDeleteMeetup={(id) => { void deleteMeetup(id) }}
-        />
-
-        {/* Edit panel overlay */}
-        {editingEvent && (
-          <EventEditPanel
-            event={editingEvent}
-            onSave={(patch) => { void updateEvent(editingEvent.id, patch) }}
-            onCancel={() => setEditingEvent(null)}
+      {/* ── Right panel: map or voice log ── */}
+      {activeView === 'voice-log' ? (
+        <VoiceLogView secret={secret} initialStats={aiStats} />
+      ) : (
+        <div style={{ flex: 1, position: 'relative' }}>
+          {addMode && (
+            <div style={{
+              position: 'absolute', top: 12, left: '50%', transform: 'translateX(-50%)',
+              background: 'rgba(34,197,94,0.15)', border: '1px solid #22c55e66',
+              color: '#4ade80', borderRadius: 8, padding: '8px 16px',
+              fontSize: 13, fontWeight: 600, zIndex: 1000, pointerEvents: 'none',
+              whiteSpace: 'nowrap',
+            }}>
+              📍 Кликни на картата за да добавиш: {EVENT_LABELS[selType]}
+            </div>
+          )}
+          <AdminMap
+            events={events}
+            userStations={userStations}
+            comments={comments}
+            meetups={meetups}
+            visitors={visitors}
+            addMode={addMode}
+            editingEventId={editingEvent?.id ?? null}
+            onMapClick={(lat, lng) => { void addEvent(lat, lng) }}
+            onDelete={(id) => { void deleteEvent(id) }}
+            onEdit={setEditingEvent}
+            onApproveStation={(id) => { void approveUserStation(id) }}
+            onRejectStation={(id)  => { void rejectUserStation(id) }}
+            onDeleteMeetup={(id) => { void deleteMeetup(id) }}
           />
-        )}
-      </div>
+
+          {/* Edit panel overlay */}
+          {editingEvent && (
+            <EventEditPanel
+              event={editingEvent}
+              onSave={(patch) => { void updateEvent(editingEvent.id, patch) }}
+              onCancel={() => setEditingEvent(null)}
+            />
+          )}
+        </div>
+      )}
 
       {/* Meetup edit modal — full-screen overlay above everything */}
       {editingMeetup && (
@@ -591,6 +610,212 @@ const LS_HIDE_PERMANENT = 'teslaradar:hidePermanent'
 
 const OUTCOME_LABEL: Record<string, string> = { intent: '🎯 Команда', qa: '💬 Въпрос', error: '❌ Грешка' }
 const OUTCOME_COLOR: Record<string, string> = { intent: '#60a5fa', qa: '#4ade80', error: '#f87171' }
+
+const LANG_FLAG: Record<string, string> = { bg: '🇧🇬', en: '🇬🇧', no: '🇳🇴', sv: '🇸🇪', fi: '🇫🇮', nl: '🇳🇱', de: '🇩🇪' }
+
+// ── Voice Log full-width view ────────────────────────────────────────────
+
+function VoiceLogCard({ row }: { row: AiLogRow }) {
+  const outColor = OUTCOME_COLOR[row.out] ?? '#555'
+  const outLabel = OUTCOME_LABEL[row.out] ?? row.out
+  const ts = new Date(row.ts).toLocaleString('bg-BG', { dateStyle: 'medium', timeStyle: 'short' })
+
+  return (
+    <div style={{
+      background: 'rgba(255,255,255,0.028)', border: '1px solid rgba(255,255,255,0.07)',
+      borderRadius: 10, padding: '12px 16px',
+      borderLeft: `3px solid ${outColor}`,
+    }}>
+      {/* Row header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: outColor }}>
+          {outLabel}{row.it ? ` · ${row.it}` : ''}
+        </span>
+        {row.ln && (
+          <span style={{ fontSize: 14 }} title={row.ln}>{LANG_FLAG[row.ln] ?? row.ln.toUpperCase()}</span>
+        )}
+        <span style={{ marginLeft: 'auto', fontSize: 11, color: '#444' }}>
+          {ts}
+          {row.ip ? <span style={{ color: '#333', marginLeft: 6 }}>{row.ip}</span> : null}
+        </span>
+      </div>
+      {/* Question */}
+      <div style={{ fontSize: 14, color: '#dde', lineHeight: 1.5, marginBottom: row.a ? 8 : 0, wordBreak: 'break-word' }}>
+        🎤 <span style={{ color: '#fff', fontWeight: 500 }}>{row.q || '—'}</span>
+      </div>
+      {/* Answer */}
+      {row.a && (
+        <div style={{ fontSize: 13, color: '#7a9fbf', lineHeight: 1.5, wordBreak: 'break-word' }}>
+          🤖 {row.a}
+        </div>
+      )}
+      {/* Error */}
+      {row.er && (
+        <div style={{ fontSize: 12, color: '#f87171', marginTop: 6 }}>⚠ {row.er}</div>
+      )}
+    </div>
+  )
+}
+
+function VoiceLogView({ secret, initialStats }: { secret: string; initialStats: AiStats | null }) {
+  const [logs,       setLogs]       = useState<AiLogRow[]>(initialStats?.logs ?? [])
+  const [logsTotal,  setLogsTotal]  = useState(initialStats?.logsTotal ?? 0)
+  const [loading,    setLoading]    = useState(false)
+  const [hasMore,    setHasMore]    = useState((initialStats?.logsTotal ?? 0) > (initialStats?.logs.length ?? 0))
+  const [search,     setSearch]     = useState('')
+  const [filterOut,  setFilterOut]  = useState<'all' | 'intent' | 'qa' | 'error'>('all')
+  const [filterLang, setFilterLang] = useState('all')
+
+  const headers = useMemo(() => ({ Authorization: `Bearer ${secret}` }), [secret])
+
+  // If the parent's initial data hasn't loaded yet, wait for it
+  useEffect(() => {
+    if (initialStats && logs.length === 0 && initialStats.logs.length > 0) {
+      setLogs(initialStats.logs)
+      setLogsTotal(initialStats.logsTotal)
+      setHasMore(initialStats.logsTotal > initialStats.logs.length)
+    }
+  }, [initialStats]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function loadMore() {
+    const oldest = logs.at(-1)
+    if (!oldest || loading) return
+    setLoading(true)
+    try {
+      const r = await fetch(`/api/admin/ai-stats?limit=50&before=${oldest.ts}`, { headers })
+      if (r.ok) {
+        const data = await r.json() as AiStats
+        const next = [...logs, ...data.logs]
+        setLogs(next)
+        setLogsTotal(data.logsTotal)
+        setHasMore(next.length < data.logsTotal)
+      }
+    } catch { /* ignore */ }
+    finally { setLoading(false) }
+  }
+
+  // Unique languages seen in loaded data
+  const langs = useMemo(
+    () => [...new Set(logs.map(r => r.ln).filter((l): l is string => Boolean(l)))],
+    [logs],
+  )
+
+  // Client-side filter + search (works on already-loaded entries)
+  const filtered = useMemo(() => {
+    return logs.filter(row => {
+      if (filterOut !== 'all' && row.out !== filterOut) return false
+      if (filterLang !== 'all' && row.ln !== filterLang) return false
+      if (search) {
+        const s = search.toLowerCase()
+        if (!row.q.toLowerCase().includes(s) && !(row.a ?? '').toLowerCase().includes(s)) return false
+      }
+      return true
+    })
+  }, [logs, filterOut, filterLang, search])
+
+  // Counts for outcome filter badges
+  const counts = useMemo(() => {
+    const c = { intent: 0, qa: 0, error: 0 }
+    for (const r of logs) {
+      if (r.out === 'intent') c.intent++
+      else if (r.out === 'qa') c.qa++
+      else if (r.out === 'error') c.error++
+    }
+    return c
+  }, [logs])
+
+  const isFiltering = filterOut !== 'all' || filterLang !== 'all' || search !== ''
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', background: '#0d0d14', overflow: 'hidden' }}>
+
+      {/* ── Toolbar ── */}
+      <div style={{
+        padding: '14px 20px', borderBottom: '1px solid rgba(255,255,255,0.07)',
+        display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap', flexShrink: 0,
+      }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: '#fff', whiteSpace: 'nowrap' }}>🎤 Гласови команди</div>
+        <div style={{ fontSize: 12, color: '#444', whiteSpace: 'nowrap' }}>
+          {logsTotal} записа (90 дни)
+          {logs.length < logsTotal ? ` · заредени ${logs.length}` : ''}
+        </div>
+
+        {/* Search */}
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Търси в команди…"
+          style={{
+            marginLeft: 'auto', background: 'rgba(255,255,255,0.05)',
+            border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8,
+            color: '#fff', padding: '7px 12px', fontSize: 13, outline: 'none', width: 220,
+          }}
+        />
+
+        {/* Outcome filter chips */}
+        <div style={{ display: 'flex', gap: 4 }}>
+          {(['all', 'intent', 'qa', 'error'] as const).map(v => {
+            const isActive = filterOut === v
+            const color = v === 'all' ? '#aaa' : OUTCOME_COLOR[v]
+            const cnt = v === 'all' ? logs.length : counts[v]
+            return (
+              <button key={v} onClick={() => setFilterOut(v)} style={{
+                padding: '5px 11px', borderRadius: 7, cursor: 'pointer',
+                border: `1px solid ${isActive ? color : 'rgba(255,255,255,0.1)'}`,
+                background: isActive ? 'rgba(255,255,255,0.07)' : 'transparent',
+                color: isActive ? color : '#555',
+                fontSize: 12, fontWeight: isActive ? 700 : 400,
+              }}>
+                {v === 'all' ? 'Всички' : OUTCOME_LABEL[v]} <span style={{ opacity: 0.6 }}>{cnt}</span>
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Language filter */}
+        {langs.length > 1 && (
+          <select value={filterLang} onChange={e => setFilterLang(e.target.value)}
+            style={{
+              background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 8, color: '#bbb', padding: '6px 10px', fontSize: 12,
+            }}>
+            <option value="all">Всички езици</option>
+            {langs.map(l => (
+              <option key={l} value={l}>{LANG_FLAG[l] ?? l} {l.toUpperCase()}</option>
+            ))}
+          </select>
+        )}
+      </div>
+
+      {/* ── Log list ── */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '14px 20px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {filtered.length === 0 ? (
+          <div style={{ color: '#444', fontSize: 14, textAlign: 'center', paddingTop: 80 }}>
+            {isFiltering ? 'Няма резултати за тези критерии' : 'Няма записи'}
+          </div>
+        ) : (
+          filtered.map((row, i) => <VoiceLogCard key={i} row={row} />)
+        )}
+
+        {/* Load more — only when not filtering (filters work on loaded data) */}
+        {hasMore && !isFiltering && (
+          <div style={{ display: 'flex', justifyContent: 'center', paddingTop: 8, paddingBottom: 16 }}>
+            <button
+              onClick={() => { void loadMore() }}
+              disabled={loading}
+              style={{
+                padding: '9px 24px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.1)',
+                background: 'rgba(255,255,255,0.05)', color: loading ? '#555' : '#aaa',
+                cursor: loading ? 'default' : 'pointer', fontSize: 13, fontWeight: 600,
+              }}>
+              {loading ? 'Зарежда…' : `↓ Зареди още (${logsTotal - logs.length} останали)`}
+            </button>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
 
 function AiStatsPanel({ stats }: { stats: AiStats | null }) {
   const [open, setOpen] = useState(false)
