@@ -510,13 +510,6 @@ export function MapShell() {
       _lastPanLat = pos.lat
       _lastPanLng = pos.lng
 
-      // Instant pan on Tesla or when profile disables animation.
-      // AMD Lite: panAnimate=false eliminates the 500ms window where tile
-      // loads collide with the Leaflet pan transition (main jitter source).
-      const panOptions: L.PanOptions =
-        (isTeslaBrowser || !_perfProfile.panAnimate)
-          ? { animate: false }
-          : { animate: true, duration: 0.5 }
       // ── Course-up rotation ────────────────────────────────────────────────
       // Applied before panTo so _courseUpActive / _mapScale are up to date
       // when we compute the perspective lookahead below.
@@ -529,6 +522,24 @@ export function MapShell() {
         _clearCourseUp(container)
       }
       // courseUp && heading == null (stationary) → preserve last rotation
+
+      // ── Pan options ───────────────────────────────────────────────────────
+      // Course-up + capable profile (auto/normal): animate panTo to match the
+      //   0.5s CSS rotation transition. Without this the tile layer jumps
+      //   instantly while the container slowly rotates — the ×1.887 CSS scale
+      //   amplifies even a 1-pixel tile jump to ~1.9px on screen, creating
+      //   the visible "jump" every GPS second.
+      //   Both animations (rotate CSS + Leaflet pan) start together and finish
+      //   at 0.5s, giving a 0.5s animation-free window for tile loading.
+      // Tesla north-up / AMD Lite / Intel Legacy: instant pan as before.
+      // Desktop north-up: animate as before.
+      const shouldAnimatePan =
+        _perfProfile.panAnimate &&
+        (courseUp && pos.heading != null || !isTeslaBrowser)
+
+      const panOptions: L.PanOptions = shouldAnimatePan
+        ? { animate: true, duration: 0.5 }
+        : { animate: false }
 
       // ── Perspective offset pan ────────────────────────────────────────────
       // Course-up (Tesla): pan ahead in heading direction; CSS scale accounted
@@ -556,8 +567,21 @@ export function MapShell() {
       }
 
       followStore.beginProgrammaticMove()
-      map.once('moveend', () => followStore.endProgrammaticMove())
-      map.panTo(panTarget, panOptions)
+      if (shouldAnimatePan) {
+        // Animated pan: don't use map.once('moveend') — Leaflet fires moveend
+        // for a CANCELLED animation too (next GPS tick arrives mid-animation),
+        // which would trigger endProgrammaticMove prematurely and leave
+        // _programmatic = true, blocking user drag detection.
+        // Fixed timeout: 500ms animation + 50ms safety = released at 550ms,
+        // endProgrammaticMove's own +150ms → mutex clear at ~700ms, well
+        // before the next GPS tick at ~1000ms.
+        map.panTo(panTarget, panOptions)
+        setTimeout(() => followStore.endProgrammaticMove(), 550)
+      } else {
+        // Instant pan: moveend fires synchronously → once() is reliable.
+        map.once('moveend', () => followStore.endProgrammaticMove())
+        map.panTo(panTarget, panOptions)
+      }
     })
 
     // React to settings changes: heading mode + performance profile

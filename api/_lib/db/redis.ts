@@ -112,6 +112,12 @@ export const redis = {
     return (await _cmd(['ZCARD', key])) as number
   },
 
+  /** PFCOUNT key — approximate cardinality of a HyperLogLog structure.
+   *  Returns 0 when the key doesn't exist yet. */
+  async pfcount(key: string): Promise<number> {
+    return (await _cmd(['PFCOUNT', key])) as number
+  },
+
   /** Send multiple commands in one HTTP request (Upstash pipeline).
    *  Returns results in the same order as commands. */
   async pipeline(commands: (string | number)[][]): Promise<unknown[]> {

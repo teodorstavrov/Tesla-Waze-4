@@ -181,6 +181,7 @@ interface AiLogRow {
 
 interface AiStats {
   counts:    Record<string, string>   // field → string number
+  users?:    { total: number; month: number; today: number }
   logs:      AiLogRow[]
   logsTotal: number
 }
@@ -878,6 +879,30 @@ function AiStatsPanel({ stats }: { stats: AiStats | null }) {
               </div>
             ))}
           </div>
+
+          {/* Unique user counts (HyperLogLog estimate) */}
+          {stats.users && (stats.users.total > 0 || stats.users.today > 0) && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)',
+              borderRadius: 8, padding: '8px 12px', marginBottom: 12,
+            }}>
+              <span style={{ fontSize: 14 }}>👤</span>
+              <span style={{ fontSize: 10, color: '#888', flex: 1 }}>Уникални потребители</span>
+              {[
+                { label: 'Днес',   val: stats.users.today, col: '#4ade80' },
+                { label: 'Месец',  val: stats.users.month, col: '#a78bfa' },
+                { label: 'Всичко', val: stats.users.total, col: '#60a5fa' },
+              ].map(({ label, val, col }) => (
+                <div key={label} style={{ textAlign: 'center', minWidth: 40 }}>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: col, lineHeight: 1 }}>
+                    {val.toLocaleString()}
+                  </div>
+                  <div style={{ fontSize: 9, color: '#555', marginTop: 2 }}>{label}</div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {/* Outcome breakdown */}
           {total > 0 && (

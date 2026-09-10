@@ -325,7 +325,7 @@ function V8VolumePanel({
   return (
     <div style={{
       position:          'absolute',
-      right:             'calc(100% + 10px)',   // always floats LEFT of the engine button
+      left:              'calc(100% + 10px)',   // floats RIGHT of the engine button
       top:               '50%',
       transform:         'translateY(-50%)',
       width:             collapsed ? 'auto' : 'clamp(160px, 28vh, 224px)',

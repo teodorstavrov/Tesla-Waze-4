@@ -3,11 +3,15 @@
 // Fire-and-forget logging of every AI assistant interaction.
 //
 // Storage (Upstash Redis, free tier):
-//   ai:logs   — SORTED SET scored by timestamp ms. Entries auto-expire after
-//               90 days via ZREMRANGEBYSCORE on each write (O(log N + M)).
-//   ai:counts — HASH with forever-incrementing counters.
-//               Fields: total, day:YYYY-MM-DD, week:YYYY-Www, month:YYYY-MM,
-//                       outcome:intent, outcome:qa, outcome:error
+//   ai:logs          — SORTED SET scored by timestamp ms. Entries auto-expire
+//                      after 90 days via ZREMRANGEBYSCORE on each write.
+//   ai:counts        — HASH with forever-incrementing counters.
+//                      Fields: total, day:YYYY-MM-DD, week:YYYY-Www,
+//                              month:YYYY-MM, outcome:intent, outcome:qa,
+//                              outcome:error
+//   ai:users:total   — HyperLogLog of all-time unique user IPs (no expiry).
+//   ai:users:day:*   — Per-day HLL, 8-day TTL.
+//   ai:users:month:* — Per-month HLL, 40-day TTL.
 //
 // Usage: void logAiQuery({ ts, q, a, outcome, intentType?, lang?, ip? })
 
@@ -38,12 +42,16 @@ export function logAiQuery(entry: AiLogEntry): void {
   void _log(entry).catch(e => console.warn('[ai-log] Redis write failed:', e))
 }
 
+const USERS_TOTAL_KEY = 'ai:users:total'
+
 async function _log(entry: AiLogEntry): Promise<void> {
   const d = new Date(entry.ts)
 
-  const dayKey   = `day:${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())}`
+  const dayStr   = `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())}`
+  const monthStr = `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}`
+  const dayKey   = `day:${dayStr}`
   const weekKey  = `week:${isoWeek(d)}`
-  const monthKey = `month:${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}`
+  const monthKey = `month:${monthStr}`
 
   // Trim fields to avoid large Redis payloads
   const member = JSON.stringify({
@@ -57,6 +65,16 @@ async function _log(entry: AiLogEntry): Promise<void> {
     er:  (entry.err ?? '').slice(0, 200) || null,
   })
 
+  // Per-user HyperLogLog keys (only if we have an IP to track)
+  const uk = userKey(entry.ip)
+  const userCmds: (string | number)[][] = uk ? [
+    ['PFADD', USERS_TOTAL_KEY,              uk],
+    ['PFADD', `ai:users:day:${dayStr}`,     uk],
+    ['EXPIRE', `ai:users:day:${dayStr}`,    8 * 86400],   // 8-day TTL
+    ['PFADD', `ai:users:month:${monthStr}`, uk],
+    ['EXPIRE', `ai:users:month:${monthStr}`, 40 * 86400], // 40-day TTL
+  ] : []
+
   await redis.pipeline([
     // Add to sorted set (score = ms timestamp for easy range queries)
     ['ZADD', LOGS_KEY,   entry.ts,           member],
@@ -68,6 +86,8 @@ async function _log(entry: AiLogEntry): Promise<void> {
     ['HINCRBY', COUNTS_KEY, weekKey,                      1],
     ['HINCRBY', COUNTS_KEY, monthKey,                     1],
     ['HINCRBY', COUNTS_KEY, `outcome:${entry.outcome}`,   1],
+    // Unique user HyperLogLogs
+    ...userCmds,
   ])
 }
 
@@ -90,4 +110,16 @@ function anonIp(ip: string | undefined): string | null {
   const parts = ip.split('.')
   if (parts.length === 4) return `${parts[0]}.${parts[1]}.*`
   return ip.split(':')[0] ?? null  // IPv6: keep first group only
+}
+
+/** 3-octet IPv4 key for HyperLogLog unique-user counting.
+ *  More specific than anonIp (distinguishes devices on different subnets)
+ *  but still never stored in retrievable form — HLL cardinality only. */
+function userKey(ip: string | undefined): string | null {
+  if (!ip) return null
+  const parts = ip.split('.')
+  if (parts.length === 4) return `${parts[0]}.${parts[1]}.${parts[2]}`
+  // IPv6: keep first two groups (e.g. "2001:db8")
+  const groups = ip.split(':')
+  return groups.slice(0, 2).join(':') || null
 }

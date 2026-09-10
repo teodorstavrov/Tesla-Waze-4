@@ -217,13 +217,18 @@ body,
   z-index: 1;
 }
 
-/* Arrow container — rotated via inline transform */
+/* Arrow container — rotated via inline transform.
+ * MUST match ICON_SIZE (66) in HeadingAvatar.tsx exactly so that:
+ *   • transform-origin 50%/50% = (33,33) = the DivIcon iconAnchor [33,33]
+ *   • rotation and scale always pivot around the GPS position, not 5px off it
+ * (A 56px div would put transform-origin at (28,28), causing a ~7px orbit wobble
+ *  as heading changes and a ~5px static offset — visible at scale ×1.887.) */
 .gps-avatar-arrow {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 56px;
-  height: 56px;
+  width: 66px;   /* must equal ICON_SIZE in HeadingAvatar.tsx */
+  height: 66px;  /* must equal ICON_SIZE in HeadingAvatar.tsx */
   /* transition: transform 0.3s ease; — intentionally disabled: can cause jitter on Tesla */
 }
 
@@ -362,15 +367,14 @@ body,
 /* The nuclear rule above kills #map transition too, but course-up rotation
    runs on the GPU compositor thread (translateZ + will-change) — it does NOT
    trigger layout or paint. Restoring only this transition is safe on Tesla.
-   0.85s ease-out: fills almost the full ~1Hz GPS interval so the map rotates
-   continuously rather than jumping every second. ease-out decelerates near the
-   target which masks heading quantization and looks physically natural.
-   0.85s < 1.0s GPS period → the transition always completes before the next
-   GPS tick, so transitions never queue or compound.
+   0.5s ease-out: smooths each 1Hz GPS step with a quick start that decelerates
+   to the target. Paired with an animated panTo (also 0.5s) both animations
+   start and finish together, giving the GPU a clean 0.5s gap before the next
+   GPS tick to handle tile loads without animation contention.
    AMD Lite / Intel Legacy override this to `none` (lines below) — those
    profiles cannot afford any concurrent GPU animation alongside tile fetches. */
 [data-tesla] #map {
-  transition: transform 0.85s ease-out !important;
+  transition: transform 0.5s ease-out !important;
   /* image-rendering: pixelated forces nearest-neighbor compositing on the GPU
      layer. The #map is promoted to its own layer (translateZ + will-change),
      then scaled by ~1.887× and rotated. Without this, the GPU uses bilinear
