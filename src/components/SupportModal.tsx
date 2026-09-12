@@ -22,11 +22,11 @@ export interface SupportModalProps {
 
 // ── Module-level opener ────────────────────────────────────────────────
 
-let _open: (() => void) | null = null
+let _open:  (() => void) | null = null
+let _close: (() => void) | null = null
 
-export function openSupportModal(): void {
-  _open?.()
-}
+export function openSupportModal():  void { _open?.()  }
+export function closeSupportModal(): void { _close?.() }
 
 
 // ── Component ──────────────────────────────────────────────────────────
@@ -52,6 +52,8 @@ export function SupportModal({ qrImageUrl, donationLink }: SupportModalProps) {
     setShown(false)
     setTimeout(() => { setOpen(false); setView('donation') }, isTeslaBrowser ? 0 : 220)
   }, [])
+
+  _close = close
 
   useEffect(() => {
     if (!open) return

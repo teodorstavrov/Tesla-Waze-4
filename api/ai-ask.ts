@@ -108,6 +108,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   if (!question) { res.status(400).json({ error: 'Missing question' }); return }
 
+  // ── Detect question language from character set ───────────────────────
+  // Used to inject a last-line language constraint so the model doesn't
+  // default to the app language (Bulgarian) when the user writes in English.
+  const _qLang = _detectQuestionLang(question)
+
   // ── Build context ─────────────────────────────────────────────────────
   const lines: string[] = []
 
@@ -417,6 +422,14 @@ COMMUNITY MEETUPS (СЪБИТИЯ)
   open_meetups           — open community events / meetups list
   close_meetups          — close the meetups list
 
+SUPPORT / DONATION PANEL ("Подкрепи проекта")
+  open_support           — open the support/donation panel
+  close_support          — close the support/donation panel
+
+RATING PANEL
+  open_rating            — open the app rating panel (1–5 stars)
+  close_rating           — close the rating panel
+
 LANGUAGE & COUNTRY
   set_lang               — change UI language (with value: "bg","en","no","sv","fi","nl","de")
   set_country            — change country (with value: "BG","NO","SE","FI","NL","BE","DE")
@@ -437,7 +450,26 @@ LANGUAGE & COUNTRY
 "Колко заряд ми остава?"    → {"answer":"Батерията ти е на 74%, остават 52.3 кВтч — обхват ~340 км."}
 "Включен ли е трафикът?"    → {"answer":"Не, трафик слоят е изключен."}
 "До най-близката зарядна"   → {"answer":"Навигирам до най-близката зарядна станция.","intent":{"type":"navigate","destination":"__nearest_charger__","viaHemus":false}}
-"Навигирай ме до следващото събитие" → {"answer":"Стартирам навигация до следващото събитие.","intent":{"type":"navigate","destination":"__next_meetup__","viaHemus":false}}`
+"Навигирай ме до следващото събитие" → {"answer":"Стартирам навигация до следващото събитие.","intent":{"type":"navigate","destination":"__next_meetup__","viaHemus":false}}
+"Is there an event soon in Varna?"    → {"answer":"Yes, there is a Tesla meetup in Varna on 20 September at 18:00."}
+"What's my battery level?"            → {"answer":"Your battery is at 74%, with ~340 km of range remaining."}
+"Navigate to Varna"                   → {"answer":"Starting navigation to Varna.","intent":{"type":"navigate","destination":"Varna","viaHemus":false}}
+"Turn on traffic"                     → {"answer":"Turning traffic layer on.","intent":{"type":"action","action":"traffic_on"}}
+"Switch to satellite view"            → {"answer":"Switching to satellite view.","intent":{"type":"action","action":"satellite_on"}}
+"Подкрепи проекта"                    → {"answer":"Отварям панела за подкрепа на проекта.","intent":{"type":"action","action":"open_support"}}
+"Отвори дарение"                      → {"answer":"Отварям панела за дарение.","intent":{"type":"action","action":"open_support"}}
+"Затвори панела за дарение"           → {"answer":"Затварям панела за подкрепа.","intent":{"type":"action","action":"close_support"}}
+"Оцени приложението"                  → {"answer":"Отварям панела за оценка.","intent":{"type":"action","action":"open_rating"}}
+"Дай оценка"                          → {"answer":"Отварям формата за оценяване.","intent":{"type":"action","action":"open_rating"}}
+"Затвори оценката"                    → {"answer":"Затварям панела за оценка.","intent":{"type":"action","action":"close_rating"}}
+"Open support panel"                  → {"answer":"Opening the support panel.","intent":{"type":"action","action":"open_support"}}
+"Rate the app"                        → {"answer":"Opening the rating panel.","intent":{"type":"action","action":"open_rating"}}
+
+━━━ RESPONSE LANGUAGE — FINAL ENFORCEMENT ━━━
+⚠️  The user's question is written in: ${_qLang}
+⚠️  Your "answer" field MUST be written ENTIRELY in ${_qLang}.
+⚠️  Do NOT use any other language in the answer, regardless of the context data language.
+⚠️  Context data (meetup names, place names) may be in other languages — that is fine to quote, but your sentences must be in ${_qLang}.`
 
   const messages = [
     { role: 'system', content: systemPrompt },
@@ -583,4 +615,27 @@ function _clientIp(req: VercelRequest): string | undefined {
   const fwd = req.headers['x-forwarded-for']
   if (typeof fwd === 'string') return fwd.split(',')[0]?.trim()
   return req.socket?.remoteAddress
+}
+
+/**
+ * Detect the written language of a question from its character set.
+ * Returns a human-readable language name used in the prompt enforcement line.
+ * Deliberately simple — the model does fine once it gets an explicit label.
+ */
+function _detectQuestionLang(text: string): string {
+  const clean = text.replace(/\s/g, '')
+  if (!clean.length) return 'English'
+
+  const cyrillic = (text.match(/[Ѐ-ӿ]/g) ?? []).length
+  if (cyrillic / clean.length > 0.25) return 'Bulgarian'
+
+  // Scandinavian / Nordic distinguishers
+  if (/[æøÆØ]/.test(text)) return 'Norwegian'
+  if (/[äöÄÖ]/.test(text) && !/[üÜß]/.test(text)) return 'Swedish or Finnish'
+  // German-specific
+  if (/[äöüÄÖÜß]/.test(text)) return 'German'
+  // Dutch-specific common digraphs (rough heuristic)
+  if (/\b(ij|IJ|de|het|een|van|voor|met)\b/.test(text)) return 'Dutch'
+
+  return 'English'  // default for Latin-script questions
 }

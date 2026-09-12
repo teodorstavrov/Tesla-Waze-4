@@ -389,12 +389,12 @@ export function VehicleProfileModal() {
     : Boolean(model && year && (trim || trims.length === 0))
 
   const SECTION_LABEL: React.CSSProperties = {
-    fontSize: 12,
+    fontSize: isTeslaBrowser ? 10 : 12,
     fontWeight: 700,
     color: 'rgba(255,255,255,0.6)',
     letterSpacing: '0.1em',
     textTransform: 'uppercase',
-    marginBottom: 8,
+    marginBottom: isTeslaBrowser ? 7 : 8,
   }
 
   return createPortal(
@@ -413,9 +413,9 @@ export function VehicleProfileModal() {
         role="dialog" aria-modal="true" aria-label={t('vehicleProfile.dialogLabel')}
         style={{
           position: 'relative', zIndex: 1,
-          width: 'min(860px, calc(100vw - 24px))',
+          width: isTeslaBrowser ? 'min(731px, calc(100vw - 24px))' : 'min(860px, calc(100vw - 24px))',
           maxHeight: 'calc(100vh - 32px)',
-          borderRadius: 22,
+          borderRadius: isTeslaBrowser ? 19 : 22,
           background: '#0f0f17',
           border: '1px solid rgba(255,255,255,0.09)',
           boxShadow: '0 32px 80px rgba(0,0,0,0.8)',
@@ -432,24 +432,24 @@ export function VehicleProfileModal() {
           flexShrink: 0,
           background: 'linear-gradient(160deg, #1a1a28 0%, #12121e 100%)',
           borderRight: '1px solid rgba(255,255,255,0.07)',
-          padding: 'clamp(16px, 3.5vh, 28px) clamp(16px, 3vh, 24px)',
+          padding: isTeslaBrowser ? 'clamp(14px, 3vh, 24px) clamp(14px, 2.5vh, 20px)' : 'clamp(16px, 3.5vh, 28px) clamp(16px, 3vh, 24px)',
           display: 'flex',
           flexDirection: 'column',
-          gap: 'clamp(12px, 2.5vh, 20px)',
+          gap: isTeslaBrowser ? 'clamp(10px, 2.1vh, 17px)' : 'clamp(12px, 2.5vh, 20px)',
         }}>
           {/* Header */}
           <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#e31937', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: 6 }}>
+            <div style={{ fontSize: isTeslaBrowser ? 10 : 11, fontWeight: 700, color: '#e31937', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: isTeslaBrowser ? 5 : 6 }}>
               TesRadar
             </div>
-            <div style={{ fontSize: 'clamp(16px, 2.7vh, 22px)', fontWeight: 700, color: '#f2f2f2', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+            <div style={{ fontSize: isTeslaBrowser ? 'clamp(14px, 2.3vh, 19px)' : 'clamp(16px, 2.7vh, 22px)', fontWeight: 700, color: '#f2f2f2', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
               {t('vehicleProfile.title')}
             </div>
           </div>
 
           {/* Car image — fixed-height frame, no reflow on model change */}
           <div style={{
-            height: 'clamp(80px, 16vh, 130px)',
+            height: isTeslaBrowser ? 'clamp(68px, 13.6vh, 110px)' : 'clamp(80px, 16vh, 130px)',
             display: 'flex',
             alignItems: 'flex-end',
             justifyContent: 'center',
@@ -510,12 +510,12 @@ export function VehicleProfileModal() {
                         key={t.id}
                         onClick={() => setTrim(t.id)}
                         style={{
-                          padding: 'clamp(8px, 1.5vh, 11px) clamp(10px, 2vh, 14px)',
-                          borderRadius: 10,
+                          padding: isTeslaBrowser ? 'clamp(7px, 1.3vh, 9px) clamp(8px, 1.7vh, 12px)' : 'clamp(8px, 1.5vh, 11px) clamp(10px, 2vh, 14px)',
+                          borderRadius: isTeslaBrowser ? 8 : 10,
                           border: `1px solid ${sel ? 'rgba(227,25,55,0.6)' : 'rgba(255,255,255,0.10)'}`,
                           background: sel ? 'rgba(227,25,55,0.12)' : 'rgba(255,255,255,0.03)',
                           color: sel ? '#fff' : 'rgba(255,255,255,0.55)',
-                          fontSize: 'clamp(12px, 2vh, 15px)',
+                          fontSize: isTeslaBrowser ? 'clamp(11px, 1.7vh, 13px)' : 'clamp(12px, 2vh, 15px)',
                           fontWeight: sel ? 600 : 400,
                           cursor: 'pointer', touchAction: 'manipulation',
                           textAlign: 'left',
@@ -523,7 +523,7 @@ export function VehicleProfileModal() {
                         }}
                       >
                         <span>{t.label}</span>
-                        <span style={{ fontSize: 'clamp(10px, 1.5vh, 13px)', color: sel ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.4)', fontWeight: 400 }}>
+                        <span style={{ fontSize: isTeslaBrowser ? 'clamp(9px, 1.3vh, 11px)' : 'clamp(10px, 1.5vh, 13px)', color: sel ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.4)', fontWeight: 400 }}>
                           {t.usableKwh} kWh
                         </span>
                       </button>
@@ -535,7 +535,7 @@ export function VehicleProfileModal() {
           )}
 
           {/* Subtitle note */}
-          <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.6, marginTop: 'auto' }}>
+          <div style={{ fontSize: isTeslaBrowser ? 11 : 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.6, marginTop: 'auto' }}>
             {t('vehicleProfile.privacy')}
           </div>
         </div>
@@ -543,18 +543,20 @@ export function VehicleProfileModal() {
         {/* ── RIGHT PANEL ────────────────────────────────────────────── */}
         <div style={{
           flex: 1,
-          padding: 'clamp(16px, 3.5vh, 28px) clamp(16px, 3.5vh, 28px) clamp(14px, 3vh, 24px)',
+          padding: isTeslaBrowser
+            ? 'clamp(14px, 3vh, 24px) clamp(14px, 3vh, 24px) clamp(12px, 2.5vh, 20px)'
+            : 'clamp(16px, 3.5vh, 28px) clamp(16px, 3.5vh, 28px) clamp(14px, 3vh, 24px)',
           overflowY: 'auto',
           display: 'flex',
           flexDirection: 'column',
-          gap: 'clamp(12px, 2.5vh, 20px)',
+          gap: isTeslaBrowser ? 'clamp(10px, 2.1vh, 17px)' : 'clamp(12px, 2.5vh, 20px)',
         }}>
           {/* Close button */}
           <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
             <button onClick={close} aria-label={t('vehicleProfile.close')} style={{
-              width: 40, height: 40,
+              width: isTeslaBrowser ? 34 : 40, height: isTeslaBrowser ? 34 : 40,
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              borderRadius: 8,
+              borderRadius: isTeslaBrowser ? 7 : 8,
               background: 'rgba(255,255,255,0.06)',
               border: '1px solid rgba(255,255,255,0.1)',
               color: 'rgba(255,255,255,0.45)',
@@ -571,7 +573,7 @@ export function VehicleProfileModal() {
               display: 'flex',
               flexWrap: 'wrap',
               gap: 6,
-              maxHeight: 148,
+              maxHeight: isTeslaBrowser ? 126 : 148,
               overflowY: 'auto',
             }}>
               {years.map((y) => {
@@ -581,16 +583,16 @@ export function VehicleProfileModal() {
                     key={y}
                     onClick={() => handleYearChange(y)}
                     style={{
-                      padding: 'clamp(6px, 1.2vh, 8px) clamp(10px, 2vh, 14px)',
-                      borderRadius: 8,
+                      padding: isTeslaBrowser ? 'clamp(5px, 1vh, 7px) clamp(8px, 1.7vh, 12px)' : 'clamp(6px, 1.2vh, 8px) clamp(10px, 2vh, 14px)',
+                      borderRadius: isTeslaBrowser ? 7 : 8,
                       border: `1px solid ${sel ? 'rgba(227,25,55,0.6)' : 'rgba(255,255,255,0.10)'}`,
                       background: sel ? 'rgba(227,25,55,0.15)' : 'rgba(255,255,255,0.04)',
                       color: sel ? '#fff' : 'rgba(255,255,255,0.55)',
-                      fontSize: 'clamp(12px, 2vh, 15px)',
+                      fontSize: isTeslaBrowser ? 'clamp(10px, 1.7vh, 13px)' : 'clamp(12px, 2vh, 15px)',
                       fontWeight: sel ? 700 : 400,
                       cursor: 'pointer',
                       touchAction: 'manipulation',
-                      minWidth: 64,
+                      minWidth: isTeslaBrowser ? 54 : 64,
                     }}
                   >
                     {y}
@@ -609,10 +611,10 @@ export function VehicleProfileModal() {
                 {teslaConnected && teslaSnap?.batteryPercent != null && !teslaSnap.sleeping && (
                   <span style={{
                     display: 'inline-flex', alignItems: 'center', gap: 4,
-                    padding: '2px 8px', borderRadius: 20,
+                    padding: isTeslaBrowser ? '2px 6px' : '2px 8px', borderRadius: 20,
                     background: 'rgba(34,197,94,0.15)',
                     border: '1px solid rgba(34,197,94,0.35)',
-                    fontSize: 11, fontWeight: 700, color: '#22c55e',
+                    fontSize: isTeslaBrowser ? 9 : 11, fontWeight: 700, color: '#22c55e',
                   }}>
                     <span style={{
                       width: 5, height: 5, borderRadius: '50%', background: '#22c55e',
@@ -622,7 +624,7 @@ export function VehicleProfileModal() {
                   </span>
                 )}
                 {teslaConnected && teslaSnap?.sleeping && (
-                  <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.35)' }}>
+                  <span style={{ fontSize: isTeslaBrowser ? 9 : 11, color: 'rgba(255,255,255,0.35)' }}>
                     💤 {t('vehicleProfile.carSleeping')}
                   </span>
                 )}
@@ -637,7 +639,7 @@ export function VehicleProfileModal() {
                       }
                     }}
                     style={{
-                      fontSize: 11, padding: '3px 8px', borderRadius: 6,
+                      fontSize: isTeslaBrowser ? 9 : 11, padding: isTeslaBrowser ? '3px 6px' : '3px 8px', borderRadius: isTeslaBrowser ? 5 : 6,
                       background: 'rgba(34,197,94,0.12)',
                       border: '1px solid rgba(34,197,94,0.3)',
                       color: '#22c55e', cursor: 'pointer', touchAction: 'manipulation',
@@ -647,12 +649,12 @@ export function VehicleProfileModal() {
                     ↺ Tesla
                   </button>
                 )}
-                <div style={{ fontSize: 'clamp(18px, 3.2vh, 26px)', fontWeight: 800, color: col, letterSpacing: '-0.03em', lineHeight: 1 }}>
+                <div style={{ fontSize: isTeslaBrowser ? 'clamp(15px, 2.7vh, 22px)' : 'clamp(18px, 3.2vh, 26px)', fontWeight: 800, color: col, letterSpacing: '-0.03em', lineHeight: 1 }}>
                   {Math.round(battery)}%
                 </div>
               </div>
             </div>
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginBottom: 10 }}>
+            <div style={{ fontSize: isTeslaBrowser ? 9 : 11, color: 'rgba(255,255,255,0.4)', marginBottom: isTeslaBrowser ? 8 : 10 }}>
               {t('vehicleProfile.batteryHint')}
             </div>
 
@@ -675,7 +677,7 @@ export function VehicleProfileModal() {
                   value={battery}
                   onChange={(e) => setBattery(Number(e.target.value))}
                   style={{
-                    width: '100%', height: 28,
+                    width: '100%', height: isTeslaBrowser ? 24 : 28,
                     cursor: 'pointer',
                     accentColor: col,
                     position: 'relative', zIndex: 2,
@@ -693,12 +695,12 @@ export function VehicleProfileModal() {
                   key={v}
                   onClick={() => setBattery(v)}
                   style={{
-                    flex: 1, padding: '7px 0',
-                    borderRadius: 8,
+                    flex: 1, padding: isTeslaBrowser ? '6px 0' : '7px 0',
+                    borderRadius: isTeslaBrowser ? 7 : 8,
                     border: `1px solid ${Math.round(battery) === v ? col : 'rgba(255,255,255,0.10)'}`,
                     background: Math.round(battery) === v ? `${col}22` : 'rgba(255,255,255,0.03)',
                     color: Math.round(battery) === v ? col : 'rgba(255,255,255,0.4)',
-                    fontSize: 14, fontWeight: 600,
+                    fontSize: isTeslaBrowser ? 12 : 14, fontWeight: 600,
                     cursor: 'pointer', touchAction: 'manipulation',
                   }}
                 >
@@ -719,19 +721,19 @@ export function VehicleProfileModal() {
                 onChange={(e) => setDegrad(e.target.value)}
                 style={{
                   flex: 1,
-                  padding: 'clamp(8px, 1.5vh, 11px) clamp(10px, 2vh, 14px)',
-                  borderRadius: 10,
+                  padding: isTeslaBrowser ? 'clamp(7px, 1.3vh, 9px) clamp(8px, 1.7vh, 12px)' : 'clamp(8px, 1.5vh, 11px) clamp(10px, 2vh, 14px)',
+                  borderRadius: isTeslaBrowser ? 8 : 10,
                   background: 'rgba(255,255,255,0.05)',
                   border: '1px solid rgba(255,255,255,0.12)',
                   color: '#f2f2f2',
-                  fontSize: 'clamp(13px, 2vh, 16px)',
+                  fontSize: isTeslaBrowser ? 'clamp(11px, 1.7vh, 14px)' : 'clamp(13px, 2vh, 16px)',
                   outline: 'none',
                   fontFamily: 'inherit',
                 }}
               />
-              <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)' }}>%</div>
+              <div style={{ fontSize: isTeslaBrowser ? 11 : 13, color: 'rgba(255,255,255,0.3)' }}>%</div>
             </div>
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', marginTop: 6, lineHeight: 1.5 }}>
+            <div style={{ fontSize: isTeslaBrowser ? 11 : 13, color: 'rgba(255,255,255,0.5)', marginTop: 6, lineHeight: 1.5 }}>
               {t('vehicleProfile.degradationHint')}
             </div>
           </div>
@@ -758,12 +760,12 @@ export function VehicleProfileModal() {
                     key={value}
                     onClick={() => setPerfMode(value)}
                     style={{
-                      padding: '10px 14px',
-                      borderRadius: 10,
+                      padding: isTeslaBrowser ? '8px 12px' : '10px 14px',
+                      borderRadius: isTeslaBrowser ? 8 : 10,
                       border: `1px solid ${sel ? 'rgba(227,25,55,0.65)' : 'rgba(255,255,255,0.10)'}`,
                       background: sel ? 'rgba(227,25,55,0.14)' : 'rgba(255,255,255,0.04)',
                       color: sel ? '#fff' : 'rgba(255,255,255,0.6)',
-                      fontSize: 14,
+                      fontSize: isTeslaBrowser ? 12 : 14,
                       fontWeight: sel ? 700 : 400,
                       cursor: 'pointer',
                       touchAction: 'manipulation',
@@ -775,7 +777,7 @@ export function VehicleProfileModal() {
                 )
               })}
             </div>
-            <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)', marginTop: 6 }}>
+            <div style={{ fontSize: isTeslaBrowser ? 10 : 12, color: 'rgba(255,255,255,0.35)', marginTop: 6 }}>
               {t('vehicleProfile.perfModeHint')}
             </div>
           </div>
@@ -788,12 +790,12 @@ export function VehicleProfileModal() {
             <button
               onClick={close}
               style={{
-                padding: 'clamp(10px, 1.8vh, 14px) clamp(14px, 2.5vh, 20px)',
-                borderRadius: 12,
+                padding: isTeslaBrowser ? 'clamp(8px, 1.5vh, 12px) clamp(12px, 2.1vh, 17px)' : 'clamp(10px, 1.8vh, 14px) clamp(14px, 2.5vh, 20px)',
+                borderRadius: isTeslaBrowser ? 10 : 12,
                 background: 'rgba(255,255,255,0.05)',
                 border: '1px solid rgba(255,255,255,0.10)',
                 color: 'rgba(255,255,255,0.45)',
-                fontSize: 'clamp(13px, 2vh, 16px)', fontWeight: 500,
+                fontSize: isTeslaBrowser ? 'clamp(11px, 1.7vh, 14px)' : 'clamp(13px, 2vh, 16px)', fontWeight: 500,
                 cursor: 'pointer', touchAction: 'manipulation',
                 whiteSpace: 'nowrap',
               }}
@@ -805,12 +807,12 @@ export function VehicleProfileModal() {
               disabled={!canSave}
               style={{
                 flex: 1,
-                padding: 'clamp(10px, 1.8vh, 14px) 0',
-                borderRadius: 12,
+                padding: isTeslaBrowser ? 'clamp(8px, 1.5vh, 12px) 0' : 'clamp(10px, 1.8vh, 14px) 0',
+                borderRadius: isTeslaBrowser ? 10 : 12,
                 background: canSave ? '#e31937' : 'rgba(227,25,55,0.25)',
                 border: 'none',
                 color: canSave ? '#fff' : 'rgba(255,255,255,0.3)',
-                fontSize: 'clamp(13px, 2.2vh, 17px)', fontWeight: 700,
+                fontSize: isTeslaBrowser ? 'clamp(11px, 1.9vh, 14px)' : 'clamp(13px, 2.2vh, 17px)', fontWeight: 700,
                 cursor: canSave ? 'pointer' : 'default',
                 touchAction: 'manipulation',
                 letterSpacing: '0.02em',
@@ -840,13 +842,13 @@ function ModelPill({
       onClick={onClick}
       style={{
         flex: wide ? '0 0 auto' : 1,
-        width: wide ? 120 : undefined,
-        padding: '9px 6px',
-        borderRadius: 10,
+        width: wide ? (isTeslaBrowser ? 102 : 120) : undefined,
+        padding: isTeslaBrowser ? '8px 5px' : '9px 6px',
+        borderRadius: isTeslaBrowser ? 9 : 10,
         border: `1px solid ${selected ? 'rgba(227,25,55,0.7)' : 'rgba(255,255,255,0.10)'}`,
         background: selected ? 'rgba(227,25,55,0.18)' : 'rgba(255,255,255,0.04)',
         color: selected ? '#fff' : 'rgba(255,255,255,0.7)',
-        fontSize: 13,
+        fontSize: isTeslaBrowser ? 11 : 13,
         fontWeight: selected ? 700 : 400,
         cursor: 'pointer', touchAction: 'manipulation',
         letterSpacing: selected ? '-0.01em' : undefined,
@@ -875,12 +877,12 @@ function ModelSConfigurator({
   sectionLabel: React.CSSProperties
 }) {
   const CHIP = (sel: boolean): React.CSSProperties => ({
-    padding: '9px 14px',
-    borderRadius: 10,
+    padding: isTeslaBrowser ? '8px 12px' : '9px 14px',
+    borderRadius: isTeslaBrowser ? 8 : 10,
     border: `1px solid ${sel ? 'rgba(227,25,55,0.65)' : 'rgba(255,255,255,0.10)'}`,
     background: sel ? 'rgba(227,25,55,0.14)' : 'rgba(255,255,255,0.04)',
     color: sel ? '#fff' : 'rgba(255,255,255,0.55)',
-    fontSize: 14,
+    fontSize: isTeslaBrowser ? 12 : 14,
     fontWeight: sel ? 700 : 400,
     cursor: 'pointer',
     touchAction: 'manipulation',
@@ -943,12 +945,14 @@ function StepBtn({ label, onClick }: { label: string; onClick: () => void }) {
     <button
       onClick={onClick}
       style={{
-        width: 'clamp(28px, 4.8vh, 38px)', height: 'clamp(28px, 4.8vh, 38px)', flexShrink: 0,
-        borderRadius: 10,
+        width: isTeslaBrowser ? 'clamp(24px, 4.1vh, 32px)' : 'clamp(28px, 4.8vh, 38px)',
+        height: isTeslaBrowser ? 'clamp(24px, 4.1vh, 32px)' : 'clamp(28px, 4.8vh, 38px)',
+        flexShrink: 0,
+        borderRadius: isTeslaBrowser ? 8 : 10,
         border: '1px solid rgba(255,255,255,0.12)',
         background: 'rgba(255,255,255,0.06)',
         color: '#f2f2f2',
-        fontSize: 'clamp(15px, 2.8vh, 20px)', fontWeight: 300, lineHeight: 1,
+        fontSize: isTeslaBrowser ? 'clamp(13px, 2.4vh, 17px)' : 'clamp(15px, 2.8vh, 20px)', fontWeight: 300, lineHeight: 1,
         cursor: 'pointer', touchAction: 'manipulation',
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}

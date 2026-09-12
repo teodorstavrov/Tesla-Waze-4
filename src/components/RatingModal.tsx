@@ -7,8 +7,10 @@ import { createPortal } from 'react-dom'
 import { isTeslaBrowser } from '@/lib/browser'
 import { getLang, langStore } from '@/lib/locale'
 
-let _open: (() => void) | null = null
-export function openRatingModal(): void { _open?.() }
+let _open:  (() => void) | null = null
+let _close: (() => void) | null = null
+export function openRatingModal():  void { _open?.()  }
+export function closeRatingModal(): void { _close?.() }
 
 interface RatingStats { avg: number | null; count: number }
 
@@ -89,6 +91,8 @@ export function RatingModal() {
     setShown(false)
     setTimeout(() => setOpen(false), isTeslaBrowser ? 0 : 220)
   }, [])
+
+  _close = close
 
   useEffect(() => {
     if (!open) return

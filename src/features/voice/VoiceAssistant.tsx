@@ -49,6 +49,8 @@ import {
   isSpeechRecognitionSupported,
   getBestMimeType,
 } from './micCapability'
+import { openSupportModal, closeSupportModal } from '@/components/SupportModal'
+import { openRatingModal,  closeRatingModal  } from '@/components/RatingModal'
 
 // ── Web Speech API type declarations ──────────────────────────────────────
 // SpeechRecognition and its event types are not universally defined in all
@@ -864,6 +866,22 @@ export function VoiceAssistant() {
         break
       case 'close_meetups':
         meetupStore.closeList()
+        break
+
+      // ── Support / donation panel (Подкрепи проекта) ──
+      case 'open_support':
+        openSupportModal()
+        break
+      case 'close_support':
+        closeSupportModal()
+        break
+
+      // ── Rating panel ──
+      case 'open_rating':
+        openRatingModal()
+        break
+      case 'close_rating':
+        closeRatingModal()
         break
 
       // ── Explicit ON/OFF variants — state-checked so command always has the right effect ──
