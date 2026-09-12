@@ -131,17 +131,17 @@ export function MeetupTodayToast() {
         position: 'fixed', top: 78, right: 12,
         zIndex: 1190, maxWidth: 'calc(100vw - 24px)',
         background: 'linear-gradient(135deg,#4f46e5,#6366f1)', color: '#fff',
-        borderRadius: 12, boxShadow: '0 6px 24px rgba(0,0,0,0.5)',
-        padding: '10px 12px 10px 14px', display: 'flex', alignItems: 'center', gap: 10,
+        borderRadius: 8, boxShadow: '0 4px 14px rgba(0,0,0,0.5)',
+        padding: '6px 7px 6px 8px', display: 'flex', alignItems: 'center', gap: 6,
         cursor: 'pointer', touchAction: 'manipulation',
       }}
     >
-      <span style={{ fontSize: 20 }}>📅</span>
+      <span style={{ fontSize: 12 }}>📅</span>
       <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1.25, minWidth: 0 }}>
-        <span style={{ fontSize: 12, fontWeight: 700, opacity: 0.85 }}>{label}{dist}</span>
-        <span style={{ fontSize: 14, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '70vw' }}>{event.title}</span>
+        <span style={{ fontSize: 9, fontWeight: 700, opacity: 0.85 }}>{label}{dist}</span>
+        <span style={{ fontSize: 11, fontWeight: 800, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '55vw' }}>{event.title}</span>
       </div>
-      <button onClick={dismiss} style={{ background: 'rgba(255,255,255,0.18)', color: '#fff', border: 'none', borderRadius: 8, width: 26, height: 26, fontSize: 14, cursor: 'pointer', flexShrink: 0 }}>✕</button>
+      <button onClick={dismiss} style={{ background: 'rgba(255,255,255,0.18)', color: '#fff', border: 'none', borderRadius: 6, width: 20, height: 20, fontSize: 10, cursor: 'pointer', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', touchAction: 'manipulation' }}>✕</button>
     </div>
   )
 }
