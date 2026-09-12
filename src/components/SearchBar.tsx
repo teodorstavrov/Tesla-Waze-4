@@ -515,21 +515,25 @@ function HistoryResultContent({
       </div>
 
       {/* Action buttons */}
-      <div style={{ display: 'flex', gap: 4, flexShrink: 0, alignItems: 'center' }}>
-        {/* Star / unstar */}
+      <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center' }}>
+        {/* Star / unstar — same style as GeoResultContent star */}
         <button
           onMouseDown={(e) => e.preventDefault()}
           onClick={onStar}
           aria-label={starred ? t('search.removeFav') : t('search.addFav')}
           title={starred ? t('search.removeFav') : t('search.addFav')}
           style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            padding: 4, borderRadius: 6, lineHeight: 1,
-            color: starred ? '#fbbf24' : 'rgba(255,255,255,0.25)',
-            display: 'flex', alignItems: 'center',
+            background: starred ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.06)',
+            border: `1px solid ${starred ? 'rgba(251,191,36,0.45)' : 'rgba(255,255,255,0.18)'}`,
+            cursor: 'pointer',
+            padding: 0, borderRadius: 8, lineHeight: 1, flexShrink: 0,
+            color: starred ? '#fbbf24' : 'rgba(255,255,255,0.55)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            width: 36, height: 36,
+            touchAction: 'manipulation',
           }}
         >
-          {starred ? <StarFilledIcon size={14} /> : <StarOutlineIcon size={14} />}
+          {starred ? <StarFilledIcon size={16} /> : <StarOutlineIcon size={16} />}
         </button>
 
         {/* Remove from history (only for non-favorites) */}
@@ -540,10 +544,14 @@ function HistoryResultContent({
             aria-label={t('search.removeHist')}
             title={t('search.remove')}
             style={{
-              background: 'none', border: 'none', cursor: 'pointer',
-              padding: 4, borderRadius: 6, lineHeight: 1,
-              color: 'rgba(255,255,255,0.2)',
-              display: 'flex', alignItems: 'center',
+              background: 'rgba(255,255,255,0.04)',
+              border: '1px solid rgba(255,255,255,0.12)',
+              cursor: 'pointer',
+              padding: 0, borderRadius: 8, lineHeight: 1, flexShrink: 0,
+              color: 'rgba(255,255,255,0.35)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              width: 32, height: 32,
+              touchAction: 'manipulation',
             }}
           >
             <svg width="11" height="11" viewBox="0 0 16 16" fill="none" aria-hidden="true"
