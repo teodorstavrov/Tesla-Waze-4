@@ -12,7 +12,12 @@ export const MAX_ZOOM = 19
 //     streets-v2-dark — native dark night map
 //     bright-v2       — vibrant day style (Voyager mode)
 // Fallback: OpenStreetMap (no key, dark via CSS filter invert).
-const _MT = (import.meta.env['VITE_MAPTILER_API_KEY'] as string | undefined) ?? ''
+//
+// Key validation: real MapTiler API keys are 32+ hex characters.
+// Short values ("0", "key", "test", etc.) are treated as missing → OSM fallback.
+// This prevents the "Invalid key 0" error when a placeholder is set in Vercel env vars.
+const _rawMT = (import.meta.env['VITE_MAPTILER_API_KEY'] as string | undefined) ?? ''
+const _MT = _rawMT.length >= 20 ? _rawMT : ''
 
 /** True when MapTiler tiles are active (key present). Used to skip CSS dark filter. */
 export const MAPTILER_ENABLED = Boolean(_MT)
