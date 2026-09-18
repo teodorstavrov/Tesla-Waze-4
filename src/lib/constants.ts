@@ -5,47 +5,24 @@ export const MIN_ZOOM = 6
 export const MAX_ZOOM = 19
 
 // ─── Tile providers ───────────────────────────────────────────────────
-// MapTiler (preferred) — set VITE_MAPTILER_API_KEY in Vercel env vars.
-//   Free tier: 100 000 map views/month. Native dark tiles — no CSS filter needed.
-//   Styles used:
-//     streets-v2      — clean OSM-based day map
-//     streets-v2-dark — native dark night map
-//     bright-v2       — vibrant day style (Voyager mode)
-// Fallback: OpenStreetMap (no key, dark via CSS filter invert).
-//
-// Key validation: real MapTiler API keys are 32+ hex characters.
-// Short values ("0", "key", "test", etc.) are treated as missing → OSM fallback.
-// This prevents the "Invalid key 0" error when a placeholder is set in Vercel env vars.
-const _rawMT = (import.meta.env['VITE_MAPTILER_API_KEY'] as string | undefined) ?? ''
-const _MT = _rawMT.length >= 20 ? _rawMT : ''
+// OpenStreetMap — no key required, free, unlimited.
+// Dark mode applied via CSS filter invert in MapShell.tsx.
+// Satellite: ArcGIS World Imagery (no key, free non-commercial use).
 
-/** True when MapTiler tiles are active (key present). Used to skip CSS dark filter. */
-export const MAPTILER_ENABLED = Boolean(_MT)
+/** Always false — MapTiler not active. Used in MapShell to decide CSS dark filter. */
+export const MAPTILER_ENABLED = false
 
-export const TILE_LIGHT = _MT
-  ? `https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=${_MT}`
-  : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-
-export const TILE_DARK = _MT
-  ? `https://api.maptiler.com/maps/streets-v2-dark/{z}/{x}/{y}.png?key=${_MT}`
-  : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-
-// Voyager = bright/colorful day style; stays sharp & readable at any rotation
-export const TILE_VOYAGER = _MT
-  ? `https://api.maptiler.com/maps/bright-v2/{z}/{x}/{y}.png?key=${_MT}`
-  : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
-
-export const TILE_VOYAGER_DARK = _MT
-  ? `https://api.maptiler.com/maps/streets-v2-dark/{z}/{x}/{y}.png?key=${_MT}`
-  : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+export const TILE_LIGHT        = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+export const TILE_DARK         = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+export const TILE_VOYAGER      = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+export const TILE_VOYAGER_DARK = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
 
 // ArcGIS World Imagery — free for non-commercial use, no key required
 export const TILE_SATELLITE =
   'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
 
-export const TILE_ATTRIBUTION = _MT
-  ? '&copy; <a href="https://www.maptiler.com/copyright/">MapTiler</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-  : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+export const TILE_ATTRIBUTION =
+  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
 export const TILE_SATELLITE_ATTRIBUTION =
   'Tiles &copy; Esri &mdash; Source: Esri, i-cubed, USDA, USGS, AEX, GeoEye, Getmapping, Aerogrid, IGN, IGP, UPR-EGP'
 
