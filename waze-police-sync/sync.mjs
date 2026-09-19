@@ -967,6 +967,94 @@ async function collectWazePolice(tiles) {
   return list;
 }
 
+// ---- 1b. COLLECT FROM TESLANAV (route group only) ----------------
+// teslanav.com proxies Waze alerts over a simple JSON API:
+//   GET https://teslanav.com/api/waze?left=&right=&bottom=&top=
+// No Playwright / Chrome needed — plain HTTP fetch is enough.
+// Each tile gets 3 bbox requests: centre + N spoke + S spoke to cover
+// the full highway corridor on both sides of the road centreline.
+async function collectTeslaNavPolice(tiles) {
+  const found = new Map(); // id -> { id, lat, lon }
+
+  // Bbox half-extents (degrees). ~11 km N-S, ~12 km E-W at lat 43°.
+  const LAT_HALF = 0.10;
+  const LON_HALF = 0.15;
+
+  // Centre + north + south spokes (A2 runs E-W, so N/S sweeps catch both
+  // lane sides and service roads off the main carriageway).
+  const SPOKES = [
+    { dlat:  0,    dlon: 0 },
+    { dlat: +0.12, dlon: 0 },
+    { dlat: -0.12, dlon: 0 },
+  ];
+
+  let totalReqs = 0, reqOk = 0, reqErr = 0;
+
+  for (let ti = 0; ti < tiles.length; ti++) {
+    const t = tiles[ti];
+    let tileFound = 0;
+
+    for (const { dlat, dlon } of SPOKES) {
+      const clat = t.lat + dlat;
+      const clon = t.lon + dlon;
+      const qs = new URLSearchParams({
+        left:   (clon - LON_HALF).toFixed(6),
+        right:  (clon + LON_HALF).toFixed(6),
+        bottom: (clat - LAT_HALF).toFixed(6),
+        top:    (clat + LAT_HALF).toFixed(6),
+      });
+      const url = `https://teslanav.com/api/waze?${qs}`;
+      totalReqs++;
+      try {
+        const r = await fetchT(url, {
+          headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'application/json',
+          },
+        }, 15000);
+        if (!r.ok) {
+          const body = await r.text().catch(() => '');
+          console.log(`  [teslanav] ${t.name} dlat:${dlat>=0?'+':''}${dlat}: HTTP ${r.status} ${body.slice(0,80)}`);
+          reqErr++;
+          if (r.status === 429) await sleep(30000); // back off on rate-limit
+          continue;
+        }
+        const data = await r.json();
+        const alerts = data.alerts || [];
+        let policeCount = 0;
+        for (const a of alerts) {
+          if (a.type !== 'POLICE') continue;
+          const loc = a.location || {};
+          if (typeof loc.y !== 'number' || typeof loc.x !== 'number') continue;
+          policeCount++;
+          const id = a.id;
+          if (id && !found.has(id)) {
+            found.set(id, { id, lat: loc.y, lon: loc.x });
+            tileFound++;
+          }
+        }
+        reqOk++;
+        const mark = policeCount > 0 ? '  <--' : '';
+        console.log(`    ${t.name} [dlat:${dlat>=0?'+':''}${dlat}]: alerts:${alerts.length} police:${policeCount}${mark}`);
+      } catch (e) {
+        console.log(`  [teslanav] ${t.name}: ${e.message.split('\n')[0]}`);
+        reqErr++;
+      }
+      // Polite pacing between bbox requests
+      await sleep(600 + Math.floor(Math.random() * 600));
+    }
+
+    console.log(`  [${ti + 1}/${tiles.length}] ${t.name}: +${tileFound}`);
+    await sleep(1200 + Math.floor(Math.random() * 800));
+  }
+
+  const list = [...found.values()];
+  console.log(`[teslanav] requests: ${totalReqs} OK:${reqOk} errors:${reqErr} | ${list.length} unique POLICE markers.`);
+  if (list.length === 0)
+    collectProblem = collectProblem || 'TeslaNav route collect: 0 police found (possible block or no active alerts).';
+  return list;
+}
+
 // ---------------------- 2. TESRADAR CLIENT ------------------------
 const trHeaders = () => ({
   'Authorization': `Bearer ${CONFIG.tesradarSecret}`,
@@ -1120,7 +1208,11 @@ async function main() {
     await sleep(ms);
   }
 
-  const wazeRaw = await collectWazePolice(tiles);
+  // Route group uses teslanav.com's JSON API (no browser / Playwright needed).
+  // All other groups (cities, nl, be, all) continue through collectWazePolice().
+  const wazeRaw = (arg === 'route')
+    ? await collectTeslaNavPolice(tiles)
+    : await collectWazePolice(tiles);
 
   // ---- snap every point to the nearest road (ON-ROAD GUARANTEE) ----
   // A police alert must sit on the road, never off it. We snap each Waze
