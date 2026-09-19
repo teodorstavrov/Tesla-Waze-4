@@ -1,9 +1,11 @@
 /**
- * Waze → TesRadar police-marker sync
+ * teslanav.com / Waze → TesRadar police-marker sync
  * --------------------------------------------------------------
- * Reads POLICE alerts from the Waze live-map (via a real browser
- * context, because Waze blocks raw API calls with 403) and mirrors
- * them onto the TesRadar admin map with exact coordinates.
+ * Route group: fetches POLICE alerts from https://teslanav.com/api/waze
+ *   (plain HTTP — no browser needed).
+ * All other groups (cities, nl, be): reads from the Waze live-map via
+ *   a real browser context (CDP), because Waze blocks raw API calls.
+ * Mirrors markers onto the TesRadar admin map with exact coordinates.
  *
  * Verified TesRadar API contract:
  *   GET    /api/admin/events            -> list events  (Authorization: Bearer <secret>)
@@ -1139,15 +1141,15 @@ async function main() {
     process.exit(1);
   }
 
-  // WazeGuard: pre-run check (circuit breaker, cooldown, risk score, budget)
+  // SyncGuard: pre-run check (circuit breaker, cooldown, risk score, budget)
   const _guardArg = (process.argv[2] || 'all').toLowerCase();
   const _guard = await WazeGuard.check(_guardArg);
   if (!_guard.allow) {
-    console.log(`[WazeGuard] Run skipped.\nReason: ${_guard.reason}.\nResume after: ${_guard.resumeAfter}`);
+    console.log(`[SyncGuard] Run skipped.\nReason: ${_guard.reason}.\nResume after: ${_guard.resumeAfter}`);
     process.exit(3);
   }
   if (_guard.mode && _guard.mode !== 'NORMAL')
-    console.log(`[WazeGuard] Mode: ${_guard.mode} (risk score: ${_guard.riskScore}/100)`);
+    console.log(`[SyncGuard] Mode: ${_guard.mode} (risk score: ${_guard.riskScore}/100)`);
 
   // Which group to scan: node sync.mjs <group>  (cities | route | all). Default: all.
   const arg = (process.argv[2] || 'all').toLowerCase();
@@ -1235,7 +1237,7 @@ async function main() {
   } catch (e) {
     collectProblem = `TesRadar unreachable (${e.message.split('\n')[0]}) - nothing posted this run.`;
     console.log(`  ${collectProblem}`);
-    return { added: 0, found: wazeRaw.length, onRoad: waze.length, alert: { subject: 'WazeSync: TesRadar unreachable', body: collectProblem } };
+    return { added: 0, found: wazeRaw.length, onRoad: waze.length, alert: { subject: 'TeslaNavSync: TesRadar unreachable', body: collectProblem } };
   }
   const existingPolice = existing.filter((e) => e.type === POLICE_TYPE);
 
@@ -1335,11 +1337,11 @@ async function main() {
     if (r && r.incomplete > 0 && code === 0) code = 4;
   } catch (e) {
     console.error(e);
-    await sendAlert('WazeSync FAILED (crash)', String((e && e.stack) || e));
+    await sendAlert('TeslaNavSync FAILED (crash)', String((e && e.stack) || e));
     code = 1;
   }
   clearTimeout(watchdog);
-  // WazeGuard: record result → update circuit state, risk score, event log
+  // SyncGuard: record result → update circuit state, risk score, event log
   try {
     await WazeGuard.afterRun({
       group:          process.argv[2] || 'all',
@@ -1348,7 +1350,7 @@ async function main() {
       requestCount:   _runGeoRequests,
       alertFn:        sendAlert,
     });
-  } catch (e) { console.warn('[WazeGuard] afterRun error:', e.message); }
+  } catch (e) { console.warn('[SyncGuard] afterRun error:', e.message); }
   // Make the exit code reliable: if the browser/CDP closed, Node may drain and
   // exit on its own BEFORE the unref'd timer below — without this it would exit
   // 0 even on a crash, and the chain would wrongly treat the run as "clean".
