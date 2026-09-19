@@ -1278,14 +1278,15 @@ async function main() {
     }
   }
 
-  console.log(`Done. Added ${added}, removed ${removed}, Waze on-road total ${waze.length}.`);
+  const _src = arg === 'route' ? 'TeslaNav' : 'Waze';
+  console.log(`Done. Added ${added}, removed ${removed}, ${_src} on-road total ${waze.length}.`);
 
   // Decide whether to raise an email alert.
   let alert = null;
   if (collectProblem) {
-    alert = { subject: 'WazeSync: sync problem', body: `${collectProblem}\n\nAdded ${added}, found ${wazeRaw.length} police.` };
+    alert = { subject: `${_src}Sync: sync problem`, body: `${collectProblem}\n\nAdded ${added}, found ${wazeRaw.length} police.` };
   } else if (CONFIG.email.alertOnZero && wazeRaw.length === 0) {
-    alert = { subject: 'WazeSync: 0 police found', body: 'The run completed but found 0 police across all cities -- possible Waze block or outage. Added 0.' };
+    alert = { subject: `${_src}Sync: 0 police found`, body: `The run completed but found 0 police -- possible block or outage. Added 0.` };
   }
   return { added, found: wazeRaw.length, onRoad: waze.length, incomplete: unresolvedTiles.length, alert };
 }
