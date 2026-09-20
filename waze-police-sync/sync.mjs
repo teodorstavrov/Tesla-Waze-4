@@ -1054,8 +1054,10 @@ async function collectTeslaNavPolice(tiles) {
 
   const list = [...found.values()];
   console.log(`[teslanav] requests: ${totalReqs} OK:${reqOk} errors:${reqErr} | ${list.length} unique POLICE markers.`);
-  if (list.length === 0)
-    collectProblem = collectProblem || 'TeslaNav route collect: 0 police found (possible block or no active alerts).';
+  // 0 police is a legitimate result (no active reports at this time).
+  // Only flag a problem when requests themselves failed (network/HTTP errors).
+  if (reqErr === totalReqs && totalReqs > 0)
+    collectProblem = collectProblem || `TeslaNav: all ${totalReqs} requests failed — possible outage or block.`;
   return list;
 }
 
