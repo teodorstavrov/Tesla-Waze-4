@@ -27,13 +27,14 @@ call :log "================ CHAIN START ================"
 
 REM ── Pre-run throttle guard ──────────────────────────────────────────────────
 REM If the last run was IP-throttled and the 90-min quiet window hasn't expired,
-REM skip this cycle entirely. Hitting Waze again while blocked only deepens it.
+REM skip this cycle entirely. Hitting the source again while blocked only deepens it.
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "$f='.wazesync-throttle';" ^
   "if(Test-Path $f){" ^
   "  $ts=[long](Get-Content $f -Raw -ErrorAction SilentlyContinue);" ^
   "  if($ts -gt 0){" ^
-  "    $ageMs=[long]((Get-Date -UFormat %%s)*1000) - $ts;" ^
+  "    $nowMs=[long]([DateTimeOffset]::UtcNow.ToUnixTimeMilliseconds());" ^
+  "    $ageMs=$nowMs - $ts;" ^
   "    $remMs=90*60*1000 - $ageMs;" ^
   "    if($remMs -gt 0){" ^
   "      $remMin=[math]::Ceiling($remMs/60000);" ^
@@ -43,7 +44,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "}" ^
   "exit 0"
 if %ERRORLEVEL% EQU 2 (
-  call :log "THROTTLE GUARD: skipped run -- IP still in Waze quiet window."
+  call :log "THROTTLE GUARD: skipped run -- IP still in throttle quiet window."
   call :log "================ CHAIN SKIPPED ================"
   powershell -NoProfile -ExecutionPolicy Bypass -File "rotate-log.ps1" -Log "%CHAINLOG%" -Tmp "%CHAINCUR%" -Keep 30 -Marker "##### CHAIN "
   ping -n 11 127.0.0.1 >nul
@@ -75,7 +76,7 @@ goto :cities_done
 call :log "CITIES passed cleanly."
 goto :cities_done
 :cities_guard_skip
-call :log "CITIES skipped by WazeGuard (exit 3) -- cooldown or circuit OPEN."
+call :log "CITIES skipped by SyncGuard (exit 3) -- cooldown or circuit OPEN."
 goto :cities_done
 :cities_partial
 call :log "CITIES partially incomplete (exit 4) -- good enough; missing cities fill next cycle."
