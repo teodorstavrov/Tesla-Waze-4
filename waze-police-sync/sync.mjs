@@ -975,22 +975,47 @@ async function collectWazePolice(tiles) {
 // teslanav.com proxies Waze alerts over a simple JSON API:
 //   GET https://teslanav.com/api/waze?left=&right=&bottom=&top=
 // No Playwright / Chrome needed — plain HTTP fetch is enough.
-// Each tile gets 3 bbox requests: centre + N spoke + S spoke to cover
-// the full highway corridor on both sides of the road centreline.
-async function collectTeslaNavPolice(tiles) {
+//
+// Two tiling strategies depending on group:
+//
+//  route  → 3 N/S spokes, large bbox. A2 runs E-W so N/S sweeps cover the
+//            full corridor including service roads.
+//
+//  cities/nl/be → 4 quadrant sub-bboxes per tile (NE/NW/SE/SW), each
+//            covering ~15×14 km. Dense cities can hit a per-request result
+//            cap in teslanav; splitting into non-overlapping quadrants means
+//            each request gets its own top-N, so we don't miss police that
+//            would be cut off by a single large-bbox request.
+async function collectTeslaNavPolice(tiles, group = 'all') {
   const found = new Map(); // id -> { id, lat, lon }
+  const isRoute = group === 'route';
 
-  // Bbox half-extents (degrees). ~11 km N-S, ~12 km E-W at lat 43°.
-  const LAT_HALF = 0.10;
-  const LON_HALF = 0.15;
-
-  // Centre + north + south spokes (A2 runs E-W, so N/S sweeps catch both
-  // lane sides and service roads off the main carriageway).
-  const SPOKES = [
-    { dlat:  0,    dlon: 0 },
-    { dlat: +0.12, dlon: 0 },
-    { dlat: -0.12, dlon: 0 },
+  // ── Route: centre + N + S spokes, large bbox ────────────────────────────
+  // A2 Hemus runs E-W; N/S spokes add ~13 km corridor on each side.
+  const ROUTE_SPOKES = [
+    { dlat:  0,    dlon:  0,    label: 'C'  },
+    { dlat: +0.12, dlon:  0,    label: 'N'  },
+    { dlat: -0.12, dlon:  0,    label: 'S'  },
   ];
+  const ROUTE_LAT_HALF = 0.10;
+  const ROUTE_LON_HALF = 0.15;
+
+  // ── City/NL/BE: 4 quadrant bboxes ───────────────────────────────────────
+  // Each quadrant is ~0.08° lat × 0.11° lon (~9×8 km half-extents).
+  // Quadrant centres are offset so the 4 bboxes tile the city with minimal
+  // overlap, ensuring each API call covers a distinct area.
+  const CITY_SPOKES = [
+    { dlat: +0.08, dlon: +0.11, label: 'NE' },
+    { dlat: +0.08, dlon: -0.11, label: 'NW' },
+    { dlat: -0.08, dlon: +0.11, label: 'SE' },
+    { dlat: -0.08, dlon: -0.11, label: 'SW' },
+  ];
+  const CITY_LAT_HALF = 0.09;
+  const CITY_LON_HALF = 0.12;
+
+  const SPOKES   = isRoute ? ROUTE_SPOKES   : CITY_SPOKES;
+  const LAT_HALF = isRoute ? ROUTE_LAT_HALF : CITY_LAT_HALF;
+  const LON_HALF = isRoute ? ROUTE_LON_HALF : CITY_LON_HALF;
 
   let totalReqs = 0, reqOk = 0, reqErr = 0;
 
@@ -998,7 +1023,7 @@ async function collectTeslaNavPolice(tiles) {
     const t = tiles[ti];
     let tileFound = 0;
 
-    for (const { dlat, dlon } of SPOKES) {
+    for (const { dlat, dlon, label } of SPOKES) {
       const clat = t.lat + dlat;
       const clon = t.lon + dlon;
       const qs = new URLSearchParams({
@@ -1018,7 +1043,7 @@ async function collectTeslaNavPolice(tiles) {
         }, 15000);
         if (!r.ok) {
           const body = await r.text().catch(() => '');
-          console.log(`  [teslanav] ${t.name} dlat:${dlat>=0?'+':''}${dlat}: HTTP ${r.status} ${body.slice(0,80)}`);
+          console.log(`  [teslanav] ${t.name} [${label}]: HTTP ${r.status} ${body.slice(0,80)}`);
           reqErr++;
           if (r.status === 429) await sleep(30000); // back off on rate-limit
           continue;
@@ -1039,17 +1064,17 @@ async function collectTeslaNavPolice(tiles) {
         }
         reqOk++;
         const mark = policeCount > 0 ? '  <--' : '';
-        console.log(`    ${t.name} [dlat:${dlat>=0?'+':''}${dlat}]: alerts:${alerts.length} police:${policeCount}${mark}`);
+        console.log(`    ${t.name} [${label}]: alerts:${alerts.length} police:${policeCount}${mark}`);
       } catch (e) {
-        console.log(`  [teslanav] ${t.name}: ${e.message.split('\n')[0]}`);
+        console.log(`  [teslanav] ${t.name} [${label}]: ${e.message.split('\n')[0]}`);
         reqErr++;
       }
-      // Polite pacing between bbox requests
-      await sleep(600 + Math.floor(Math.random() * 600));
+      // Polite pacing between sub-bbox requests (reduced — teslanav has no Waze-style rate limit)
+      await sleep(200 + Math.floor(Math.random() * 200));
     }
 
     console.log(`  [${ti + 1}/${tiles.length}] ${t.name}: +${tileFound}`);
-    await sleep(1200 + Math.floor(Math.random() * 800));
+    await sleep(400 + Math.floor(Math.random() * 300));
   }
 
   const list = [...found.values()];
@@ -1208,7 +1233,8 @@ async function main() {
   }
 
   // All groups use teslanav.com's JSON API (no browser / Playwright needed).
-  const wazeRaw = await collectTeslaNavPolice(tiles);
+  // Pass group so the function selects the correct tiling strategy.
+  const wazeRaw = await collectTeslaNavPolice(tiles, arg);
 
   // ---- snap every point to the nearest road (ON-ROAD GUARANTEE) ----
   // A police alert must sit on the road, never off it. We snap each
