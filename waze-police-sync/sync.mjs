@@ -1147,14 +1147,18 @@ async function main() {
   }
 
   // SyncGuard: pre-run check (circuit breaker, cooldown, risk score, budget)
+  // Route uses teslanav.com (plain HTTP, no Waze quota) — guard state tracks Waze health
+  // only, so applying it to route would incorrectly block teslanav runs during Waze outages.
   const _guardArg = (process.argv[2] || 'all').toLowerCase();
-  const _guard = await WazeGuard.check(_guardArg);
-  if (!_guard.allow) {
-    console.log(`[SyncGuard] Run skipped.\nReason: ${_guard.reason}.\nResume after: ${_guard.resumeAfter}`);
-    process.exit(3);
+  if (_guardArg !== 'route') {
+    const _guard = await WazeGuard.check(_guardArg);
+    if (!_guard.allow) {
+      console.log(`[SyncGuard] Run skipped.\nReason: ${_guard.reason}.\nResume after: ${_guard.resumeAfter}`);
+      process.exit(3);
+    }
+    if (_guard.mode && _guard.mode !== 'NORMAL')
+      console.log(`[SyncGuard] Mode: ${_guard.mode} (risk score: ${_guard.riskScore}/100)`);
   }
-  if (_guard.mode && _guard.mode !== 'NORMAL')
-    console.log(`[SyncGuard] Mode: ${_guard.mode} (risk score: ${_guard.riskScore}/100)`);
 
   // Which group to scan: node sync.mjs <group>  (cities | route | all). Default: all.
   const arg = (process.argv[2] || 'all').toLowerCase();
@@ -1347,15 +1351,18 @@ async function main() {
   }
   clearTimeout(watchdog);
   // SyncGuard: record result → update circuit state, risk score, event log
-  try {
-    await WazeGuard.afterRun({
-      group:          process.argv[2] || 'all',
-      warmupThrottled,
-      code,
-      requestCount:   _runGeoRequests,
-      alertFn:        sendAlert,
-    });
-  } catch (e) { console.warn('[SyncGuard] afterRun error:', e.message); }
+  // Route bypasses guard (teslanav.com is independent of Waze quota/health).
+  if (_guardArg !== 'route') {
+    try {
+      await WazeGuard.afterRun({
+        group:          process.argv[2] || 'all',
+        warmupThrottled,
+        code,
+        requestCount:   _runGeoRequests,
+        alertFn:        sendAlert,
+      });
+    } catch (e) { console.warn('[SyncGuard] afterRun error:', e.message); }
+  }
   // Make the exit code reliable: if the browser/CDP closed, Node may drain and
   // exit on its own BEFORE the unref'd timer below — without this it would exit
   // 0 even on a crash, and the chain would wrongly treat the run as "clean".
