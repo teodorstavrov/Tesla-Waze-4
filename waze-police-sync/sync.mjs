@@ -389,12 +389,17 @@ async function collectWazePolice(tiles) {
   });
 
   // Warm up + accept the one-time "I understand" / cookie dialog if present.
+  // Use the FIRST TILE's coordinates so the warm-up georss responses come from
+  // the correct region (NL/BE/BG). The old hardcoded Sofia URL caused NL+BE runs
+  // to capture BG police markers with the 25h NL/BE TTL.
   // Retry the first navigation: right after boot/logon the network/DNS may not
   // be up yet (ERR_NAME_NOT_RESOLVED). Don't let a transient hiccup kill the run.
+  const _warmupTile = tiles[0] || { lat: 42.6977, lon: 23.3219 };
+  const _warmupUrl  = `https://www.waze.com/bg/live-map?lat=${_warmupTile.lat}&lon=${_warmupTile.lon}&zoom=13`;
   let warmedUp = false;
   for (let attempt = 1; attempt <= 5; attempt++) {
     try {
-      await page.goto('https://www.waze.com/bg/live-map?lat=42.6977&lon=23.3219&zoom=13', { waitUntil: 'domcontentloaded', timeout: 30000 });
+      await page.goto(_warmupUrl, { waitUntil: 'domcontentloaded', timeout: 30000 });
       warmedUp = true;
       break;
     } catch (e) {
