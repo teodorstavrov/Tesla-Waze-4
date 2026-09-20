@@ -1,10 +1,8 @@
 /**
- * teslanav.com / Waze → TesRadar police-marker sync
+ * teslanav.com → TesRadar police-marker sync
  * --------------------------------------------------------------
- * Route group: fetches POLICE alerts from https://teslanav.com/api/waze
- *   (plain HTTP — no browser needed).
- * All other groups (cities, nl, be): reads from the Waze live-map via
- *   a real browser context (CDP), because Waze blocks raw API calls.
+ * ALL groups fetch POLICE alerts from https://teslanav.com/api/waze
+ *   (plain HTTP — no browser / Chrome needed).
  * Mirrors markers onto the TesRadar admin map with exact coordinates.
  *
  * Verified TesRadar API contract:
@@ -12,13 +10,12 @@
  *   POST   /api/admin/events            -> { type, lat, lng, description }
  *   DELETE /api/admin/events?id=<id>    -> remove event
  *
- * Verified Waze source:
- *   GET https://www.waze.com/live-map/api/georss
- *       ?top&bottom&left&right&env=row&types=alerts
- *   Returns 200 only inside the real Waze app context; alerts[] items
- *   of type "POLICE" carry { location:{x:lon,y:lat}, uuid, ... }.
+ * Verified teslanav.com source:
+ *   GET https://teslanav.com/api/waze?left=&right=&bottom=&top=
+ *   Returns { alerts: [{ id, type, location:{x:lon,y:lat}, ... }] }
+ *   No auth required. POLICE alerts used.
  *
- * Requires: Node 18+, `npm i playwright` and `npx playwright install chromium`.
+ * Requires: Node 18+.
  */
 
 import { chromium }                       from 'playwright';
@@ -35,9 +32,9 @@ const CONFIG = {
   tesradarBase: 'https://tesradar.tech',
 
   // Location groups. Run one with:  node sync.mjs <group>   (cities | route | all)
-  // Each group is a separate, staggered scheduled task so Waze gets smaller
-  // bursts instead of one big one. A location may set drags:'wide' for richer
-  // sweeps. Sofia is split into 5 sub-points for full metro coverage.
+  // Each group is a separate, staggered scheduled task so teslanav.com gets
+  // smaller bursts instead of one big one. A location may set drags:'wide'
+  // (ignored for teslanav). Sofia is split into 5 sub-points for full metro coverage.
   groups: {
     cities: [
       // PRIORITY cities first — scanned before Sofia's heavy block, so they
@@ -1146,19 +1143,8 @@ async function main() {
     process.exit(1);
   }
 
-  // SyncGuard: pre-run check (circuit breaker, cooldown, risk score, budget)
-  // Route uses teslanav.com (plain HTTP, no Waze quota) — guard state tracks Waze health
-  // only, so applying it to route would incorrectly block teslanav runs during Waze outages.
+  // All groups use teslanav.com — WazeGuard (Waze circuit breaker) is bypassed entirely.
   const _guardArg = (process.argv[2] || 'all').toLowerCase();
-  if (_guardArg !== 'route') {
-    const _guard = await WazeGuard.check(_guardArg);
-    if (!_guard.allow) {
-      console.log(`[SyncGuard] Run skipped.\nReason: ${_guard.reason}.\nResume after: ${_guard.resumeAfter}`);
-      process.exit(3);
-    }
-    if (_guard.mode && _guard.mode !== 'NORMAL')
-      console.log(`[SyncGuard] Mode: ${_guard.mode} (risk score: ${_guard.riskScore}/100)`);
-  }
 
   // Which group to scan: node sync.mjs <group>  (cities | route | all). Default: all.
   const arg = (process.argv[2] || 'all').toLowerCase();
@@ -1167,7 +1153,7 @@ async function main() {
   else if (CONFIG.groups[arg]) tiles = [...CONFIG.groups[arg]];
   else { console.error(`Unknown group "${arg}". Use: ${Object.keys(CONFIG.groups).join(' | ')} | all`); process.exit(1); }
 
-  // Shuffle so Waze never sees the same scan sequence twice.
+  // Shuffle scan order so teslanav.com never sees the same sequence twice.
   // Multi-point metro clusters (Varna-*, Sofia-*) are treated as a single unit
   // so their sub-tiles are always scanned consecutively — splitting them across
   // the map wastes navigation time and makes the scan pattern less coherent.
@@ -1211,22 +1197,19 @@ async function main() {
   // Cities (20 locations): 3-minute breather between the first 10 and the next 10.
   if (arg === 'cities') { midPauseAfter = 10; midPauseMs = 3 * 60 * 1000; }
 
-  // Jitter: random 0..jitterMaxMin minutes, so staggered tasks don't hit Waze
-  // at the exact same clock minute every cycle.
+  // Jitter: random 0..jitterMaxMin minutes, so staggered tasks don't hit
+  // teslanav.com at the exact same clock minute every cycle.
   if (CONFIG.jitterMaxMin > 0) {
     const ms = Math.floor(Math.random() * CONFIG.jitterMaxMin * 60_000);
     console.log(`Jitter: waiting ${(ms / 1000).toFixed(0)}s before starting...`);
     await sleep(ms);
   }
 
-  // Route group uses teslanav.com's JSON API (no browser / Playwright needed).
-  // All other groups (cities, nl, be, all) continue through collectWazePolice().
-  const wazeRaw = (arg === 'route')
-    ? await collectTeslaNavPolice(tiles)
-    : await collectWazePolice(tiles);
+  // All groups use teslanav.com's JSON API (no browser / Playwright needed).
+  const wazeRaw = await collectTeslaNavPolice(tiles);
 
   // ---- snap every point to the nearest road (ON-ROAD GUARANTEE) ----
-  // A police alert must sit on the road, never off it. We snap each Waze
+  // A police alert must sit on the road, never off it. We snap each
   // coordinate to the nearest drivable way; anything farther than
   // maxSnapMeters from a road is discarded as noise.
   const waze = [];
@@ -1289,7 +1272,7 @@ async function main() {
     }
   }
 
-  const _src = arg === 'route' ? 'TeslaNav' : 'Waze';
+  const _src = 'TeslaNav';
   console.log(`Done. Added ${added}, removed ${removed}, ${_src} on-road total ${waze.length}.`);
 
   // Decide whether to raise an email alert.
@@ -1321,9 +1304,9 @@ async function main() {
         if (_throttleAge() < _QUIET_MS) {
           console.warn(`  [alert suppressed] IP throttle ongoing -- already notified ${ageMin}min ago (quiet for 90min)`);
         } else {
-          const subj = 'WazeSync: IP throttled (temporary, ~60min)';
+          const subj = 'TeslaNavSync: source throttled (temporary)';
           const body = r.alert.body +
-            '\n\nThis is a Waze IP-level rate-limit, NOT a Chrome session issue.' +
+            '\n\nThis is a temporary source-level throttle.' +
             '\nIt typically resolves in 30-60min without any manual action.';
           console.warn(`  [alert] ${subj}`);
           await sendAlert(subj, body);
@@ -1350,19 +1333,7 @@ async function main() {
     code = 1;
   }
   clearTimeout(watchdog);
-  // SyncGuard: record result → update circuit state, risk score, event log
-  // Route bypasses guard (teslanav.com is independent of Waze quota/health).
-  if (_guardArg !== 'route') {
-    try {
-      await WazeGuard.afterRun({
-        group:          process.argv[2] || 'all',
-        warmupThrottled,
-        code,
-        requestCount:   _runGeoRequests,
-        alertFn:        sendAlert,
-      });
-    } catch (e) { console.warn('[SyncGuard] afterRun error:', e.message); }
-  }
+  // WazeGuard.afterRun() bypassed — all groups now use teslanav.com, guard tracks Waze only.
   // Make the exit code reliable: if the browser/CDP closed, Node may drain and
   // exit on its own BEFORE the unref'd timer below — without this it would exit
   // 0 even on a crash, and the chain would wrongly treat the run as "clean".
