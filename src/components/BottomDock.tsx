@@ -50,6 +50,16 @@ export function BottomDock() {
     engineToastTimer.current = setTimeout(() => setEngineToast(false), 3000)
   }
 
+  function handleV8Off() {
+    if (v8Mode === 'sport')  v8SportEngine.stop()
+    if (v8Mode === 'muscle') v8MuscleEngine.stop()
+    if (v8Mode === 'header') v8HeaderEngine.stop()
+    if (v8Mode === 's63')    v8AmgEngine.stop()
+    if (v8Mode === 'w12')    v8W12Engine.stop()
+    setV8Mode('off')
+    showEngineToast()
+  }
+
   function handleV8Cycle() {
     if (v8Loading) return
     showEngineToast()
@@ -295,6 +305,30 @@ export function BottomDock() {
         >
           <V8Icon mode={v8Mode} loading={v8Loading} />
         </button>
+
+        {/* OFF button — appears below the engine button when simulator is running */}
+        {v8Mode !== 'off' && (
+          <button
+            onPointerDown={handleV8Off}
+            style={{
+              marginTop: 5,
+              background: 'rgba(255,60,60,0.18)',
+              border: '1px solid rgba(255,80,80,0.55)',
+              borderRadius: 8,
+              color: '#ff6060',
+              fontSize: 'clamp(9px, 1.4vh, 12px)',
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              padding: '4px 14px',
+              cursor: 'pointer',
+              touchAction: 'manipulation',
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+            }}
+          >
+            OFF
+          </button>
+        )}
       </div>
     </div>
   )

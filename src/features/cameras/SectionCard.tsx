@@ -112,7 +112,7 @@ function ActiveView({ session }: { session: SectionSession }) {
 
   return (
     <div
-      className={isTeslaBrowser ? 'glass tesla-overlay-inner' : 'glass'}
+      className={isTeslaBrowser ? 'glass section-hud tesla-overlay-inner' : 'glass section-hud'}
       style={{
         padding: `${Math.round(10*S)}px ${Math.round(16*S)}px`,
         background: 'rgba(10, 10, 18, 0.96)',
@@ -250,8 +250,8 @@ function PreWarnView({ preWarn }: { preWarn: { section: SpeedSection; distM: num
 
   return (
     <div
-      className={isTeslaBrowser ? 'glass tesla-overlay-inner' : 'glass'}
-      style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8 }}
+      className={isTeslaBrowser ? 'glass section-hud tesla-overlay-inner' : 'glass section-hud'}
+      style={{ padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 8, background: 'rgba(10, 10, 18, 0.96)' }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
         <span style={{ fontSize: 15 }}>⚠️</span>
@@ -305,7 +305,7 @@ function ExitResultView({ exit }: { exit: import('./sectionTypes').SectionExit }
 
   return (
     <div
-      className={isTeslaBrowser ? 'glass tesla-overlay-inner' : 'glass'}
+      className={isTeslaBrowser ? 'glass section-hud tesla-overlay-inner' : 'glass section-hud'}
       style={{
         padding: '14px 16px',
         background: 'rgba(10, 10, 18, 0.97)',
@@ -450,7 +450,7 @@ function SectionHistoryBar({
   // ── Expanded panel ─────────────────────────────────────────────────
   return (
     <div
-      className={isTeslaBrowser ? 'glass tesla-overlay-inner' : 'glass'}
+      className={isTeslaBrowser ? 'glass section-hud tesla-overlay-inner' : 'glass section-hud'}
       style={{
         position:  'absolute',
         bottom:    80,

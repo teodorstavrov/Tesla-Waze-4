@@ -64,10 +64,9 @@ export function RoutePanel() {
     const map = getMap()
     const gps = gpsStore.getPosition()
     if (map && gps) {
-      // panTo only — preserve user's current zoom level
       followStore.beginProgrammaticMove()
       map.once('moveend', () => followStore.endProgrammaticMove())
-      map.panTo([gps.lat, gps.lng], { animate: !isTeslaBrowser })
+      map.setView([gps.lat, gps.lng], map.getZoom() + 3, { animate: !isTeslaBrowser })
     }
     followStore.setFollowing(true)
     routeStore.startNavigation()

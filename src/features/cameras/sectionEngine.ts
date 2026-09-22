@@ -67,7 +67,7 @@ function _pointToSegmentDistanceM(
 
 export interface SectionState {
   session:  SectionSession | null   // active section, or null if none
-  lastExit: SectionExit | null      // most recent exit — cleared after 15s (brief notification)
+  lastExit: SectionExit | null      // most recent exit — auto-clears after AUTO_CLOSE_MS
   preWarn: {                        // approaching a section (within PREWARN_M)
     section: SpeedSection
     distM:   number
@@ -84,6 +84,24 @@ function _emit(): void {
   _listeners.forEach((fn) => fn())
 }
 
+// ── Auto-close timer for exit summary panel ────────────────────────────
+const AUTO_CLOSE_MS = 3 * 60 * 1000   // 3 min — then panel disappears automatically
+
+let _autoCloseTimer: ReturnType<typeof setTimeout> | null = null
+
+function _clearAutoClose(): void {
+  if (_autoCloseTimer) { clearTimeout(_autoCloseTimer); _autoCloseTimer = null }
+}
+
+function _scheduleAutoClose(): void {
+  _clearAutoClose()
+  _autoCloseTimer = setTimeout(() => {
+    _autoCloseTimer = null
+    _state = { ..._state, lastExit: null }
+    _emit()
+  }, AUTO_CLOSE_MS)
+}
+
 export const sectionStore = {
   getState: (): Readonly<SectionState> => _state,
   subscribe(fn: Listener): () => void {
@@ -92,10 +110,12 @@ export const sectionStore = {
   },
   /** Manually dismiss the exit summary card (X button). */
   clearLastExit(): void {
+    _clearAutoClose()
     _state = { ..._state, lastExit: null }
     _emit()
   },
   clearHistory(): void {
+    _clearAutoClose()
     _state = { ..._state, history: [], lastExit: null }
     _emit()
   },
@@ -145,6 +165,60 @@ function _playExitSound(ok: boolean): void {
   } else {
     audioManager.beep(480, 220)
     setTimeout(() => audioManager.beep(320, 300), 270)
+  }
+}
+
+// ── Shared exit finaliser ─────────────────────────────────────────────
+// Called by normal exit, reversed exit, AND the periodic off-section check.
+function _doExit(sess: SectionSession, finalAvg: number, now: number): void {
+  const exitOk = finalAvg <= sess.section.limitKmh
+  _playExitSound(exitOk)
+  _emaAvg = null
+  _lastEmittedAvg = -1; _lastEmittedDistBkt = -1; _lastEmittedWarned = false
+  _lastExitedSection = sess.section
+  _lastExitAt        = now
+  const exitEntry: SectionExit = {
+    section:   sess.section,
+    avgKmh:    finalAvg,
+    limitKmh:  sess.section.limitKmh,
+    timestamp: now,
+  }
+  _state = { session: null, preWarn: null, lastExit: exitEntry, history: [..._state.history, exitEntry] }
+  _emit()
+  _scheduleAutoClose()
+}
+
+// ── Periodic off-section check (every 60 s) ───────────────────────────
+// Catches exits the per-tick deviation/length checks miss (parallel roads,
+// GPS jumps, early offramp stays close to centreline for several ticks).
+function _checkPeriodicExit(): void {
+  if (!_state.session) return
+  const pos = gpsStore.getPosition()
+  if (!pos) return
+
+  const sess = _state.session
+  const now  = Date.now()
+
+  // Give GPS at least 30 s to settle before forcing an exit
+  if (now - sess.enteredAt < 30_000) return
+
+  const distToStart = haversineMeters([pos.lat, pos.lng], [sess.section.startLat, sess.section.startLng])
+  const distToEnd   = haversineMeters([pos.lat, pos.lng], [sess.section.endLat,   sess.section.endLng])
+  const deviationM  = _pointToSegmentDistanceM(
+    [pos.lat, pos.lng],
+    [sess.section.startLat, sess.section.startLng],
+    [sess.section.endLat,   sess.section.endLng],
+  )
+
+  // Clearly off the section: far sideways from the centreline (and not at end camera)
+  const offSide  = deviationM > 300 && distToEnd > EXIT_M
+  // Or: total dist from both cameras exceeds section length significantly
+  const offRoute = distToStart + distToEnd > sess.section.lengthM * 1.5
+
+  if (offSide || offRoute) {
+    const elapsedS = (now - sess.enteredAt) / 1000
+    const finalAvg = elapsedS > 0 ? Math.round((sess.distM / elapsedS) * 3.6) : sess.avgKmh
+    _doExit(sess, finalAvg, now)
   }
 }
 
@@ -241,22 +315,8 @@ function _onPosition(pos: GpsPosition): void {
       const finalAvg = elapsedFinalS > 0
         ? Math.round((sess.distM / elapsedFinalS) * 3.6)
         : sess.avgKmh
-      const exitOk = finalAvg <= sess.section.limitKmh
-      _playExitSound(exitOk)
-      _emaAvg = null
-      _lastEmittedAvg = -1; _lastEmittedDistBkt = -1; _lastEmittedWarned = false
-      _lastExitedSection = sess.section
-      _lastExitAt        = now
-      const exitEntry: SectionExit = {
-        section:   sess.section,
-        avgKmh:    finalAvg,
-        limitKmh:  sess.section.limitKmh,
-        timestamp: now,
-      }
-      // lastExit stays until manually dismissed — no auto-clear
-      _state = { session: null, preWarn: null, lastExit: exitEntry, history: [..._state.history, exitEntry] }
+      _doExit(sess, finalAvg, now)
       _prevPos = pos
-      _emit()
       return
     }
 
@@ -267,29 +327,8 @@ function _onPosition(pos: GpsPosition): void {
       const finalAvg = elapsedFinalS > 0
         ? Math.round((distForAvg / elapsedFinalS) * 3.6)
         : sess.avgKmh
-
-      const exitOk = finalAvg <= sess.section.limitKmh
-      _playExitSound(exitOk)
-
-      _emaAvg = null
-      _lastEmittedAvg = -1; _lastEmittedDistBkt = -1; _lastEmittedWarned = false
-      _lastExitedSection = sess.section
-      _lastExitAt        = now
-      const exitEntry: SectionExit = {
-        section:   sess.section,
-        avgKmh:    finalAvg,
-        limitKmh:  sess.section.limitKmh,
-        timestamp: now,
-      }
-      // lastExit stays until manually dismissed — no auto-clear
-      _state = {
-        session:  null,
-        preWarn:  null,
-        lastExit: exitEntry,
-        history:  [..._state.history, exitEntry],
-      }
+      _doExit(sess, finalAvg, now)
       _prevPos = pos
-      _emit()
       return
     }
 
@@ -506,15 +545,19 @@ function _onPosition(pos: GpsPosition): void {
 // ── Public API ────────────────────────────────────────────────────────
 
 let _unsub: (() => void) | null = null
+let _periodicTimer: ReturnType<typeof setInterval> | null = null
 
 export const sectionEngine = {
   start(): void {
     if (_unsub) return
     _unsub = gpsStore.onPosition(_onPosition)
+    _periodicTimer = setInterval(_checkPeriodicExit, 60_000)
   },
   stop(): void {
     _unsub?.()
     _unsub = null
     _prevPos = null
+    if (_periodicTimer) { clearInterval(_periodicTimer); _periodicTimer = null }
+    _clearAutoClose()
   },
 }

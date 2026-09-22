@@ -185,7 +185,7 @@ const CONFIG = {
     resendApiKey: process.env.RESEND_API_KEY || '',
     from: 'TesRadar Alerts <noreply@tesradar.tech>',  // must be a verified domain in your Resend account
     to: 'teodorstavrov@gmail.com',                    // where alerts go
-    alertOnZero: true,   // also alert if a run finds 0 police anywhere (possible block/outage)
+    alertOnZero: false,  // 0 police is normal at night — only alert when all requests fail
   },
 };
 // ------------------------------------------------------------------
@@ -1010,8 +1010,8 @@ async function collectTeslaNavPolice(tiles, group = 'all') {
     { dlat: -0.08, dlon: +0.11, label: 'SE' },
     { dlat: -0.08, dlon: -0.11, label: 'SW' },
   ];
-  const CITY_LAT_HALF = 0.09;
-  const CITY_LON_HALF = 0.12;
+  const CITY_LAT_HALF = 0.10;
+  const CITY_LON_HALF = 0.14;
 
   const SPOKES   = isRoute ? ROUTE_SPOKES   : CITY_SPOKES;
   const LAT_HALF = isRoute ? ROUTE_LAT_HALF : CITY_LAT_HALF;
@@ -1040,7 +1040,7 @@ async function collectTeslaNavPolice(tiles, group = 'all') {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': 'application/json',
           },
-        }, 15000);
+        }, 25000);
         if (!r.ok) {
           const body = await r.text().catch(() => '');
           console.log(`  [teslanav] ${t.name} [${label}]: HTTP ${r.status} ${body.slice(0,80)}`);
@@ -1069,12 +1069,12 @@ async function collectTeslaNavPolice(tiles, group = 'all') {
         console.log(`  [teslanav] ${t.name} [${label}]: ${e.message.split('\n')[0]}`);
         reqErr++;
       }
-      // Polite pacing between sub-bbox requests (reduced — teslanav has no Waze-style rate limit)
-      await sleep(200 + Math.floor(Math.random() * 200));
+      // Pacing between sub-bbox requests — gives teslanav.com time to respond at each location
+      await sleep(400 + Math.floor(Math.random() * 300));
     }
 
     console.log(`  [${ti + 1}/${tiles.length}] ${t.name}: +${tileFound}`);
-    await sleep(400 + Math.floor(Math.random() * 300));
+    await sleep(600 + Math.floor(Math.random() * 400));
   }
 
   const list = [...found.values()];

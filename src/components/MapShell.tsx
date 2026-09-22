@@ -342,10 +342,10 @@ export function MapShell() {
       const { lat, lng } = e.latlng
 
       const wrap = document.createElement('div')
-      wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:10px;padding:6px 2px'
+      wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:6px;padding:4px 2px'
 
       const addr = document.createElement('div')
-      addr.style.cssText = 'font-size:12px;color:rgba(255,255,255,0.55);text-align:center;line-height:1.4;max-width:220px'
+      addr.style.cssText = 'font-size:9px;color:rgba(255,255,255,0.55);text-align:center;line-height:1.4;max-width:132px'
       addr.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`
 
       const btn = document.createElement('button')
@@ -354,9 +354,9 @@ export function MapShell() {
         'background:#e31937',
         'color:#fff',
         'border:none',
-        'border-radius:10px',
-        'padding:13px 32px',
-        'font-size:17px',
+        'border-radius:6px',
+        'padding:8px 19px',
+        'font-size:10px',
         'font-weight:800',
         'letter-spacing:0.04em',
         'cursor:pointer',
@@ -366,7 +366,7 @@ export function MapShell() {
 
       // ── Place buttons row (Дом / Работа) ─────────────────────────
       const placeRow = document.createElement('div')
-      placeRow.style.cssText = 'display:flex;gap:8px;width:100%'
+      placeRow.style.cssText = 'display:flex;gap:5px;width:100%'
 
       function makePlaceBtn(emoji: string, color: string, type: 'home' | 'work'): HTMLButtonElement {
         const existing = savedPlacesStore.get(type)
@@ -379,9 +379,9 @@ export function MapShell() {
         b.style.cssText = [
           `background:${isSet ? color + '33' : 'rgba(255,255,255,0.08)'}`,
           `color:${isSet ? color : 'rgba(255,255,255,0.7)'}`,
-          `border:1.5px solid ${isSet ? color + '88' : 'rgba(255,255,255,0.15)'}`,
-          'border-radius:10px', 'padding:10px 0',
-          'font-size:13px', 'font-weight:700',
+          `border:1px solid ${isSet ? color + '88' : 'rgba(255,255,255,0.15)'}`,
+          'border-radius:6px', 'padding:6px 0',
+          'font-size:9px', 'font-weight:700',
           'cursor:pointer', 'touch-action:manipulation', 'flex:1',
         ].join(';')
         b.addEventListener('click', () => {
@@ -400,9 +400,9 @@ export function MapShell() {
       addStationBtn.style.cssText = [
         'background:rgba(251,191,36,0.12)',
         'color:#fbbf24',
-        'border:1.5px solid rgba(251,191,36,0.4)',
-        'border-radius:10px', 'padding:10px 0',
-        'font-size:13px', 'font-weight:700',
+        'border:1px solid rgba(251,191,36,0.4)',
+        'border-radius:6px', 'padding:6px 0',
+        'font-size:9px', 'font-weight:700',
         'cursor:pointer', 'touch-action:manipulation', 'width:100%',
         'letter-spacing:0.04em',
       ].join(';')
@@ -416,9 +416,9 @@ export function MapShell() {
       addEventBtn.style.cssText = [
         'background:rgba(99,102,241,0.14)',
         'color:#a5b4fc',
-        'border:1.5px solid rgba(99,102,241,0.45)',
-        'border-radius:10px', 'padding:10px 0',
-        'font-size:13px', 'font-weight:700',
+        'border:1px solid rgba(99,102,241,0.45)',
+        'border-radius:6px', 'padding:6px 0',
+        'font-size:9px', 'font-weight:700',
         'cursor:pointer', 'touch-action:manipulation', 'width:100%',
         'letter-spacing:0.04em',
       ].join(';')
@@ -436,7 +436,7 @@ export function MapShell() {
       L.popup({
         className:    'nav-popup',
         closeButton:  true,
-        maxWidth:     280,
+        maxWidth:     170,
         offset:       [0, -6],
       })
         .setLatLng(e.latlng)
