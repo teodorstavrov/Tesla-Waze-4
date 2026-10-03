@@ -8,7 +8,7 @@ import { batteryStore } from '@/features/planning/batteryStore'
 import { vehicleProfileStore } from '@/features/planning/store'
 import { estimateArrivalBattery } from '@/features/planning/estimator'
 import { gpsStore } from '@/features/gps/gpsStore'
-import { isPhone } from '@/lib/browser'
+import { isPhone, isTeslaBrowser } from '@/lib/browser'
 
 function pad(n: number): string { return n.toString().padStart(2, '0') }
 function fmtTime(date: Date): string { return `${pad(date.getHours())}:${pad(date.getMinutes())}` }
@@ -77,7 +77,7 @@ export function TripSummaryBanner({ onClick }: { onClick?: () => void } = {}) {
   const posStyle: React.CSSProperties = isPhone
     ? { bottom: 104, left: 12, right: 12 }
     : interactive
-      ? { bottom: 24, left: 'calc(25% - 40px)', transform: 'translateX(-50%)' }
+      ? { bottom: 24, left: isTeslaBrowser ? 'calc(42% - 40px)' : 'calc(25% - 40px)', transform: 'translateX(-50%)' }
       : { bottom: 30, right: 12, transform: 'translateZ(0)' }
 
   return (

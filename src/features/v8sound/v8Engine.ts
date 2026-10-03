@@ -179,6 +179,7 @@ class V8EngineSound {
   private _rafId:          number | null = null
   private _speedDecreasing = false   // set by GPS callback; drives rAF rate selection
   private _prevGpsKmh      = 0
+  private _testMode        = false
 
   // Exhaust pop decel detection
   private _prevKmh = 0
@@ -252,6 +253,7 @@ class V8EngineSound {
     this._prevGpsKmh = initKmh; this._speedDecreasing = false
 
     this.unsubGps = gpsStore.onPosition((pos) => {
+      if (this._testMode) return
       const kmh = pos?.speedKmh ?? 0
       this._speedDecreasing = kmh < this._prevGpsKmh
       this._prevGpsKmh = kmh
@@ -264,6 +266,18 @@ class V8EngineSound {
     this._volMult = Math.max(0, m)
     if (this.masterGain && this.ctx)
       this.masterGain.gain.setTargetAtTime(this.cfg.masterVol * this._volMult, this.ctx.currentTime, 0.1)
+  }
+
+  simulateThrottle(on: boolean): void {
+    if (!this._running) return
+    this._testMode = on
+    if (on) {
+      this._speedDecreasing = false
+      this._targetHz = this._toHz(speedToRpm(90, this.cfg.gears))
+    } else {
+      this._speedDecreasing = true
+      this._targetHz = this._toHz(speedToRpm(0, this.cfg.gears))
+    }
   }
 
   stop(): void {

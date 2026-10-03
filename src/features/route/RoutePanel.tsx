@@ -66,7 +66,7 @@ export function RoutePanel() {
     if (map && gps) {
       followStore.beginProgrammaticMove()
       map.once('moveend', () => followStore.endProgrammaticMove())
-      map.setView([gps.lat, gps.lng], map.getZoom() + 3, { animate: !isTeslaBrowser })
+      map.setView([gps.lat, gps.lng], 15, { animate: !isTeslaBrowser })
     }
     followStore.setFollowing(true)
     routeStore.startNavigation()

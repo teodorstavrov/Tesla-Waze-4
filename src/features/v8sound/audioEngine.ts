@@ -102,6 +102,7 @@ class HybridAudioEngine {
   private _rafId:          number | null = null
   private _speedDecreasing = false
   private _prevGpsKmh      = 0
+  private _testMode        = false
 
   private readonly cfg: HybridConfig
   constructor(cfg: HybridConfig) { this.cfg = cfg }
@@ -178,6 +179,7 @@ class HybridAudioEngine {
 
       // GPS sets target; rAF interpolates every frame
       this.unsubGps = gpsStore.onPosition((pos) => {
+        if (this._testMode) return
         if (pos?.speedKmh != null) {
           this._speedDecreasing = pos.speedKmh < this._prevGpsKmh
           this._prevGpsKmh = pos.speedKmh
@@ -213,6 +215,18 @@ class HybridAudioEngine {
     this._volMult = Math.max(0, m)
     if (this.masterGain && this.ctx)
       this.masterGain.gain.setTargetAtTime(this._volMult, this.ctx.currentTime, 0.1)
+  }
+
+  simulateThrottle(on: boolean): void {
+    if (!this._running) return
+    this._testMode = on
+    if (on) {
+      this._speedDecreasing = false
+      this._targetKmh = 90
+    } else {
+      this._speedDecreasing = true
+      this._targetKmh = 0
+    }
   }
 
   stop(): void {

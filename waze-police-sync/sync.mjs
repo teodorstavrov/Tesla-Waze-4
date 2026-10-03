@@ -90,6 +90,15 @@ const CONFIG = {
       { name: 'Dusseldorf', lat: 51.2277, lon: 6.7735, drags: 'wide' },
     ],
 
+    // Germany — 5 largest cities.
+    de: [
+      { name: 'Berlin',    lat: 52.5200, lon: 13.4050, drags: 'wide' },
+      { name: 'Hamburg',   lat: 53.5511, lon: 9.9937,  drags: 'wide' },
+      { name: 'Munchen',   lat: 48.1351, lon: 11.5820, drags: 'wide' },
+      { name: 'Koln',      lat: 50.9333, lon: 6.9600  },
+      { name: 'Frankfurt', lat: 50.1109, lon: 8.6821  },
+    ],
+
     // Belgium — major cities + the busy Antwerp–Brussels–Ghent triangle (E19/E40).
     // Ordered big-first so priority metros get fresh (un-throttled) requests.
     // Kept to ~11 points so Waze gets a modest burst (lower rate-limit risk).
@@ -1000,30 +1009,37 @@ async function collectTeslaNavPolice(tiles, group = 'all') {
   const ROUTE_LAT_HALF = 0.10;
   const ROUTE_LON_HALF = 0.15;
 
-  // ── City/NL/BE: 4 quadrant bboxes ───────────────────────────────────────
-  // Each quadrant is ~0.08° lat × 0.11° lon (~9×8 km half-extents).
-  // Quadrant centres are offset so the 4 bboxes tile the city with minimal
-  // overlap, ensuring each API call covers a distinct area.
-  const CITY_SPOKES = [
-    { dlat: +0.08, dlon: +0.11, label: 'NE' },
-    { dlat: +0.08, dlon: -0.11, label: 'NW' },
-    { dlat: -0.08, dlon: +0.11, label: 'SE' },
-    { dlat: -0.08, dlon: -0.11, label: 'SW' },
-  ];
-  const CITY_LAT_HALF = 0.10;
+  // ── City/NL/BE: 4 non-overlapping quadrant bboxes ───────────────────────
+  // dlat/dlon offsets are EXACTLY equal to the bbox half-extents, so the 4
+  // tiles share edges at (t.lat, t.lon) with zero overlap and zero gap:
+  //   NE covers [t.lat .. t.lat+2H] × [t.lon .. t.lon+2W]
+  //   NW covers [t.lat .. t.lat+2H] × [t.lon-2W .. t.lon]
+  //   SE covers [t.lat-2H .. t.lat] × [t.lon .. t.lon+2W]
+  //   SW covers [t.lat-2H .. t.lat] × [t.lon-2W .. t.lon]
+  const CITY_LAT_HALF = 0.10;   // ~11 km per half → each quadrant ~22 × 22 km
   const CITY_LON_HALF = 0.14;
+  const CITY_SPOKES = [
+    { dlat: +CITY_LAT_HALF, dlon: +CITY_LON_HALF, label: 'NE' },
+    { dlat: +CITY_LAT_HALF, dlon: -CITY_LON_HALF, label: 'NW' },
+    { dlat: -CITY_LAT_HALF, dlon: +CITY_LON_HALF, label: 'SE' },
+    { dlat: -CITY_LAT_HALF, dlon: -CITY_LON_HALF, label: 'SW' },
+  ];
 
   const SPOKES   = isRoute ? ROUTE_SPOKES   : CITY_SPOKES;
   const LAT_HALF = isRoute ? ROUTE_LAT_HALF : CITY_LAT_HALF;
   const LON_HALF = isRoute ? ROUTE_LON_HALF : CITY_LON_HALF;
 
   let totalReqs = 0, reqOk = 0, reqErr = 0;
+  let consecutiveErrors = 0;          // early-bail counter
+  const MAX_CONSECUTIVE_ERRORS = 6;   // bail if 6 requests in a row fail/timeout
 
   for (let ti = 0; ti < tiles.length; ti++) {
     const t = tiles[ti];
     let tileFound = 0;
 
     for (const { dlat, dlon, label } of SPOKES) {
+      // 5s pre-wait before each new map point — lets teslanav.com finish loading the area
+      await sleep(5000);
       const clat = t.lat + dlat;
       const clon = t.lon + dlon;
       const qs = new URLSearchParams({
@@ -1040,41 +1056,63 @@ async function collectTeslaNavPolice(tiles, group = 'all') {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
             'Accept': 'application/json',
           },
-        }, 25000);
+        }, 10000);
         if (!r.ok) {
           const body = await r.text().catch(() => '');
           console.log(`  [teslanav] ${t.name} [${label}]: HTTP ${r.status} ${body.slice(0,80)}`);
           reqErr++;
+          consecutiveErrors++;
           if (r.status === 429) await sleep(30000); // back off on rate-limit
           continue;
         }
         const data = await r.json();
+        // Diagnostic: log raw structure on first OK response so format changes are visible
+        if (reqOk === 0) {
+          const sample = data.alerts && data.alerts[0];
+          console.log(`  [teslanav] first OK response — keys: ${Object.keys(data).join(',')}${sample ? ` | alert[0] keys: ${Object.keys(sample).join(',')} type=${sample.type}` : ' | alerts empty'}`);
+        }
         const alerts = data.alerts || [];
         let policeCount = 0;
         for (const a of alerts) {
-          if (a.type !== 'POLICE') continue;
+          if ((a.type || '').toUpperCase() !== 'POLICE') continue;  // case-insensitive
           const loc = a.location || {};
           if (typeof loc.y !== 'number' || typeof loc.x !== 'number') continue;
           policeCount++;
-          const id = a.id;
+          const id = a.id || a.uuid;   // teslanav may use either field
           if (id && !found.has(id)) {
             found.set(id, { id, lat: loc.y, lon: loc.x });
             tileFound++;
           }
         }
         reqOk++;
+        consecutiveErrors = 0;  // reset on success
         const mark = policeCount > 0 ? '  <--' : '';
-        console.log(`    ${t.name} [${label}]: alerts:${alerts.length} police:${policeCount}${mark}`);
+        // If alerts returned but none are POLICE, log the types we got (helps detect API changes)
+        if (policeCount === 0 && alerts.length > 0) {
+          const types = [...new Set(alerts.map(a => a.type).filter(Boolean))].slice(0, 5).join(',');
+          console.log(`    ${t.name} [${label}]: alerts:${alerts.length} police:0 (types: ${types})`);
+        } else {
+          console.log(`    ${t.name} [${label}]: alerts:${alerts.length} police:${policeCount}${mark}`);
+        }
       } catch (e) {
         console.log(`  [teslanav] ${t.name} [${label}]: ${e.message.split('\n')[0]}`);
         reqErr++;
+        consecutiveErrors++;
       }
-      // Pacing between sub-bbox requests — gives teslanav.com time to respond at each location
-      await sleep(400 + Math.floor(Math.random() * 300));
+
+      // Early bail: teslanav.com is clearly down — stop wasting time
+      if (consecutiveErrors >= MAX_CONSECUTIVE_ERRORS) {
+        console.log(`  [teslanav] ${consecutiveErrors} consecutive failures — teslanav.com appears unreachable. Stopping early.`);
+        collectProblem = collectProblem || `TeslaNav: ${consecutiveErrors} consecutive failures — server unreachable or blocking this IP.`;
+        return [...found.values()];
+      }
+
+      // 10s minimum between bbox requests — teslanav.com needs time to load markers at each new location
+      await sleep(10000 + Math.floor(Math.random() * 5000));
     }
 
     console.log(`  [${ti + 1}/${tiles.length}] ${t.name}: +${tileFound}`);
-    await sleep(600 + Math.floor(Math.random() * 400));
+    await sleep(10000 + Math.floor(Math.random() * 5000));
   }
 
   const list = [...found.values()];
@@ -1217,8 +1255,8 @@ async function main() {
   // NL/BE sync once a day: markers live 25h (24h + 1h buffer).
   // Route syncs every 4h: markers live 4h15m (4h + 15min buffer so nothing expires early).
   // Cities keeps the server default (2h15m) by leaving markerTtlMs null.
-  markerTtlMs = (arg === 'nl' || arg === 'be') ? 25 * 60 * 60 * 1000          // 25 h
-              : arg === 'route'                 ? (4 * 60 + 15) * 60 * 1000    // 4 h 15 min
+  markerTtlMs = (arg === 'nl' || arg === 'be' || arg === 'de') ? 25 * 60 * 60 * 1000       // 25 h
+              : arg === 'route'                                ? (4 * 60 + 15) * 60 * 1000 // 4 h 15 min
               : null;
 
   // Cities (20 locations): 3-minute breather between the first 10 and the next 10.

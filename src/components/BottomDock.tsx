@@ -60,6 +60,14 @@ export function BottomDock() {
     showEngineToast()
   }
 
+  function handleV8Test(on: boolean) {
+    if (v8Mode === 'sport')  v8SportEngine.simulateThrottle(on)
+    if (v8Mode === 'muscle') v8MuscleEngine.simulateThrottle(on)
+    if (v8Mode === 'header') v8HeaderEngine.simulateThrottle(on)
+    if (v8Mode === 's63')    v8AmgEngine.simulateThrottle(on)
+    if (v8Mode === 'w12')    v8W12Engine.simulateThrottle(on)
+  }
+
   function handleV8Cycle() {
     if (v8Loading) return
     showEngineToast()
@@ -327,6 +335,32 @@ export function BottomDock() {
             }}
           >
             OFF
+          </button>
+        )}
+
+        {/* TEST button — hold to rev to 70% throttle, release to drop to idle */}
+        {v8Mode !== 'off' && (
+          <button
+            onPointerDown={() => handleV8Test(true)}
+            onPointerUp={() => handleV8Test(false)}
+            onPointerLeave={() => handleV8Test(false)}
+            style={{
+              marginTop: 4,
+              background: 'rgba(255,165,0,0.18)',
+              border: '1px solid rgba(255,165,0,0.55)',
+              borderRadius: 8,
+              color: '#ffaa30',
+              fontSize: 'clamp(9px, 1.4vh, 12px)',
+              fontWeight: 700,
+              letterSpacing: '0.08em',
+              padding: '4px 14px',
+              cursor: 'pointer',
+              touchAction: 'manipulation',
+              userSelect: 'none',
+              WebkitUserSelect: 'none',
+            }}
+          >
+            TEST
           </button>
         )}
       </div>
