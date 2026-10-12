@@ -24,28 +24,33 @@ export interface ModelConfig {
 export const VEHICLE_CONFIGS: ModelConfig[] = [
   {
     model: 'Model 3',
-    yearRange: [2017, 2025],
+    yearRange: [2017, 2026],
     trims: [
       { id: 'SR',      label: 'Standard Range',        usableKwh: 50,   efficiencyWhKm: 145, yearRange: [2017, 2022] },
       { id: 'SR+',     label: 'Standard Range Plus',   usableKwh: 54,   efficiencyWhKm: 145, yearRange: [2019, 2021] },
-      { id: 'RWD',     label: 'RWD',                   usableKwh: 57.5, efficiencyWhKm: 140, yearRange: [2023, 2025] },
-      { id: 'LR',      label: 'Long Range AWD',        usableKwh: 75,   efficiencyWhKm: 148, yearRange: [2017, 2025] },
+      { id: 'RWD',     label: 'RWD',                   usableKwh: 57.5, efficiencyWhKm: 140, yearRange: [2023, 2026] },
+      { id: 'LR',      label: 'Long Range AWD',        usableKwh: 75,   efficiencyWhKm: 148, yearRange: [2017, 2026] },
       { id: 'PERF',    label: 'Performance',           usableKwh: 75,   efficiencyWhKm: 158, yearRange: [2018, 2025] },
+      // ── 2026 Performance — updated specs (Highland refresh) ──────
+      { id: 'PERF_26', label: 'Performance (2026)',    usableKwh: 78,   efficiencyWhKm: 155, yearRange: [2026, 2026] },
     ],
   },
   {
     model: 'Model Y',
-    yearRange: [2020, 2025],
+    yearRange: [2020, 2026],
     trims: [
       { id: 'SR',      label: 'Standard Range',        usableKwh: 57.5, efficiencyWhKm: 158, yearRange: [2020, 2021] },
-      { id: 'RWD',     label: 'RWD',                   usableKwh: 57.5, efficiencyWhKm: 155, yearRange: [2022, 2025] },
-      { id: 'LR',      label: 'Long Range AWD',        usableKwh: 75,   efficiencyWhKm: 162, yearRange: [2020, 2025] },
+      { id: 'RWD',     label: 'RWD',                   usableKwh: 57.5, efficiencyWhKm: 155, yearRange: [2022, 2026] },
+      { id: 'LR',      label: 'Long Range AWD',        usableKwh: 75,   efficiencyWhKm: 162, yearRange: [2020, 2026] },
+      { id: 'LR_RWD',  label: 'Long Range RWD',        usableKwh: 75,   efficiencyWhKm: 150, yearRange: [2026, 2026] },
       { id: 'PERF',    label: 'Performance',           usableKwh: 75,   efficiencyWhKm: 172, yearRange: [2020, 2025] },
+      // ── 2026 Performance — Juniper refresh ──────────────────────
+      { id: 'PERF_26', label: 'Performance (2026)',    usableKwh: 78,   efficiencyWhKm: 168, yearRange: [2026, 2026] },
     ],
   },
   {
     model: 'Model S',
-    yearRange: [2012, 2025],
+    yearRange: [2012, 2026],
     trims: [
       // ── 2012–2016 era ───────────────────────────────────────────
       { id: 'S60',       label: '60 RWD',          usableKwh: 58,  efficiencyWhKm: 200, yearRange: [2012, 2016] },
@@ -60,8 +65,8 @@ export const VEHICLE_CONFIGS: ModelConfig[] = [
       // ── 2019–2021 era ───────────────────────────────────────────
       { id: 'LR_AWD_19', label: 'Long Range AWD',  usableKwh: 95,  efficiencyWhKm: 172, yearRange: [2019, 2021] },
       // ── 2021+ era ───────────────────────────────────────────────
-      { id: 'LR_AWD',    label: 'Long Range AWD',  usableKwh: 95,  efficiencyWhKm: 175, yearRange: [2021, 2025] },
-      { id: 'PLAID',     label: 'Plaid',           usableKwh: 95,  efficiencyWhKm: 192, yearRange: [2021, 2025] },
+      { id: 'LR_AWD',    label: 'Long Range AWD',  usableKwh: 95,  efficiencyWhKm: 175, yearRange: [2021, 2026] },
+      { id: 'PLAID',     label: 'Plaid',           usableKwh: 95,  efficiencyWhKm: 192, yearRange: [2021, 2026] },
       // ── Legacy IDs — kept for backward-compat of saved profiles ─
       { id: 'P85',       label: '85 AWD',          usableKwh: 74,  efficiencyWhKm: 185, yearRange: [2012, 2016] },
       { id: 'P85D',      label: '85 AWD',          usableKwh: 74,  efficiencyWhKm: 183, yearRange: [2012, 2016] },
@@ -72,7 +77,7 @@ export const VEHICLE_CONFIGS: ModelConfig[] = [
   },
   {
     model: 'Model X',
-    yearRange: [2015, 2025],
+    yearRange: [2015, 2026],
     trims: [
       // ── Pre-refresh (2015–2020) ──────────────────────────────────
       { id: 'X90D',   label: '90D',           usableKwh: 81,  efficiencyWhKm: 210, yearRange: [2015, 2017] },
@@ -82,17 +87,17 @@ export const VEHICLE_CONFIGS: ModelConfig[] = [
       { id: 'XP100D', label: 'P100D',         usableKwh: 93,  efficiencyWhKm: 218, yearRange: [2016, 2020] },
       { id: 'LR',     label: 'Long Range',    usableKwh: 95,  efficiencyWhKm: 195, yearRange: [2019, 2020] },
       // ── 2021+ refresh ────────────────────────────────────────────
-      { id: 'LR_AWD', label: 'Long Range AWD',usableKwh: 95,  efficiencyWhKm: 198, yearRange: [2021, 2025] },
-      { id: 'PLAID',  label: 'Plaid',         usableKwh: 95,  efficiencyWhKm: 215, yearRange: [2021, 2025] },
+      { id: 'LR_AWD', label: 'Long Range AWD',usableKwh: 95,  efficiencyWhKm: 198, yearRange: [2021, 2026] },
+      { id: 'PLAID',  label: 'Plaid',         usableKwh: 95,  efficiencyWhKm: 215, yearRange: [2021, 2026] },
     ],
   },
   {
     model: 'Cybertruck',
-    yearRange: [2023, 2025],
+    yearRange: [2023, 2026],
     trims: [
-      { id: 'RWD',     label: 'RWD',                   usableKwh: 100,  efficiencyWhKm: 240, yearRange: [2024, 2025] },
-      { id: 'AWD',     label: 'AWD',                   usableKwh: 123,  efficiencyWhKm: 248, yearRange: [2023, 2025] },
-      { id: 'CS',      label: 'Cyberbeast',            usableKwh: 123,  efficiencyWhKm: 265, yearRange: [2023, 2025] },
+      { id: 'RWD',     label: 'RWD',                   usableKwh: 100,  efficiencyWhKm: 240, yearRange: [2024, 2026] },
+      { id: 'AWD',     label: 'AWD',                   usableKwh: 123,  efficiencyWhKm: 248, yearRange: [2023, 2026] },
+      { id: 'CS',      label: 'Cyberbeast',            usableKwh: 123,  efficiencyWhKm: 265, yearRange: [2023, 2026] },
     ],
   },
 ]

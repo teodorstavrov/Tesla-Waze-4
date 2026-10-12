@@ -77,7 +77,7 @@ export function TripSummaryBanner({ onClick }: { onClick?: () => void } = {}) {
   const posStyle: React.CSSProperties = isPhone
     ? { bottom: 104, left: 12, right: 12 }
     : interactive
-      ? { bottom: 24, left: isTeslaBrowser ? 'calc(42% - 40px)' : 'calc(25% - 40px)', transform: 'translateX(-50%)' }
+      ? { bottom: 24, left: isTeslaBrowser ? '19%' : 'calc(25% - 40px)', transform: 'translateX(-50%)' }
       : { bottom: 30, right: 12, transform: 'translateZ(0)' }
 
   return (
