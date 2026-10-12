@@ -38,7 +38,7 @@ let _state: FilterState = {
   connector:         null,
   minPowerKw:        null,
   onlyAvailable:     false,
-  filtersBarEnabled: _load(_LS_ENABLED,  true),
+  filtersBarEnabled: _load(_LS_ENABLED,  false),
   filtersExpanded:   _load(_LS_EXPANDED, true),
 }
 

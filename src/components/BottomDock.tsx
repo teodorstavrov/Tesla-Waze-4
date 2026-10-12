@@ -275,68 +275,80 @@ export function BottomDock() {
             onChange={setEngineVolume}
           />
         )}
-        <button
-          className="icon-btn"
-          onClick={handleV8Cycle}
-          title={v8Label}
-          aria-label={v8Label}
-          disabled={v8Loading}
-          style={{
-            width: 'clamp(48px, calc((100vh - 195px) / 7 * 0.94), 83px)', height: 'clamp(48px, calc((100vh - 195px) / 7 * 0.94), 83px)',
-            borderRadius: 'clamp(10px, calc((100vh - 195px) / 7 * 0.72 * 0.22), 16px)',
-            background:  v8Mode === 'muscle' ? 'rgba(245,158,11,0.25)'
-                       : v8Mode === 'sport'  ? 'rgba(227,25,55,0.25)'
-                       : v8Mode === 'header' ? 'rgba(16,185,129,0.25)'
-                       : v8Mode === 's63'   ? 'rgba(139,92,246,0.25)'
-                       : v8Mode === 'w12'   ? 'rgba(234,179,8,0.25)'
-                       : 'rgba(255,255,255,0.5)',
-            borderColor: v8Mode === 'muscle' ? '#f59e0b'
-                       : v8Mode === 'sport'  ? '#e31937'
-                       : v8Mode === 'header' ? '#10b981'
-                       : v8Mode === 's63'   ? '#8b5cf6'
-                       : v8Mode === 'w12'   ? '#eab308'
-                       : 'rgba(255,255,255,0.3)',
-            color:       v8Mode === 'muscle' ? '#f59e0b'
-                       : v8Mode === 'sport'  ? '#e31937'
-                       : v8Mode === 'header' ? '#10b981'
-                       : v8Mode === 's63'   ? '#8b5cf6'
-                       : v8Mode === 'w12'   ? '#eab308'
-                       : '#111',
-            boxShadow:   v8Mode === 'muscle' ? '0 0 0 3px rgba(245,158,11,0.25)'
-                       : v8Mode === 'sport'  ? '0 0 0 3px rgba(227,25,55,0.25)'
-                       : v8Mode === 'header' ? '0 0 0 3px rgba(16,185,129,0.25)'
-                       : v8Mode === 's63'   ? '0 0 0 3px rgba(139,92,246,0.25)'
-                       : v8Mode === 'w12'   ? '0 0 0 3px rgba(234,179,8,0.25)'
-                       : '0 2px 12px rgba(0,0,0,0.18)',
-            opacity: v8Loading ? 0.5 : 1,
-          }}
-        >
-          <V8Icon mode={v8Mode} loading={v8Loading} />
-        </button>
-
-        {/* OFF button — appears below the engine button when simulator is running */}
-        {v8Mode !== 'off' && (
+        <div style={{ position: 'relative', display: 'inline-block' }}>
           <button
-            onPointerDown={handleV8Off}
+            className="icon-btn"
+            onClick={handleV8Cycle}
+            title={v8Label}
+            aria-label={v8Label}
+            disabled={v8Loading}
             style={{
-              marginTop: 5,
-              background: 'rgba(255,60,60,0.18)',
-              border: '1px solid rgba(255,80,80,0.55)',
-              borderRadius: 8,
-              color: '#ff6060',
-              fontSize: 'clamp(9px, 1.4vh, 12px)',
-              fontWeight: 700,
-              letterSpacing: '0.08em',
-              padding: '4px 14px',
-              cursor: 'pointer',
-              touchAction: 'manipulation',
-              userSelect: 'none',
-              WebkitUserSelect: 'none',
+              width: 'clamp(48px, calc((100vh - 195px) / 7 * 0.94), 83px)', height: 'clamp(48px, calc((100vh - 195px) / 7 * 0.94), 83px)',
+              borderRadius: 'clamp(10px, calc((100vh - 195px) / 7 * 0.72 * 0.22), 16px)',
+              background:  v8Mode === 'muscle' ? 'rgba(245,158,11,0.25)'
+                         : v8Mode === 'sport'  ? 'rgba(227,25,55,0.25)'
+                         : v8Mode === 'header' ? 'rgba(16,185,129,0.25)'
+                         : v8Mode === 's63'   ? 'rgba(139,92,246,0.25)'
+                         : v8Mode === 'w12'   ? 'rgba(234,179,8,0.25)'
+                         : 'rgba(255,255,255,0.5)',
+              borderColor: v8Mode === 'muscle' ? '#f59e0b'
+                         : v8Mode === 'sport'  ? '#e31937'
+                         : v8Mode === 'header' ? '#10b981'
+                         : v8Mode === 's63'   ? '#8b5cf6'
+                         : v8Mode === 'w12'   ? '#eab308'
+                         : 'rgba(255,255,255,0.3)',
+              color:       v8Mode === 'muscle' ? '#f59e0b'
+                         : v8Mode === 'sport'  ? '#e31937'
+                         : v8Mode === 'header' ? '#10b981'
+                         : v8Mode === 's63'   ? '#8b5cf6'
+                         : v8Mode === 'w12'   ? '#eab308'
+                         : '#111',
+              boxShadow:   v8Mode === 'muscle' ? '0 0 0 3px rgba(245,158,11,0.25)'
+                         : v8Mode === 'sport'  ? '0 0 0 3px rgba(227,25,55,0.25)'
+                         : v8Mode === 'header' ? '0 0 0 3px rgba(16,185,129,0.25)'
+                         : v8Mode === 's63'   ? '0 0 0 3px rgba(139,92,246,0.25)'
+                         : v8Mode === 'w12'   ? '0 0 0 3px rgba(234,179,8,0.25)'
+                         : '0 2px 12px rgba(0,0,0,0.18)',
+              opacity: v8Loading ? 0.5 : 1,
             }}
           >
-            OFF
+            <V8Icon mode={v8Mode} loading={v8Loading} />
           </button>
-        )}
+
+          {/* OFF badge — overlaid on top-right corner of engine button */}
+          {v8Mode !== 'off' && (
+            <button
+              onPointerDown={handleV8Off}
+              style={{
+                position: 'absolute',
+                top: -6,
+                right: -6,
+                width: 22,
+                height: 22,
+                borderRadius: '50%',
+                background: 'rgba(30,10,10,0.85)',
+                border: '1.5px solid rgba(255,80,80,0.75)',
+                color: '#ff6060',
+                fontSize: 11,
+                fontWeight: 800,
+                lineHeight: '20px',
+                textAlign: 'center',
+                padding: 0,
+                cursor: 'pointer',
+                touchAction: 'manipulation',
+                userSelect: 'none',
+                WebkitUserSelect: 'none',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                zIndex: 10,
+              }}
+              aria-label="OFF"
+            >
+              ×
+            </button>
+          )}
+        </div>
 
         {/* TEST button — hold to rev to 70% throttle, release to drop to idle */}
         {v8Mode !== 'off' && (

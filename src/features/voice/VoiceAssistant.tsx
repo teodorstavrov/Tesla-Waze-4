@@ -51,6 +51,7 @@ import {
 } from './micCapability'
 import { openSupportModal, closeSupportModal } from '@/components/SupportModal'
 import { openRatingModal,  closeRatingModal  } from '@/components/RatingModal'
+import { audioManager } from '@/features/audio/audioManager'
 
 // ── Web Speech API type declarations ──────────────────────────────────────
 // SpeechRecognition and its event types are not universally defined in all
@@ -321,14 +322,17 @@ export function VoiceAssistant() {
   const [errorMsg,   setErrorMsg]   = useState('')
   const [recSeconds, setRecSeconds] = useState(0)
 
-  const recogRef     = useRef<SpeechRecognition | null>(null)
-  const streamRef    = useRef<MediaStream | null>(null)
-  const recorderRef  = useRef<MediaRecorder | null>(null)
-  const chunksRef    = useRef<Blob[]>([])
-  const timerRef     = useRef<ReturnType<typeof setInterval> | null>(null)
-  const vadRef       = useRef<ReturnType<typeof setInterval> | null>(null)
-  const audioCtxRef  = useRef<AudioContext | null>(null)
-  const dismissTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const recogRef      = useRef<SpeechRecognition | null>(null)
+  const streamRef     = useRef<MediaStream | null>(null)
+  const recorderRef   = useRef<MediaRecorder | null>(null)
+  const chunksRef     = useRef<Blob[]>([])
+  const timerRef      = useRef<ReturnType<typeof setInterval> | null>(null)
+  const vadRef        = useRef<ReturnType<typeof setInterval> | null>(null)
+  const audioCtxRef   = useRef<AudioContext | null>(null)
+  const dismissTimer  = useRef<ReturnType<typeof setTimeout> | null>(null)
+  // GPS snapshot taken the instant the assistant opens — used for reports so we
+  // place the marker at the location where the user was when they tapped the mic.
+  const capturedPosRef = useRef<{ lat: number; lng: number } | null>(null)
 
   const dismiss = useCallback(() => {
     stopSpeech()
@@ -640,6 +644,11 @@ export function VoiceAssistant() {
 
   // ── Entry point ──────────────────────────────────────────────────────────
   function startListening() {
+    // Snapshot GPS immediately — before any voice processing — so report intents
+    // use the location where the user was when they tapped the mic button.
+    const snap = gpsStore.getPosition()
+    capturedPosRef.current = snap ? { lat: snap.lat, lng: snap.lng } : null
+
     dismiss()  // reset any previous state
 
     // Tesla browser has webkitSpeechRecognition but it always fails with a
@@ -706,7 +715,7 @@ export function VoiceAssistant() {
       let data: {
         answer?:  string
         error?:   string
-        intent?:  { type: string; destination: string; viaHemus: boolean; action: string; value?: string }
+        intent?:  { type: string; destination: string; viaHemus: boolean; action: string; value?: string; eventType?: string }
       }
       try { data = await res.json() as typeof data }
       catch { data = { error: `HTTP ${res.status} (non-JSON)` } }
@@ -733,6 +742,12 @@ export function VoiceAssistant() {
       } else if (data.intent?.type === 'action' && data.intent.action) {
         handleActionIntent(data.intent.action, data.intent.value)
         // Actions are instant — dismiss overlay quickly so user sees the result
+        if (dismissTimer.current) clearTimeout(dismissTimer.current)
+        dismissTimer.current = setTimeout(dismiss, 3_500)
+
+      // ── Report intent — place road event at captured GPS position ─────────
+      } else if (data.intent?.type === 'report' && data.intent.eventType) {
+        void handleReportIntent(data.intent.eventType)
         if (dismissTimer.current) clearTimeout(dismissTimer.current)
         dismissTimer.current = setTimeout(dismiss, 3_500)
 
@@ -970,9 +985,41 @@ export function VoiceAssistant() {
         if (value) countryStore.setCountry(value as CountryCode)
         break
 
+      // ── Save current GPS as Home / Work ──
+      case 'set_home_here':
+      case 'set_work_here': {
+        const placeType = action === 'set_home_here' ? 'home' : 'work'
+        const pos = capturedPosRef.current ?? gpsStore.getPosition()
+        if (pos) {
+          savedPlacesStore.set({ type: placeType, lat: pos.lat, lng: pos.lng, name: `${pos.lat.toFixed(5)}, ${pos.lng.toFixed(5)}` })
+          audioManager.confirmBeep()
+        }
+        break
+      }
+
       default:
         console.warn('[VoiceAction] Unknown action:', action)
     }
+  }
+
+  // ── Handle report intent from AI — places event at captured GPS position ──
+  async function handleReportIntent(eventType: string) {
+    const pos = capturedPosRef.current ?? gpsStore.getPosition()
+    let lat: number, lng: number
+    if (pos) {
+      lat = pos.lat
+      lng = pos.lng
+    } else {
+      const map = getMap()
+      const center = map?.getCenter()
+      lat = center?.lat ?? 42.6977
+      lng = center?.lng ?? 23.3219
+    }
+    const validTypes = ['police','accident','hazard','camera','construction'] as const
+    type VT = typeof validTypes[number]
+    if (!validTypes.includes(eventType as VT)) return
+    const result = await eventStore.report(eventType as VT, lat, lng)
+    if (result) audioManager.confirmBeep()
   }
 
   // ── Handle navigation intent from AI ────────────────────────────────────

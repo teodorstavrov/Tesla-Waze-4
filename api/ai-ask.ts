@@ -87,7 +87,12 @@ interface ActionIntent {
   value?: string   // for set_lang / set_country
 }
 
-type AiIntent = NavigateIntent | ActionIntent
+interface ReportIntent {
+  type:      'report'
+  eventType: 'police' | 'accident' | 'hazard' | 'camera' | 'construction'
+}
+
+type AiIntent = NavigateIntent | ActionIntent | ReportIntent
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -434,6 +439,25 @@ LANGUAGE & COUNTRY
   set_lang               — change UI language (with value: "bg","en","no","sv","fi","nl","de")
   set_country            — change country (with value: "BG","NO","SE","FI","NL","BE","DE")
 
+SAVED PLACES — set from current GPS position
+  set_home_here          — save current GPS location as Home
+  set_work_here          — save current GPS location as Work
+
+━━━ REPORT ROAD EVENTS (4th response shape) ━━━
+Use this when the user wants to place a road event marker at their current location.
+Match BY MEANING — do not require exact phrasing. Any phrase that semantically means
+"report X here / at this location / right now" should trigger this intent.
+
+Report event types:
+  police       — police checkpoint, speed check, police car, radar trap, cop, ченгета, полиция, камион ДАИ, пътна полиция
+  accident     — crash, accident, collision, катастрофа, инцидент, авария, произшествие
+  hazard       — hazard, danger, obstacle, debris, animal, ice, fog, опасност, препятствие, животно, лед, мъгла, дупка, яма
+  camera       — mobile speed camera, mobile radar, камера, радар, мобилна камера
+  construction — roadworks, construction, lane closed, работа, строеж, ремонт, затворена лента
+
+Response shape for reports:
+{"answer":"<short confirmation>","intent":{"type":"report","eventType":"police"}}
+
 ━━━ EXAMPLES ━━━
 "Включи трафика"              → {"answer":"Включвам трафика.","intent":{"type":"action","action":"traffic_on"}}
 "Изключи трафика"             → {"answer":"Изключвам трафика.","intent":{"type":"action","action":"traffic_off"}}
@@ -464,6 +488,32 @@ LANGUAGE & COUNTRY
 "Затвори оценката"                    → {"answer":"Затварям панела за оценка.","intent":{"type":"action","action":"close_rating"}}
 "Open support panel"                  → {"answer":"Opening the support panel.","intent":{"type":"action","action":"open_support"}}
 "Rate the app"                        → {"answer":"Opening the rating panel.","intent":{"type":"action","action":"open_rating"}}
+
+Report events (any semantically equivalent phrase in any language):
+"полиция тук"                         → {"answer":"Докладвам полиция на текущата локация.","intent":{"type":"report","eventType":"police"}}
+"има ченгета"                         → {"answer":"Докладвам полиция.","intent":{"type":"report","eventType":"police"}}
+"camera here"                         → {"answer":"Reporting mobile camera at current location.","intent":{"type":"report","eventType":"camera"}}
+"камера тук"                          → {"answer":"Докладвам камера на текущата локация.","intent":{"type":"report","eventType":"camera"}}
+"инцидент тук"                        → {"answer":"Докладвам инцидент на текущата локация.","intent":{"type":"report","eventType":"accident"}}
+"катастрофа напред"                   → {"answer":"Докладвам катастрофа.","intent":{"type":"report","eventType":"accident"}}
+"опасност тук"                        → {"answer":"Докладвам опасност на пътя.","intent":{"type":"report","eventType":"hazard"}}
+"има яма на пътя"                     → {"answer":"Докладвам опасност на пътя.","intent":{"type":"report","eventType":"hazard"}}
+"работа тук"                          → {"answer":"Докладвам строеж/ремонт на пътя.","intent":{"type":"report","eventType":"construction"}}
+"det er politi her"                   → {"answer":"Rapporterer politikontroll.","intent":{"type":"report","eventType":"police"}}
+"Polizei hier"                        → {"answer":"Melde Polizeikontrolle.","intent":{"type":"report","eventType":"police"}}
+"politie hier"                        → {"answer":"Melding politie.","intent":{"type":"report","eventType":"police"}}
+"poliisi tässä"                       → {"answer":"Ilmoitan poliisista.","intent":{"type":"report","eventType":"police"}}
+
+Saved places from current location:
+"дом тук"                             → {"answer":"Записвам текущата локация като Дом.","intent":{"type":"action","action":"set_home_here"}}
+"работа тук"                          → {"answer":"Записвам текущата локация като Работа.","intent":{"type":"action","action":"set_work_here"}}
+"save home here"                      → {"answer":"Saving current location as Home.","intent":{"type":"action","action":"set_home_here"}}
+"set work location here"              → {"answer":"Saving current location as Work.","intent":{"type":"action","action":"set_work_here"}}
+
+━━━ REPORT DISAMBIGUATION: "работа тук" ━━━
+"работа тук" is AMBIGUOUS — it could mean "roadworks here" (construction report) OR "save my work location here" (set_work_here).
+Decide by context: if the user is clearly talking about road conditions → construction report. If they seem to be setting a saved place → set_work_here.
+When truly ambiguous, prefer set_work_here (it is irreversible only if unwanted, but less dangerous than a false road report).
 
 ━━━ RESPONSE LANGUAGE — FINAL ENFORCEMENT ━━━
 ⚠️  The user's question is written in: ${_qLang}
@@ -591,11 +641,16 @@ LANGUAGE & COUNTRY
     const ai = parsed.intent as ActionIntent
     responseBody.intent = { type: 'action', action: ai.action, ...(ai.value ? { value: ai.value } : {}) }
     console.log(`[ai-ask] action intent: "${ai.action}"${ai.value ? ` value="${ai.value}"` : ''}`)
+  } else if (parsed.intent?.type === 'report' && (parsed.intent as ReportIntent).eventType) {
+    const ri = parsed.intent as ReportIntent
+    responseBody.intent = { type: 'report', eventType: ri.eventType }
+    console.log(`[ai-ask] report intent: eventType="${ri.eventType}"`)
   }
 
   // ── Log to Redis for admin statistics (fire-and-forget) ────────────────
   const intentType = responseBody.intent?.type === 'navigate' ? 'navigate'
                    : responseBody.intent?.type === 'action'   ? 'action'
+                   : responseBody.intent?.type === 'report'   ? 'report'
                    : undefined
   logAiQuery({
     ts:         Date.now(),
