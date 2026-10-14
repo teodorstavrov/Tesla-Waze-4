@@ -9,18 +9,19 @@
 //   • marker.setLngLat([lng, lat]) — moves via CSS transform (no DOM change)
 //   • wrap.style.transform = rotate(...)  — direct DOM mutation, no Marker API
 //
-// Arrow rotation = (heading + map.getBearing()) mod 360 — accounts for any
-// map bearing automatically. In north-up (bearing=0): arrow = heading.
-// In course-up (bearing=-heading): arrow = 0, always pointing UP on screen.
+// Arrow rotation:
+//   course-up: always 0° (pointing UP = direction of travel; map already rotated)
+//   north-up:  heading degrees (arrow points toward travel direction on screen)
 // ─────────────────────────────────────────────────────────────────────
 
 import { useEffect, useRef } from 'react'
 import * as maplibregl from 'maplibre-gl'
 import { getMap, getCourseUpScale } from '@/components/MapShell'
 import { gpsStore } from '@/features/gps/gpsStore'
+import { settingsStore } from '@/features/settings/settingsStore'
 import type { GpsPosition } from '@/features/gps/types'
 
-const ICON_SIZE = 66
+const ICON_SIZE = 76
 
 function makeElement(): HTMLDivElement {
   const root = document.createElement('div')
@@ -79,10 +80,8 @@ export function HeadingAvatar() {
       )
       const wrap = el.querySelector<HTMLElement>('.gps-avatar-arrow')
       if (wrap) {
-        // Add map bearing so arrow always points in the correct screen direction:
-        //   north-up (bearing=0): arrowDeg = heading (points toward travel direction)
-        //   course-up (bearing=-heading): arrowDeg = 0 (points UP = direction of travel)
-        const arrowDeg = Math.round(((pos.heading ?? 0) + map.getBearing() + 360) % 360)
+        const courseUp = settingsStore.get().headingMode === 'course-up'
+        const arrowDeg = courseUp ? 0 : Math.round(pos.heading ?? 0)
         wrap.style.transform =
           `rotate(${arrowDeg}deg) scale(${(counterScale * vpScale).toFixed(4)})`
       }
