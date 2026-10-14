@@ -9,9 +9,9 @@
 //   • marker.setLngLat([lng, lat]) — moves via CSS transform (no DOM change)
 //   • wrap.style.transform = rotate(...)  — direct DOM mutation, no Marker API
 //
-// In course-up mode, map.setBearing(-heading) rotates the map natively.
-// No CSS scale is applied to #map, so no counter-scale is needed on markers.
-// HeadingAvatar arrow always points in the GPS heading direction.
+// Arrow rotation = (heading + map.getBearing()) mod 360 — accounts for any
+// map bearing automatically. In north-up (bearing=0): arrow = heading.
+// In course-up (bearing=-heading): arrow = 0, always pointing UP on screen.
 // ─────────────────────────────────────────────────────────────────────
 
 import { useEffect, useRef } from 'react'
@@ -25,7 +25,7 @@ const ICON_SIZE = 66
 function makeElement(): HTMLDivElement {
   const root = document.createElement('div')
   root.className = 'gps-avatar-root'
-  root.style.cssText = `width:${ICON_SIZE}px;height:${ICON_SIZE}px;pointer-events:none`
+  root.style.cssText = `width:${ICON_SIZE}px;height:${ICON_SIZE}px;pointer-events:none;z-index:10`
 
   root.innerHTML = `<div class="gps-avatar-arrow" style="transform:rotate(0deg)">
     <svg width="${ICON_SIZE}" height="${ICON_SIZE}" viewBox="0 0 28 28" fill="none" aria-hidden="true">
@@ -73,18 +73,18 @@ export function HeadingAvatar() {
         addedRef.current = true
       }
 
-      // Rotate the arrow to GPS heading.
-      // In course-up mode: map bearing = -heading, so arrow always points up
-      // on screen. In north-up mode: arrow rotates to show direction of travel.
-      // getCourseUpScale() always returns 1 in MapLibre (no CSS scale on #map).
       const counterScale = 1 / getCourseUpScale()
       const vpScale = parseFloat(
         getComputedStyle(document.documentElement).getPropertyValue('--marker-viewport-scale') || '1'
       )
       const wrap = el.querySelector<HTMLElement>('.gps-avatar-arrow')
       if (wrap) {
+        // Add map bearing so arrow always points in the correct screen direction:
+        //   north-up (bearing=0): arrowDeg = heading (points toward travel direction)
+        //   course-up (bearing=-heading): arrowDeg = 0 (points UP = direction of travel)
+        const arrowDeg = Math.round(((pos.heading ?? 0) + map.getBearing() + 360) % 360)
         wrap.style.transform =
-          `rotate(${Math.round(pos.heading ?? 0)}deg) scale(${(counterScale * vpScale).toFixed(4)})`
+          `rotate(${arrowDeg}deg) scale(${(counterScale * vpScale).toFixed(4)})`
       }
     })
 

@@ -5,6 +5,8 @@ All notable changes to TesRadar, organized by date (newest first).
 ---
 
 ## 2026-10-14
+- **Avatar z-index fix** — GPS avatar marker now always renders above all other map markers (camera, section, event) via explicit `z-index:10` on the marker element
+- **Avatar heading fix (course-up mode)** — in "map rotates" mode the avatar arrow now always points toward the top of the screen (= direction of travel); fix: `arrowDeg = (heading + map.getBearing()) mod 360` instead of raw `heading`, so the map bearing is factored in automatically
 - **Route line fix** — rewrite RouteLayer.tsx with defensive guards (`getSource`/`getLayer` checks before add), try-catch for map operations, `setData()` for in-place updates, proper click-handler cleanup via clicksRef, and `triggerRepaint()` after draw; also upgraded GeoJSON payload to FeatureCollection for better MapLibre compatibility
 - **AI rate limit UX fix** — when all Groq models fail with 429 (org-level rate limit), return HTTP 429 with a user-friendly localized message instead of the raw "All models failed" error string; message is returned in the session language (bg/no/sv/fi/nl/de/en)
 - **MapLibre GL JS migration** — complete rewrite of all map rendering from Leaflet to MapLibre GL JS (WebGL)
