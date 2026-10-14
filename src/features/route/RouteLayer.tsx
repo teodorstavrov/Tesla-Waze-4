@@ -1,16 +1,19 @@
 // ─── Route Layer ───────────────────────────────────────────────────────
 // Draws the active route and alternatives as MapLibre GL line layers.
 //
-// DESIGN PRINCIPLES (v4 — root cause fix: rAF fallback for getMap() null):
-//  1. useEffect children run BEFORE parent's (MapShell sets mapInstance in its
-//     own useEffect). getMap() is null when RouteLayer's effect first runs.
-//     rAF defers init to the next cycle after MapShell's effect has set the map.
-//  2. cleanup() always unconditionally removes sources+layers via try-catch —
+// DESIGN PRINCIPLES (v4 — two root cause fixes):
+//  1. rAF fallback: React children effects run before parent's. MapShell sets
+//     mapInstance in its own useEffect, so getMap() is null when RouteLayer's
+//     effect runs first. rAF defers init until MapShell's effect has fired.
+//  2. NO isStyleLoaded() gate: _makeTileStyle uses raster tiles. MapLibre's
+//     isStyleLoaded() returns false while tiles are fetching, even though the
+//     style spec is fully applied. Removing the check lets draw() run as soon
+//     as routes are available. addSource/addLayer succeed right after style.load.
+//  3. cleanup() always unconditionally removes sources+layers via try-catch —
 //     no getLayer/getSource guards. Prevents "source already exists" cascades.
-//  3. draw() is idempotent: cleanup → add fresh with real data.
-//  4. map.on('style.load', draw) persistent listener ensures route is redrawn
-//     after any style reload during navigation.
-//  5. draw() returns early if style not loaded — persistent listener retries.
+//  4. draw() is idempotent: cleanup → add fresh with real data.
+//  5. map.on('style.load', draw) persistent listener ensures route redraws
+//     after any style reload (tile theme switch, etc).
 
 import { useEffect, useRef } from 'react'
 import * as maplibregl from 'maplibre-gl'
@@ -88,8 +91,6 @@ export function RouteLayer() {
 
       // ── Draw current route state ─────────────────────────────────────────
       function draw(): void {
-        if (!map.isStyleLoaded()) return   // persistent style.load listener will retry
-
         const { routes, activeRouteIndex, destination } = routeStore.getState()
 
         cleanup()   // always clean slate before redraw
