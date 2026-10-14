@@ -1,23 +1,16 @@
 // ─── EV Marker Layer ───────────────────────────────────────────────────
 //
-// Null-render React component managing Leaflet markers imperatively.
+// Null-render React component managing MapLibre markers imperatively.
 //
 // ZOOM-AWARE RENDERING
 // ──────────────────────────────────────────────────────────────────────
 // zoom < CLUSTER_ZOOM  → cluster mode: one circle per 0.5° grid cell
-// zoom >= CLUSTER_ZOOM → individual CircleMarkers, stable registry diff
+// zoom >= CLUSTER_ZOOM → individual markers, stable registry diff
 //
-// STABLE MARKER REGISTRY
-// ──────────────────────────────────────────────────────────────────────
-// Map<id, CircleMarker> diff on every store update:
-//   • New stations (pass filter) → create marker
-//   • Gone / filtered-out stations → remove marker
-//   • Existing + still matching → untouched
-//
-// clearLayers() is NEVER called — full DOM thrash on Tesla browser.
+// clearAll() is used only on zoom-mode switch — never on incremental updates.
 
 import { useEffect, useRef } from 'react'
-import { L } from '@/lib/leaflet'
+import * as maplibregl from 'maplibre-gl'
 import { getMap } from '@/components/MapShell'
 import { evStore } from './evStore.js'
 import { filterStore } from './filterStore.js'
@@ -28,14 +21,8 @@ import { getLang } from '@/lib/locale'
 import { getActivePerformanceProfile } from '@/config/performanceProfiles'
 import type { NormalizedStation } from './types.js'
 
-// ── Constants ─────────────────────────────────────────────────────
-
-const CLUSTER_ZOOM     = 11       // zoom < this → cluster mode
-const CLUSTER_CELL_DEG = 0.5      // ~50km grid cell
-
-// ── Marker appearance ──────────────────────────────────────────────
-// DivIcon with ⚡ — 44×44px total hit area (Tesla touch target spec),
-// 34×34px visible circle. Original color scheme preserved.
+const CLUSTER_ZOOM     = 11
+const CLUSTER_CELL_DEG = 0.5
 
 function stationColor(s: NormalizedStation): string {
   if (s.source === 'user' && s.approvalStatus === 'pending') return '#a855f7'
@@ -46,10 +33,9 @@ function stationColor(s: NormalizedStation): string {
   return '#FACC15'
 }
 
-function makeStationIcon(s: NormalizedStation, nearRoute = false): L.DivIcon {
+function makeStationElement(s: NormalizedStation, nearRoute = false): HTMLDivElement {
   const color   = stationColor(s)
   const opacity = s.status === 'offline' || s.status === 'planned' ? 0.5 : 1
-
   const isPendingUser = s.source === 'user' && s.approvalStatus === 'pending'
   const icon  = isPendingUser ? '❓' : '⚡'
   const bord  = isPendingUser
@@ -59,34 +45,44 @@ function makeStationIcon(s: NormalizedStation, nearRoute = false): L.DivIcon {
     ? '0 0 0 2px rgba(168,85,247,0.3), 0 3px 12px rgba(0,0,0,0.6)'
     : nearRoute ? '0 0 0 2px #FFD700, 0 3px 12px rgba(0,0,0,0.6)' : '0 3px 12px rgba(0,0,0,0.55)'
 
-  return L.divIcon({
-    className: '',   // no Leaflet default styles
-    html: `<div class="marker-scale-wrap"><div style="
-      width:44px;height:44px;
-      display:flex;align-items:center;justify-content:center;
-      cursor:pointer;
-    "><div style="
-      width:34px;height:34px;border-radius:50%;
-      background:${color};opacity:${opacity};
-      border:${bord};
-      box-shadow:${shad};
-      display:flex;align-items:center;justify-content:center;
-      font-size:18px;line-height:1;
-      user-select:none;-webkit-user-select:none;
-    ">${icon}</div></div></div>`,
-    iconSize:   [44, 44],
-    iconAnchor: [22, 22],
-  })
+  const wrap = document.createElement('div')
+  wrap.className = 'marker-scale-wrap'
+  wrap.style.cssText = 'width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer'
+
+  const inner = document.createElement('div')
+  inner.style.cssText = [
+    'width:34px', 'height:34px', 'border-radius:50%',
+    `background:${color}`, `opacity:${opacity}`,
+    `border:${bord}`, `box-shadow:${shad}`,
+    'display:flex', 'align-items:center', 'justify-content:center',
+    'font-size:18px', 'line-height:1',
+    'user-select:none', '-webkit-user-select:none',
+  ].join(';')
+  inner.textContent = icon
+  wrap.appendChild(inner)
+  return wrap
 }
 
-function tooltipContent(s: NormalizedStation): string {
-  const parts = [s.name]
-  if (s.maxPowerKw) parts.push(`${s.maxPowerKw} kW`)
-  if (s.totalPorts > 1) parts.push(`${s.totalPorts} ${getLang() === 'bg' ? 'порта' : 'ports'}`)
-  return parts.join(' · ')
-}
+function updateStationElement(el: HTMLDivElement, s: NormalizedStation, nearRoute: boolean): void {
+  const color   = stationColor(s)
+  const opacity = s.status === 'offline' || s.status === 'planned' ? 0.5 : 1
+  const isPendingUser = s.source === 'user' && s.approvalStatus === 'pending'
+  const icon  = isPendingUser ? '❓' : '⚡'
+  const bord  = isPendingUser
+    ? '2.5px dashed rgba(168,85,247,0.8)'
+    : nearRoute ? '3px solid #FFD700' : '2.5px solid rgba(255,255,255,0.9)'
+  const shad  = isPendingUser
+    ? '0 0 0 2px rgba(168,85,247,0.3), 0 3px 12px rgba(0,0,0,0.6)'
+    : nearRoute ? '0 0 0 2px #FFD700, 0 3px 12px rgba(0,0,0,0.6)' : '0 3px 12px rgba(0,0,0,0.55)'
 
-// ── Cluster helpers ───────────────────────────────────────────────
+  const inner = el.firstElementChild as HTMLElement | null
+  if (!inner) return
+  inner.style.background = color
+  inner.style.opacity = `${opacity}`
+  inner.style.border = bord
+  inner.style.boxShadow = shad
+  inner.textContent = icon
+}
 
 interface ClusterCell {
   lat:      number
@@ -131,27 +127,40 @@ function clusterColor(maxPower: number | null): string {
   return '#FACC15'
 }
 
-function makeClusterIcon(count: number, maxPower: number | null): L.DivIcon {
+function makeClusterElement(count: number, maxPower: number | null): HTMLDivElement {
   const r     = clusterRadius(count)
   const color = clusterColor(maxPower)
   const size  = r * 2
-  return L.divIcon({
-    className: '',
-    html: `<div class="marker-scale-wrap"><div style="
-      width:${size}px;height:${size}px;border-radius:50%;
-      background:${color};opacity:0.88;
-      border:2px solid #fff;
-      box-shadow:0 2px 8px rgba(0,0,0,0.45);
-      display:flex;align-items:center;justify-content:center;
-      font-size:${count >= 100 ? 10 : 12}px;font-weight:700;color:#fff;
-      line-height:1;
-    ">${count}</div></div>`,
-    iconSize:   [size, size],
-    iconAnchor: [r, r],
-  })
+
+  const wrap = document.createElement('div')
+  wrap.className = 'marker-scale-wrap'
+  const inner = document.createElement('div')
+  inner.style.cssText = [
+    `width:${size}px`, `height:${size}px`, 'border-radius:50%',
+    `background:${color}`, 'opacity:0.88',
+    'border:2px solid #fff',
+    'box-shadow:0 2px 8px rgba(0,0,0,0.45)',
+    'display:flex', 'align-items:center', 'justify-content:center',
+    `font-size:${count >= 100 ? 10 : 12}px`, 'font-weight:700', 'color:#fff',
+    'line-height:1', 'cursor:pointer',
+  ].join(';')
+  inner.textContent = `${count}`
+  wrap.appendChild(inner)
+  return wrap
 }
 
-// ── Route proximity ───────────────────────────────────────────────
+function updateClusterElement(el: HTMLDivElement, count: number, maxPower: number | null): void {
+  const r     = clusterRadius(count)
+  const color = clusterColor(maxPower)
+  const size  = r * 2
+  const inner = el.firstElementChild as HTMLElement | null
+  if (!inner) return
+  inner.style.width = `${size}px`
+  inner.style.height = `${size}px`
+  inner.style.background = color
+  inner.style.fontSize = `${count >= 100 ? 10 : 12}px`
+  inner.textContent = `${count}`
+}
 
 function isNearRoute(lat: number, lng: number, polyline: [number, number][], thresholdM: number): boolean {
   const tLat = thresholdM / 111000
@@ -170,63 +179,57 @@ function buildNearRouteSet(stations: NormalizedStation[], polyline: [number, num
   return s
 }
 
-// ── Component ─────────────────────────────────────────────────────
+type StationEntry  = { marker: maplibregl.Marker; el: HTMLDivElement }
+type ClusterEntry  = { marker: maplibregl.Marker; el: HTMLDivElement }
 
 export function EvMarkerLayer() {
-  const registryRef      = useRef<Map<string, L.Marker>>(new Map())
-  const clusterRegistryRef = useRef<Map<string, L.Marker>>(new Map())
-  const nearRouteRef     = useRef<Set<string>>(new Set())
-  const zoomRef          = useRef<number>(13)
+  const registryRef        = useRef<Map<string, StationEntry>>(new Map())
+  const clusterRegistryRef = useRef<Map<string, ClusterEntry>>(new Map())
+  const nearRouteRef       = useRef<Set<string>>(new Set())
+  const zoomRef            = useRef<number>(13)
 
   useEffect(() => {
     let cancelled = false
     let moveTimer: ReturnType<typeof setTimeout> | null = null
 
-    function init(map: L.Map): () => void {
+    function init(map: maplibregl.Map): () => void {
       const registry        = registryRef.current
       const clusterRegistry = clusterRegistryRef.current
       zoomRef.current       = map.getZoom()
 
-      // ── Clear all markers ─────────────────────────────────────
       function clearAll(): void {
-        for (const m of registry.values()) m.remove()
+        for (const e of registry.values()) e.marker.remove()
         registry.clear()
-        for (const m of clusterRegistry.values()) m.remove()
+        for (const e of clusterRegistry.values()) e.marker.remove()
         clusterRegistry.clear()
       }
 
-      // ── Cluster mode ──────────────────────────────────────────
       function syncClusters(): void {
         const stations = filterStore.getFilteredStations()
         const cells    = buildClusters(stations)
         const incoming = new Set(cells.keys())
 
-        // Remove stale cluster markers
-        for (const [key, marker] of clusterRegistry) {
-          if (!incoming.has(key)) { marker.remove(); clusterRegistry.delete(key) }
+        for (const [key, entry] of clusterRegistry) {
+          if (!incoming.has(key)) { entry.marker.remove(); clusterRegistry.delete(key) }
         }
 
-        // Add / update cluster markers
         for (const [key, cell] of cells) {
           const existing = clusterRegistry.get(key)
           if (existing) {
-            // Update icon in case count changed
-            existing.setIcon(makeClusterIcon(cell.count, cell.maxPower))
+            updateClusterElement(existing.el, cell.count, cell.maxPower)
           } else {
-            const marker = L.marker([cell.lat, cell.lng], {
-              icon: makeClusterIcon(cell.count, cell.maxPower),
-              zIndexOffset: 10,
-            }).addTo(map)
-            // Tap cluster → zoom into its centre
-            marker.on('click', () => {
-              map.setView([cell.lat, cell.lng], CLUSTER_ZOOM, { animate: true })
+            const el = makeClusterElement(cell.count, cell.maxPower)
+            el.addEventListener('click', () => {
+              map.easeTo({ center: [cell.lng, cell.lat], zoom: CLUSTER_ZOOM, duration: 400 })
             })
-            clusterRegistry.set(key, marker)
+            const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+              .setLngLat([cell.lng, cell.lat])
+              .addTo(map)
+            clusterRegistry.set(key, { marker, el })
           }
         }
       }
 
-      // ── Individual mode ───────────────────────────────────────
       function syncNearRoute(): void {
         const { route } = routeStore.getState()
         const stations  = filterStore.getFilteredStations()
@@ -238,9 +241,9 @@ export function EvMarkerLayer() {
           [...prev].some((id) => !next.has(id))
         if (!changed) return
         nearRouteRef.current = next
-        for (const [id, marker] of registry) {
+        for (const [id, entry] of registry) {
           const station = filterStore.getFilteredStations().find((s) => s.id === id)
-          if (station) marker.setIcon(makeStationIcon(station, next.has(id)))
+          if (station) updateStationElement(entry.el, station, next.has(id))
         }
       }
 
@@ -248,83 +251,64 @@ export function EvMarkerLayer() {
         const { markersVisible } = evStore.getState()
         if (!markersVisible) { clearAll(); return }
 
-        // Use clusters at low zoom
         if (zoomRef.current < CLUSTER_ZOOM) {
-          for (const m of registry.values()) m.remove()
+          for (const e of registry.values()) e.marker.remove()
           registry.clear()
           syncClusters()
           return
         }
 
-        for (const m of clusterRegistry.values()) m.remove()
+        for (const e of clusterRegistry.values()) e.marker.remove()
         clusterRegistry.clear()
 
         const allStations = filterStore.getFilteredStations()
         const nearRoute   = nearRouteRef.current
 
-        // ── Viewport culling — only render markers in the visible map area ──
-        // Prevents Tesla browser OOM when a country has thousands of stations.
-        // Padding of 0.2° keeps markers ready just outside the edge so they
-        // appear immediately on small pans without a re-render round-trip.
-        const bounds  = map.getBounds()
-        const pad     = 0.2
-        const minLat  = bounds.getSouth() - pad
-        const maxLat  = bounds.getNorth() + pad
-        const minLng  = bounds.getWest()  - pad
-        const maxLng  = bounds.getEast()  + pad
+        const bounds = map.getBounds()
+        const pad    = 0.2
+        const minLat = bounds.getSouth() - pad
+        const maxLat = bounds.getNorth() + pad
+        const minLng = bounds.getWest()  - pad
+        const maxLng = bounds.getEast()  + pad
         const stations = allStations.filter(
           (s) => s.lat >= minLat && s.lat <= maxLat && s.lng >= minLng && s.lng <= maxLng,
         )
 
         const incoming = new Set(stations.map((s) => s.id))
 
-        // Remove markers no longer in viewport
-        for (const [id, marker] of registry) {
-          if (!incoming.has(id)) { marker.remove(); registry.delete(id) }
+        for (const [id, entry] of registry) {
+          if (!incoming.has(id)) { entry.marker.remove(); registry.delete(id) }
         }
 
         for (const station of stations) {
           if (registry.has(station.id)) continue
-          const marker = L.marker(
-            [station.lat, station.lng],
-            { icon: makeStationIcon(station, nearRoute.has(station.id)) },
-          ).addTo(map)
-          marker.bindTooltip(tooltipContent(station), {
-            direction: 'top', offset: L.point(0, -6), className: 'ev-tooltip', sticky: false,
-          })
-          marker.on('click', () => {
+          const el = makeStationElement(station, nearRoute.has(station.id))
+          el.addEventListener('click', () => {
             evStore.selectStation(station)
             logger.ev.debug('Station selected', { id: station.id })
           })
-          registry.set(station.id, marker)
+          // Tooltip skipped on Tesla (no hover) — station info is in the tap panel
+          const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+            .setLngLat([station.lng, station.lat])
+            .addTo(map)
+          registry.set(station.id, { marker, el })
         }
       }
 
-      // Subscriptions
       const unsubEv     = evStore.subscribe(syncMarkers)
       const unsubFilter = filterStore.subscribe(() => { syncNearRoute(); syncMarkers() })
       const unsubRoute  = routeStore.subscribe(() => { syncNearRoute() })
 
-      // Initial sync
       syncMarkers()
 
-      // Fetch ALL stations for the current country in one request.
-      // With ~400-500 stations per country the payload is small enough to load in full;
-      // no viewport-based pagination needed — avoids stations disappearing on pan.
       function fetchCountry(): void {
         const [[swLat, swLng], [neLat, neLng]] = countryStore.getCountryOrDefault().bounds
         evStore.fetch({ minLat: swLat, minLng: swLng, maxLat: neLat, maxLng: neLng })
       }
       fetchCountry()
 
-      // Re-fetch when user switches country
       const unsubCountry = countryStore.subscribe(fetchCountry)
 
-      // Tesla browser: the tab may start as document.hidden=true (browser panel
-      // loading in background before the user focuses it).  evStore.fetch() has
-      // a document.hidden guard that returns early to save bandwidth.  Without a
-      // retry, the initial fetch is silently skipped and stations never appear.
-      // Re-fetch as soon as the tab becomes visible.
       function onVisibilityChange(): void {
         if (!document.hidden && evStore.getState().stations.length === 0) {
           logger.ev.debug('Tab became visible with no stations — retrying fetch')
@@ -333,14 +317,12 @@ export function EvMarkerLayer() {
       }
       document.addEventListener('visibilitychange', onVisibilityChange)
 
-      // Re-render on moveend (no re-fetch — we already have all country stations)
       function onMoveEnd(): void {
         if (moveTimer) clearTimeout(moveTimer)
         const debounce = getActivePerformanceProfile().evDebounceMs
         moveTimer = setTimeout(syncMarkers, debounce)
       }
 
-      // Re-render on zoom change (may switch between cluster/individual modes)
       function onZoomEnd(): void {
         zoomRef.current = map.getZoom()
         syncMarkers()

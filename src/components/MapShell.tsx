@@ -1,26 +1,23 @@
 // ─── MapShell ─────────────────────────────────────────────────────────
 //
-// Owns the Leaflet map instance and wires together:
-//  • tile layer (reacts to theme/satellite changes)
+// Owns the MapLibre GL map instance and wires together:
+//  • tile layer (reacts to theme/satellite changes via source.setTiles)
 //  • follow mode (disables on user drag, pans on GPS when following)
+//  • course-up rotation via map.setBearing (no CSS transform needed)
+//  • perspective pan via map.setPadding (no lookahead math needed)
 //
 // IMPORTANT: mapInstance is module-level, not React state.
-// Putting a Leaflet map in React state would cause the map to be
+// Putting a MapLibre map in React state would cause the map to be
 // destroyed and recreated on every render — catastrophic for Tesla.
-// The module-level singleton is accessed via getMap() by other modules
-// (ZoomControls, HeadingAvatar, LocationButton).
+// The module-level singleton is accessed via getMap() by other modules.
 //
 // HMR SAFETY
 // ──────────────────────────────────────────────────────────────────────
-// In Vite dev mode, HMR replaces the module, resetting all module-level
-// `let` variables to their initial values (null). But the Leaflet map
-// instance lives in the DOM and cannot be re-initialized on the same
-// container. We use import.meta.hot.dispose / import.meta.hot.data to
-// carry the singletons across hot-reload boundaries without destroying
-// the live map.
+// import.meta.hot.dispose / import.meta.hot.data carry the singleton
+// across hot-reload boundaries without destroying the live map.
 
 import { useEffect, useRef, useSyncExternalStore } from 'react'
-import { L } from '@/lib/leaflet'
+import * as maplibregl from 'maplibre-gl'
 import { logger } from '@/lib/logger'
 import {
   MIN_ZOOM, MAX_ZOOM,
@@ -42,217 +39,26 @@ import { t } from '@/lib/locale'
 import { getActivePerformanceProfile } from '@/config/performanceProfiles'
 import type { PerformanceProfile } from '@/config/performanceProfiles'
 
-// ── Course-up (heading-up) map rotation helpers ───────────────────
-// When navigating, the map rotates so the direction of travel is always
-// "up" on screen. The HeadingAvatar arrow rotates by +heading, which
-// combined with the map's -heading CSS rotation cancels to 0° — always
-// pointing up on screen.
-//
-// CONTINUOUS ROTATION: We track the accumulated rotation value instead
-// of raw heading (0-360). This ensures we always take the shortest path:
-// heading 350°→10° rotates +20°, not -340°. Without this, the CSS
-// transition would spin the map the wrong way around.
-//
-// DYNAMIC SCALE: scale(1.42) = √2 only covers square screens.
-// For rectangular screens (e.g. Tesla Model 3: 1920×1200) the required
-// scale is hypot(W,H)/min(W,H) ≈ 1.887. We compute this once at startup
-// and on resize (debounced) — never per GPS tick.
-
-let _rotationDeg = 0  // accumulated, unbounded (can exceed 360)
-let _lastWrittenTransform = ''  // dedup: skip style.transform write when value unchanged
-let _lastCounterScale = ''      // dedup: skip --marker-counter-scale write when value unchanged
-let _geocodeTimer: ReturnType<typeof setTimeout> | null = null  // debounce Nominatim requests
-
 // Performance profile — read once at module load, refreshed on settingsStore change
-// (settingsStore.subscribe callback in the map init effect keeps this current)
 let _perfProfile: PerformanceProfile = getActivePerformanceProfile()
 
-// ── Scale computation ─────────────────────────────────────────────
-// Cached module-level — zero cost per GPS tick.
-// scale = hypot(W,H) / min(W,H) × 1.02 safety margin
-// Clamped to 2.2 to avoid extreme over-zoom on ultra-wide screens.
-const MAX_SCALE = 2.2
-const SCALE_MARGIN = 1.02
+// ── HMR-safe module-level singleton ──────────────────────────────
+type HotData = { mapInstance: maplibregl.Map | null }
 
-function computeMapScale(): number {
-  const w = window.innerWidth
-  const h = window.innerHeight
-  const raw = Math.hypot(w, h) / Math.min(w, h)
-  return Math.min(raw * SCALE_MARGIN, MAX_SCALE)
-}
-
-let _mapScale = computeMapScale()
-
-// Debounced resize — recompute scale on orientation change / window resize,
-// and notify Leaflet so it redraws to fill the new viewport dimensions.
-// This also handles the Tesla 2026.26 compat viewport meta update in main.tsx:
-// after the meta changes, the browser fires a resize event, which triggers
-// mapInstance.invalidateSize() so Leaflet redraws correctly at 1180×919.
-let _resizeTimer: ReturnType<typeof setTimeout> | null = null
-window.addEventListener('resize', () => {
-  if (_resizeTimer) clearTimeout(_resizeTimer)
-  _resizeTimer = setTimeout(() => {
-    _mapScale = computeMapScale()
-    mapInstance?.invalidateSize({ animate: false })
-  }, 200)
-}, { passive: true })
-
-// ── Zoom compensation ─────────────────────────────────────────────
-// scale(~1.924) makes tiles appear ~1 zoom level higher than reality.
-// We compensate by zooming Leaflet out by exactly 1 level on entry,
-// and restoring on exit. This keeps perceived zoom = normal mode.
-// log2(1.924) ≈ 0.944 ≈ 1 level — constant offset works for all screens.
-let _courseUpActive = false
-let _savedZoom: number | null = null
-
-// ── Perspective offset pan ────────────────────────────────────────────
-// In course-up (map rotation) mode, pan to a point N meters ahead of the
-// car instead of its exact position. The avatar sits horizontally centered
-// but 20% below the map midpoint (70% from screen top), so more road
-// ahead is visible.
-//
-// HOW IT WORKS:
-//   Normal follow: map.panTo([car.lat, car.lng]) → car appears at 50% / 50%.
-//   Perspective:   map.panTo(lookahead) → lookahead at 50%; car at ~70%.
-//
-// SCALE COMPENSATION:
-//   Course-up adds CSS scale(~1.887) to the map container. A displacement of
-//   N Leaflet pixels translates to N × scale visual pixels on screen. Dividing
-//   the desired visual fraction by _mapScale undoes the amplification so the
-//   car ends up at PERSPECTIVE_VISUAL_FRACTION below center visually.
-//
-// COST:
-//   Two cheap trig ops per GPS tick (same as existing haversineM helper).
-//   No DOM work, no extra elements, no layout reflow. Pure Leaflet panTo.
-//
-// ACTIVE WHEN:
-//   - headingMode === 'course-up'  (any time map rotation is on)
-//   - GPS heading is known
-//   Otherwise falls back to normal centered follow (50% / 50%).
-
-/** Fraction of screen height the car should sit BELOW center (visual pixels). */
-const PERSPECTIVE_VISUAL_FRACTION = 0.20  // car at ~70% from top (50% + 20%)
-
-/**
- * Compute how many meters ahead of the car to center the map,
- * so the car appears PERSPECTIVE_VISUAL_FRACTION below center visually.
- * Accounts for CSS scale already applied to the map container.
- */
-function _lookaheadMeters(lat: number, zoom: number): number {
-  const metersPerLeafletPx =
-    (156543.03392 * Math.cos(lat * Math.PI / 180)) / Math.pow(2, zoom)
-  // Desired visual offset → Leaflet pixel offset (undo CSS scale effect)
-  const lookaheadLeafletPx =
-    (window.innerHeight * PERSPECTIVE_VISUAL_FRACTION) / _mapScale
-  return lookaheadLeafletPx * metersPerLeafletPx
-}
-
-/**
- * Return a lat/lng that is `meters` ahead of [lat, lng] in `heading` direction.
- * Pure equirectangular approximation — accurate enough at navigation scale.
- */
-function _offsetInHeading(
-  lat: number, lng: number, heading: number, meters: number,
-): [number, number] {
-  const R      = 6371000
-  const hdgRad = (heading * Math.PI) / 180
-  const latRad = (lat * Math.PI) / 180
-  const dLat   = (meters * Math.cos(hdgRad)) / R
-  const dLng   = (meters * Math.sin(hdgRad)) / (R * Math.cos(latRad))
-  return [lat + (dLat * 180) / Math.PI, lng + (dLng * 180) / Math.PI]
-}
-
-function _applyCourseUp(container: HTMLElement, heading: number): void {
-  // On first entry: save zoom and compensate for the CSS scale visual zoom
-  if (!_courseUpActive && mapInstance) {
-    _courseUpActive = true
-    _savedZoom = mapInstance.getZoom()
-    mapInstance.setZoom(
-      Math.max(mapInstance.getMinZoom(), _savedZoom - 1),
-      { animate: false }
-    )
-  }
-
-  // Compute shortest-path delta from current accumulated rotation
-  const target = heading  // 0-360
-  const current = ((_rotationDeg % 360) + 360) % 360  // normalize to 0-360
-  let delta = target - current
-  if (delta > 180)  delta -= 360  // e.g. 350→10: delta = -340 → +20
-  if (delta < -180) delta += 360  // e.g. 10→350: delta = 340 → -20
-
-  // Skip style mutation when heading change is below profile threshold.
-  // Redundant style.transform writes trigger style-recalc cycles even when
-  // the computed value is identical — competing with tile load rasterization.
-  // AMD Lite raises this to 2.0° to further reduce compositor pressure.
-  if (isTeslaBrowser && Math.abs(delta) < _perfProfile.rotationThresholdDeg) {
-    // Still need to apply transformOrigin on first call
-    if (!_lastWrittenTransform) container.style.transformOrigin = '50% 50%'
-    return
-  }
-
-  _rotationDeg += delta
-
-  const newTransform = `translateZ(0) rotate(${-_rotationDeg}deg) scale(${_mapScale})`
-  // Dedup: only write to DOM if value actually changed
-  if (newTransform !== _lastWrittenTransform) {
-    _lastWrittenTransform = newTransform
-    container.style.transform = newTransform
-    container.style.transformOrigin = '50% 50%'
-    // Keep CSS counter-scale in sync — marker inner divs read this variable
-    // via .marker-scale-wrap to cancel the map container's CSS scale enlargement.
-    // Deduplicated: _mapScale only changes on resize, so the value is almost always
-    // identical between calls. Skipping redundant setProperty avoids style invalidation.
-    const counterScaleStr = (1 / _mapScale).toFixed(6)
-    if (counterScaleStr !== _lastCounterScale) {
-      _lastCounterScale = counterScaleStr
-      container.style.setProperty('--marker-counter-scale', counterScaleStr)
-    }
-    // Keep popup/tooltip counter-rotation in sync.
-    // CSS uses this to rotate popup/tooltip content by +N deg to cancel
-    // the map container's -N deg, keeping labels always horizontal on screen.
-    container.style.setProperty('--map-rot-deg', _rotationDeg.toFixed(2))
-  }
-}
-
-function _clearCourseUp(container: HTMLElement): void {
-  if (_courseUpActive && mapInstance && _savedZoom !== null) {
-    mapInstance.setZoom(_savedZoom, { animate: false })
-  }
-  _courseUpActive = false
-  _savedZoom = null
-  _rotationDeg = 0
-  _lastWrittenTransform = ''
-  _lastCounterScale = ''
-  container.style.removeProperty('--marker-counter-scale')
-  container.style.removeProperty('--map-rot-deg')
-  if (container.style.transform) {
-    container.style.transform = 'translateZ(0)'
-    container.style.transformOrigin = ''
-  }
-}
-
-// ── HMR-safe module-level singletons ──────────────────────────────
-// On cold start: null. On HMR reload: recovered from the previous
-// module's dispose callback so the live map is never destroyed.
-type HotData = { mapInstance: L.Map | null; tileLayer: L.TileLayer | null; trafficLayer: L.TileLayer | null }
-
-let mapInstance: L.Map | null =
+let mapInstance: maplibregl.Map | null =
   (import.meta.hot?.data as Partial<HotData> | undefined)?.mapInstance ?? null
-let tileLayer: L.TileLayer | null =
-  (import.meta.hot?.data as Partial<HotData> | undefined)?.tileLayer ?? null
-let trafficLayer: L.TileLayer | null =
-  (import.meta.hot?.data as Partial<HotData> | undefined)?.trafficLayer ?? null
 
-// Save state before this module is replaced by HMR
 if (import.meta.hot) {
   import.meta.hot.dispose((data) => {
-    (data as HotData).mapInstance   = mapInstance
-    ;(data as HotData).tileLayer    = tileLayer
-    ;(data as HotData).trafficLayer = trafficLayer
+    (data as HotData).mapInstance = mapInstance
   })
 }
 
-export function getMap(): L.Map | null { return mapInstance }
+export function getMap(): maplibregl.Map | null { return mapInstance }
+
+// MapLibre uses native bearing — no CSS scale ever applied.
+// HeadingAvatar calls this to compute counter-scale; always 1 now.
+export function getCourseUpScale(): number { return 1 }
 
 /** Write data-perf attribute to <html> so CSS performance rules engage. */
 function _applyPerfAttribute(): void {
@@ -263,15 +69,51 @@ function _applyPerfAttribute(): void {
     document.documentElement.setAttribute('data-perf', id)
   }
 }
-// Apply immediately on module load (before first React render)
 _applyPerfAttribute()
 
-/** Returns the CSS scale currently applied to the map container in course-up mode.
- *  HeadingAvatar uses this to apply a reciprocal scale so the avatar stays at its
- *  default visual size regardless of the map container's CSS scale transform. */
-export function getCourseUpScale(): number {
-  return _courseUpActive ? _mapScale : 1
+// Expand {s} subdomain placeholder to array of tile URLs
+function _expandTileUrl(url: string): string[] {
+  if (url.includes('{s}')) return ['a', 'b', 'c'].map(s => url.replace('{s}', s))
+  return [url]
 }
+
+// Build a MapLibre raster-only style spec
+function _makeTileStyle(
+  url: string,
+  attribution: string,
+): maplibregl.StyleSpecification {
+  return {
+    version: 8,
+    sources: {
+      'base-tiles': {
+        type: 'raster',
+        tiles: _expandTileUrl(url),
+        tileSize: 256,
+        attribution,
+      },
+    },
+    layers: [{
+      id: 'base-tiles',
+      type: 'raster',
+      source: 'base-tiles',
+      paint: {
+        'raster-fade-duration': isTeslaBrowser ? 0 : 300,
+      },
+    }],
+  }
+}
+
+// Debounced resize — notify MapLibre when viewport dimensions change.
+// Handles Tesla 2026.26 compat viewport meta update from main.tsx.
+let _resizeTimer: ReturnType<typeof setTimeout> | null = null
+window.addEventListener('resize', () => {
+  if (_resizeTimer) clearTimeout(_resizeTimer)
+  _resizeTimer = setTimeout(() => {
+    mapInstance?.resize()
+  }, 200)
+}, { passive: true })
+
+let _geocodeTimer: ReturnType<typeof setTimeout> | null = null
 
 // ─────────────────────────────────────────────────────────────────
 export function MapShell() {
@@ -287,59 +129,47 @@ export function MapShell() {
   useEffect(() => {
     if (!containerRef.current || mapInstance) return
 
-    // Use the stored country's defaults; fall back to Bulgaria when no
-    // country has been chosen yet (CountryPicker will pan after selection).
     const initCountry = countryStore.getCountryOrDefault()
+    const [initLat, initLng] = initCountry.center  // stored as [lat, lng]
 
-    const map = L.map(containerRef.current, {
-      center:              initCountry.center,
-      zoom:                initCountry.zoom,
-      minZoom:             MIN_ZOOM,
-      maxZoom:             MAX_ZOOM,
-      zoomControl:         false,  // custom controls provided
-      attributionControl:  true,
-      // Tesla browser: disable CSS-animated transitions that overwhelm
-      // its software compositor and cause visible jitter during zoom/pan.
-      fadeAnimation:       !isTeslaBrowser,
-      zoomAnimation:       !isTeslaBrowser,  // true on Tesla triggers JS animation machinery even though CSS transition is suppressed
-      markerZoomAnimation: !isTeslaBrowser,
-      // preferCanvas NOT set: SVG renderer avoids the canvas clear→redraw blank
-      // frame that is visible on Tesla's compositor when zooming with course-up
-      // CSS scale active. Modern Chromium SVG is efficient enough for route lines.
-      tapTolerance:        15,     // generous tap target for Tesla touchscreen
+    const map = new maplibregl.Map({
+      container:          containerRef.current,
+      style:              _makeTileStyle(TILE_LIGHT, TILE_ATTRIBUTION),
+      center:             [initLng, initLat],  // MapLibre: [lng, lat]
+      zoom:               initCountry.zoom,
+      minZoom:            MIN_ZOOM,
+      maxZoom:            MAX_ZOOM,
+      attributionControl: true,
+      // Disable pitch/rotation gestures that conflict with course-up UX
+      pitchWithRotate:    false,
+      // Touch: two-finger rotate/pitch is disabled; single-finger drag pans
+      touchPitch:         false,
     })
 
     mapInstance = map
 
     // Disable follow on user-initiated drag.
-    // Course-up is only cleared when NOT actively navigating — during navigation
-    // the user may pan to look ahead without wanting to reset the heading rotation
-    // and zoom compensation (which would cause a jarring zoom jump).
+    // MapLibre fires 'dragstart' only for user drags, not programmatic easeTo.
     map.on('dragstart', () => {
       if (!followStore.isProgrammaticMove()) {
         followStore.setFollowing(false)
         const isNavigating = routeStore.getState().mode === 'navigating'
-        if (!isNavigating && containerRef.current) {
-          _clearCourseUp(containerRef.current)
+        if (!isNavigating && map.getBearing() !== 0) {
+          map.easeTo({
+            bearing: 0,
+            padding: { top: 0, bottom: 0, left: 0, right: 0 },
+            duration: 300,
+          })
         }
         logger.follow.debug('Follow disabled by drag', { isNavigating })
       }
     })
 
-    // Keep _savedZoom in sync when the user manually zooms while in course-up.
-    // Without this, exiting course-up after a user zoom restores the stale
-    // _savedZoom, snapping the map to the wrong zoom level.
-    map.on('zoomend', () => {
-      if (_courseUpActive) {
-        _savedZoom = map.getZoom() + 1  // +1 undoes the course-up compensation offset
-      }
-    })
-
-    // ── Long-press → navigate popup ───────────────────────────────
-    // Leaflet fires 'contextmenu' on long-press (touch hold ≥ 500ms) and
-    // on right-click. Both are valid entry points for "navigate here".
-    map.on('contextmenu', (e: L.LeafletMouseEvent) => {
-      const { lat, lng } = e.latlng
+    // ── Long-press → navigate popup ──────────────────────────────
+    // MapLibre fires 'contextmenu' on long-press (Chrome/Tesla touch) and right-click.
+    map.on('contextmenu', (e) => {
+      e.originalEvent?.preventDefault()
+      const { lng, lat } = e.lngLat
 
       const wrap = document.createElement('div')
       wrap.style.cssText = 'display:flex;flex-direction:column;align-items:center;gap:6px;padding:4px 2px'
@@ -364,9 +194,12 @@ export function MapShell() {
         'width:100%',
       ].join(';')
 
-      // ── Place buttons row (Дом / Работа) ─────────────────────────
       const placeRow = document.createElement('div')
       placeRow.style.cssText = 'display:flex;gap:5px;width:100%'
+
+      // popup is declared here and assigned after element creation;
+      // click handlers close over it by reference (assigned before any click fires)
+      let popup: maplibregl.Popup
 
       function makePlaceBtn(emoji: string, color: string, type: 'home' | 'work'): HTMLButtonElement {
         const existing = savedPlacesStore.get(type)
@@ -387,7 +220,7 @@ export function MapShell() {
         b.addEventListener('click', () => {
           const name = addr.textContent ?? `${lat.toFixed(4)}, ${lng.toFixed(4)}`
           savedPlacesStore.set({ type, lat, lng, name })
-          map.closePopup()
+          popup.remove()
         })
         return b
       }
@@ -407,7 +240,7 @@ export function MapShell() {
         'letter-spacing:0.04em',
       ].join(';')
       addStationBtn.addEventListener('click', () => {
-        map.closePopup()
+        popup.remove()
         addStationStore.open(lat, lng, addr.textContent ?? `${lat.toFixed(5)}, ${lng.toFixed(5)}`)
       })
 
@@ -423,7 +256,7 @@ export function MapShell() {
         'letter-spacing:0.04em',
       ].join(';')
       addEventBtn.addEventListener('click', () => {
-        map.closePopup()
+        popup.remove()
         meetupStore.openForm(lat, lng, addr.textContent ?? `${lat.toFixed(5)}, ${lng.toFixed(5)}`)
       })
 
@@ -433,56 +266,60 @@ export function MapShell() {
       wrap.appendChild(addStationBtn)
       wrap.appendChild(addEventBtn)
 
-      L.popup({
-        className:    'nav-popup',
-        closeButton:  true,
-        maxWidth:     170,
-        offset:       [0, -6],
+      // Assign popup — click handlers above capture this variable by reference
+      popup = new maplibregl.Popup({
+        className:   'nav-popup',
+        closeButton: true,
+        maxWidth:    '170px',
+        offset:      [0, -6] as [number, number],
       })
-        .setLatLng(e.latlng)
-        .setContent(wrap)
-        .openOn(map)
+        .setLngLat([lng, lat])
+        .setDOMContent(wrap)
+        .addTo(map)
 
-      // Reverse geocode — update address label when response arrives.
-      // Debounced: if the user triggers multiple long-presses rapidly (accidental
-      // double-tap on Tesla touchscreen) only the most recent fires a network request.
+      // Reverse geocode — update address label when response arrives
       if (_geocodeTimer) clearTimeout(_geocodeTimer)
       _geocodeTimer = setTimeout(() => {
         _geocodeTimer = null
         const revLang = countryStore.getCountryOrDefault().searchLang
-        fetch(`https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=jsonv2&accept-language=${encodeURIComponent(revLang)}`, {
-          headers: { 'User-Agent': 'TesRadar/1.0' },
-        })
+        fetch(
+          `https://nominatim.openstreetmap.org/reverse?lat=${lat}&lon=${lng}&format=jsonv2&accept-language=${encodeURIComponent(revLang)}`,
+          { headers: { 'User-Agent': 'TesRadar/1.0' } },
+        )
           .then((r) => r.json())
           .then((data: { display_name?: string; address?: { road?: string; suburb?: string; city?: string; town?: string; village?: string } }) => {
             const a = data.address
             const parts: string[] = []
-            if (a?.road)    parts.push(a.road)
-            if (a?.suburb)  parts.push(a.suburb)
-            if (a?.city ?? a?.town ?? a?.village) parts.push((a?.city ?? a?.town ?? a?.village)!)
-            addr.textContent = parts.length ? parts.join(', ') : (data.display_name?.split(',').slice(0, 2).join(', ') ?? addr.textContent)
+            if (a?.road)   parts.push(a.road)
+            if (a?.suburb) parts.push(a.suburb)
+            const city = a?.city ?? a?.town ?? a?.village
+            if (city) parts.push(city)
+            addr.textContent = parts.length
+              ? parts.join(', ')
+              : (data.display_name?.split(',').slice(0, 2).join(', ') ?? addr.textContent)
           })
           .catch(() => { /* keep coords */ })
       }, 600)
 
-      let destName = `${lat.toFixed(4)}, ${lng.toFixed(4)}`
       btn.addEventListener('click', () => {
-        destName = addr.textContent ?? destName
-        map.closePopup()
+        const destName = addr.textContent ?? `${lat.toFixed(4)}, ${lng.toFixed(4)}`
+        popup.remove()
         void routeStore.navigateTo({ lat, lng, name: destName })
       })
     })
 
-    // GPS → map pan when follow mode is active (pure imperative, no React)
-    // Follow is only re-enabled explicitly via the recenter button or startNavigation().
+    // ── GPS → map follow ─────────────────────────────────────────
+    // Course-up: map.easeTo({bearing: -heading}) rotates natively.
+    // Perspective: padding.top = H*0.4 shifts effective center so car
+    //   sits at ~70% from screen top instead of 50%.
+    //
+    // Tesla: skip easeTo when movement is negligible (<3m) to avoid
+    // compositor pressure from unnecessary GPU repaints.
 
-    // Tesla: skip panTo when movement is negligible (<3m) — avoids firing
-    // Leaflet map mutations + tile-load cycles for tiny GPS jitter corrections.
-    // At standstill or slow speed the GPS noise is ~2-5m; skipping those
-    // eliminates ~50% of compositor ops without affecting navigation accuracy.
     let _lastPanLat = 0
     let _lastPanLng = 0
     const PAN_MIN_M = isTeslaBrowser ? 3 : 0
+
     function _panDistM(a: number, b: number, c: number, d: number): number {
       const R = 6371000
       const dLat = (c - a) * Math.PI / 180
@@ -493,112 +330,64 @@ export function MapShell() {
     const unsubGps = gpsStore.onPosition((pos) => {
       if (!followStore.isFollowing()) return
 
-      // Tesla: skip panTo if car hasn't moved enough to matter visually
       if (PAN_MIN_M > 0) {
         const moved = _panDistM(pos.lat, pos.lng, _lastPanLat, _lastPanLng)
-        if (moved < PAN_MIN_M && (_lastPanLat !== 0 || _lastPanLng !== 0)) {
-          // Still process course-up rotation even if we skip the pan
-          const container = containerRef.current
-          if (container) {
-            const courseUp = settingsStore.get().headingMode === 'course-up'
-            if (courseUp && pos.heading != null) _applyCourseUp(container, pos.heading)
-            else _clearCourseUp(container)
-          }
-          return
-        }
+        if (moved < PAN_MIN_M && (_lastPanLat !== 0 || _lastPanLng !== 0)) return
       }
       _lastPanLat = pos.lat
       _lastPanLng = pos.lng
 
-      // ── Course-up rotation ────────────────────────────────────────────────
-      // Applied before panTo so _courseUpActive / _mapScale are up to date
-      // when we compute the perspective lookahead below.
-      const container = containerRef.current
-      if (!container) return
       const courseUp = settingsStore.get().headingMode === 'course-up'
-      if (courseUp && pos.heading != null) {
-        _applyCourseUp(container, pos.heading)
-      } else if (!courseUp) {
-        _clearCourseUp(container)
-      }
-      // courseUp && heading == null (stationary) → preserve last rotation
+      const heading  = pos.heading ?? 0
+      const bearing  = courseUp ? -heading : 0
 
-      // ── Pan options ───────────────────────────────────────────────────────
-      // Course-up + capable profile (auto/normal): animate panTo to match the
-      //   0.5s CSS rotation transition. Without this the tile layer jumps
-      //   instantly while the container slowly rotates — the ×1.887 CSS scale
-      //   amplifies even a 1-pixel tile jump to ~1.9px on screen, creating
-      //   the visible "jump" every GPS second.
-      //   Both animations (rotate CSS + Leaflet pan) start together and finish
-      //   at 0.5s, giving a 0.5s animation-free window for tile loading.
-      // Tesla north-up / AMD Lite / Intel Legacy: instant pan as before.
-      // Desktop north-up: animate as before.
+      // Perspective padding: shifts car to ~70% from top
+      // Course-up or mobile: use padding; Tesla north-up: centered
+      const usePerspective = courseUp || !isTeslaBrowser
+      const topPad = usePerspective ? Math.round(window.innerHeight * 0.4) : 0
+
+      // Animate pan only when profile allows it and heading is known
       const shouldAnimatePan =
         _perfProfile.panAnimate &&
         (courseUp && pos.heading != null || !isTeslaBrowser)
-
-      const panOptions: L.PanOptions = shouldAnimatePan
-        ? { animate: true, duration: 0.5 }
-        : { animate: false }
-
-      // ── Perspective offset pan ────────────────────────────────────────────
-      // Course-up (Tesla): pan ahead in heading direction; CSS scale accounted
-      //   for in _lookaheadMeters → avatar at 70% from screen top.
-      // North-up on mobile: pan map center northward by the same visual offset
-      //   (no CSS scale in north-up) → avatar always at 70% from top on phones.
-      // Fallback: standard centered follow (car at screen center, 50%/50%).
-      let panTarget: [number, number] = [pos.lat, pos.lng]
-      if (courseUp) {
-        // Perspective pan — always active in course-up mode.
-        // Moving: use real GPS heading. Stationary: use last map rotation (_rotationDeg = 0 if never moved).
-        // _lookaheadMeters compensates for CSS scale; when _mapScale=1 (not yet rotating) it degrades
-        // gracefully to the same formula used by the north-up mobile branch.
-        const heading = pos.heading ?? _rotationDeg
-        const lm = _lookaheadMeters(pos.lat, map.getZoom())
-        panTarget = _offsetInHeading(pos.lat, pos.lng, heading, lm)
-      } else if (!isTeslaBrowser) {
-        // North-up on mobile: pan map center north (screen-up) so the avatar
-        // lands at PERSPECTIVE_VISUAL_FRACTION below center = ~70% from top.
-        // No CSS scale is applied in north-up mode, so divide by 1 (not _mapScale).
-        const metersPerLeafletPx =
-          (156543.03392 * Math.cos(pos.lat * Math.PI / 180)) / Math.pow(2, map.getZoom())
-        const lm = window.innerHeight * PERSPECTIVE_VISUAL_FRACTION * metersPerLeafletPx
-        panTarget = _offsetInHeading(pos.lat, pos.lng, 0, lm)
-      }
+      const duration = shouldAnimatePan ? 500 : 0
 
       followStore.beginProgrammaticMove()
-      if (shouldAnimatePan) {
-        // Animated pan: don't use map.once('moveend') — Leaflet fires moveend
-        // for a CANCELLED animation too (next GPS tick arrives mid-animation),
-        // which would trigger endProgrammaticMove prematurely and leave
-        // _programmatic = true, blocking user drag detection.
-        // Fixed timeout: 500ms animation + 50ms safety = released at 550ms,
-        // endProgrammaticMove's own +150ms → mutex clear at ~700ms, well
-        // before the next GPS tick at ~1000ms.
-        map.panTo(panTarget, panOptions)
-        setTimeout(() => followStore.endProgrammaticMove(), 550)
-      } else {
-        // Instant pan: moveend fires synchronously → once() is reliable.
-        map.once('moveend', () => followStore.endProgrammaticMove())
-        map.panTo(panTarget, panOptions)
-      }
+      map.easeTo({
+        center:  [pos.lng, pos.lat],
+        bearing,
+        padding: { top: topPad, bottom: 0, left: 0, right: 0 },
+        duration,
+      })
+      setTimeout(
+        () => followStore.endProgrammaticMove(),
+        shouldAnimatePan ? 550 : 100,
+      )
     })
 
     // React to settings changes: heading mode + performance profile
     const unsubSettings = settingsStore.subscribe(() => {
       const { headingMode } = settingsStore.get()
-      if (headingMode === 'north-up' && containerRef.current) {
-        _clearCourseUp(containerRef.current)
+      if (headingMode === 'north-up') {
+        map.easeTo({
+          bearing: 0,
+          padding: isTeslaBrowser
+            ? { top: 0, bottom: 0, left: 0, right: 0 }
+            : { top: Math.round(window.innerHeight * 0.4), bottom: 0, left: 0, right: 0 },
+          duration: 300,
+        })
       } else if (headingMode === 'course-up') {
         followStore.setFollowing(true)
       }
-      // Refresh module-level profile so GPS callback uses latest threshold
       _perfProfile = getActivePerformanceProfile()
-      // Reflect on <html> so CSS rules activate instantly
       _applyPerfAttribute()
     })
 
-    logger.map.info('Map initialized', { country: initCountry.code, center: initCountry.center, zoom: initCountry.zoom })
+    logger.map.info('Map initialized', {
+      country: initCountry.code,
+      center:  initCountry.center,
+      zoom:    initCountry.zoom,
+    })
 
     return () => {
       unsubGps()
@@ -606,89 +395,70 @@ export function MapShell() {
     }
   }, [])
 
-  // ── Update tile layer when theme/satellite changes ────────────
-  // Uses a crossfade: new layer starts at opacity 0, fades to 1 via the
-  // CSS transition on .leaflet-layer; old layer is removed after 500 ms.
+  // ── Update tile source when theme/satellite changes ───────────
   useEffect(() => {
     if (!mapInstance) return
-
-    const map = mapInstance  // stable local ref for async closures
+    const map = mapInstance
 
     const url =
-      mapMode === 'satellite'                    ? TILE_SATELLITE
+      mapMode === 'satellite'                     ? TILE_SATELLITE
       : mapMode === 'voyager' && theme === 'dark' ? TILE_VOYAGER_DARK
       : mapMode === 'voyager'                     ? TILE_VOYAGER
       : theme === 'dark'                          ? TILE_DARK
       :                                             TILE_LIGHT
 
-    const attribution =
-      mapMode === 'satellite' ? TILE_SATELLITE_ATTRIBUTION : TILE_ATTRIBUTION
-
-    const profile = getActivePerformanceProfile()
-    // CSS dark filter: only for OSM tiles where dark mode is simulated via invert.
-    // MapTiler serves native dark tiles (streets-v2-dark) — no filter needed.
     const isDarkTile = mapMode !== 'satellite' && theme === 'dark' && !MAPTILER_ENABLED
 
-    const tileOptions = {
-      attribution,
-      // MapTiler URLs have no {s} placeholder — subdomains option is ignored
-      // but setting '' avoids a Leaflet console warning on unused substitution.
-      subdomains:        MAPTILER_ENABLED ? '' : 'abc',
-      maxZoom:           MAX_ZOOM,
-      className:         isDarkTile ? 'map-tiles-dark' : '',
-      keepBuffer:        profile.tileKeepBuffer,
-      updateWhenIdle:    profile.tileUpdateWhenIdle,
-      updateWhenZooming: profile.tileUpdateWhenZooming,
+    const apply = () => {
+      const src = map.getSource('base-tiles') as maplibregl.RasterTileSource | undefined
+      if (!src) return
+      src.setTiles(_expandTileUrl(url))
+      // CSS invert filter for OSM dark mode — applied to the canvas element
+      const canvas = map.getCanvas()
+      if (isDarkTile) canvas.classList.add('map-tiles-dark')
+      else            canvas.classList.remove('map-tiles-dark')
+      logger.map.debug('Tile updated', { mapMode, theme })
     }
 
-    if (tileLayer) {
-      if (profile.tileFadeAnimation) {
-        // Crossfade: new layer starts invisible and fades to opaque
-        const prev = tileLayer
-        const next = L.tileLayer(url, { ...tileOptions, opacity: 0 }).addTo(map)
-        tileLayer = next
-        requestAnimationFrame(() => requestAnimationFrame(() => next.setOpacity(1)))
-        setTimeout(() => { if (map.hasLayer(prev)) map.removeLayer(prev) }, 500)
-      } else {
-        // Instant swap (AMD Lite / Intel): avoid double-layer opacity animation
-        map.removeLayer(tileLayer)
-        tileLayer = L.tileLayer(url, tileOptions).addTo(map)
-      }
-    } else {
-      tileLayer = L.tileLayer(url, tileOptions).addTo(map)
-    }
-
-    logger.map.debug('Tile updated', { mapMode, theme })
+    if (map.isStyleLoaded()) apply()
+    else map.once('style.load', apply)
   }, [theme, mapMode])
 
-  // ── Traffic overlay (TomTom) ──────────────────────────────────
+  // ── Traffic overlay (TomTom raster) ──────────────────────────
   useEffect(() => {
     if (!mapInstance) return
     const map = mapInstance
 
-    if (showTraffic) {
-      if (!trafficLayer) {
-        trafficLayer = L.tileLayer(TILE_TRAFFIC, {
-          maxZoom:           MAX_ZOOM,
-          opacity:           0.8,
-          updateWhenIdle:    false,
-          updateWhenZooming: false,
-          // TomTom tiles load at z>=7 — below that the overlay is empty anyway
-          minZoom:           7,
-          // Declare pane so traffic always renders above base tiles but below markers
-          pane: 'overlayPane',
-        }).addTo(map)
-      } else if (!map.hasLayer(trafficLayer)) {
-        trafficLayer.addTo(map)
-      }
-    } else {
-      if (trafficLayer && map.hasLayer(trafficLayer)) {
-        map.removeLayer(trafficLayer)
+    const apply = () => {
+      if (showTraffic) {
+        if (!map.getSource('traffic')) {
+          map.addSource('traffic', {
+            type:     'raster',
+            tiles:    [TILE_TRAFFIC],
+            tileSize: 256,
+          })
+          map.addLayer({
+            id:      'traffic-layer',
+            type:    'raster',
+            source:  'traffic',
+            minzoom: 7,
+            paint:   { 'raster-opacity': 0.8 },
+          })
+        } else {
+          map.setLayoutProperty('traffic-layer', 'visibility', 'visible')
+        }
+      } else {
+        if (map.getLayer('traffic-layer')) {
+          map.setLayoutProperty('traffic-layer', 'visibility', 'none')
+        }
       }
     }
+
+    if (map.isStyleLoaded()) apply()
+    else map.once('style.load', apply)
   }, [showTraffic])
 
-  // ── Sync data-theme attribute to <html> for CSS custom props ──
+  // ── Sync data-theme attribute to <html> ───────────────────────
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
   }, [theme])

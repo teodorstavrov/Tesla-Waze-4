@@ -1,129 +1,98 @@
 // ─── GPS Avatar / Heading Marker ─────────────────────────────────────
 //
-// This is a "null React component" — it renders nothing to the DOM.
-// All work is done imperatively on the Leaflet layer.
+// Null React component — all work done imperatively via MapLibre Marker.
 //
-// PERFORMANCE DESIGN
+// PERFORMANCE DESIGN (MapLibre version)
 // ─────────────────────────────────────────────────────────────────────
-// GPS fires ~1 Hz. We CANNOT recreate a DivIcon on every tick.
-// DivIcon creation forces Leaflet to remove and reinsert a DOM node,
-// which causes a visible flash.
+// MapLibre Marker wraps a raw DOM element.
+// On each GPS tick:
+//   • marker.setLngLat([lng, lat]) — moves via CSS transform (no DOM change)
+//   • wrap.style.transform = rotate(...)  — direct DOM mutation, no Marker API
 //
-// Instead we use three tiers of update cost:
-//
-//   Tier 1 (cheapest) — marker.setLatLng([lat, lng])
-//     Always called. Moves the marker via CSS transform — no DOM change.
-//
-//   Tier 2 (cheap) — direct DOM style mutation
-//     When heading mode hasn't changed (arrow→arrow), we mutate the
-//     arrow div's transform property directly. Zero Leaflet involvement.
-//
-//   Tier 3 (moderate, rare) — marker.setIcon(newIcon)
-//     Only when mode switches (dot↔arrow). Forces a DOM replacement but
-//     this only happens when you start/stop moving. Acceptable.
-//
-// This is the correct pattern for Tesla browser: minimize DOM churn.
+// In course-up mode, map.setBearing(-heading) rotates the map natively.
+// No CSS scale is applied to #map, so no counter-scale is needed on markers.
+// HeadingAvatar arrow always points in the GPS heading direction.
 // ─────────────────────────────────────────────────────────────────────
 
 import { useEffect, useRef } from 'react'
-import { L } from '@/lib/leaflet'
+import * as maplibregl from 'maplibre-gl'
 import { getMap, getCourseUpScale } from '@/components/MapShell'
 import { gpsStore } from '@/features/gps/gpsStore'
 import type { GpsPosition } from '@/features/gps/types'
 
-const ICON_SIZE = 66   // was 57; +15% for better visibility on Tesla touchscreen
-const ICON_ANCHOR: L.PointExpression = [33, 33]   // half of ICON_SIZE, keeps avatar centered on GPS point
+const ICON_SIZE = 66
 
-// ── Icon HTML builders ────────────────────────────────────────────
+function makeElement(): HTMLDivElement {
+  const root = document.createElement('div')
+  root.className = 'gps-avatar-root'
+  root.style.cssText = `width:${ICON_SIZE}px;height:${ICON_SIZE}px;pointer-events:none`
 
-function arrowHtml(heading: number): string {
-  return `<div class="gps-avatar-arrow" style="transform:rotate(${Math.round(heading)}deg)">
+  root.innerHTML = `<div class="gps-avatar-arrow" style="transform:rotate(0deg)">
     <svg width="${ICON_SIZE}" height="${ICON_SIZE}" viewBox="0 0 28 28" fill="none" aria-hidden="true">
       <circle cx="14" cy="14" r="13" fill="rgba(41,121,255,0.15)"/>
       <polygon points="14,3 20,22 14,18 8,22"
         fill="#2979ff" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
     </svg>
   </div>`
-}
 
-function makeIcon(heading: number | null): L.DivIcon {
-  return L.divIcon({
-    html: arrowHtml(heading ?? 0),
-    className: 'gps-avatar-root',
-    iconSize: [ICON_SIZE, ICON_SIZE],
-    iconAnchor: ICON_ANCHOR,
-  })
+  return root
 }
 
 // ─────────────────────────────────────────────────────────────────
 export function HeadingAvatar() {
-  const markerRef = useRef<L.Marker | null>(null)
+  const markerRef = useRef<maplibregl.Marker | null>(null)
+  const elemRef   = useRef<HTMLDivElement | null>(null)
   const addedRef  = useRef(false)
 
   useEffect(() => {
     const map = getMap()
     if (!map) return
 
-    // Create marker at a dummy position — it won't be added to the map
-    // until the first real GPS position arrives.
-    const marker = L.marker([0, 0], {
-      icon: makeIcon(null),
-      zIndexOffset: 1000,
-      interactive: false, // not clickable — improves touch pass-through
+    const el = makeElement()
+    elemRef.current = el
+
+    // Create MapLibre Marker with offset so anchor center = GPS point
+    const marker = new maplibregl.Marker({
+      element: el,
+      anchor: 'center',
+      rotationAlignment: 'viewport',
     })
+      .setLngLat([0, 0])  // dummy position until first GPS fix
     markerRef.current = marker
 
     const unsub = gpsStore.onPosition((pos: GpsPosition) => {
       const m = markerRef.current
       if (!m) return
 
-      // Tier 1: move the marker (CSS transform — no DOM change)
-      m.setLatLng([pos.lat, pos.lng])
+      // Move marker (CSS transform — no DOM change)
+      m.setLngLat([pos.lng, pos.lat])
 
-      // Add to map on first position
+      // Add to map on first real GPS position
       if (!addedRef.current) {
         m.addTo(map)
         addedRef.current = true
       }
 
-      // Tier 2: mutate arrow rotation + counter-scale directly — no icon recreation.
-      // In course-up mode the #map container is CSS-scaled by ~1.887 to fill the
-      // screen after rotation. That scale inflates every child including this marker.
-      // We apply scale(1/mapScale) to cancel the enlargement so the avatar always
-      // renders at its default visual size.
-      const el = m.getElement()
-      const wrap = el?.querySelector<HTMLElement>('.gps-avatar-arrow')
+      // Rotate the arrow to GPS heading.
+      // In course-up mode: map bearing = -heading, so arrow always points up
+      // on screen. In north-up mode: arrow rotates to show direction of travel.
+      // getCourseUpScale() always returns 1 in MapLibre (no CSS scale on #map).
+      const counterScale = 1 / getCourseUpScale()
+      const vpScale = parseFloat(
+        getComputedStyle(document.documentElement).getPropertyValue('--marker-viewport-scale') || '1'
+      )
+      const wrap = el.querySelector<HTMLElement>('.gps-avatar-arrow')
       if (wrap) {
-        const counterScale = 1 / getCourseUpScale()
-        // Also apply viewport scale so avatar shrinks proportionally on smaller screens.
-        // CSS transform on .gps-avatar-root is overridden by Leaflet's inline positioning
-        // transform, so we must fold the viewport scale into this imperative update instead.
-        const vpScale = parseFloat(
-          getComputedStyle(document.documentElement).getPropertyValue('--marker-viewport-scale') || '1'
-        )
-        wrap.style.transform = `rotate(${Math.round(pos.heading ?? 0)}deg) scale(${(counterScale * vpScale).toFixed(4)})`
+        wrap.style.transform =
+          `rotate(${Math.round(pos.heading ?? 0)}deg) scale(${(counterScale * vpScale).toFixed(4)})`
       }
     })
 
-    // Hide the arrow during zoom so the position-snap from markerZoomAnimation:false
-    // is never visible. The marker reappears immediately after zoom settles.
-    const onZoomStart = () => {
-      const el = markerRef.current?.getElement()
-      if (el) el.style.opacity = '0'
-    }
-    const onZoomEnd = () => {
-      const el = markerRef.current?.getElement()
-      if (el) el.style.opacity = '1'
-    }
-    map.on('zoomstart', onZoomStart)
-    map.on('zoomend',   onZoomEnd)
-
     return () => {
-      map.off('zoomstart', onZoomStart)
-      map.off('zoomend',   onZoomEnd)
       unsub()
       marker.remove()
       markerRef.current = null
+      elemRef.current = null
       addedRef.current = false
     }
   }, []) // runs once — map is stable

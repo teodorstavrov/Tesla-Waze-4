@@ -1,6 +1,5 @@
 // ─── Custom zoom controls ──────────────────────────────────────────────
 // 44px minimum touch targets — Tesla touchscreen safe.
-// Leaflet's built-in zoom is hidden via CSS.
 
 import { getMap } from '@/components/MapShell'
 
@@ -16,11 +15,11 @@ export function ZoomControls() {
       flexDirection: 'column',
       gap: 6,
     }}>
-      <button className="icon-btn" onClick={() => { getMap()?.zoomIn(1) }}
+      <button className="icon-btn" onClick={() => { getMap()?.zoomIn() }}
         title="Zoom in" aria-label="Zoom in">
         <PlusIcon />
       </button>
-      <button className="icon-btn" onClick={() => { getMap()?.zoomOut(1) }}
+      <button className="icon-btn" onClick={() => { getMap()?.zoomOut() }}
         title="Zoom out" aria-label="Zoom out">
         <MinusIcon />
       </button>

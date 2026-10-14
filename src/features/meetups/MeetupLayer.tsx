@@ -1,26 +1,25 @@
 // ─── Community Event (Meetup) marker layer ──────────────────────────────
 // Null-render component that imperatively manages 📅 markers on the map.
-// Events are few, so no clustering — a simple id-keyed registry diff.
 
 import { useEffect, useRef } from 'react'
-import { L } from '@/lib/leaflet'
+import * as maplibregl from 'maplibre-gl'
 import { getMap } from '@/components/MapShell'
 import { meetupStore } from './meetupStore'
 
-function icon(): L.DivIcon {
-  return L.divIcon({
-    className: 'meetup-marker',
-    html: `<div style="width:34px;height:34px;display:flex;align-items:center;justify-content:center;
-      background:#6366f1;border:2.5px solid rgba(255,255,255,0.9);border-radius:50%;
-      box-shadow:0 3px 12px rgba(0,0,0,0.55);font-size:18px;">📅</div>`,
-    iconSize: [44, 44],
-    iconAnchor: [22, 22],
-    popupAnchor: [0, -18],
-  })
+function makeElement(): HTMLDivElement {
+  const el = document.createElement('div')
+  el.className = 'meetup-marker'
+  el.style.cssText = [
+    'width:34px', 'height:34px', 'display:flex', 'align-items:center', 'justify-content:center',
+    'background:#6366f1', 'border:2.5px solid rgba(255,255,255,0.9)', 'border-radius:50%',
+    'box-shadow:0 3px 12px rgba(0,0,0,0.55)', 'font-size:18px', 'cursor:pointer',
+  ].join(';')
+  el.textContent = '📅'
+  return el
 }
 
 export function MeetupLayer() {
-  const markers = useRef<Map<string, L.Marker>>(new Map())
+  const markers = useRef<Map<string, maplibregl.Marker>>(new Map())
 
   useEffect(() => {
     meetupStore.fetch()
@@ -33,21 +32,22 @@ export function MeetupLayer() {
 
       for (const m of meetups) {
         seen.add(m.id)
-        let mk = markers.current.get(m.id)
-        if (!mk) {
-          mk = L.marker([m.lat, m.lng], { icon: icon() })
+        if (!markers.current.has(m.id)) {
+          const el = makeElement()
           const id = m.id
-          mk.on('click', () => {
+          el.addEventListener('click', () => {
             const latest = meetupStore.getState().meetups.find((x) => x.id === id)
             if (latest) meetupStore.select(latest)
           })
-          mk.addTo(map)
+          const mk = new maplibregl.Marker({ element: el, anchor: 'center' })
+            .setLngLat([m.lng, m.lat])
+            .addTo(map)
           markers.current.set(m.id, mk)
         }
       }
-      // Remove markers whose meetup is gone
+
       for (const [id, mk] of markers.current) {
-        if (!seen.has(id)) { map.removeLayer(mk); markers.current.delete(id) }
+        if (!seen.has(id)) { mk.remove(); markers.current.delete(id) }
       }
     }
 
@@ -55,8 +55,7 @@ export function MeetupLayer() {
     const unsub = meetupStore.subscribe(render)
     return () => {
       unsub()
-      const map = getMap()
-      for (const mk of markers.current.values()) { if (map) map.removeLayer(mk) }
+      for (const mk of markers.current.values()) mk.remove()
       markers.current.clear()
     }
   }, [])

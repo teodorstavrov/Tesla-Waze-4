@@ -3,7 +3,7 @@
 // Tapping a marker shows a popup with Навигирай + Изчисти buttons.
 
 import { useEffect, useRef } from 'react'
-import { L } from '@/lib/leaflet'
+import * as maplibregl from 'maplibre-gl'
 import { getMap } from '@/components/MapShell'
 import { savedPlacesStore } from './savedPlacesStore'
 import { routeStore } from '@/features/route/routeStore'
@@ -15,25 +15,30 @@ const PLACE_CONFIG: Record<PlaceType, { emoji: string; color: string; labelKey: 
   work: { emoji: '💼', color: '#3b82f6', labelKey: 'map.work' },
 }
 
-function makeIcon(type: PlaceType): L.DivIcon {
+function makeElement(type: PlaceType): HTMLDivElement {
   const { emoji, color } = PLACE_CONFIG[type]
-  return L.divIcon({
-    className: '',
-    html: `<div class="marker-scale-wrap"><div style="
-      width:44px;height:44px;border-radius:50%;
-      background:${color};
-      border:3px solid #fff;
-      box-shadow:0 2px 12px rgba(0,0,0,0.4);
-      display:flex;align-items:center;justify-content:center;
-      font-size:20px;line-height:1;
-    ">${emoji}</div></div>`,
-    iconSize:   [44, 44],
-    iconAnchor: [22, 22],
-    popupAnchor:[0, -26],
-  })
+  const el = document.createElement('div')
+  el.className = 'marker-scale-wrap'
+  el.style.cursor = 'pointer'
+
+  const inner = document.createElement('div')
+  inner.style.cssText = [
+    'width:44px', 'height:44px', 'border-radius:50%',
+    `background:${color}`,
+    'border:3px solid #fff',
+    'box-shadow:0 2px 12px rgba(0,0,0,0.4)',
+    'display:flex', 'align-items:center', 'justify-content:center',
+    'font-size:20px', 'line-height:1',
+  ].join(';')
+  inner.textContent = emoji
+  el.appendChild(inner)
+  return el
 }
 
-function buildPopup(place: SavedPlace, map: L.Map): HTMLElement {
+function buildPopupContent(
+  place: SavedPlace,
+  popup: maplibregl.Popup,
+): HTMLElement {
   const { emoji, color, labelKey } = PLACE_CONFIG[place.type]
   const label = t(labelKey)
 
@@ -73,20 +78,22 @@ function buildPopup(place: SavedPlace, map: L.Map): HTMLElement {
   wrap.appendChild(clearBtn)
 
   navBtn.addEventListener('click', () => {
-    map.closePopup()
+    popup.remove()
     void routeStore.navigateTo({ lat: place.lat, lng: place.lng, name: place.name })
   })
 
   clearBtn.addEventListener('click', () => {
-    map.closePopup()
+    popup.remove()
     savedPlacesStore.remove(place.type)
   })
 
   return wrap
 }
 
+type MarkerEntry = { marker: maplibregl.Marker; element: HTMLDivElement }
+
 export function SavedPlacesLayer() {
-  const markersRef = useRef<Partial<Record<PlaceType, L.Marker>>>({})
+  const markersRef = useRef<Partial<Record<PlaceType, MarkerEntry>>>({})
 
   useEffect(() => {
     const map = getMap()
@@ -97,37 +104,35 @@ export function SavedPlacesLayer() {
       const types: PlaceType[] = ['home', 'work']
 
       for (const type of types) {
-        const existing = markersRef.current[type]
+        const entry = markersRef.current[type]
         const place = places[type]
 
         if (!place) {
-          // Remove marker if place was deleted
-          existing?.remove()
+          entry?.marker.remove()
           delete markersRef.current[type]
           continue
         }
 
-        if (existing) {
-          // Update position if moved
-          existing.setLatLng([place.lat, place.lng])
-          existing.setIcon(makeIcon(type))
+        if (entry) {
+          entry.marker.setLngLat([place.lng, place.lat])
         } else {
-          // Create new marker
-          const marker = L.marker([place.lat, place.lng], {
-            icon:         makeIcon(type),
-            zIndexOffset: 500,
-          }).addTo(map!)
+          const el = makeElement(type)
+          const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+            .setLngLat([place.lng, place.lat])
+            .addTo(map)
 
-          marker.on('click', () => {
+          el.addEventListener('click', () => {
             const current = savedPlacesStore.get(type)
             if (!current) return
-            L.popup({ className: 'nav-popup', closeButton: true, maxWidth: 260 })
-              .setLatLng([current.lat, current.lng])
-              .setContent(buildPopup(current, map!))
-              .openOn(map!)
+            const popup = new maplibregl.Popup({
+              className:   'nav-popup',
+              closeButton: true,
+              maxWidth:    '260px',
+            }).setLngLat([current.lng, current.lat])
+            popup.setDOMContent(buildPopupContent(current, popup)).addTo(map)
           })
 
-          markersRef.current[type] = marker
+          markersRef.current[type] = { marker, element: el }
         }
       }
     }
@@ -137,7 +142,7 @@ export function SavedPlacesLayer() {
 
     return () => {
       unsub()
-      for (const m of Object.values(markersRef.current)) m?.remove()
+      for (const entry of Object.values(markersRef.current)) entry?.marker.remove()
       markersRef.current = {}
     }
   }, [])

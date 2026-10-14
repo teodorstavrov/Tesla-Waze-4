@@ -19,6 +19,7 @@
     "@vercel/speed-insights": "^2.0.0",
     "fast-xml-parser": "^5.7.1",
     "leaflet": "^1.9.4",
+    "maplibre-gl": "^6.14.0",
     "pg": "^8.11.0",
     "playwright": "^1.60.0",
     "react": "^19.2.4",

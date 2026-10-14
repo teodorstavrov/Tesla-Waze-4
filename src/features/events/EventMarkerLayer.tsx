@@ -1,13 +1,12 @@
 // ─── Event Marker Layer ────────────────────────────────────────────────
-// Null-render component. DivIcon markers (not canvas) — events are few
-// and need distinct emoji/icon visuals that canvas can't render.
+// Null-render component. DOM-element markers — events need distinct
+// emoji/icon visuals.
 //
 // Each marker shows a colored circle with emoji.
-// Time info ("reported X ago · expires in Y") is shown in EventPanel
-// when the marker is tapped.
+// Time info is shown in EventPanel when the marker is tapped.
 
 import { useEffect, useRef } from 'react'
-import { L } from '@/lib/leaflet'
+import * as maplibregl from 'maplibre-gl'
 import { getMap } from '@/components/MapShell'
 import { eventStore } from './eventStore.js'
 import { EVENT_EMOJI, EVENT_COLORS } from './types.js'
@@ -16,80 +15,72 @@ import { isTeslaBrowser } from '@/lib/browser'
 import { getActivePerformanceProfile } from '@/config/performanceProfiles'
 import type { RoadEvent } from './types.js'
 
-const NEW_THRESHOLD_MS = 2 * 60 * 1000  // pulse events reported within 2 minutes
+const NEW_THRESHOLD_MS = 2 * 60 * 1000
 
-function makeIcon(event: RoadEvent): L.DivIcon {
+function makeElement(event: RoadEvent): HTMLDivElement {
   const color = EVENT_COLORS[event.type] ?? '#888'
   const emoji = EVENT_EMOJI[event.type]  ?? '📍'
   const isNew = Date.now() - new Date(event.reportedAt).getTime() < NEW_THRESHOLD_MS
-  // Suppress pulse if Tesla browser or profile disables marker animations.
   const profile = getActivePerformanceProfile()
   const animation = (!isTeslaBrowser && isNew && profile.useMarkerAnimations)
     ? 'event-new-pulse 0.9s ease-out 3'
     : 'none'
 
-  // Police gets a solid filled circle — much more readable on Tesla's screen.
-  // Other event types keep the semi-transparent style.
   const isPolice = event.type === 'police'
   const bg      = isPolice ? color          : `${color}22`
   const border  = isPolice ? '3px solid #fff' : `2px solid ${color}`
-  const shadow  = isPolice
-    ? '0 2px 10px rgba(0,0,0,0.7)'
-    : '0 2px 8px rgba(0,0,0,0.55)'
+  const shadow  = isPolice ? '0 2px 10px rgba(0,0,0,0.7)' : '0 2px 8px rgba(0,0,0,0.55)'
   const size    = isPolice ? 40 : 36
   const font    = isPolice ? 19 : 17
 
-  return L.divIcon({
-    className: '',
-    html: `<div class="marker-scale-wrap">
-      <div style="
-        width:${size}px;height:${size}px;border-radius:50%;
-        background:${bg};border:${border};
-        display:flex;align-items:center;justify-content:center;
-        font-size:${font}px;line-height:1;
-        box-shadow:${shadow};
-        cursor:pointer;
-        animation:${animation};
-      ">${emoji}</div></div>`,
-    iconSize:    [size, size],
-    iconAnchor:  [size / 2, size / 2],
-    popupAnchor: [0, -22],
-  })
+  const wrap = document.createElement('div')
+  wrap.className = 'marker-scale-wrap'
+  wrap.style.cursor = 'pointer'
+
+  const inner = document.createElement('div')
+  inner.style.cssText = [
+    `width:${size}px`, `height:${size}px`, 'border-radius:50%',
+    `background:${bg}`, `border:${border}`,
+    'display:flex', 'align-items:center', 'justify-content:center',
+    `font-size:${font}px`, 'line-height:1',
+    `box-shadow:${shadow}`,
+    `animation:${animation}`,
+  ].join(';')
+  inner.textContent = emoji
+  wrap.appendChild(inner)
+  return wrap
 }
 
 export function EventMarkerLayer() {
-  const registryRef = useRef<Map<string, L.Marker>>(new Map())
+  const registryRef = useRef<Map<string, maplibregl.Marker>>(new Map())
 
   useEffect(() => {
     let cancelled = false
     let moveTimer: ReturnType<typeof setTimeout> | null = null
 
-    function init(map: L.Map): () => void {
+    function init(map: maplibregl.Map): () => void {
       const registry = registryRef.current
 
       function syncMarkers(): void {
         const { events } = eventStore.getState()
-        const visible  = events
-        const incoming = new Set(visible.map((e) => e.id))
+        const incoming = new Set(events.map((e) => e.id))
 
-        // Remove gone events
         for (const [id, marker] of registry) {
           if (!incoming.has(id)) { marker.remove(); registry.delete(id) }
         }
 
-        // Add new events (skip if already in registry)
-        for (const event of visible) {
+        for (const event of events) {
           if (registry.has(event.id)) continue
 
-          const marker = L.marker([event.lat, event.lng], {
-            icon: makeIcon(event),
-            zIndexOffset: 100,
-          }).addTo(map)
-
-          marker.on('click', () => {
+          const el = makeElement(event)
+          el.addEventListener('click', () => {
             eventStore.selectEvent(event)
             logger.events.debug('Event selected', { id: event.id, type: event.type })
           })
+
+          const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+            .setLngLat([event.lng, event.lat])
+            .addTo(map)
 
           registry.set(event.id, marker)
         }
@@ -112,7 +103,6 @@ export function EventMarkerLayer() {
 
       map.on('moveend', onMoveEnd)
 
-      // Initial fetch
       const b = map.getBounds()
       eventStore.fetch({
         minLat: b.getSouth(), minLng: b.getWest(),

@@ -44,7 +44,7 @@ export function LocationButton() {
     if (pos) {
       followStore.beginProgrammaticMove()
       map.once('moveend', () => followStore.endProgrammaticMove())
-      map.setView([pos.lat, pos.lng], 15, { animate: !isTeslaBrowser, duration: 0.4 })
+      map.easeTo({ center: [pos.lng, pos.lat], zoom: 15, duration: isTeslaBrowser ? 0 : 400 })
     }
     followStore.setFollowing(true)
   }
