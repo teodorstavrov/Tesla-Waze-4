@@ -410,13 +410,14 @@ export function MapShell() {
     const isDarkTile = mapMode !== 'satellite' && theme === 'dark' && !MAPTILER_ENABLED
 
     const apply = () => {
-      const src = map.getSource('base-tiles') as maplibregl.RasterTileSource | undefined
+      const src = map.getSource<maplibregl.RasterTileSource>('base-tiles')
       if (!src) return
       src.setTiles(_expandTileUrl(url))
       // CSS invert filter for OSM dark mode — applied to the canvas element
       const canvas = map.getCanvas()
       if (isDarkTile) canvas.classList.add('map-tiles-dark')
       else            canvas.classList.remove('map-tiles-dark')
+      map.triggerRepaint()
       logger.map.debug('Tile updated', { mapMode, theme })
     }
 

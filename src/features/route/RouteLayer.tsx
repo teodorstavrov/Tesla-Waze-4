@@ -44,8 +44,12 @@ export function RouteLayer() {
     function init(map: maplibregl.Map): () => void {
 
       function removeRoutes(): void {
+        // Remove layers first, then sources — MapLibre throws if you remove a
+        // source while a layer still references it.
         for (const id of activeIdsRef.current) {
-          if (map.getLayer(id))  map.removeLayer(id)
+          if (map.getLayer(id)) map.removeLayer(id)
+        }
+        for (const id of activeIdsRef.current) {
           if (map.getSource(id)) map.removeSource(id)
         }
         activeIdsRef.current = []
@@ -122,9 +126,9 @@ export function RouteLayer() {
           const bounds = new maplibregl.LngLatBounds()
           for (const [lat, lng] of active.polyline) bounds.extend([lng, lat])
           map.fitBounds(bounds, {
-            padding: { top: 80, bottom: 80, left: 80, right: 80 },
-            maxZoom: 15,
-            animate: !isTeslaBrowser,
+            padding:  { top: 80, bottom: 80, left: 80, right: 80 },
+            maxZoom:  15,
+            duration: isTeslaBrowser ? 0 : 600,
           })
         }
         prevIndexRef.current = activeRouteIndex

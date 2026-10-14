@@ -66,7 +66,7 @@ export function RoutePanel() {
     if (map && gps) {
       followStore.beginProgrammaticMove()
       map.once('moveend', () => followStore.endProgrammaticMove())
-      map.setView([gps.lat, gps.lng], 15, { animate: !isTeslaBrowser })
+      map.easeTo({ center: [gps.lng, gps.lat], zoom: 15, duration: isTeslaBrowser ? 0 : 400 })
     }
     followStore.setFollowing(true)
     routeStore.startNavigation()
@@ -469,7 +469,7 @@ function StationRow({ station, distFromRouteM }: { station: NormalizedStation; d
 
   function handleTap() {
     const map = getMap()
-    if (map) map.setView([station.lat, station.lng], Math.max(map.getZoom(), 15), { animate: true })
+    if (map) map.easeTo({ center: [station.lng, station.lat], zoom: Math.max(map.getZoom(), 15) })
     evStore.selectStation(station)
   }
 
