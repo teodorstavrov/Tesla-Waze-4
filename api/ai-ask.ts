@@ -558,6 +558,7 @@ When truly ambiguous, prefer set_work_here (it is irreversible only if unwanted,
   let r: Response | null = null
   let usedModel = ''
   let lastError = ''
+  let allRateLimited = true  // flipped to false if any failure is not 429
 
   for (const model of availableModels) {
     let attempt: Response
@@ -592,6 +593,7 @@ When truly ambiguous, prefer set_work_here (it is irreversible only if unwanted,
       // 5xx — don't try more models, surface the error
       res.status(502).json({ error: lastError }); return
     }
+    if (attempt.status !== 429) allRateLimited = false
     // 400 = json_object not supported, 404 = model removed,
     // 413 = request too large for this model, 429 = per-model rate limit
     // → all four: skip to next model (Groq rate limits are per-model, not global)
@@ -599,6 +601,9 @@ When truly ambiguous, prefer set_work_here (it is irreversible only if unwanted,
 
   if (!r) {
     logAiQuery({ ts: Date.now(), q: question, outcome: 'error', lang: ctx.lang, ip: _clientIp(req), err: `All models failed: ${lastError.slice(0, 200)}` })
+    if (allRateLimited) {
+      res.status(429).json({ error: _rateLimitMsg(ctx.lang) }); return
+    }
     res.status(502).json({ error: `All models failed. Last error: ${lastError}` }); return
   }
 
@@ -670,6 +675,19 @@ function _clientIp(req: VercelRequest): string | undefined {
   const fwd = req.headers['x-forwarded-for']
   if (typeof fwd === 'string') return fwd.split(',')[0]?.trim()
   return req.socket?.remoteAddress
+}
+
+/** User-friendly rate-limit message in the session language. */
+function _rateLimitMsg(lang: string): string {
+  const msgs: Record<string, string> = {
+    bg: 'AI достигна лимита. Изчакай минута и опитай пак.',
+    no: 'AI-grensen er nådd. Vent et øyeblikk og prøv igjen.',
+    sv: 'AI-gränsen har nåtts. Vänta en stund och försök igen.',
+    fi: 'AI-raja saavutettu. Odota hetki ja yritä uudelleen.',
+    nl: 'AI-limiet bereikt. Wacht even en probeer opnieuw.',
+    de: 'KI-Limit erreicht. Warte kurz und versuche es erneut.',
+  }
+  return msgs[lang] ?? 'AI rate limit reached. Please wait a moment and try again.'
 }
 
 /**
