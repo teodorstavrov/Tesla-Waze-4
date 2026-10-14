@@ -5,6 +5,8 @@ All notable changes to TesRadar, organized by date (newest first).
 ---
 
 ## 2026-10-14
+- **RouteLayer v4b — route line fix (isStyleLoaded gate removed)** — `isStyleLoaded()` in MapLibre checks raster tile cache, not just style spec; was returning false while tiles loaded → `draw()` exited early forever. Fix: remove the check entirely; `addSource`/`addLayer` succeed right after `style.load` fires regardless of tile loading state
+- **RouteLayer v4 — route line fix (rAF fallback)** — React children effects run before parent's; MapShell sets `mapInstance` in its own `useEffect`, so `getMap()` was null when RouteLayer's effect ran first; v1–v3 all returned immediately with no listeners set up. Fix: `requestAnimationFrame` defers `init()` to after MapShell's effect fires (same pattern as SectionLayer)
 - **Remove "Зареди по пътя" (EV stations along route)** — removed the expandable EV charging stations section from RoutePanel; also cleaned up related state, imports, `StationRow`, `ChevronIcon`, and `useMemo` usage; Hide button remains always visible
 - **Migration regression fixes** — replaced 4 leftover `map.setView()` (Leaflet-only API) calls with MapLibre equivalents (`map.easeTo` / `map.jumpTo`); also fixed coordinate order (`[lat,lng]`→`[lng,lat]`) in CountryPicker country-center branch; affected features: CountryPicker confirm, SearchBar EV station select, MeetupList "go to map", VoiceAssistant "center" command
 - **Avatar size +15%** — increased GPS avatar from 66px to 76px for better visibility on Tesla touchscreen
