@@ -1,11 +1,12 @@
 // ─── Route Layer ───────────────────────────────────────────────────────
-// Draws the active route and alternatives as MapLibre GL line layers.
+// Draws the active route as a canvas overlay on top of the MapLibre map.
 //
-// PATTERN (v5 — mirrors SectionLayer which is confirmed working):
-//  • Sources + layers are added ONCE at setup with empty GeoJSON.
-//  • Route data is updated via setData() — never remove/re-add.
-//  • On style reload the layers are re-added (getSource/getLayer guards).
-//  • isStyleLoaded() + map.once('style.load', setup) for initial retry.
+// After 5 failed attempts with addSource/addLayer (v1–v5), we bypass
+// MapLibre's GeoJSON/vector layer system entirely. We create a plain
+// <canvas> element positioned over the map container and draw the route
+// using the Canvas 2D API. map.project([lng,lat]) converts geo coordinates
+// to screen pixels accounting for zoom, bearing and pitch — so this works
+// correctly in both north-up and course-up modes.
 
 import { useEffect, useRef } from 'react'
 import * as maplibregl from 'maplibre-gl'
@@ -14,29 +15,7 @@ import { routeStore } from './routeStore.js'
 import { followStore } from '@/features/follow/followStore'
 import { isTeslaBrowser } from '@/lib/browser'
 
-const P_SRC = 'route-primary-src'
-const P_LYR = 'route-primary-lyr'
-const A_SRC = (n: number) => `route-alt${n}-src`
-const A_LYR = (n: number) => `route-alt${n}-lyr`
 const MAX_ALT = 2
-
-function emptyFC(): GeoJSON.FeatureCollection {
-  return { type: 'FeatureCollection', features: [] }
-}
-
-function routeGeoJSON(polyline: [number, number][]): GeoJSON.FeatureCollection {
-  return {
-    type: 'FeatureCollection',
-    features: [{
-      type:     'Feature',
-      geometry: {
-        type:        'LineString',
-        coordinates: polyline.map(([lat, lng]) => [lng, lat]),
-      },
-      properties: {},
-    }],
-  }
-}
 
 function makeDestElement(): HTMLDivElement {
   const wrap = document.createElement('div')
@@ -54,6 +33,22 @@ function makeDestElement(): HTMLDivElement {
   return wrap
 }
 
+function drawPolyline(
+  ctx:      CanvasRenderingContext2D,
+  map:      maplibregl.Map,
+  polyline: [number, number][],
+): void {
+  if (polyline.length < 2) return
+  ctx.beginPath()
+  for (let i = 0; i < polyline.length; i++) {
+    const [lat, lng] = polyline[i]!
+    const pt = map.project([lng, lat])
+    if (i === 0) ctx.moveTo(pt.x, pt.y)
+    else         ctx.lineTo(pt.x, pt.y)
+  }
+  ctx.stroke()
+}
+
 // ─────────────────────────────────────────────────────────────────────────
 export function RouteLayer() {
   const destMarkerRef = useRef<maplibregl.Marker | null>(null)
@@ -63,92 +58,58 @@ export function RouteLayer() {
     let cancelled = false
 
     function init(map: maplibregl.Map): () => void {
+      // ── Canvas overlay ───────────────────────────────────────────────────
+      const container = map.getContainer()
+      const canvas    = document.createElement('canvas')
+      canvas.style.cssText = 'position:absolute;inset:0;pointer-events:none;z-index:2'
+      container.appendChild(canvas)
 
-      // ── Setup: add sources + layers once with empty data ────────────────
-      function setup(): void {
-        if (!map.isStyleLoaded()) { map.once('style.load', setup); return }
-
-        // Alt layers (drawn first → below primary)
-        for (let n = 0; n < MAX_ALT; n++) {
-          if (!map.getSource(A_SRC(n))) {
-            map.addSource(A_SRC(n), { type: 'geojson', data: emptyFC() })
-          }
-          if (!map.getLayer(A_LYR(n))) {
-            map.addLayer({
-              id:     A_LYR(n),
-              type:   'line',
-              source: A_SRC(n),
-              layout: { 'line-join': 'round', 'line-cap': 'round' },
-              paint:  {
-                'line-color':     '#2B7FFF',
-                'line-width':     4,
-                'line-opacity':   0.35,
-                'line-dasharray': [8, 6],
-              },
-            })
-            // Click captured at time of click — reads current store state
-            const idx = n
-            map.on('click', A_LYR(idx), () => {
-              const { routes, activeRouteIndex } = routeStore.getState()
-              const alts = routes.map((r, i) => ({ r, i })).filter(({ i }) => i !== activeRouteIndex)
-              const alt = alts[idx]
-              if (alt) routeStore.selectRoute(alt.i)
-            })
-          }
-        }
-
-        // Primary route layer (on top)
-        if (!map.getSource(P_SRC)) {
-          map.addSource(P_SRC, { type: 'geojson', data: emptyFC() })
-        }
-        if (!map.getLayer(P_LYR)) {
-          map.addLayer({
-            id:     P_LYR,
-            type:   'line',
-            source: P_SRC,
-            layout: { 'line-join': 'round', 'line-cap': 'round' },
-            paint:  {
-              'line-color':   '#2B7FFF',
-              'line-width':   6,
-              'line-opacity': 1,
-            },
-          })
-        }
-
-        sync()
+      function resize(): void {
+        canvas.width  = container.offsetWidth
+        canvas.height = container.offsetHeight
+        redraw()
       }
+      resize()
 
-      // ── Sync: update source data without removing/re-adding layers ──────
-      function sync(): void {
-        const pSrc = map.getSource(P_SRC) as maplibregl.GeoJSONSource | undefined
-        if (!pSrc) return   // setup not done yet
+      // ── Redraw route on canvas ────────────────────────────────────────────
+      function redraw(): void {
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
 
         const { routes, activeRouteIndex, destination } = routeStore.getState()
-
-        if (!routes.length || !destination) {
-          pSrc.setData(emptyFC())
-          for (let n = 0; n < MAX_ALT; n++) {
-            (map.getSource(A_SRC(n)) as maplibregl.GeoJSONSource | undefined)?.setData(emptyFC())
-          }
-          destMarkerRef.current?.remove()
-          destMarkerRef.current = null
-          return
-        }
+        if (!routes.length || !destination) return
 
         const active = routes[activeRouteIndex]!
-        const alts   = routes.map((r, i) => ({ r, i })).filter(({ i }) => i !== activeRouteIndex)
+        const alts   = routes
+          .map((r, i) => ({ r, i }))
+          .filter(({ i }) => i !== activeRouteIndex)
+          .slice(0, MAX_ALT)
 
-        // Update primary route data
-        pSrc.setData(routeGeoJSON(active.polyline))
-
-        // Update alt route data
-        for (let n = 0; n < MAX_ALT; n++) {
-          const aSrc = map.getSource(A_SRC(n)) as maplibregl.GeoJSONSource | undefined
-          if (!aSrc) continue
-          aSrc.setData(n < alts.length ? routeGeoJSON(alts[n]!.r.polyline) : emptyFC())
+        // Alt routes (dashed, semi-transparent)
+        ctx.save()
+        ctx.strokeStyle = 'rgba(43,127,255,0.4)'
+        ctx.lineWidth   = 4
+        ctx.lineJoin    = 'round'
+        ctx.lineCap     = 'round'
+        ctx.setLineDash([10, 7])
+        for (const { r } of alts) {
+          drawPolyline(ctx, map, r.polyline)
         }
+        ctx.restore()
 
-        // Destination marker: move if exists, create if not
+        // Primary route (solid blue)
+        ctx.save()
+        ctx.strokeStyle = '#2B7FFF'
+        ctx.lineWidth   = 7
+        ctx.lineJoin    = 'round'
+        ctx.lineCap     = 'round'
+        ctx.shadowColor = 'rgba(43,127,255,0.5)'
+        ctx.shadowBlur  = 6
+        drawPolyline(ctx, map, active.polyline)
+        ctx.restore()
+
+        // Destination marker: update or create
         if (destMarkerRef.current) {
           destMarkerRef.current.setLngLat([destination.lng, destination.lat])
         } else {
@@ -157,49 +118,61 @@ export function RouteLayer() {
             anchor:  'center',
           }).setLngLat([destination.lng, destination.lat]).addTo(map)
         }
-
-        // Fit bounds on first route or active-route switch in preview mode
-        const isFirstLoad  = prevIndexRef.current === -1
-        const routeChanged = prevIndexRef.current !== -1 && prevIndexRef.current !== activeRouteIndex
-        const { mode } = routeStore.getState()
-        if (isFirstLoad || (routeChanged && mode === 'preview')) {
-          followStore.setFollowing(false)
-          const bounds = new maplibregl.LngLatBounds()
-          for (const [lat, lng] of active.polyline) bounds.extend([lng, lat])
-          map.fitBounds(bounds, {
-            padding:  { top: 80, bottom: 80, left: 80, right: 80 },
-            maxZoom:  15,
-            duration: isTeslaBrowser ? 0 : 600,
-          })
-        }
-        prevIndexRef.current = activeRouteIndex
-
-        map.triggerRepaint()
       }
 
-      // Re-add layers after a style reload (tile theme switch)
-      map.on('style.load', setup)
+      // ── Route-change subscription ─────────────────────────────────────────
+      function onRouteChange(): void {
+        const { routes, activeRouteIndex, destination } = routeStore.getState()
 
-      setup()
-      const unsub = routeStore.subscribe(sync)
+        // Fit bounds when route first appears or active route switches in preview
+        if (routes.length && destination) {
+          const active = routes[activeRouteIndex]!
+          const isFirstLoad  = prevIndexRef.current === -1
+          const routeChanged = prevIndexRef.current !== -1 && prevIndexRef.current !== activeRouteIndex
+          const { mode } = routeStore.getState()
+          if (isFirstLoad || (routeChanged && mode === 'preview')) {
+            followStore.setFollowing(false)
+            const bounds = new maplibregl.LngLatBounds()
+            for (const [lat, lng] of active.polyline) bounds.extend([lng, lat])
+            map.fitBounds(bounds, {
+              padding:  { top: 80, bottom: 80, left: 80, right: 80 },
+              maxZoom:  15,
+              duration: isTeslaBrowser ? 0 : 600,
+            })
+          }
+          prevIndexRef.current = activeRouteIndex
+        } else {
+          // Route cleared
+          prevIndexRef.current = -1
+          destMarkerRef.current?.remove()
+          destMarkerRef.current = null
+        }
+
+        redraw()
+      }
+
+      // Redraw on every map render frame (handles pan/zoom/rotate)
+      map.on('render', redraw)
+
+      // Resize canvas when window resizes
+      window.addEventListener('resize', resize)
+
+      const unsub = routeStore.subscribe(onRouteChange)
+      redraw()   // sync current state
 
       return () => {
-        map.off('style.load', setup)
+        map.off('render', redraw)
+        window.removeEventListener('resize', resize)
         unsub()
+        canvas.remove()
         prevIndexRef.current = -1
         destMarkerRef.current?.remove()
         destMarkerRef.current = null
-        for (let n = 0; n < MAX_ALT; n++) {
-          if (map.getLayer(A_LYR(n))) map.removeLayer(A_LYR(n))
-          if (map.getSource(A_SRC(n))) map.removeSource(A_SRC(n))
-        }
-        if (map.getLayer(P_LYR)) map.removeLayer(P_LYR)
-        if (map.getSource(P_SRC)) map.removeSource(P_SRC)
       }
     }
 
-    // MapShell (sibling, comes first in JSX) sets mapInstance before this runs,
-    // so getMap() is typically valid. rAF is a safety net for edge cases.
+    // MapShell (sibling, earlier in JSX) sets mapInstance before this runs.
+    // rAF is a safety net for edge cases.
     let cleanupFn: (() => void) | null = null
     const map = getMap()
     if (map) {

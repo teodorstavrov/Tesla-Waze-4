@@ -4,6 +4,9 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-10-15
+- **RouteLayer v6 — canvas overlay (bypass MapLibre GeoJSON pipeline)** — after 5 failed attempts using `addSource`/`addLayer` with MapLibre's GeoJSON vector layer system, switched to a plain `<canvas>` element positioned over the map container; route is drawn with the Canvas 2D API using `map.project([lng,lat])` for coordinate conversion and `map.on('render', redraw)` to stay in sync with pan/zoom/rotate; primary route is solid blue `#2B7FFF` (7px with glow), alt routes are dashed semi-transparent; completely bypasses MapLibre's Web Worker / WebGL shader pipeline that appears non-functional on Tesla browser
+
 ## 2026-10-14
 - **RouteLayer v4b — route line fix (isStyleLoaded gate removed)** — `isStyleLoaded()` in MapLibre checks raster tile cache, not just style spec; was returning false while tiles loaded → `draw()` exited early forever. Fix: remove the check entirely; `addSource`/`addLayer` succeed right after `style.load` fires regardless of tile loading state
 - **RouteLayer v4 — route line fix (rAF fallback)** — React children effects run before parent's; MapShell sets `mapInstance` in its own `useEffect`, so `getMap()` was null when RouteLayer's effect ran first; v1–v3 all returned immediately with no listeners set up. Fix: `requestAnimationFrame` defers `init()` to after MapShell's effect fires (same pattern as SectionLayer)
