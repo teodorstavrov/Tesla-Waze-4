@@ -5,17 +5,14 @@
 // Alternative route pills for switching between OSRM alternatives.
 // Phase 26: expandable list of EV stations along the route.
 
-import { useMemo, useState, useEffect, type CSSProperties } from 'react'
+import { useState, useEffect, type CSSProperties } from 'react'
 import { useSyncExternalStore } from 'react'
 import { routeStore } from './routeStore.js'
-import { evStore } from '@/features/ev/evStore'
 import { followStore } from '@/features/follow/followStore'
 import { gpsStore } from '@/features/gps/gpsStore'
 import { getMap } from '@/components/MapShell'
 import { isTeslaBrowser } from '@/lib/browser'
 import { t, getLang, langStore } from '@/lib/locale'
-import { findStationsAlongRoute, stationDotColor } from './routeStations.js'
-import type { NormalizedStation } from '@/features/ev/types'
 import { vehicleProfileStore } from '@/features/planning/store'
 import { batteryStore } from '@/features/planning/batteryStore'
 import { estimateArrivalBattery } from '@/features/planning/estimator'
@@ -34,10 +31,6 @@ export function RoutePanel() {
       () => routeStore.getState(),
     )
 
-  const [stations, setStations] = useState(() => evStore.getState().stations)
-  useEffect(() => evStore.subscribe(() => setStations(evStore.getState().stations)), [])
-
-  const [showStations, setShowStations] = useState(false)
   const [dismissed, setDismissed] = useState(false)
 
   // Battery arrival estimate — uses live battery session state (not just profile)
@@ -53,12 +46,6 @@ export function RoutePanel() {
   useEffect(() => {
     setDismissed(false)
   }, [destination?.name])
-
-  // useMemo must be declared before any early returns (Rules of Hooks)
-  const stationsOnRoute = useMemo(() => {
-    if (!route) return []
-    return findStationsAlongRoute(route.polyline, stations)
-  }, [route, stations])
 
   function handleStart() {
     const map = getMap()
@@ -387,141 +374,28 @@ export function RoutePanel() {
             </button>
           )}
 
-          {/* EV stations along route + Hide button row */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {!isPhone && stationsOnRoute.length > 0 && (
-              <div style={{ flex: 1 }}>
-                {/* Divider */}
-                <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '2px 0 8px' }} />
-
-                {/* Toggle button */}
-                <button
-                  onClick={() => setShowStations((v) => !v)}
-                  style={{
-                    width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    background: 'none', border: 'none', padding: '0 0 2px',
-                    cursor: 'pointer', touchAction: 'manipulation',
-                  }}
-                >
-                  <span style={{ fontSize: 15, fontWeight: 600, color: '#e31937', display: 'flex', alignItems: 'center', gap: 5 }}>
-                    <span style={{ fontSize: 18 }}>⚡</span>
-                    {t('routePanel.chargeEnRoute')}
-                    <span style={{
-                      background: 'rgba(227,25,55,0.18)', border: '1px solid rgba(227,25,55,0.4)',
-                      borderRadius: 8, padding: '0 6px', fontSize: 13, fontWeight: 700,
-                      color: '#e31937',
-                    }}>
-                      {stationsOnRoute.length}
-                    </span>
-                  </span>
-                  <ChevronIcon open={showStations} />
-                </button>
-
-                {/* Expandable list */}
-                {showStations && (
-                  <div style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    {stationsOnRoute.map(({ station, distFromRouteM }) => (
-                      <StationRow
-                        key={station.id}
-                        station={station}
-                        distFromRouteM={distFromRouteM}
-                      />
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Hide panel button */}
-            {!showStations && (
-              <button
-                onClick={() => setDismissed(true)}
-                aria-label={t('routePanel.hidePanel')}
-                style={{
-                  marginLeft: stationsOnRoute.length > 0 ? 0 : 'auto',
-                  marginTop: stationsOnRoute.length > 0 ? 8 : 0,
-                  flexShrink: 0,
-                  padding: 'clamp(6px, 1.2vh, 9px) clamp(14px, 2.8vh, 22px)',
-                  borderRadius: 10,
-                  background: 'rgba(255,255,255,0.10)',
-                  border: '1px solid rgba(255,255,255,0.20)',
-                  color: 'var(--text-secondary)',
-                  fontSize: 'clamp(12px, 1.9vh, 15px)', fontWeight: 700,
-                  cursor: 'pointer', touchAction: 'manipulation',
-                  letterSpacing: '0.04em',
-                }}
-              >
-                {t('routePanel.hidePanel')}
-              </button>
-            )}
+          {/* Hide panel button */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+            <button
+              onClick={() => setDismissed(true)}
+              aria-label={t('routePanel.hidePanel')}
+              style={{
+                padding: 'clamp(6px, 1.2vh, 9px) clamp(14px, 2.8vh, 22px)',
+                borderRadius: 10,
+                background: 'rgba(255,255,255,0.10)',
+                border: '1px solid rgba(255,255,255,0.20)',
+                color: 'var(--text-secondary)',
+                fontSize: 'clamp(12px, 1.9vh, 15px)', fontWeight: 700,
+                cursor: 'pointer', touchAction: 'manipulation',
+                letterSpacing: '0.04em',
+              }}
+            >
+              {t('routePanel.hidePanel')}
+            </button>
           </div>
 
         </div>
       )}
-    </div>
-  )
-}
-
-// ── Station row ───────────────────────────────────────────────────
-
-function StationRow({ station, distFromRouteM }: { station: NormalizedStation; distFromRouteM: number }) {
-  const color = stationDotColor(station)
-
-  function handleTap() {
-    const map = getMap()
-    if (map) map.easeTo({ center: [station.lng, station.lat], zoom: Math.max(map.getZoom(), 15) })
-    evStore.selectStation(station)
-  }
-
-  return (
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={handleTap}
-      style={{
-        display: 'flex', alignItems: 'center', gap: 10,
-        padding: '7px 10px', borderRadius: 8,
-        background: 'rgba(255,255,255,0.04)',
-        border: '1px solid rgba(255,255,255,0.08)',
-        cursor: 'pointer', touchAction: 'manipulation',
-      }}
-      onPointerDown={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.09)' }}
-      onPointerUp={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.04)' }}
-      onPointerLeave={(e) => { (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.04)' }}
-    >
-      {/* Dot */}
-      <div style={{
-        width: 26, height: 26, borderRadius: '50%', flexShrink: 0,
-        background: `${color}22`, border: `1.5px solid ${color}`,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 11,
-      }}>
-        ⚡
-      </div>
-
-      {/* Info */}
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <div style={{
-          fontSize: 12, fontWeight: 600, color: 'var(--text-primary)',
-          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
-        }}>
-          {station.name}
-        </div>
-        <div style={{ fontSize: 10, color: 'var(--text-secondary)', marginTop: 1 }}>
-          {[
-            station.network,
-            station.maxPowerKw ? `${station.maxPowerKw} kW` : null,
-          ].filter(Boolean).join(' · ')}
-        </div>
-      </div>
-
-      {/* Distance from route */}
-      <div style={{ fontSize: 10, color: 'var(--text-secondary)', flexShrink: 0, textAlign: 'right' as const }}>
-        ±{distFromRouteM < 1000
-          ? `${distFromRouteM} ${t('routePanel.m')}`
-          : `${(distFromRouteM / 1000).toFixed(1)} ${t('routePanel.km')}`}
-      </div>
     </div>
   )
 }
@@ -532,17 +406,6 @@ function StartIcon() {
   return (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <polygon points="5,3 19,12 5,21" />
-    </svg>
-  )
-}
-
-function ChevronIcon({ open }: { open: boolean }) {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-      stroke="var(--text-secondary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-      style={{ transform: open ? 'rotate(180deg)' : 'rotate(0)', transition: 'transform 0.2s ease' }}
-      aria-hidden="true">
-      <polyline points="6 9 12 15 18 9" />
     </svg>
   )
 }
