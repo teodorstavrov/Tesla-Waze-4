@@ -5,6 +5,7 @@ All notable changes to TesRadar, organized by date (newest first).
 ---
 
 ## 2026-10-14
+- **Migration regression fixes** — replaced 4 leftover `map.setView()` (Leaflet-only API) calls with MapLibre equivalents (`map.easeTo` / `map.jumpTo`); also fixed coordinate order (`[lat,lng]`→`[lng,lat]`) in CountryPicker country-center branch; affected features: CountryPicker confirm, SearchBar EV station select, MeetupList "go to map", VoiceAssistant "center" command
 - **Avatar size +15%** — increased GPS avatar from 66px to 76px for better visibility on Tesla touchscreen
 - **Avatar heading fix (course-up mode)** — in "map rotates" mode the avatar arrow now always points toward the top of the screen (= direction of travel); fix: read `settingsStore.headingMode` directly instead of `map.getBearing()` (animated bearing gave wrong values mid-animation)
 - **Avatar z-index fix** — GPS avatar marker now always renders above all other map markers (camera, section, event) via explicit `z-index:10` on the marker element

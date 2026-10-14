@@ -145,7 +145,7 @@ export function SearchBar() {
     if (result.type === 'station') {
       const s = result.station
       evStore.selectStation(s)
-      map.setView([s.lat, s.lng], Math.max(map.getZoom(), 15), { animate: true })
+      map.easeTo({ center: [s.lng, s.lat], zoom: Math.max(map.getZoom(), 15), duration: 400 })
     } else {
       // Do NOT call map.setView here — RouteLayer.fitBounds will center the
       // full route once loaded. Calling setView first causes follow-mode to

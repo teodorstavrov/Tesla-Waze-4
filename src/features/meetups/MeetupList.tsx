@@ -71,7 +71,7 @@ function Row({ m }: { m: Meetup }) {
 
   function goToMap() {
     const map = getMap()
-    if (map) { map.setView([m.lat, m.lng], 14); meetupStore.closeList() }
+    if (map) { map.easeTo({ center: [m.lng, m.lat], zoom: 14 }); meetupStore.closeList() }
   }
 
   function shareLink() {

@@ -95,9 +95,10 @@ export function CountryPicker() {
       const country = COUNTRIES[countryCode]
       if (map) {
         if (pos) {
-          map.setView([pos.lat, pos.lng], 15, { animate: false })
+          map.jumpTo({ center: [pos.lng, pos.lat], zoom: 15 })
         } else {
-          map.setView(country.center, country.zoom, { animate: !isTeslaBrowser })
+          const [cLat, cLng] = country.center as [number, number]
+          map.easeTo({ center: [cLng, cLat], zoom: country.zoom, duration: isTeslaBrowser ? 0 : 400 })
         }
       }
     }
