@@ -1,16 +1,14 @@
 // ─── Route Layer ───────────────────────────────────────────────────────
-// Null-render component. Draws route lines on the MapLibre map.
+// Draws the active route and alternatives as MapLibre GL line layers.
 //
-// DESIGN: layers are created ONCE at setup with empty data, then updated
-// via setData() + visibility toggle on every route change. No remove/re-add
-// — avoids the "source already exists" cascade failure that plagued the
-// previous approach (remove-then-add on every store emission).
-//
-// Slots:
-//   alt-0, alt-1  — alternative routes (dashed, below primary)
-//   primary       — active route (solid, on top)
-//
-// Alt click handlers are registered once; altIdxRef maps slot → routes[] index.
+// DESIGN PRINCIPLES (v3 — learned from two failed approaches):
+//  1. cleanup() always unconditionally removes sources+layers via try-catch —
+//     no getLayer/getSource guards. This is the ONLY safe way to ensure
+//     "source already exists" errors can never cascade.
+//  2. draw() is idempotent: cleanup → add fresh with real data.
+//  3. map.on('style.load', draw) persistent listener (not once) ensures
+//     route is redrawn after any style reload without complex defer logic.
+//  4. draw() returns early if style not loaded — persistent listener handles it.
 
 import { useEffect, useRef } from 'react'
 import * as maplibregl from 'maplibre-gl'
@@ -19,14 +17,11 @@ import { routeStore } from './routeStore.js'
 import { followStore } from '@/features/follow/followStore'
 import { isTeslaBrowser } from '@/lib/browser'
 
-// ── Fixed layer/source IDs ────────────────────────────────────────────────
-const P_SRC  = 'route-primary-src'
-const P_LYR  = 'route-primary-lyr'
-const A_SRC  = (n: number) => `route-alt${n}-src`
-const A_LYR  = (n: number) => `route-alt${n}-lyr`
+const P_SRC = 'route-primary-src'
+const P_LYR = 'route-primary-lyr'
+const A_SRC = (n: number) => `route-alt${n}-src`
+const A_LYR = (n: number) => `route-alt${n}-lyr`
 const MAX_ALT = 2
-
-const EMPTY_FC: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] }
 
 function routeGeoJSON(polyline: [number, number][]): GeoJSON.FeatureCollection {
   return {
@@ -62,158 +57,131 @@ function makeDestElement(): HTMLDivElement {
 export function RouteLayer() {
   const destMarkerRef = useRef<maplibregl.Marker | null>(null)
   const prevIndexRef  = useRef<number>(-1)
-  // Maps alt slot (0/1) → index in routes[]  (-1 = empty slot)
-  const altIdxRef     = useRef<number[]>([-1, -1])
 
   useEffect(() => {
     const map = getMap()
     if (!map) return
 
-    // Click handler refs — stored so we can remove them on cleanup
-    const clickHandlers: Array<{ id: string; fn: () => void }> = []
+    // Track alt click handler functions for proper cleanup
+    const altClickFns: Array<(() => void) | null> = [null, null]
 
-    // ── Sync current route state into existing sources/layers ─────────────
-    function syncRoute(): void {
-      // Guard: setup must have completed (primary layer must exist)
-      if (!map.isStyleLoaded() || !map.getLayer(P_LYR)) return
-
-      const { routes, activeRouteIndex, destination } = routeStore.getState()
-      const active = routes[activeRouteIndex]
-
-      // Primary route
-      ;(map.getSource(P_SRC) as maplibregl.GeoJSONSource | undefined)
-        ?.setData(active ? routeGeoJSON(active.polyline) : EMPTY_FC)
-      map.setLayoutProperty(P_LYR, 'visibility', active ? 'visible' : 'none')
-
-      // Alternative routes — fill slots with non-active routes
-      const alts = routes
-        .map((r, i) => ({ route: r, idx: i }))
-        .filter(({ idx }) => idx !== activeRouteIndex)
-
+    // ── Unconditional cleanup ────────────────────────────────────────────
+    // Uses bare try-catch WITHOUT getLayer/getSource guards —
+    // the only foolproof way to prevent "source already exists" cascades.
+    function cleanup(): void {
       for (let n = 0; n < MAX_ALT; n++) {
-        const alt = alts[n]
-        altIdxRef.current[n] = alt?.idx ?? -1
-
-        ;(map.getSource(A_SRC(n)) as maplibregl.GeoJSONSource | undefined)
-          ?.setData(alt ? routeGeoJSON(alt.route.polyline) : EMPTY_FC)
-        map.setLayoutProperty(A_LYR(n), 'visibility', alt ? 'visible' : 'none')
+        const fn = altClickFns[n]
+        if (fn) {
+          try { map.off('click', A_LYR(n), fn) } catch { /* noop */ }
+          altClickFns[n] = null
+        }
+        try { map.removeLayer(A_LYR(n)) } catch { /* noop */ }
+        try { map.removeSource(A_SRC(n)) } catch { /* noop */ }
       }
-
-      // Destination marker
+      try { map.removeLayer(P_LYR) } catch { /* noop */ }
+      try { map.removeSource(P_SRC) } catch { /* noop */ }
       destMarkerRef.current?.remove()
       destMarkerRef.current = null
-      if (destination && active) {
+    }
+
+    // ── Draw current route state ─────────────────────────────────────────
+    function draw(): void {
+      if (!map.isStyleLoaded()) return   // persistent style.load listener will retry
+
+      const { routes, activeRouteIndex, destination } = routeStore.getState()
+
+      cleanup()   // always clean slate before redraw
+
+      if (!routes.length || !destination) return
+
+      try {
+        const active = routes[activeRouteIndex]!
+        const alts   = routes
+          .map((r, i) => ({ r, i }))
+          .filter(({ i }) => i !== activeRouteIndex)
+
+        // Alternatives drawn first (below primary in z-order)
+        for (let n = 0; n < Math.min(alts.length, MAX_ALT); n++) {
+          const { r: altRoute, i: routeIdx } = alts[n]!
+          map.addSource(A_SRC(n), {
+            type: 'geojson',
+            data: routeGeoJSON(altRoute.polyline),
+          })
+          map.addLayer({
+            id:     A_LYR(n),
+            type:   'line',
+            source: A_SRC(n),
+            layout: { 'line-join': 'round', 'line-cap': 'round' },
+            paint:  {
+              'line-color':     '#2B7FFF',
+              'line-width':     4,
+              'line-opacity':   0.35,
+              'line-dasharray': [8, 6],
+            },
+          })
+          const fn = () => routeStore.selectRoute(routeIdx)
+          altClickFns[n] = fn
+          map.on('click', A_LYR(n), fn)
+        }
+
+        // Primary route on top
+        map.addSource(P_SRC, {
+          type: 'geojson',
+          data: routeGeoJSON(active.polyline),
+        })
+        map.addLayer({
+          id:     P_LYR,
+          type:   'line',
+          source: P_SRC,
+          layout: { 'line-join': 'round', 'line-cap': 'round' },
+          paint:  {
+            'line-color':   '#2B7FFF',
+            'line-width':   6,
+            'line-opacity': 1,
+          },
+        })
+
+        // Destination marker
         destMarkerRef.current = new maplibregl.Marker({
           element: makeDestElement(),
           anchor:  'center',
         }).setLngLat([destination.lng, destination.lat]).addTo(map)
-      }
 
-      // Fit bounds on first route load or active-index switch in preview mode
-      const isFirstLoad  = prevIndexRef.current === -1 && !!active
-      const routeChanged = prevIndexRef.current !== -1 && prevIndexRef.current !== activeRouteIndex
-      const { mode } = routeStore.getState()
-      if (active && (isFirstLoad || (routeChanged && mode === 'preview'))) {
-        followStore.setFollowing(false)
-        const bounds = new maplibregl.LngLatBounds()
-        for (const [lat, lng] of active.polyline) bounds.extend([lng, lat])
-        map.fitBounds(bounds, {
-          padding:  { top: 80, bottom: 80, left: 80, right: 80 },
-          maxZoom:  15,
-          duration: isTeslaBrowser ? 0 : 600,
-        })
-      }
-      prevIndexRef.current = active ? activeRouteIndex : -1
-
-      if (active) map.triggerRepaint()
-    }
-
-    // ── One-time setup: create all sources and layers ─────────────────────
-    function setup(): void {
-      if (!map.isStyleLoaded()) { map.once('style.load', setup); return }
-
-      try {
-        // Alt layers first (rendered below primary)
-        for (let n = 0; n < MAX_ALT; n++) {
-          if (!map.getSource(A_SRC(n))) {
-            map.addSource(A_SRC(n), { type: 'geojson', data: EMPTY_FC })
-          }
-          if (!map.getLayer(A_LYR(n))) {
-            map.addLayer({
-              id:     A_LYR(n),
-              type:   'line',
-              source: A_SRC(n),
-              layout: {
-                'line-join':  'round',
-                'line-cap':   'round',
-                visibility:   'none',
-              },
-              paint: {
-                'line-color':     '#2B7FFF',
-                'line-width':     4,
-                'line-opacity':   0.35,
-                'line-dasharray': [8, 6],
-              },
-            })
-          }
-          const slot = n
-          const fn = () => {
-            const idx = altIdxRef.current[slot]
-            if (idx >= 0) routeStore.selectRoute(idx)
-          }
-          map.on('click', A_LYR(n), fn)
-          clickHandlers.push({ id: A_LYR(n), fn })
-        }
-
-        // Primary layer on top
-        if (!map.getSource(P_SRC)) {
-          map.addSource(P_SRC, { type: 'geojson', data: EMPTY_FC })
-        }
-        if (!map.getLayer(P_LYR)) {
-          map.addLayer({
-            id:     P_LYR,
-            type:   'line',
-            source: P_SRC,
-            layout: {
-              'line-join': 'round',
-              'line-cap':  'round',
-              visibility:  'none',
-            },
-            paint: {
-              'line-color':   '#2B7FFF',
-              'line-width':   5,
-              'line-opacity': 0.85,
-            },
+        // Fit bounds on first load or active-route switch in preview mode
+        const isFirstLoad  = prevIndexRef.current === -1
+        const routeChanged = prevIndexRef.current !== -1 && prevIndexRef.current !== activeRouteIndex
+        const { mode } = routeStore.getState()
+        if (isFirstLoad || (routeChanged && mode === 'preview')) {
+          followStore.setFollowing(false)
+          const bounds = new maplibregl.LngLatBounds()
+          for (const [lat, lng] of active.polyline) bounds.extend([lng, lat])
+          map.fitBounds(bounds, {
+            padding:  { top: 80, bottom: 80, left: 80, right: 80 },
+            maxZoom:  15,
+            duration: isTeslaBrowser ? 0 : 600,
           })
         }
-      } catch (err) {
-        console.error('[RouteLayer] setup error:', err)
-        return
-      }
+        prevIndexRef.current = activeRouteIndex
 
-      // Apply current state now that layers exist
-      syncRoute()
+        map.triggerRepaint()
+
+      } catch (err) {
+        console.error('[RouteLayer] draw error:', err)
+        cleanup()   // remove any partial state so next call starts clean
+      }
     }
 
-    setup()
-    const unsub = routeStore.subscribe(syncRoute)
+    // Persistent style.load listener handles any style reload
+    map.on('style.load', draw)
+
+    const unsub = routeStore.subscribe(draw)
+    draw()   // sync current state immediately
 
     return () => {
+      map.off('style.load', draw)
       unsub()
-      for (const { id, fn } of clickHandlers) {
-        try { map.off('click', id, fn) } catch (_) { /* noop */ }
-      }
-      destMarkerRef.current?.remove()
-      destMarkerRef.current = null
-      prevIndexRef.current  = -1
-      altIdxRef.current     = [-1, -1]
-      // Layers then sources
-      for (let n = MAX_ALT - 1; n >= 0; n--) {
-        try { if (map.getLayer(A_LYR(n)))  map.removeLayer(A_LYR(n))  } catch (_) {}
-        try { if (map.getSource(A_SRC(n))) map.removeSource(A_SRC(n)) } catch (_) {}
-      }
-      try { if (map.getLayer(P_LYR))  map.removeLayer(P_LYR)  } catch (_) {}
-      try { if (map.getSource(P_SRC)) map.removeSource(P_SRC) } catch (_) {}
+      prevIndexRef.current = -1
+      cleanup()
     }
   }, [])
 
