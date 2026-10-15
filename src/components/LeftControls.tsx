@@ -123,7 +123,7 @@ export function LeftControls() {
           style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
           <MicButtonIcon />
           <span style={{ fontSize: 9, fontWeight: 700, opacity: 0.65, letterSpacing: '0.05em', lineHeight: 1, textTransform: 'uppercase' }}>
-            AI глас
+            AI voice
           </span>
         </button>
       </div>
