@@ -4,6 +4,7 @@
 
 import { useSyncExternalStore, useState, useEffect } from 'react'
 import { eventStore } from './eventStore.js'
+import { reportVoiceStore } from '@/features/voice/VoiceAssistant'
 import { gpsStore } from '@/features/gps/gpsStore'
 import { addStationStore } from '@/features/ev/addStationStore'
 import { meetupStore } from '@/features/meetups/meetupStore'
@@ -31,6 +32,17 @@ export function ReportModal() {
 
   const [submitting, setSubmitting] = useState(false)
   const [shown, setShown] = useState(false)
+
+  const voiceListening = useSyncExternalStore(
+    reportVoiceStore.subscribe,
+    reportVoiceStore.isListening,
+    reportVoiceStore.isListening,
+  )
+  const voiceSeconds = useSyncExternalStore(
+    reportVoiceStore.subscribe,
+    reportVoiceStore.secondsLeft,
+    reportVoiceStore.secondsLeft,
+  )
 
   useEffect(() => {
     if (open) {
@@ -104,6 +116,31 @@ export function ReportModal() {
         }}
         className="glass"
       >
+        {/* Voice listening indicator — shown for 3s when opened via Докладвай */}
+        {voiceListening && (
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            marginBottom: 14,
+            padding: '8px 14px',
+            borderRadius: 10,
+            background: 'rgba(43,127,255,0.15)',
+            border: '1px solid rgba(43,127,255,0.35)',
+          }}>
+            <span style={{ fontSize: 17, lineHeight: 1 }}>🎤</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#60a5fa' }}>
+              {t('events.voiceListening')}
+            </span>
+            <span style={{
+              minWidth: 22, height: 22, borderRadius: '50%',
+              background: 'rgba(43,127,255,0.25)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 12, fontWeight: 800, color: '#93c5fd',
+            }}>
+              {voiceSeconds}
+            </span>
+          </div>
+        )}
+
         <div style={{
           fontSize: 17, fontWeight: 700,
           color: 'var(--text-primary)',

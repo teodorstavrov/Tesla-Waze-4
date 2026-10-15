@@ -135,6 +135,21 @@ export function openVoiceAssistantForReport(): void {
   _trigger?.()
 }
 
+// ── Voice-report pub-sub (consumed by ReportModal for listening indicator) ───
+let _vrListening   = false
+let _vrSecondsLeft = 0
+const _vrListeners = new Set<() => void>()
+export const reportVoiceStore = {
+  isListening:  () => _vrListening,
+  secondsLeft:  () => _vrSecondsLeft,
+  subscribe:    (fn: () => void) => { _vrListeners.add(fn); return () => _vrListeners.delete(fn) },
+  _set(listening: boolean, seconds: number): void {
+    _vrListening   = listening
+    _vrSecondsLeft = seconds
+    _vrListeners.forEach(f => f())
+  },
+}
+
 type Phase = 'idle' | 'listening' | 'recording' | 'processing' | 'answer' | 'error'
 
 // ── Context builder ────────────────────────────────────────────────────────
@@ -340,8 +355,9 @@ export function VoiceAssistant() {
   const dismissTimer  = useRef<ReturnType<typeof setTimeout> | null>(null)
   const capturedPosRef = useRef<{ lat: number; lng: number } | null>(null)
   // Report-mode: set when opened via Докладвай button; 3s auto-dismiss if no speech
-  const reportModeRef      = useRef(false)
-  const reportModeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const reportModeRef       = useRef(false)
+  const reportModeTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const reportCountdownRef  = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const dismiss = useCallback(() => {
     stopSpeech()
@@ -353,7 +369,9 @@ export function VoiceAssistant() {
     if (audioCtxRef.current) { audioCtxRef.current.close().catch(() => {}); audioCtxRef.current = null }
     if (dismissTimer.current) clearTimeout(dismissTimer.current)
     if (reportModeTimerRef.current) { clearTimeout(reportModeTimerRef.current); reportModeTimerRef.current = null }
+    if (reportCountdownRef.current) { clearInterval(reportCountdownRef.current); reportCountdownRef.current = null }
     reportModeRef.current = false
+    reportVoiceStore._set(false, 0)
     setPhase('idle')
     setTranscript('')
     setAnswer('')
@@ -512,14 +530,27 @@ export function VoiceAssistant() {
     // Shared speech-detected flag — written by VAD, read by report-mode timer
     let speechDetectedInVAD = false
 
-    // ── Report-mode: 3s auto-dismiss if no speech detected ────────────────
+    // ── Report-mode: countdown indicator + 3s auto-dismiss ───────────────
     if (reportModeRef.current) {
+      reportVoiceStore._set(true, 3)
+      let countdown = 3
+      reportCountdownRef.current = setInterval(() => {
+        countdown--
+        if (countdown > 0) {
+          reportVoiceStore._set(true, countdown)
+        } else {
+          if (reportCountdownRef.current) { clearInterval(reportCountdownRef.current); reportCountdownRef.current = null }
+        }
+      }, 1000)
+
       reportModeTimerRef.current = setTimeout(() => {
         reportModeTimerRef.current = null
+        if (reportCountdownRef.current) { clearInterval(reportCountdownRef.current); reportCountdownRef.current = null }
+        reportVoiceStore._set(false, 0)
         if (!speechDetectedInVAD) {
           dismiss()   // no speech in 3s → close silently; report modal stays open
         }
-        // speech was detected → let recording continue and process normally
+        // speech was detected → recording continues and processes normally
       }, 3000)
     }
 
@@ -779,6 +810,11 @@ export function VoiceAssistant() {
       // ── Report intent — place road event at captured GPS position ─────────
       } else if (data.intent?.type === 'report' && data.intent.eventType) {
         void handleReportIntent(data.intent.eventType)
+        if (reportModeRef.current) {
+          // Voice report from Докладвай button → close the parallel report modal
+          eventStore.closeReportModal()
+          reportVoiceStore._set(false, 0)
+        }
         if (dismissTimer.current) clearTimeout(dismissTimer.current)
         dismissTimer.current = setTimeout(dismiss, 3_500)
 
@@ -1193,6 +1229,7 @@ export function VoiceAssistant() {
   }
 
   if (phase === 'idle') return null
+  if (reportModeRef.current) return null  // runs silently; indicator lives in ReportModal
 
   const canDismissByTap = phase === 'answer' || phase === 'error'
 
