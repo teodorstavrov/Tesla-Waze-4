@@ -2,7 +2,7 @@
 // All three providers (Tesla, OCM, Overpass) are reduced to this shape.
 // The frontend only ever sees NormalizedStation — never raw provider data.
 
-export type StationSource = 'tesla' | 'ocm' | 'osm' | 'user'
+export type StationSource = 'tesla' | 'ocm' | 'osm' | 'user' | 'fines'
 
 export type StationStatus =
   | 'available'   // confirmed operational

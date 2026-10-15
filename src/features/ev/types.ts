@@ -2,7 +2,7 @@
 // Mirror of api/_lib/normalize/types.ts — kept in sync manually.
 // The API and frontend have separate TS configs so we can't share directly.
 
-export type StationSource = 'tesla' | 'ocm' | 'osm' | 'user'
+export type StationSource = 'tesla' | 'ocm' | 'osm' | 'user' | 'fines'
 
 export type StationStatus =
   | 'available'

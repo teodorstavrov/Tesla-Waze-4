@@ -5,6 +5,7 @@ All notable changes to TesRadar, organized by date (newest first).
 ---
 
 ## 2026-10-15
+- **Fines Charging API integration** — added new EV station provider sourced from `https://public.finescharging.com/v1/locations.geojson`; Fines stations are Bulgaria-only and take highest priority in the BG merge; new `StationSource = 'fines'`; provider file `api/_lib/providers/fines.ts` (5-min cache, no auth); Fines markers shown in teal (`#0ea5e9`) with bold "F" identifier — the API has no logo/brand field so color+letter serves as branding; live availability polling is a frontend-side option via `/v1/live.json` (separate endpoint)
 - **Докладвай → inline voice indicator** — report modal now shows a blue listening bar (🎤 + countdown 3→2→1) when voice is active; voice assistant panel is suppressed (hidden) — it runs silently in background; voice command auto-reports and closes modal; no speech in 3s → indicator disappears, modal stays for manual selection
  — pressing Докладвай now simultaneously opens the report modal AND starts the voice assistant in report-mode; it listens for 3 seconds — if a voice command is detected (e.g. „камера тук") it processes and auto-reports; if no speech in 3s it silently closes while the report modal stays open for manual input
 - **BottomDock layout** — removed EV stations toggle button; new order: Sound engine (left) → Докладвай (center) → Route (right); Sound engine and Route buttons reduced 30% in size; volume panel now floats to the LEFT of the engine button

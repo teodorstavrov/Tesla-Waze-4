@@ -27,17 +27,25 @@ const CLUSTER_CELL_DEG = 0.5
 function stationColor(s: NormalizedStation): string {
   if (s.source === 'user' && s.approvalStatus === 'pending') return '#a855f7'
   if (s.status === 'offline' || s.status === 'planned') return '#888'
+  if (s.source === 'fines')                              return '#0ea5e9'
   if (s.source === 'tesla')                              return '#e31937'
   if (s.maxPowerKw != null && s.maxPowerKw >= 150)       return '#F59E0B'
   if (s.maxPowerKw != null && s.maxPowerKw >= 50)        return '#22c55e'
   return '#FACC15'
 }
 
+function stationIcon(s: NormalizedStation): string {
+  if (s.source === 'user' && s.approvalStatus === 'pending') return '❓'
+  if (s.source === 'fines') return 'F'
+  return '⚡'
+}
+
 function makeStationElement(s: NormalizedStation, nearRoute = false): HTMLDivElement {
   const color   = stationColor(s)
   const opacity = s.status === 'offline' || s.status === 'planned' ? 0.5 : 1
   const isPendingUser = s.source === 'user' && s.approvalStatus === 'pending'
-  const icon  = isPendingUser ? '❓' : '⚡'
+  const isFines = s.source === 'fines'
+  const icon  = stationIcon(s)
   const bord  = isPendingUser
     ? '2.5px dashed rgba(168,85,247,0.8)'
     : nearRoute ? '3px solid #FFD700' : '2.5px solid rgba(255,255,255,0.9)'
@@ -55,7 +63,8 @@ function makeStationElement(s: NormalizedStation, nearRoute = false): HTMLDivEle
     `background:${color}`, `opacity:${opacity}`,
     `border:${bord}`, `box-shadow:${shad}`,
     'display:flex', 'align-items:center', 'justify-content:center',
-    'font-size:18px', 'line-height:1',
+    isFines ? 'font-size:14px;font-weight:800;color:#fff;font-family:sans-serif' : 'font-size:18px',
+    'line-height:1',
     'user-select:none', '-webkit-user-select:none',
   ].join(';')
   inner.textContent = icon
@@ -67,7 +76,8 @@ function updateStationElement(el: HTMLDivElement, s: NormalizedStation, nearRout
   const color   = stationColor(s)
   const opacity = s.status === 'offline' || s.status === 'planned' ? 0.5 : 1
   const isPendingUser = s.source === 'user' && s.approvalStatus === 'pending'
-  const icon  = isPendingUser ? '❓' : '⚡'
+  const isFines = s.source === 'fines'
+  const icon  = stationIcon(s)
   const bord  = isPendingUser
     ? '2.5px dashed rgba(168,85,247,0.8)'
     : nearRoute ? '3px solid #FFD700' : '2.5px solid rgba(255,255,255,0.9)'
@@ -81,6 +91,9 @@ function updateStationElement(el: HTMLDivElement, s: NormalizedStation, nearRout
   inner.style.opacity = `${opacity}`
   inner.style.border = bord
   inner.style.boxShadow = shad
+  inner.style.fontSize = isFines ? '14px' : '18px'
+  inner.style.fontWeight = isFines ? '800' : ''
+  inner.style.color = isFines ? '#fff' : ''
   inner.textContent = icon
 }
 

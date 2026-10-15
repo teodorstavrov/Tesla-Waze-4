@@ -22,6 +22,7 @@ import { BULGARIA_BBOX, NORWAY_BBOX, SWEDEN_BBOX, FINLAND_BBOX, NETHERLANDS_BBOX
 import { fetchTeslaStations } from '../_lib/providers/tesla.js'
 import { fetchOCMStations } from '../_lib/providers/ocm.js'
 import { fetchOverpassStations } from '../_lib/providers/overpass.js'
+import { fetchFinesStations } from '../_lib/providers/fines.js'
 import { mergeStations } from '../_lib/merge/stations.js'
 import { stationDb } from '../_lib/db/stationDb.js'
 import { isRedisConfigured } from '../_lib/db/redis.js'
@@ -67,7 +68,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     const allOk = lastMeta !== null &&
       lastMeta.providers.tesla.status !== 'error' &&
       lastMeta.providers.ocm.status   !== 'error' &&
-      lastMeta.providers.osm.status   !== 'error'
+      lastMeta.providers.osm.status   !== 'error' &&
+      (lastMeta.providers.fines?.status ?? 'ok') !== 'error'
 
     if (allOk) {
       res.status(200).json({
@@ -84,7 +86,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const t0 = Date.now()
 
   const [
-    bgTeslaResult, bgOcmResult, bgOsmResult,
+    bgTeslaResult, bgOcmResult, bgOsmResult, bgFinesResult,
     noTeslaResult, noOcmResult, noOsmResult,
     seTeslaResult, seOcmResult, seOsmResult,
     fiTeslaResult, fiOcmResult, fiOsmResult,
@@ -95,6 +97,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     fetchTeslaStations(BULGARIA_BBOX),
     fetchOCMStations(BULGARIA_BBOX),           // ~350   stations, 1 page
     fetchOverpassStations(BULGARIA_BBOX),
+    fetchFinesStations(),                       // BG-only network, no bbox needed
     fetchTeslaStations(NORWAY_BBOX),
     fetchOCMStations(NORWAY_BBOX),             // 3 000  stations (6 pages)
     fetchOverpassStations(NORWAY_BBOX),
@@ -123,7 +126,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   }
 
   // Merge each country separately so dedup only fires within the same country
-  const bgResults = [bgTeslaResult, bgOcmResult, bgOsmResult].map(unwrap).filter((r): r is ProviderResult => r !== null)
+  // Fines is highest priority for BG — placed first so its stations win dedup
+  const bgResults = [bgFinesResult, bgTeslaResult, bgOcmResult, bgOsmResult].map(unwrap).filter((r): r is ProviderResult => r !== null)
   const noResults = [noTeslaResult, noOcmResult, noOsmResult].map(unwrap).filter((r): r is ProviderResult => r !== null)
   const seResults = [seTeslaResult, seOcmResult, seOsmResult].map(unwrap).filter((r): r is ProviderResult => r !== null)
   const fiResults = [fiTeslaResult, fiOcmResult, fiOsmResult].map(unwrap).filter((r): r is ProviderResult => r !== null)
@@ -220,6 +224,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       tesla: combinedMeta(bgTeslaResult, noTeslaResult, seTeslaResult, fiTeslaResult, nlTeslaResult, beTeslaResult, deTeslaResult),
       ocm:   combinedMeta(bgOcmResult,   noOcmResult,   seOcmResult,   fiOcmResult,   nlOcmWestResult, nlOcmEastResult, beOcmWestResult, beOcmEastResult, deOcmWestResult, deOcmEastResult),
       osm:   combinedMeta(bgOsmResult,   noOsmResult,   seOsmResult,   fiOsmResult,   nlOsmResult, beOsmResult, deOsmResult),
+      fines: combinedMeta(bgFinesResult),
     },
   }
 
@@ -251,6 +256,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       tesla: combinedMeta(bgTeslaResult, noTeslaResult, seTeslaResult, fiTeslaResult, nlTeslaResult, beTeslaResult, deTeslaResult),
       ocm:   combinedMeta(bgOcmResult,   noOcmResult,   seOcmResult,   fiOcmResult,   nlOcmWestResult, nlOcmEastResult, beOcmWestResult, beOcmEastResult, deOcmWestResult, deOcmEastResult),
       osm:   combinedMeta(bgOsmResult,   noOsmResult,   seOsmResult,   fiOsmResult,   nlOsmResult, beOsmResult, deOsmResult),
+      fines: combinedMeta(bgFinesResult),
     },
     elapsedMs: elapsed,
     syncedAt:  new Date().toISOString(),
