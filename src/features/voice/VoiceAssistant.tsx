@@ -127,6 +127,14 @@ function _incrementAiUsage(): void {
 let _trigger: (() => void) | null = null
 export function openVoiceAssistant(): void { _trigger?.() }
 
+// Report-mode: voice starts with a 3-second auto-dismiss if no speech detected.
+// Called from Докладвай button alongside openReportModal() so both run in parallel.
+let _reportModeNext = false
+export function openVoiceAssistantForReport(): void {
+  _reportModeNext = true
+  _trigger?.()
+}
+
 type Phase = 'idle' | 'listening' | 'recording' | 'processing' | 'answer' | 'error'
 
 // ── Context builder ────────────────────────────────────────────────────────
@@ -330,9 +338,10 @@ export function VoiceAssistant() {
   const vadRef        = useRef<ReturnType<typeof setInterval> | null>(null)
   const audioCtxRef   = useRef<AudioContext | null>(null)
   const dismissTimer  = useRef<ReturnType<typeof setTimeout> | null>(null)
-  // GPS snapshot taken the instant the assistant opens — used for reports so we
-  // place the marker at the location where the user was when they tapped the mic.
   const capturedPosRef = useRef<{ lat: number; lng: number } | null>(null)
+  // Report-mode: set when opened via Докладвай button; 3s auto-dismiss if no speech
+  const reportModeRef      = useRef(false)
+  const reportModeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const dismiss = useCallback(() => {
     stopSpeech()
@@ -343,6 +352,8 @@ export function VoiceAssistant() {
     if (vadRef.current)   { clearInterval(vadRef.current);   vadRef.current = null }
     if (audioCtxRef.current) { audioCtxRef.current.close().catch(() => {}); audioCtxRef.current = null }
     if (dismissTimer.current) clearTimeout(dismissTimer.current)
+    if (reportModeTimerRef.current) { clearTimeout(reportModeTimerRef.current); reportModeTimerRef.current = null }
+    reportModeRef.current = false
     setPhase('idle')
     setTranscript('')
     setAnswer('')
@@ -498,6 +509,20 @@ export function VoiceAssistant() {
     setPhase('recording')
     setRecSeconds(0)
 
+    // Shared speech-detected flag — written by VAD, read by report-mode timer
+    let speechDetectedInVAD = false
+
+    // ── Report-mode: 3s auto-dismiss if no speech detected ────────────────
+    if (reportModeRef.current) {
+      reportModeTimerRef.current = setTimeout(() => {
+        reportModeTimerRef.current = null
+        if (!speechDetectedInVAD) {
+          dismiss()   // no speech in 3s → close silently; report modal stays open
+        }
+        // speech was detected → let recording continue and process normally
+      }, 3000)
+    }
+
     // ── Voice Activity Detection (VAD) ────────────────────────────────────
     //
     // All platforms (including Tesla): AnalyserNode frequency-domain VAD.
@@ -540,6 +565,7 @@ export function VoiceAssistant() {
 
         if (avg >= SILENCE_THRESHOLD) {
           speechDetectedEver = true
+          speechDetectedInVAD = true
           silenceStart = null
         } else {
           if (silenceStart === null) silenceStart = Date.now()
@@ -649,7 +675,12 @@ export function VoiceAssistant() {
     const snap = gpsStore.getPosition()
     capturedPosRef.current = snap ? { lat: snap.lat, lng: snap.lng } : null
 
+    // Capture report-mode flag — must be set AFTER dismiss() which resets it
+    const isReportMode = _reportModeNext
+    _reportModeNext = false
+
     dismiss()  // reset any previous state
+    reportModeRef.current = isReportMode  // restore after dismiss()
 
     // Tesla browser has webkitSpeechRecognition but it always fails with a
     // "network" error because the car's network blocks Google's STT servers.

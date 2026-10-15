@@ -3,6 +3,7 @@
 
 import { useSyncExternalStore, useState, useRef } from 'react'
 import { eventStore } from '@/features/events/eventStore'
+import { openVoiceAssistantForReport } from '@/features/voice/VoiceAssistant'
 import { routeStore } from '@/features/route/routeStore'
 import { langStore, t } from '@/lib/locale'
 import { v8SportEngine, v8MuscleEngine, v8AmgEngine, v8W12Engine } from '@/features/v8sound/v8Engine'
@@ -280,7 +281,7 @@ export function BottomDock() {
       <button
         aria-label={t('dock.report')}
         title={t('dock.report')}
-        onClick={() => eventStore.openReportModal()}
+        onClick={() => { eventStore.openReportModal(); openVoiceAssistantForReport() }}
         style={{
           display: 'flex',
           alignItems: 'center',

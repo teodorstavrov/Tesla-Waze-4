@@ -5,6 +5,7 @@ All notable changes to TesRadar, organized by date (newest first).
 ---
 
 ## 2026-10-15
+- **Докладвай → voice auto-start** — pressing Докладвай now simultaneously opens the report modal AND starts the voice assistant in report-mode; it listens for 3 seconds — if a voice command is detected (e.g. „камера тук") it processes and auto-reports; if no speech in 3s it silently closes while the report modal stays open for manual input
 - **BottomDock layout** — removed EV stations toggle button; new order: Sound engine (left) → Докладвай (center) → Route (right); Sound engine and Route buttons reduced 30% in size; volume panel now floats to the LEFT of the engine button
 - **Voice assistant button label** — added small "AI ГЛАС" label under the mic icon in LeftControls so users know the button activates the voice assistant
 - **Report button voice hint** — added second line hint inside the Докладвай button (e.g. _или кажи „камера тук"_) in all 7 languages, prompting users to report via voice assistant
