@@ -5,6 +5,9 @@ All notable changes to TesRadar, organized by date (newest first).
 ---
 
 ## 2026-10-15
+- **Avatar road-snap + never-backwards heading** — avatar now snaps position to nearest route segment (within 60 m) so it never floats off the road; heading derived from route segment bearing (always forward) instead of noisy raw GPS; heading jumps >100° are suppressed so avatar never appears to drive in reverse; course-up mode unchanged (arrow always 0°, map rotates)
+
+
 - **RouteLayer v6 — canvas overlay (bypass MapLibre GeoJSON pipeline)** — after 5 failed attempts using `addSource`/`addLayer` with MapLibre's GeoJSON vector layer system, switched to a plain `<canvas>` element positioned over the map container; route is drawn with the Canvas 2D API using `map.project([lng,lat])` for coordinate conversion and `map.on('render', redraw)` to stay in sync with pan/zoom/rotate; primary route is solid blue `#2B7FFF` (7px with glow), alt routes are dashed semi-transparent; completely bypasses MapLibre's Web Worker / WebGL shader pipeline that appears non-functional on Tesla browser
 
 ## 2026-10-14
