@@ -186,7 +186,12 @@ export function BottomDock() {
         onPointerLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = '' }}
       >
         <AlertIcon />
-        {t('dock.report')}
+        <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1 }}>
+          <span>{t('dock.report')}</span>
+          <span style={{ fontSize: 'clamp(9px, 1.1vh, 11px)', fontWeight: 400, opacity: 0.75, letterSpacing: 0 }}>
+            {t('dock.reportHint')}
+          </span>
+        </span>
       </button>
 
       {/* Route */}

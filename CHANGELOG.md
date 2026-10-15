@@ -5,6 +5,8 @@ All notable changes to TesRadar, organized by date (newest first).
 ---
 
 ## 2026-10-15
+- **Voice assistant button label** — added small "AI ГЛАС" label under the mic icon in LeftControls so users know the button activates the voice assistant
+- **Report button voice hint** — added second line hint inside the Докладвай button (e.g. _или кажи „камера тук"_) in all 7 languages, prompting users to report via voice assistant
 - **Avatar road-snap + never-backwards heading** — avatar now snaps position to nearest route segment (within 60 m) so it never floats off the road; heading derived from route segment bearing (always forward) instead of noisy raw GPS; heading jumps >100° are suppressed so avatar never appears to drive in reverse; course-up mode unchanged (arrow always 0°, map rotates)
 
 

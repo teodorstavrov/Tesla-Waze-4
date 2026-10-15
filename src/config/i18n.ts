@@ -93,6 +93,7 @@ export const DICTIONARY = {
 
     dock: {
       report:        'Докладвай',
+      reportHint:    'или кажи „камера тук"',
       noRoute:       'Няма маркиран маршрут',
       route:         'Маршрут',
       cancelRoute:   'Откажи маршрут',
@@ -503,6 +504,7 @@ export const DICTIONARY = {
 
     dock: {
       report:        'Report',
+      reportHint:    'or say "camera here"',
       noRoute:       'No route set',
       route:         'Route',
       cancelRoute:   'Cancel route',
@@ -910,6 +912,7 @@ export const DICTIONARY = {
 
     dock: {
       report:        'Rapporter',
+      reportHint:    'eller si "kamera her"',
       noRoute:       'Ingen rute satt',
       route:         'Rute',
       cancelRoute:   'Avbryt rute',
@@ -1196,6 +1199,7 @@ export const DICTIONARY = {
 
     dock: {
       report:        'Rapportera',
+      reportHint:    'eller säg "kamera här"',
       noRoute:       'Ingen rutt inställd',
       route:         'Rutt',
       cancelRoute:   'Avbryt rutt',
@@ -1482,6 +1486,7 @@ export const DICTIONARY = {
 
     dock: {
       report:        'Ilmoita',
+      reportHint:    'tai sano "kamera tässä"',
       noRoute:       'Ei reittiä asetettu',
       route:         'Reitti',
       cancelRoute:   'Peruuta reitti',
@@ -1767,6 +1772,7 @@ export const DICTIONARY = {
 
     dock: {
       report:        'Melden',
+      reportHint:    'of zeg "camera hier"',
       noRoute:       'Geen route ingesteld',
       route:         'Route',
       cancelRoute:   'Route annuleren',
@@ -2055,6 +2061,7 @@ export const DICTIONARY = {
 
     dock: {
       report:        'Melden',
+      reportHint:    'oder sag „Kamera hier"',
       noRoute:       'Keine Route gesetzt',
       route:         'Route',
       cancelRoute:   'Route abbrechen',

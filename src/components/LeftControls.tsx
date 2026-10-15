@@ -119,8 +119,12 @@ export function LeftControls() {
           <BellIcon />
         </button>
         <button className="icon-btn" onClick={openVoiceAssistant}
-          title="TesRadar AI" aria-label="TesRadar AI — voice assistant">
+          title="TesRadar AI" aria-label="TesRadar AI — voice assistant"
+          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
           <MicButtonIcon />
+          <span style={{ fontSize: 9, fontWeight: 700, opacity: 0.65, letterSpacing: '0.05em', lineHeight: 1, textTransform: 'uppercase' }}>
+            AI глас
+          </span>
         </button>
       </div>
     </div>
