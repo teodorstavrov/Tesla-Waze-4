@@ -2,7 +2,6 @@
 // Phase 4: EV toggle. Phase 6: Report button opens event modal.
 
 import { useSyncExternalStore, useState, useRef } from 'react'
-import { evStore } from '@/features/ev/evStore'
 import { eventStore } from '@/features/events/eventStore'
 import { routeStore } from '@/features/route/routeStore'
 import { langStore, t } from '@/lib/locale'
@@ -12,12 +11,6 @@ import { v8HeaderEngine } from '@/features/v8sound/audioEngine'
 export function BottomDock() {
   // Re-render on language change so button labels update
   useSyncExternalStore(langStore.subscribe.bind(langStore), langStore.getLang, langStore.getLang)
-
-  const markersVisible = useSyncExternalStore(
-    evStore.subscribe.bind(evStore),
-    () => evStore.getState().markersVisible,
-    () => true,
-  )
 
   const routeActive = useSyncExternalStore(
     routeStore.subscribe.bind(routeStore),
@@ -137,107 +130,7 @@ export function BottomDock() {
       gap: 'clamp(5px, calc((100vh - 150px) / 100), 13px)',
       alignItems: 'center',
     }}>
-      {/* EV Stations toggle */}
-      <button
-        className="icon-btn"
-        style={{
-          width: 'clamp(48px, calc((100vh - 195px) / 7 * 0.94), 83px)', height: 'clamp(48px, calc((100vh - 195px) / 7 * 0.94), 83px)',
-          borderRadius: 'clamp(10px, calc((100vh - 195px) / 7 * 0.72 * 0.22), 16px)',
-          background: 'rgba(255,255,255,0.5)',
-          borderColor: 'rgba(255,255,255,0.3)',
-          color: '#111',
-          boxShadow: '0 2px 12px rgba(0,0,0,0.18)',
-          opacity: markersVisible ? 1 : 0.35,
-        }}
-        title={markersVisible ? t('dock.hideStations') : t('dock.showStations')}
-        aria-label={markersVisible ? t('dock.hideStations') : t('dock.showStations')}
-        aria-pressed={markersVisible}
-        onClick={() => evStore.toggleMarkersVisible()}
-      >
-        <EVIcon />
-      </button>
-
-      {/* Report — primary CTA */}
-      <button
-        aria-label={t('dock.report')}
-        title={t('dock.report')}
-        onClick={() => eventStore.openReportModal()}
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 'clamp(5px, calc((100vh - 150px) / 120), 10px)',
-          padding: '0 clamp(10px, 2.5vh, 32px)',
-          height: 'clamp(48px, calc((100vh - 195px) / 7 * 0.94), 83px)',
-          borderRadius: 'clamp(24px, calc((100vh - 195px) / 7 * 0.47), 42px)',
-          background: '#e31937',
-          border: 'none',
-          color: '#fff',
-          fontSize: 'clamp(11px, 1.8vh, 16px)',
-          fontWeight: 700,
-          letterSpacing: '0.04em',
-          cursor: 'pointer',
-          boxShadow: '0 6px 28px rgba(227,25,55,0.45)',
-          touchAction: 'manipulation',
-          opacity: 0.7,
-          whiteSpace: 'nowrap',
-        }}
-        onPointerDown={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(0.96)' }}
-        onPointerUp={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = '' }}
-        onPointerLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = '' }}
-      >
-        <AlertIcon />
-        <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1 }}>
-          <span>{t('dock.report')}</span>
-          <span style={{ fontSize: 'clamp(9px, 1.1vh, 11px)', fontWeight: 400, opacity: 0.75, letterSpacing: 0 }}>
-            {t('dock.reportHint')}
-          </span>
-        </span>
-      </button>
-
-      {/* Route */}
-      <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
-        {noRouteMsg && (
-          <div style={{
-            position: 'absolute',
-            bottom: '100%',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            marginBottom: 8,
-            background: 'rgba(18,18,26,0.92)',
-            border: '1px solid rgba(255,255,255,0.14)',
-            backdropFilter: 'blur(10px)',
-            WebkitBackdropFilter: 'blur(10px)',
-            color: '#fff',
-            fontSize: 'clamp(10px, 1.5vh, 13px)',
-            fontWeight: 600,
-            padding: 'clamp(5px, 1vh, 7px) clamp(10px, 2vh, 14px)',
-            borderRadius: 10,
-            whiteSpace: 'nowrap',
-            boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
-            pointerEvents: 'none',
-          }}>
-            {t('dock.noRoute')}
-          </div>
-        )}
-        <button
-          className="icon-btn"
-          style={{
-            width: 'clamp(48px, calc((100vh - 195px) / 7 * 0.94), 83px)', height: 'clamp(48px, calc((100vh - 195px) / 7 * 0.94), 83px)',
-            borderRadius: 'clamp(10px, calc((100vh - 195px) / 7 * 0.72 * 0.22), 16px)',
-            background: routeActive ? 'rgba(43,127,255,0.5)' : 'rgba(255,255,255,0.5)',
-            borderColor: routeActive ? '#2B7FFF' : 'rgba(255,255,255,0.3)',
-            color: routeActive ? '#fff' : '#111',
-            boxShadow: routeActive ? '0 0 0 3px rgba(43,127,255,0.3)' : '0 2px 12px rgba(0,0,0,0.18)',
-          }}
-          title={routeActive ? t('route.cancel') : t('dock.route')}
-          aria-label={routeActive ? t('route.cancel') : t('dock.route')}
-          onClick={handleRouteClick}
-        >
-          <RouteIcon />
-        </button>
-      </div>
-
-      {/* V8 Engine Simulator — rightmost, next to Route */}
+      {/* V8 Engine Simulator — left of Report */}
       <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
 
         {/* Engine Simulator toast — shown for 3s on mode change */}
@@ -270,6 +163,7 @@ export function BottomDock() {
         {v8Mode !== 'off' && (
           <V8VolumePanel
             volume={v8Volume}
+            side="left"
             accentColor={
               v8Mode === 'sport'  ? '#e31937'
             : v8Mode === 'muscle' ? '#f59e0b'
@@ -288,8 +182,8 @@ export function BottomDock() {
             aria-label={v8Label}
             disabled={v8Loading}
             style={{
-              width: 'clamp(48px, calc((100vh - 195px) / 7 * 0.94), 83px)', height: 'clamp(48px, calc((100vh - 195px) / 7 * 0.94), 83px)',
-              borderRadius: 'clamp(10px, calc((100vh - 195px) / 7 * 0.72 * 0.22), 16px)',
+              width: 'clamp(34px, calc((100vh - 195px) / 7 * 0.658), 58px)', height: 'clamp(34px, calc((100vh - 195px) / 7 * 0.658), 58px)',
+              borderRadius: 'clamp(7px, calc((100vh - 195px) / 7 * 0.1134), 11px)',
               background:  v8Mode === 'muscle' ? 'rgba(245,158,11,0.25)'
                          : v8Mode === 'sport'  ? 'rgba(227,25,55,0.25)'
                          : v8Mode === 'header' ? 'rgba(16,185,129,0.25)'
@@ -381,6 +275,86 @@ export function BottomDock() {
           </button>
         )}
       </div>
+
+      {/* Report — primary CTA */}
+      <button
+        aria-label={t('dock.report')}
+        title={t('dock.report')}
+        onClick={() => eventStore.openReportModal()}
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: 'clamp(5px, calc((100vh - 150px) / 120), 10px)',
+          padding: '0 clamp(10px, 2.5vh, 32px)',
+          height: 'clamp(48px, calc((100vh - 195px) / 7 * 0.94), 83px)',
+          borderRadius: 'clamp(24px, calc((100vh - 195px) / 7 * 0.47), 42px)',
+          background: '#e31937',
+          border: 'none',
+          color: '#fff',
+          fontSize: 'clamp(11px, 1.8vh, 16px)',
+          fontWeight: 700,
+          letterSpacing: '0.04em',
+          cursor: 'pointer',
+          boxShadow: '0 6px 28px rgba(227,25,55,0.45)',
+          touchAction: 'manipulation',
+          opacity: 0.7,
+          whiteSpace: 'nowrap',
+        }}
+        onPointerDown={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(0.96)' }}
+        onPointerUp={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = '' }}
+        onPointerLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = '' }}
+      >
+        <AlertIcon />
+        <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1 }}>
+          <span>{t('dock.report')}</span>
+          <span style={{ fontSize: 'clamp(9px, 1.1vh, 11px)', fontWeight: 400, opacity: 0.75, letterSpacing: 0 }}>
+            {t('dock.reportHint')}
+          </span>
+        </span>
+      </button>
+
+      {/* Route — 30% smaller */}
+      <div style={{ position: 'relative', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6 }}>
+        {noRouteMsg && (
+          <div style={{
+            position: 'absolute',
+            bottom: '100%',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            marginBottom: 8,
+            background: 'rgba(18,18,26,0.92)',
+            border: '1px solid rgba(255,255,255,0.14)',
+            backdropFilter: 'blur(10px)',
+            WebkitBackdropFilter: 'blur(10px)',
+            color: '#fff',
+            fontSize: 'clamp(10px, 1.5vh, 13px)',
+            fontWeight: 600,
+            padding: 'clamp(5px, 1vh, 7px) clamp(10px, 2vh, 14px)',
+            borderRadius: 10,
+            whiteSpace: 'nowrap',
+            boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
+            pointerEvents: 'none',
+          }}>
+            {t('dock.noRoute')}
+          </div>
+        )}
+        <button
+          className="icon-btn"
+          style={{
+            width: 'clamp(34px, calc((100vh - 195px) / 7 * 0.658), 58px)', height: 'clamp(34px, calc((100vh - 195px) / 7 * 0.658), 58px)',
+            borderRadius: 'clamp(7px, calc((100vh - 195px) / 7 * 0.1134), 11px)',
+            background: routeActive ? 'rgba(43,127,255,0.5)' : 'rgba(255,255,255,0.5)',
+            borderColor: routeActive ? '#2B7FFF' : 'rgba(255,255,255,0.3)',
+            color: routeActive ? '#fff' : '#111',
+            boxShadow: routeActive ? '0 0 0 3px rgba(43,127,255,0.3)' : '0 2px 12px rgba(0,0,0,0.18)',
+          }}
+          title={routeActive ? t('route.cancel') : t('dock.route')}
+          aria-label={routeActive ? t('route.cancel') : t('dock.route')}
+          onClick={handleRouteClick}
+        >
+          <RouteIcon />
+        </button>
+      </div>
     </div>
   )
 }
@@ -390,10 +364,12 @@ export function BottomDock() {
 function V8VolumePanel({
   volume,
   accentColor,
+  side = 'left',
   onChange,
 }: {
   volume:      number
   accentColor: string
+  side?:       'left' | 'right'
   onChange:    (v: number) => void
 }) {
   const [collapsed, setCollapsed] = useState(false)
@@ -410,7 +386,9 @@ function V8VolumePanel({
   return (
     <div style={{
       position:          'absolute',
-      left:              'calc(100% + 10px)',   // floats RIGHT of the engine button
+      ...(side === 'left'
+        ? { right: 'calc(100% + 10px)' }
+        : { left:  'calc(100% + 10px)' }),
       top:               '50%',
       transform:         'translateY(-50%)',
       width:             collapsed ? 'auto' : 'clamp(160px, 28vh, 224px)',
@@ -570,15 +548,6 @@ function V8Icon({ mode, loading }: { mode: V8IconMode; loading?: boolean }) {
       {mode === 'muscle' && <line x1="9.5"  y1="9" x2="9.5"  y2="6" strokeWidth="1.2" strokeOpacity="0.7" />}
       {mode === 'muscle' && <line x1="14.5" y1="9" x2="14.5" y2="6" strokeWidth="1.2" strokeOpacity="0.7" />}
       <path d="M3 13 Q1 13 1 16" />
-    </svg>
-  )
-}
-
-function EVIcon() {
-  return (
-    <svg width="30" height="30" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M13 2L4.5 13.5H11L10 22L19.5 10.5H13L13 2Z" />
     </svg>
   )
 }
