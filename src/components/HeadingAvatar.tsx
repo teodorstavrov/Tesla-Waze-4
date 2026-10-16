@@ -1,25 +1,30 @@
 // ─── GPS Avatar / Heading Marker ─────────────────────────────────────
 //
-// Null React component — all work done imperatively via MapLibre Marker.
+// Fixed-position overlay — avatar sits at a constant CSS position on screen.
+// The map pans underneath via MapShell's easeTo so the GPS coordinate appears
+// exactly at the avatar's location.  This eliminates all GPS drift and
+// coordinate-projection errors permanently.
 //
-// Heading sources (priority order when route is active):
+// Position formula (must mirror MapShell's padding formula exactly):
+//   topPad = (courseUp || !isTeslaBrowser) ? round(h * 0.4) : 0
+//   avatarCenterY = h / 2 + topPad / 2
+//
+// Heading sources (priority when route is active):
 //   1. Bearing of the nearest route polyline segment → always forward
 //   2. GPS heading (fallback when no route)
-//   Never rotates >100° from previous bearing → no backwards movement.
-//
-// Position (when route is active): snapped to nearest route segment.
+//   Never rotates > 100° from previous bearing → no backwards movement.
 // ─────────────────────────────────────────────────────────────────────
 
 import { useEffect, useRef } from 'react'
-import * as maplibregl from 'maplibre-gl'
-import { getMap, getCourseUpScale } from '@/components/MapShell'
+import { getMap } from '@/components/MapShell'
 import { gpsStore } from '@/features/gps/gpsStore'
 import { routeStore } from '@/features/route/routeStore'
 import { settingsStore } from '@/features/settings/settingsStore'
+import { isTeslaBrowser } from '@/lib/browser'
 import type { GpsPosition } from '@/features/gps/types'
 
 // Shared nav state for MapShell — snapped bearing + position.
-// Updated each GPS tick after snap+anti-jitter filtering.
+// Updated each GPS tick after snap + anti-jitter filtering.
 let _navBearing:  number | null = null
 let _navLat:      number | null = null
 let _navLng:      number | null = null
@@ -28,22 +33,29 @@ export function getNavPosition(): { lat: number; lng: number } | null {
   return _navLat !== null && _navLng !== null ? { lat: _navLat, lng: _navLng } : null
 }
 
-const ICON_SIZE  = 76
-const SNAP_DIST_M = 60   // snap avatar to route if within 60 m
-const MAX_HEADING_JUMP_DEG = 100  // ignore heading if it jumps more than this
+const ICON_SIZE       = 76
+const SNAP_DIST_M     = 60
+const MAX_HEADING_JUMP_DEG = 100
+
+// ── Element factory ───────────────────────────────────────────────────────────
 
 function makeElement(): HTMLDivElement {
   const root = document.createElement('div')
   root.className = 'gps-avatar-root'
-  root.style.cssText = `width:${ICON_SIZE}px;height:${ICON_SIZE}px;pointer-events:none;z-index:10`
+  root.style.cssText = [
+    `width:${ICON_SIZE}px`,
+    `height:${ICON_SIZE}px`,
+    'position:absolute',
+    'pointer-events:none',
+    'z-index:10',
+  ].join(';')
 
-  // Tip is at (14,14) = center of element.
-  // CSS rotate() defaults to transform-origin:50% 50% = center = tip.
-  // So rotation always pivots around the tip → tip stays on the road centerline.
-  root.innerHTML = `<div class="gps-avatar-arrow" style="transform:rotate(0deg)">
+  // Original arrow: tip at (14,3), circle at center fills element for location dot.
+  // CSS rotate() around 50% 50% = center of element = GPS point on screen.
+  root.innerHTML = `<div class="gps-avatar-arrow" style="transform:rotate(0deg);transform-origin:50% 50%">
     <svg width="${ICON_SIZE}" height="${ICON_SIZE}" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-      <circle cx="14" cy="21" r="7" fill="rgba(41,121,255,0.18)"/>
-      <polygon points="14,14 19,27 14,23 9,27"
+      <circle cx="14" cy="14" r="13" fill="rgba(41,121,255,0.15)"/>
+      <polygon points="14,3 20,22 14,18 8,22"
         fill="#2979ff" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
     </svg>
   </div>`
@@ -51,12 +63,23 @@ function makeElement(): HTMLDivElement {
   return root
 }
 
-// ── Geo helpers ──────────────────────────────────────────────────────────────
+// Place avatar at the map's visual GPS center (mirrors MapShell's easeTo padding).
+function positionElement(el: HTMLElement): void {
+  const courseUp = settingsStore.get().headingMode === 'course-up'
+  const w = window.innerWidth
+  const h = window.innerHeight
+  const topPad = (courseUp || !isTeslaBrowser) ? Math.round(h * 0.4) : 0
+  const cx = w / 2
+  const cy = h / 2 + topPad / 2
+  el.style.left = `${cx - ICON_SIZE / 2}px`
+  el.style.top  = `${cy - ICON_SIZE / 2}px`
+}
+
+// ── Geo helpers ───────────────────────────────────────────────────────────────
 
 function toRad(d: number): number { return d * Math.PI / 180 }
 function toDeg(r: number): number { return r * 180 / Math.PI }
 
-/** Bearing (degrees, 0–360) from A→B */
 function bearingDeg(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const φ1 = toRad(lat1), φ2 = toRad(lat2)
   const Δλ = toRad(lng2 - lng1)
@@ -65,7 +88,6 @@ function bearingDeg(lat1: number, lng1: number, lat2: number, lng2: number): num
   return (toDeg(Math.atan2(y, x)) + 360) % 360
 }
 
-/** Approximate distance in metres (equirectangular) */
 function distM(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R   = 6_371_000
   const dlat = toRad(lat2 - lat1)
@@ -74,7 +96,6 @@ function distM(lat1: number, lng1: number, lat2: number, lng2: number): number {
   return Math.sqrt((dlat * R) ** 2 + (dlng * R * Math.cos(mlat)) ** 2)
 }
 
-/** Project point P onto segment A–B; returns snapped [lat,lng] + t∈[0,1] */
 function projectOnSegment(
   pLat: number, pLng: number,
   aLat: number, aLng: number,
@@ -88,11 +109,6 @@ function projectOnSegment(
   return { lat: aLat + t * abLat, lng: aLng + t * abLng, t }
 }
 
-/**
- * Snap GPS position to the nearest route segment.
- * Returns snapped position + forward bearing of that segment.
- * Returns null if route is too far away (> SNAP_DIST_M).
- */
 function snapToRoute(
   lat: number, lng: number,
   polyline: [number, number][],
@@ -117,17 +133,12 @@ function snapToRoute(
   return bestSnap
 }
 
-/** Smallest signed difference between two bearings (−180 … +180) */
 function bearingDiff(a: number, b: number): number {
-  let d = ((b - a) + 540) % 360 - 180
-  return d
+  return ((b - a) + 540) % 360 - 180
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 export function HeadingAvatar() {
-  const markerRef    = useRef<maplibregl.Marker | null>(null)
-  const elemRef      = useRef<HTMLDivElement | null>(null)
-  const addedRef     = useRef(false)
   const prevBearingRef = useRef<number | null>(null)
 
   useEffect(() => {
@@ -135,21 +146,22 @@ export function HeadingAvatar() {
     if (!map) return
 
     const el = makeElement()
-    elemRef.current = el
+    map.getContainer().appendChild(el)
+    positionElement(el)
 
-    const marker = new maplibregl.Marker({
-      element: el,
-      anchor: 'center',
-      rotationAlignment: 'viewport',
+    // Re-position when viewport resizes
+    function onResize(): void {
+      positionElement(el)
+    }
+    window.addEventListener('resize', onResize, { passive: true })
+
+    // Re-position when heading mode toggles (topPad formula changes)
+    const unsubSettings = settingsStore.subscribe(() => {
+      positionElement(el)
     })
-      .setLngLat([0, 0])
-    markerRef.current = marker
 
-    const unsub = gpsStore.onPosition((pos: GpsPosition) => {
-      const m = markerRef.current
-      if (!m) return
-
-      // ── Determine display position + bearing ────────────────────────────
+    const unsubGps = gpsStore.onPosition((pos: GpsPosition) => {
+      // ── Determine display position + bearing ──────────────────────────────
       let displayLat  = pos.lat
       let displayLng  = pos.lng
       let newBearing: number | null = null
@@ -165,16 +177,15 @@ export function HeadingAvatar() {
         }
       }
 
-      // Fallback: use raw GPS heading
       if (newBearing === null && pos.heading !== null && pos.heading !== undefined) {
         newBearing = pos.heading
       }
 
-      // Never-backwards guard: ignore bearing if it jumps >MAX_HEADING_JUMP_DEG
+      // Never-backwards guard
       if (newBearing !== null && prevBearingRef.current !== null) {
         const diff = Math.abs(bearingDiff(prevBearingRef.current, newBearing))
         if (diff > MAX_HEADING_JUMP_DEG) {
-          newBearing = prevBearingRef.current   // keep old bearing
+          newBearing = prevBearingRef.current
         }
       }
       if (newBearing !== null) {
@@ -184,38 +195,23 @@ export function HeadingAvatar() {
       _navLat = displayLat
       _navLng = displayLng
 
-      // ── Move marker ─────────────────────────────────────────────────────
-      m.setLngLat([displayLng, displayLat])
-
-      if (!addedRef.current) {
-        m.addTo(map)
-        addedRef.current = true
-      }
-
-      // ── Rotate arrow ────────────────────────────────────────────────────
-      const counterScale = 1 / getCourseUpScale()
-      const vpScale = parseFloat(
-        getComputedStyle(document.documentElement).getPropertyValue('--marker-viewport-scale') || '1'
-      )
+      // ── Rotate arrow ──────────────────────────────────────────────────────
       const wrap = el.querySelector<HTMLElement>('.gps-avatar-arrow')
       if (wrap) {
         const courseUp = settingsStore.get().headingMode === 'course-up'
-        // course-up: map already rotated so travel direction = viewport UP → arrow stays 0°.
-        //            Applying bearing again here would double-rotate the arrow off the road.
+        // course-up: map already rotated so travel direction = viewport UP → CSS 0°.
+        //            Applying bearing here would double-rotate the arrow off the road.
         // north-up:  map bearing = 0 → arrow must rotate by geographic bearing.
         const arrowDeg = courseUp ? 0 : Math.round(newBearing ?? 0)
-        wrap.style.transform =
-          `rotate(${arrowDeg}deg) scale(${(counterScale * vpScale).toFixed(4)})`
+        wrap.style.transform = `rotate(${arrowDeg}deg)`
       }
     })
 
     return () => {
-      unsub()
-      marker.remove()
-      markerRef.current      = null
-      elemRef.current        = null
-      addedRef.current       = false
-      prevBearingRef.current = null
+      unsubGps()
+      unsubSettings()
+      window.removeEventListener('resize', onResize)
+      el.remove()
       _navBearing = null
       _navLat     = null
       _navLng     = null
