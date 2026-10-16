@@ -4,6 +4,9 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-10-16
+- **Avatar tip on road centerline + course-up bearing fix** — redesigned avatar SVG so the sharp tip is exactly at the element center; CSS rotation always pivots around the tip, keeping it pinned on the snapped road position regardless of direction; exported `getNavBearing()` from HeadingAvatar so MapShell uses the route-segment bearing (smooth, jitter-free) instead of raw GPS heading for course-up map rotation — road and avatar are now aligned in course-up mode
+
 ## 2026-10-15
 - **Fines Charging API integration** — added new EV station provider sourced from `https://public.finescharging.com/v1/locations.geojson`; Fines stations are Bulgaria-only and take highest priority in the BG merge; new `StationSource = 'fines'`; provider file `api/_lib/providers/fines.ts` (5-min cache, no auth); Fines markers shown in teal (`#0ea5e9`) with bold "F" identifier — the API has no logo/brand field so color+letter serves as branding; live availability polling is a frontend-side option via `/v1/live.json` (separate endpoint)
 - **Докладвай → inline voice indicator** — report modal now shows a blue listening bar (🎤 + countdown 3→2→1) when voice is active; voice assistant panel is suppressed (hidden) — it runs silently in background; voice command auto-reports and closes modal; no speech in 3s → indicator disappears, modal stays for manual selection

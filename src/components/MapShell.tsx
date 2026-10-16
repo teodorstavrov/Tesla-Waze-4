@@ -34,6 +34,7 @@ import { savedPlacesStore } from '@/features/places/savedPlacesStore'
 import { addStationStore } from '@/features/ev/addStationStore'
 import { meetupStore } from '@/features/meetups/meetupStore'
 import { settingsStore } from '@/features/settings/settingsStore'
+import { getNavBearing } from '@/components/HeadingAvatar'
 import { isTeslaBrowser } from '@/lib/browser'
 import { t } from '@/lib/locale'
 import { getActivePerformanceProfile } from '@/config/performanceProfiles'
@@ -338,7 +339,9 @@ export function MapShell() {
       _lastPanLng = pos.lng
 
       const courseUp = settingsStore.get().headingMode === 'course-up'
-      const heading  = pos.heading ?? 0
+      // Prefer route-segment bearing (snapped, jitter-free) over raw GPS heading.
+      // getNavBearing() lags by one GPS tick but changes smoothly on roads.
+      const heading  = getNavBearing() ?? pos.heading ?? 0
       const bearing  = courseUp ? -heading : 0
 
       // Perspective padding: shifts car to ~70% from top

@@ -18,6 +18,11 @@ import { routeStore } from '@/features/route/routeStore'
 import { settingsStore } from '@/features/settings/settingsStore'
 import type { GpsPosition } from '@/features/gps/types'
 
+// Shared best-bearing for MapShell course-up rotation.
+// Updated each GPS tick by HeadingAvatar after snap+anti-jitter filtering.
+let _navBearing: number | null = null
+export function getNavBearing(): number | null { return _navBearing }
+
 const ICON_SIZE  = 76
 const SNAP_DIST_M = 60   // snap avatar to route if within 60 m
 const MAX_HEADING_JUMP_DEG = 100  // ignore heading if it jumps more than this
@@ -27,10 +32,13 @@ function makeElement(): HTMLDivElement {
   root.className = 'gps-avatar-root'
   root.style.cssText = `width:${ICON_SIZE}px;height:${ICON_SIZE}px;pointer-events:none;z-index:10`
 
+  // Tip is at (14,14) = center of element.
+  // CSS rotate() defaults to transform-origin:50% 50% = center = tip.
+  // So rotation always pivots around the tip → tip stays on the road centerline.
   root.innerHTML = `<div class="gps-avatar-arrow" style="transform:rotate(0deg)">
     <svg width="${ICON_SIZE}" height="${ICON_SIZE}" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-      <circle cx="14" cy="14" r="13" fill="rgba(41,121,255,0.15)"/>
-      <polygon points="14,3 20,22 14,18 8,22"
+      <circle cx="14" cy="21" r="7" fill="rgba(41,121,255,0.18)"/>
+      <polygon points="14,14 19,27 14,23 9,27"
         fill="#2979ff" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
     </svg>
   </div>`
@@ -164,7 +172,10 @@ export function HeadingAvatar() {
           newBearing = prevBearingRef.current   // keep old bearing
         }
       }
-      if (newBearing !== null) prevBearingRef.current = newBearing
+      if (newBearing !== null) {
+        prevBearingRef.current = newBearing
+        _navBearing = newBearing
+      }
 
       // ── Move marker ─────────────────────────────────────────────────────
       m.setLngLat([displayLng, displayLat])
@@ -193,10 +204,11 @@ export function HeadingAvatar() {
     return () => {
       unsub()
       marker.remove()
-      markerRef.current    = null
-      elemRef.current      = null
-      addedRef.current     = false
+      markerRef.current      = null
+      elemRef.current        = null
+      addedRef.current       = false
       prevBearingRef.current = null
+      _navBearing            = null
     }
   }, [])
 
