@@ -138,14 +138,20 @@ export function openVoiceAssistantForReport(): void {
 // ── Voice-report pub-sub (consumed by ReportModal for listening indicator) ───
 let _vrListening   = false
 let _vrSecondsLeft = 0
+let _vrConfirm: string | null = null
 const _vrListeners = new Set<() => void>()
 export const reportVoiceStore = {
   isListening:  () => _vrListening,
   secondsLeft:  () => _vrSecondsLeft,
+  confirm:      () => _vrConfirm,
   subscribe:    (fn: () => void) => { _vrListeners.add(fn); return () => _vrListeners.delete(fn) },
   _set(listening: boolean, seconds: number): void {
     _vrListening   = listening
     _vrSecondsLeft = seconds
+    _vrListeners.forEach(f => f())
+  },
+  _setConfirm(msg: string | null): void {
+    _vrConfirm = msg
     _vrListeners.forEach(f => f())
   },
 }
@@ -811,9 +817,13 @@ export function VoiceAssistant() {
       } else if (data.intent?.type === 'report' && data.intent.eventType) {
         void handleReportIntent(data.intent.eventType)
         if (reportModeRef.current) {
-          // Voice report from Докладвай button → close the parallel report modal
-          eventStore.closeReportModal()
+          // Show confirmation in the report modal for 2s, then close it
           reportVoiceStore._set(false, 0)
+          reportVoiceStore._setConfirm(ans)
+          setTimeout(() => {
+            eventStore.closeReportModal()
+            reportVoiceStore._setConfirm(null)
+          }, 2000)
         }
         if (dismissTimer.current) clearTimeout(dismissTimer.current)
         dismissTimer.current = setTimeout(dismiss, 3_500)

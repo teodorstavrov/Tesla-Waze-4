@@ -43,6 +43,11 @@ export function ReportModal() {
     reportVoiceStore.secondsLeft,
     reportVoiceStore.secondsLeft,
   )
+  const voiceConfirm = useSyncExternalStore(
+    reportVoiceStore.subscribe,
+    reportVoiceStore.confirm,
+    reportVoiceStore.confirm,
+  )
 
   useEffect(() => {
     if (open) {
@@ -82,6 +87,45 @@ export function ReportModal() {
     audioManager.confirmBeep()
     setSubmitting(false)
     eventStore.closeReportModal()
+  }
+
+  // Voice confirmation — shown for ~2s after a successful voice report
+  if (voiceConfirm) {
+    return (
+      <>
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 600,
+          background: isTeslaBrowser ? 'rgba(0,0,0,0.80)' : 'rgba(0,0,0,0.65)',
+        }} />
+        <div
+          role="status"
+          aria-live="polite"
+          style={{
+            position: 'fixed',
+            top: '50%', left: '50%',
+            transform: 'translate(-50%, -50%)',
+            zIndex: 601,
+            width: 'min(360px, calc(100vw - 48px))',
+            padding: '32px 28px',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
+            borderRadius: 24,
+            background: 'rgba(22, 163, 74, 0.18)',
+            border: '1.5px solid rgba(22,163,74,0.55)',
+            boxShadow: '0 4px 32px rgba(22,163,74,0.18)',
+          }}
+          className="glass"
+        >
+          <div style={{ fontSize: 48, lineHeight: 1 }}>✅</div>
+          <div style={{
+            fontSize: 18, fontWeight: 700,
+            color: '#4ade80',
+            textAlign: 'center', lineHeight: 1.45,
+          }}>
+            {voiceConfirm}
+          </div>
+        </div>
+      </>
+    )
   }
 
   return (
