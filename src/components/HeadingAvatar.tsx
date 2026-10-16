@@ -15,6 +15,7 @@ import * as maplibregl from 'maplibre-gl'
 import { getMap, getCourseUpScale } from '@/components/MapShell'
 import { gpsStore } from '@/features/gps/gpsStore'
 import { routeStore } from '@/features/route/routeStore'
+import { settingsStore } from '@/features/settings/settingsStore'
 import type { GpsPosition } from '@/features/gps/types'
 
 // Shared nav state for MapShell — snapped bearing + position.
@@ -198,8 +199,11 @@ export function HeadingAvatar() {
       )
       const wrap = el.querySelector<HTMLElement>('.gps-avatar-arrow')
       if (wrap) {
-        // Map is always north-up — arrow always rotates to show travel direction.
-        const arrowDeg = Math.round(newBearing ?? 0)
+        const courseUp = settingsStore.get().headingMode === 'course-up'
+        // course-up: map already rotated so travel direction = viewport UP → arrow stays 0°.
+        //            Applying bearing again here would double-rotate the arrow off the road.
+        // north-up:  map bearing = 0 → arrow must rotate by geographic bearing.
+        const arrowDeg = courseUp ? 0 : Math.round(newBearing ?? 0)
         wrap.style.transform =
           `rotate(${arrowDeg}deg) scale(${(counterScale * vpScale).toFixed(4)})`
       }
