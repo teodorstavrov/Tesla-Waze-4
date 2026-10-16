@@ -165,6 +165,7 @@ export function HeadingAvatar() {
       let displayLat  = pos.lat
       let displayLng  = pos.lng
       let newBearing: number | null = null
+      let bearingFromSnap = false
 
       const { routes, activeRouteIndex } = routeStore.getState()
       const activeRoute = routes[activeRouteIndex]
@@ -174,6 +175,7 @@ export function HeadingAvatar() {
           displayLat = snap.lat
           displayLng = snap.lng
           newBearing = snap.bearing
+          bearingFromSnap = true
         }
       }
 
@@ -181,8 +183,11 @@ export function HeadingAvatar() {
         newBearing = pos.heading
       }
 
-      // Never-backwards guard
-      if (newBearing !== null && prevBearingRef.current !== null) {
+      // Anti-jitter guard only for raw GPS heading — snap bearing is authoritative
+      // (polyline is ordered in direction of travel, so snap always points forward).
+      // Applying the guard to snap bearing causes the arrow to lock to old direction
+      // on turns > 100°, making it appear to point backwards.
+      if (!bearingFromSnap && newBearing !== null && prevBearingRef.current !== null) {
         const diff = Math.abs(bearingDiff(prevBearingRef.current, newBearing))
         if (diff > MAX_HEADING_JUMP_DEG) {
           newBearing = prevBearingRef.current
