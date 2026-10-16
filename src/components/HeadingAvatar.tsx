@@ -1,18 +1,25 @@
 // ─── GPS Avatar / Heading Marker ─────────────────────────────────────
 //
-// Fixed-position overlay — avatar sits at a constant CSS position on screen.
-// The map pans underneath via MapShell's easeTo so the GPS coordinate appears
-// exactly at the avatar's location.  This eliminates all GPS drift and
-// coordinate-projection errors permanently.
+// Architecture: fixed-position HTML overlay on the map container.
+// Avatar stays at a constant CSS coordinate; map pans underneath.
+// This eliminates all GPS-to-screen projection errors permanently.
 //
-// Position formula (must mirror MapShell's padding formula exactly):
+// Position formula (mirrors MapShell padding exactly):
 //   topPad = (courseUp || !isTeslaBrowser) ? round(h * 0.4) : 0
 //   avatarCenterY = h / 2 + topPad / 2
 //
-// Heading sources (priority when route is active):
-//   1. Bearing of the nearest route polyline segment → always forward
-//   2. GPS heading (fallback when no route)
-//   Never rotates > 100° from previous bearing → no backwards movement.
+// Bearing pipeline:
+//   1. snapToRoute() → nearest route segment bearing
+//      + direction-check: if >90° off current heading, flip 180°
+//        (handles U-turns where snap grabs the return leg)
+//   2. Fallback: raw GPS heading (no active route)
+//   3. EMA smoothing — replaces hard anti-jitter cut-off;
+//      smooths turns instead of locking to old bearing.
+//      alpha=0.5 for snap (authoritative), 0.25 for raw GPS (noisy).
+//
+// Course-up: map rotates (MapShell.easeTo bearing=-smoothedBearing).
+//            Arrow CSS = 0° (always points up = direction of travel).
+// North-up:  map bearing=0. Arrow CSS = smoothedBearing.
 // ─────────────────────────────────────────────────────────────────────
 
 import { useEffect, useRef } from 'react'
@@ -23,21 +30,19 @@ import { settingsStore } from '@/features/settings/settingsStore'
 import { isTeslaBrowser } from '@/lib/browser'
 import type { GpsPosition } from '@/features/gps/types'
 
-// Shared nav state for MapShell — snapped bearing + position.
-// Updated each GPS tick after snap + anti-jitter filtering.
-let _navBearing:  number | null = null
-let _navLat:      number | null = null
-let _navLng:      number | null = null
+// Shared nav state exported for MapShell
+let _navBearing: number | null = null
+let _navLat:     number | null = null
+let _navLng:     number | null = null
 export function getNavBearing():  number | null { return _navBearing }
 export function getNavPosition(): { lat: number; lng: number } | null {
   return _navLat !== null && _navLng !== null ? { lat: _navLat, lng: _navLng } : null
 }
 
-const ICON_SIZE       = 76
-const SNAP_DIST_M     = 60
-const MAX_HEADING_JUMP_DEG = 100
+const ICON_SIZE   = 76
+const SNAP_DIST_M = 60
 
-// ── Element factory ───────────────────────────────────────────────────────────
+// ── DOM factory ───────────────────────────────────────────────────────────────
 
 function makeElement(): HTMLDivElement {
   const root = document.createElement('div')
@@ -49,9 +54,8 @@ function makeElement(): HTMLDivElement {
     'pointer-events:none',
     'z-index:10',
   ].join(';')
-
-  // Original arrow: tip at (14,3), circle at center fills element for location dot.
-  // CSS rotate() around 50% 50% = center of element = GPS point on screen.
+  // Original SVG: tip at (14,3), GPS dot circle at center (14,14).
+  // CSS rotate() pivots around 50% 50% = center = GPS point.
   root.innerHTML = `<div class="gps-avatar-arrow" style="transform:rotate(0deg);transform-origin:50% 50%">
     <svg width="${ICON_SIZE}" height="${ICON_SIZE}" viewBox="0 0 28 28" fill="none" aria-hidden="true">
       <circle cx="14" cy="14" r="13" fill="rgba(41,121,255,0.15)"/>
@@ -59,11 +63,9 @@ function makeElement(): HTMLDivElement {
         fill="#2979ff" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
     </svg>
   </div>`
-
   return root
 }
 
-// Place avatar at the map's visual GPS center (mirrors MapShell's easeTo padding).
 function positionElement(el: HTMLElement): void {
   const courseUp = settingsStore.get().headingMode === 'course-up'
   const w = window.innerWidth
@@ -83,13 +85,13 @@ function toDeg(r: number): number { return r * 180 / Math.PI }
 function bearingDeg(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const φ1 = toRad(lat1), φ2 = toRad(lat2)
   const Δλ = toRad(lng2 - lng1)
-  const y   = Math.sin(Δλ) * Math.cos(φ2)
-  const x   = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ)
+  const y  = Math.sin(Δλ) * Math.cos(φ2)
+  const x  = Math.cos(φ1) * Math.sin(φ2) - Math.sin(φ1) * Math.cos(φ2) * Math.cos(Δλ)
   return (toDeg(Math.atan2(y, x)) + 360) % 360
 }
 
 function distM(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R   = 6_371_000
+  const R    = 6_371_000
   const dlat = toRad(lat2 - lat1)
   const dlng = toRad(lng2 - lng1)
   const mlat = toRad((lat1 + lat2) / 2)
@@ -100,18 +102,31 @@ function projectOnSegment(
   pLat: number, pLng: number,
   aLat: number, aLng: number,
   bLat: number, bLng: number,
-): { lat: number; lng: number; t: number } {
+): { lat: number; lng: number } {
   const abLat = bLat - aLat, abLng = bLng - aLng
   const apLat = pLat - aLat, apLng = pLng - aLng
   const denom = abLat * abLat + abLng * abLng
-  if (denom === 0) return { lat: aLat, lng: aLng, t: 0 }
+  if (denom === 0) return { lat: aLat, lng: aLng }
   const t = Math.max(0, Math.min(1, (apLat * abLat + apLng * abLng) / denom))
-  return { lat: aLat + t * abLat, lng: aLng + t * abLng, t }
+  return { lat: aLat + t * abLat, lng: aLng + t * abLng }
+}
+
+// Normalise bearing difference to [-180, 180]
+function bearingDiff(a: number, b: number): number {
+  return ((b - a) + 540) % 360 - 180
+}
+
+// EMA that handles 360° wrap-around — never locks, only smooths.
+// alpha: 0 = no change, 1 = instant snap.
+function lerpBearing(from: number, to: number, alpha: number): number {
+  const diff = bearingDiff(from, to)  // shortest arc [-180, 180]
+  return (from + diff * alpha + 360) % 360
 }
 
 function snapToRoute(
   lat: number, lng: number,
   polyline: [number, number][],
+  refBearing: number | null,   // current smoothed bearing for direction check
 ): { lat: number; lng: number; bearing: number } | null {
   if (polyline.length < 2) return null
 
@@ -121,25 +136,32 @@ function snapToRoute(
   for (let i = 0; i < polyline.length - 1; i++) {
     const [aLat, aLng] = polyline[i]!
     const [bLat, bLng] = polyline[i + 1]!
-    const { lat: sLat, lng: sLng } = projectOnSegment(lat, lng, aLat, aLng, bLat, bLng)
-    const d = distM(lat, lng, sLat, sLng)
+    const snap = projectOnSegment(lat, lng, aLat, aLng, bLat, bLng)
+    const d    = distM(lat, lng, snap.lat, snap.lng)
     if (d < bestDist) {
       bestDist = d
-      bestSnap = { lat: sLat, lng: sLng, bearing: bearingDeg(aLat, aLng, bLat, bLng) }
+      bestSnap = { lat: snap.lat, lng: snap.lng, bearing: bearingDeg(aLat, aLng, bLat, bLng) }
     }
   }
 
-  if (bestDist > SNAP_DIST_M) return null
+  if (bestDist > SNAP_DIST_M || !bestSnap) return null
+
+  // Direction guard: if snap bearing is >90° from our reference, the snap
+  // landed on the return leg of a U-turn — flip to match direction of travel.
+  if (refBearing !== null) {
+    const diff = Math.abs(bearingDiff(refBearing, bestSnap.bearing))
+    if (diff > 90) {
+      bestSnap = { ...bestSnap, bearing: (bestSnap.bearing + 180) % 360 }
+    }
+  }
+
   return bestSnap
 }
 
-function bearingDiff(a: number, b: number): number {
-  return ((b - a) + 540) % 360 - 180
-}
+// ── Component ─────────────────────────────────────────────────────────────────
 
-// ─────────────────────────────────────────────────────────────────────────────
 export function HeadingAvatar() {
-  const prevBearingRef = useRef<number | null>(null)
+  const smoothedBearingRef = useRef<number | null>(null)
 
   useEffect(() => {
     const map = getMap()
@@ -149,65 +171,61 @@ export function HeadingAvatar() {
     map.getContainer().appendChild(el)
     positionElement(el)
 
-    // Re-position when viewport resizes
-    function onResize(): void {
-      positionElement(el)
-    }
+    function onResize(): void { positionElement(el) }
     window.addEventListener('resize', onResize, { passive: true })
 
-    // Re-position when heading mode toggles (topPad formula changes)
-    const unsubSettings = settingsStore.subscribe(() => {
-      positionElement(el)
-    })
+    const unsubSettings = settingsStore.subscribe(() => { positionElement(el) })
 
     const unsubGps = gpsStore.onPosition((pos: GpsPosition) => {
-      // ── Determine display position + bearing ──────────────────────────────
-      let displayLat  = pos.lat
-      let displayLng  = pos.lng
-      let newBearing: number | null = null
-      let bearingFromSnap = false
+      // ── 1. Position + raw bearing ─────────────────────────────────────────
+      let displayLat = pos.lat
+      let displayLng = pos.lng
+      let rawBearing: number | null = null
+      let fromSnap   = false
 
       const { routes, activeRouteIndex } = routeStore.getState()
       const activeRoute = routes[activeRouteIndex]
       if (activeRoute?.polyline.length) {
-        const snap = snapToRoute(pos.lat, pos.lng, activeRoute.polyline)
+        const snap = snapToRoute(
+          pos.lat, pos.lng,
+          activeRoute.polyline,
+          smoothedBearingRef.current ?? pos.heading ?? null,
+        )
         if (snap) {
           displayLat = snap.lat
           displayLng = snap.lng
-          newBearing = snap.bearing
-          bearingFromSnap = true
+          rawBearing = snap.bearing
+          fromSnap   = true
         }
       }
 
-      if (newBearing === null && pos.heading !== null && pos.heading !== undefined) {
-        newBearing = pos.heading
+      if (!fromSnap && pos.heading !== null && pos.heading !== undefined) {
+        rawBearing = pos.heading
       }
 
-      // Anti-jitter guard only for raw GPS heading — snap bearing is authoritative
-      // (polyline is ordered in direction of travel, so snap always points forward).
-      // Applying the guard to snap bearing causes the arrow to lock to old direction
-      // on turns > 100°, making it appear to point backwards.
-      if (!bearingFromSnap && newBearing !== null && prevBearingRef.current !== null) {
-        const diff = Math.abs(bearingDiff(prevBearingRef.current, newBearing))
-        if (diff > MAX_HEADING_JUMP_DEG) {
-          newBearing = prevBearingRef.current
+      // ── 2. EMA smoothing ──────────────────────────────────────────────────
+      // Replaces hard cutoff — turns are followed smoothly, never locked.
+      // Snap is authoritative (alpha=0.5); raw GPS is noisier (alpha=0.25).
+      if (rawBearing !== null) {
+        if (smoothedBearingRef.current === null) {
+          smoothedBearingRef.current = rawBearing
+        } else {
+          const alpha = fromSnap ? 0.5 : 0.25
+          smoothedBearingRef.current = lerpBearing(smoothedBearingRef.current, rawBearing, alpha)
         }
-      }
-      if (newBearing !== null) {
-        prevBearingRef.current = newBearing
-        _navBearing = newBearing
+        _navBearing = smoothedBearingRef.current
       }
       _navLat = displayLat
       _navLng = displayLng
 
-      // ── Rotate arrow ──────────────────────────────────────────────────────
+      // ── 3. Rotate arrow ───────────────────────────────────────────────────
       const wrap = el.querySelector<HTMLElement>('.gps-avatar-arrow')
-      if (wrap) {
+      if (wrap && smoothedBearingRef.current !== null) {
         const courseUp = settingsStore.get().headingMode === 'course-up'
-        // course-up: map already rotated so travel direction = viewport UP → CSS 0°.
-        //            Applying bearing here would double-rotate the arrow off the road.
-        // north-up:  map bearing = 0 → arrow must rotate by geographic bearing.
-        const arrowDeg = courseUp ? 0 : Math.round(newBearing ?? 0)
+        // course-up: MapShell rotates the map by -smoothedBearing so travel
+        //   direction faces UP — arrow must stay at 0° (no double-rotation).
+        // north-up: map is fixed north — arrow rotates to geographic bearing.
+        const arrowDeg = courseUp ? 0 : Math.round(smoothedBearingRef.current)
         wrap.style.transform = `rotate(${arrowDeg}deg)`
       }
     })
