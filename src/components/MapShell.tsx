@@ -34,7 +34,6 @@ import { savedPlacesStore } from '@/features/places/savedPlacesStore'
 import { addStationStore } from '@/features/ev/addStationStore'
 import { meetupStore } from '@/features/meetups/meetupStore'
 import { settingsStore } from '@/features/settings/settingsStore'
-import { getNavBearing } from '@/components/HeadingAvatar'
 import { isTeslaBrowser } from '@/lib/browser'
 import { t } from '@/lib/locale'
 import { getActivePerformanceProfile } from '@/config/performanceProfiles'
@@ -338,27 +337,17 @@ export function MapShell() {
       _lastPanLat = pos.lat
       _lastPanLng = pos.lng
 
-      const courseUp = settingsStore.get().headingMode === 'course-up'
-      // Prefer route-segment bearing (snapped, jitter-free) over raw GPS heading.
-      // getNavBearing() lags by one GPS tick but changes smoothly on roads.
-      const heading  = getNavBearing() ?? pos.heading ?? 0
-      const bearing  = courseUp ? -heading : 0
+      // Map is always north-up — bearing stays 0, only the avatar arrow rotates.
+      const topPad = isTeslaBrowser ? 0 : Math.round(window.innerHeight * 0.4)
 
-      // Perspective padding: shifts car to ~70% from top
-      // Course-up or mobile: use padding; Tesla north-up: centered
-      const usePerspective = courseUp || !isTeslaBrowser
-      const topPad = usePerspective ? Math.round(window.innerHeight * 0.4) : 0
-
-      // Animate pan only when profile allows it and heading is known
       const shouldAnimatePan =
-        _perfProfile.panAnimate &&
-        (courseUp && pos.heading != null || !isTeslaBrowser)
+        _perfProfile.panAnimate && !isTeslaBrowser
       const duration = shouldAnimatePan ? 500 : 0
 
       followStore.beginProgrammaticMove()
       map.easeTo({
         center:  [pos.lng, pos.lat],
-        bearing,
+        bearing: 0,
         padding: { top: topPad, bottom: 0, left: 0, right: 0 },
         duration,
       })
@@ -368,20 +357,8 @@ export function MapShell() {
       )
     })
 
-    // React to settings changes: heading mode + performance profile
+    // React to settings changes: performance profile (heading mode removed — always north-up)
     const unsubSettings = settingsStore.subscribe(() => {
-      const { headingMode } = settingsStore.get()
-      if (headingMode === 'north-up') {
-        map.easeTo({
-          bearing: 0,
-          padding: isTeslaBrowser
-            ? { top: 0, bottom: 0, left: 0, right: 0 }
-            : { top: Math.round(window.innerHeight * 0.4), bottom: 0, left: 0, right: 0 },
-          duration: 300,
-        })
-      } else if (headingMode === 'course-up') {
-        followStore.setFollowing(true)
-      }
       _perfProfile = getActivePerformanceProfile()
       _applyPerfAttribute()
     })

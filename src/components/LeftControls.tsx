@@ -1,37 +1,17 @@
 // ─── Left-side vertical control strip ─────────────────────────────────
 // Includes zoom controls (moved from right side).
-import { useSyncExternalStore, useState, useRef } from 'react'
+import { useSyncExternalStore } from 'react'
 import { LocationButton } from '@/components/LocationButton'
 import { getMap } from '@/components/MapShell'
 import { openLockSoundModal } from '@/components/LockSoundModal'
 import { openVoiceAssistant, MicButtonIcon } from '@/features/voice/VoiceAssistant'
 import { openVehicleProfileModal } from '@/components/VehicleProfileModal'
 import { openPricingModal } from '@/components/PricingModal'
-import { settingsStore } from '@/features/settings/settingsStore'
-import { langStore, t, getLang } from '@/lib/locale'
+import { langStore, getLang, t } from '@/lib/locale'
 import { isPremiumEnabled } from '@/lib/featureFlags'
-import { isTeslaBrowser } from '@/lib/browser'
 
 export function LeftControls() {
   useSyncExternalStore(langStore.subscribe.bind(langStore), getLang, getLang)
-  const headingMode = useSyncExternalStore(
-    settingsStore.subscribe.bind(settingsStore),
-    () => settingsStore.get().headingMode,
-    () => 'north-up' as const,
-  )
-
-  const isCourseUp    = headingMode === 'course-up'
-  const [modeHint, setModeHint] = useState<string | null>(null)
-  const modeHintTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  function handleHeadingToggle() {
-    const next = isCourseUp ? 'north-up' : 'course-up'
-    settingsStore.setHeadingMode(next)
-    const text = next === 'course-up' ? t('map.courseUp') : t('map.northUp')
-    setModeHint(text)
-    if (modeHintTimer.current) clearTimeout(modeHintTimer.current)
-    modeHintTimer.current = setTimeout(() => setModeHint(null), 5000)
-  }
 
   return (
     <div
@@ -39,54 +19,14 @@ export function LeftControls() {
       style={{
         position:        'absolute',
         left:            12,
-        // Constrain between logo (top ~66px) and clock (bottom ~68px)
-        // with 8px clearance each side → always visible on every Tesla model.
-        // justify-content:center keeps buttons vertically centered in the safe zone.
-        // gap + button sizes are controlled fluidly by CSS class (clamp + vh units).
-        top:             74,   // 12 logo-top + 54 logo-height + 8 clearance
-        bottom:          76,   // 30 clock-bottom + 38 clock-height + 8 clearance
+        top:             74,
+        bottom:          76,
         zIndex:          400,
         display:         'flex',
         flexDirection:   'column',
         justifyContent:  'center',
       }}
     >
-      <div style={{ position: 'relative' }}>
-        {modeHint && (
-          <div style={{
-            position: 'absolute',
-            left: 'calc(100% + 10px)',
-            top: '50%',
-            transform: 'translateY(-50%)',
-            background: 'rgba(18,18,26,0.92)',
-            border: '1px solid rgba(255,255,255,0.14)',
-            backdropFilter: isTeslaBrowser ? undefined : 'blur(10px)',
-            WebkitBackdropFilter: isTeslaBrowser ? undefined : 'blur(10px)',
-            color: '#fff',
-            fontSize: 'clamp(10px, 1.5vh, 13px)',
-            fontWeight: 600,
-            padding: 'clamp(5px, 1vh, 7px) clamp(10px, 2vh, 14px)',
-            borderRadius: 10,
-            whiteSpace: 'nowrap',
-            boxShadow: '0 2px 12px rgba(0,0,0,0.4)',
-            pointerEvents: 'none',
-            zIndex: 500,
-          }}>
-            {modeHint}
-          </div>
-        )}
-        <button
-          className="icon-btn"
-          onClick={handleHeadingToggle}
-          title={isCourseUp ? t('controls.courseUpHint') : t('controls.northUpHint')}
-          aria-label={t('controls.orientLabel')}
-          aria-pressed={isCourseUp}
-          style={{ opacity: 1 }}
-        >
-          {isCourseUp ? <CourseUpIcon /> : <NorthUpIcon />}
-        </button>
-      </div>
-      <div style={{ height: 1, background: 'var(--glass-border)', margin: '4px 0' }} />
       <LocationButton />
       <button className="icon-btn" onClick={() => getMap()?.zoomIn(1)}
         title="Zoom in" aria-label="Zoom in">
@@ -131,33 +71,6 @@ export function LeftControls() {
   )
 }
 
-// Course-up icon: map with rotation arrow (картата се върти)
-function CourseUpIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {/* Map outline */}
-      <polygon points="3,6 9,3 15,6 21,3 21,18 15,21 9,18 3,21" opacity="0.5" />
-      {/* Arrow pointing up (avatar fixed) */}
-      <polygon points="12,4 15,10 12,8 9,10" fill="currentColor" stroke="none" />
-    </svg>
-  )
-}
-
-// North-up icon: compass N fixed, map static (аватарът се върти)
-function NorthUpIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      {/* Compass circle */}
-      <circle cx="12" cy="12" r="9" opacity="0.5" />
-      {/* N arrow pointing up */}
-      <polygon points="12,4 14.5,10 12,8.5 9.5,10" fill="currentColor" stroke="none" />
-      {/* S dot */}
-      <circle cx="12" cy="18.5" r="1" fill="currentColor" stroke="none" opacity="0.4" />
-    </svg>
-  )
-}
 
 function PlusIcon() {
   return (
