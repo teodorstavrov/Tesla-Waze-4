@@ -17,10 +17,15 @@ import { gpsStore } from '@/features/gps/gpsStore'
 import { routeStore } from '@/features/route/routeStore'
 import type { GpsPosition } from '@/features/gps/types'
 
-// Shared best-bearing for MapShell course-up rotation.
-// Updated each GPS tick by HeadingAvatar after snap+anti-jitter filtering.
-let _navBearing: number | null = null
-export function getNavBearing(): number | null { return _navBearing }
+// Shared nav state for MapShell — snapped bearing + position.
+// Updated each GPS tick after snap+anti-jitter filtering.
+let _navBearing:  number | null = null
+let _navLat:      number | null = null
+let _navLng:      number | null = null
+export function getNavBearing():  number | null { return _navBearing }
+export function getNavPosition(): { lat: number; lng: number } | null {
+  return _navLat !== null && _navLng !== null ? { lat: _navLat, lng: _navLng } : null
+}
 
 const ICON_SIZE  = 76
 const SNAP_DIST_M = 60   // snap avatar to route if within 60 m
@@ -175,6 +180,8 @@ export function HeadingAvatar() {
         prevBearingRef.current = newBearing
         _navBearing = newBearing
       }
+      _navLat = displayLat
+      _navLng = displayLng
 
       // ── Move marker ─────────────────────────────────────────────────────
       m.setLngLat([displayLng, displayLat])
@@ -205,7 +212,9 @@ export function HeadingAvatar() {
       elemRef.current        = null
       addedRef.current       = false
       prevBearingRef.current = null
-      _navBearing            = null
+      _navBearing = null
+      _navLat     = null
+      _navLng     = null
     }
   }, [])
 

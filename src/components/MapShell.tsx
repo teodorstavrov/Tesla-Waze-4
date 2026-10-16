@@ -34,6 +34,7 @@ import { savedPlacesStore } from '@/features/places/savedPlacesStore'
 import { addStationStore } from '@/features/ev/addStationStore'
 import { meetupStore } from '@/features/meetups/meetupStore'
 import { settingsStore } from '@/features/settings/settingsStore'
+import { getNavBearing, getNavPosition } from '@/components/HeadingAvatar'
 import { isTeslaBrowser } from '@/lib/browser'
 import { t } from '@/lib/locale'
 import { getActivePerformanceProfile } from '@/config/performanceProfiles'
@@ -337,17 +338,30 @@ export function MapShell() {
       _lastPanLat = pos.lat
       _lastPanLng = pos.lng
 
-      // Map is always north-up — bearing stays 0, only the avatar arrow rotates.
-      const topPad = isTeslaBrowser ? 0 : Math.round(window.innerHeight * 0.4)
+      const courseUp = settingsStore.get().headingMode === 'course-up'
+
+      // Use snapped road position when available — eliminates lateral GPS drift
+      // that makes the avatar appear to slide across the road in course-up mode.
+      const navPos = getNavPosition()
+      const centerLat = navPos?.lat ?? pos.lat
+      const centerLng = navPos?.lng ?? pos.lng
+
+      // Smooth route-segment bearing → no heading jitter → no sideways map wobble.
+      const heading = getNavBearing() ?? pos.heading ?? 0
+      const bearing = courseUp ? -heading : 0
+
+      // Perspective padding shifts car toward bottom so more road is visible ahead.
+      const topPad = (courseUp || !isTeslaBrowser) ? Math.round(window.innerHeight * 0.4) : 0
 
       const shouldAnimatePan =
-        _perfProfile.panAnimate && !isTeslaBrowser
+        _perfProfile.panAnimate &&
+        (courseUp && pos.heading != null || !isTeslaBrowser)
       const duration = shouldAnimatePan ? 500 : 0
 
       followStore.beginProgrammaticMove()
       map.easeTo({
-        center:  [pos.lng, pos.lat],
-        bearing: 0,
+        center:  [centerLng, centerLat],
+        bearing,
         padding: { top: topPad, bottom: 0, left: 0, right: 0 },
         duration,
       })
@@ -357,8 +371,18 @@ export function MapShell() {
       )
     })
 
-    // React to settings changes: performance profile (heading mode removed — always north-up)
+    // React to settings changes: heading mode + performance profile
     const unsubSettings = settingsStore.subscribe(() => {
+      const { headingMode } = settingsStore.get()
+      if (headingMode === 'north-up') {
+        map.easeTo({
+          bearing: 0,
+          padding: { top: 0, bottom: 0, left: 0, right: 0 },
+          duration: 300,
+        })
+      } else if (headingMode === 'course-up') {
+        followStore.setFollowing(true)
+      }
       _perfProfile = getActivePerformanceProfile()
       _applyPerfAttribute()
     })

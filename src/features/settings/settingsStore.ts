@@ -13,7 +13,7 @@ interface Settings {
 
 const STORAGE_KEY = 'teslaradar:settings'
 const DEFAULTS: Settings = {
-  headingMode:     'north-up',
+  headingMode:     'course-up',
   showTraffic:     false,
   performanceMode: 'auto',
 }
@@ -25,10 +25,7 @@ function _emit(): void { _listeners.forEach((fn) => fn()) }
 function _load(): Settings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY)
-    const s: Settings = raw ? { ...DEFAULTS, ...(JSON.parse(raw) as Partial<Settings>) } : { ...DEFAULTS }
-    // Map is always north-up; migrate any saved 'course-up' preference.
-    if (s.headingMode === 'course-up') s.headingMode = 'north-up'
-    return s
+    return raw ? { ...DEFAULTS, ...(JSON.parse(raw) as Partial<Settings>) } : { ...DEFAULTS }
   } catch {
     return { ...DEFAULTS }
   }
