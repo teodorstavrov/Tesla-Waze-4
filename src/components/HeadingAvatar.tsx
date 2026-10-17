@@ -19,10 +19,11 @@
 //   2. Fallback: raw GPS heading with small EMA (alpha=0.2) — noisy
 //
 // Course-up: MapShell.easeTo(bearing=-navBearing, duration=0).
-//            Arrow CSS = 0° (always points up = direction of travel).
-//            duration=0 is REQUIRED — 500ms animation lag is the main
-//            cause of the avatar appearing to slide sideways.
-// North-up:  map bearing=0. Arrow CSS = navBearing (exact).
+//            Arrow CSS = (360 - navBearing) % 360 — counter-rotates the
+//            arrow by the same amount as the map so the tip always points
+//            geographic north regardless of vehicle direction.
+//            duration=0 is REQUIRED — 500ms animation lag causes lateral drift.
+// North-up:  map bearing=0. Arrow CSS = navBearing (direction of travel).
 // ─────────────────────────────────────────────────────────────────────
 
 import { useEffect, useRef } from 'react'
@@ -269,10 +270,15 @@ export function HeadingAvatar() {
       const wrap = el.querySelector<HTMLElement>('.gps-avatar-arrow')
       if (wrap && smoothedBearingRef.current !== null) {
         const courseUp = settingsStore.get().headingMode === 'course-up'
-        // course-up: MapShell rotates map by -navBearing (duration=0, instant).
-        //   Arrow stays at 0° — travel direction always faces screen top.
-        // north-up: map fixed north — arrow rotates to geographic bearing.
-        const arrowDeg = courseUp ? 0 : Math.round(smoothedBearingRef.current)
+        // course-up: map is rotated -navBearing by MapShell (east road faces up
+        //   when heading east, etc).  Counter-rotate the arrow by the same angle
+        //   so the tip always points to geographic north — independent of vehicle
+        //   direction and map rotation.  Formula: arrowDeg = (360 - navBearing) % 360.
+        // north-up: map is north-up — rotate arrow to show direction of travel.
+        const nb = smoothedBearingRef.current % 360
+        const arrowDeg = courseUp
+          ? Math.round((360 - nb) % 360)
+          : Math.round(smoothedBearingRef.current)
         wrap.style.transform = `rotate(${arrowDeg}deg)`
       }
     })

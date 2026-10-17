@@ -317,8 +317,9 @@ export function MapShell() {
     // Tesla: skip easeTo when movement is negligible (<3m) to avoid
     // compositor pressure from unnecessary GPU repaints.
 
-    let _lastPanLat = 0
-    let _lastPanLng = 0
+    let _lastPanLat    = 0
+    let _lastPanLng    = 0
+    let _lastBearing: number | null = null
     const PAN_MIN_M = isTeslaBrowser ? 3 : 0
 
     function _panDistM(a: number, b: number, c: number, d: number): number {
@@ -331,24 +332,34 @@ export function MapShell() {
     const unsubGps = gpsStore.onPosition((pos) => {
       if (!followStore.isFollowing()) return
 
+      // Compute mode + bearing BEFORE the position filter so we can check
+      // whether a bearing change alone warrants an update in course-up.
+      const courseUp = settingsStore.get().headingMode === 'course-up'
+      const heading  = getNavBearing() ?? pos.heading ?? 0
+      const bearing  = courseUp ? -heading : 0
+
       if (PAN_MIN_M > 0) {
         const moved = _panDistM(pos.lat, pos.lng, _lastPanLat, _lastPanLng)
-        if (moved < PAN_MIN_M && (_lastPanLat !== 0 || _lastPanLng !== 0)) return
+        if (moved < PAN_MIN_M && (_lastPanLat !== 0 || _lastPanLng !== 0)) {
+          if (!courseUp) return
+          // course-up: skip only when bearing also hasn't changed.
+          // At low speed (< 10 km/h) GPS ticks < 3 m, but the car may still
+          // be turning.  Skipping those ticks freezes the map bearing and
+          // makes the road appear to drift sideways.
+          if (_lastBearing === null) return
+          const bearingDelta = Math.abs(((bearing - _lastBearing + 540) % 360) - 180)
+          if (bearingDelta < 1.5) return
+        }
       }
-      _lastPanLat = pos.lat
-      _lastPanLng = pos.lng
-
-      const courseUp = settingsStore.get().headingMode === 'course-up'
+      _lastPanLat  = pos.lat
+      _lastPanLng  = pos.lng
+      _lastBearing = bearing
 
       // Use snapped road position when available — eliminates lateral GPS drift
       // that makes the avatar appear to slide across the road in course-up mode.
       const navPos = getNavPosition()
       const centerLat = navPos?.lat ?? pos.lat
       const centerLng = navPos?.lng ?? pos.lng
-
-      // Smooth route-segment bearing → no heading jitter → no sideways map wobble.
-      const heading = getNavBearing() ?? pos.heading ?? 0
-      const bearing = courseUp ? -heading : 0
 
       // Perspective padding shifts car toward bottom so more road is visible ahead.
       const topPad = (courseUp || !isTeslaBrowser) ? Math.round(window.innerHeight * 0.4) : 0
