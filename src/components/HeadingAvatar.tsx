@@ -54,13 +54,33 @@ function makeElement(): HTMLDivElement {
     'pointer-events:none',
     'z-index:10',
   ].join(';')
-  // Original SVG: tip at (14,3), GPS dot circle at center (14,14).
-  // CSS rotate() pivots around 50% 50% = center = GPS point.
+  // 3D arrow: extrusion shadow + gradient face + glossy highlight + drop-shadow.
+  // Tip at (14,3); center at (14,14) = CSS rotation pivot = GPS point on screen.
   root.innerHTML = `<div class="gps-avatar-arrow" style="transform:rotate(0deg);transform-origin:50% 50%">
     <svg width="${ICON_SIZE}" height="${ICON_SIZE}" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-      <circle cx="14" cy="14" r="13" fill="rgba(41,121,255,0.15)"/>
+      <defs>
+        <linearGradient id="nav-ag" x1="14" y1="3" x2="14" y2="22" gradientUnits="userSpaceOnUse">
+          <stop offset="0%"   stop-color="#93c5fd"/>
+          <stop offset="50%"  stop-color="#2979ff"/>
+          <stop offset="100%" stop-color="#1251c5"/>
+        </linearGradient>
+        <filter id="nav-as" x="-30%" y="-30%" width="160%" height="160%">
+          <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="rgba(0,20,80,0.65)"/>
+        </filter>
+      </defs>
+      <!-- Ambient glow ring -->
+      <circle cx="14" cy="14" r="13" fill="rgba(41,121,255,0.13)"/>
+      <!-- Extrusion depth face (shifted +1px right, +1.5px down) -->
+      <polygon points="15,4.5 21,23.5 15,19.5 9,23.5" fill="rgba(8,28,95,0.70)"/>
+      <!-- Main arrow face: gradient + drop shadow -->
       <polygon points="14,3 20,22 14,18 8,22"
-        fill="#2979ff" stroke="white" stroke-width="1.5" stroke-linejoin="round"/>
+        fill="url(#nav-ag)" filter="url(#nav-as)"/>
+      <!-- Glossy specular highlight on upper third -->
+      <polygon points="14,3 17,13 14,12 11,13"
+        fill="rgba(255,255,255,0.38)"/>
+      <!-- White outline for contrast on any background -->
+      <polygon points="14,3 20,22 14,18 8,22"
+        fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.2" stroke-linejoin="round"/>
     </svg>
   </div>`
   return root
