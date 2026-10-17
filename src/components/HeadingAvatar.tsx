@@ -19,9 +19,8 @@
 //   2. Fallback: raw GPS heading with small EMA (alpha=0.2) — noisy
 //
 // Course-up: MapShell.easeTo(bearing=-navBearing, duration=0).
-//            Arrow CSS = (360 - navBearing) % 360 — counter-rotates the
-//            arrow by the same amount as the map so the tip always points
-//            geographic north regardless of vehicle direction.
+//            Arrow CSS = 0° always — tip stays at screen-top while the map
+//            rotates so the vehicle's direction of travel faces upward.
 //            duration=0 is REQUIRED — 500ms animation lag causes lateral drift.
 // North-up:  map bearing=0. Arrow CSS = navBearing (direction of travel).
 // ─────────────────────────────────────────────────────────────────────
@@ -146,6 +145,8 @@ function bearingDiff(a: number, b: number): number {
 
 // EMA with 360° wrap-around. Used ONLY for raw GPS heading (noisy fallback).
 // NOT used for snap bearing — snap is exact and must update instantly.
+// alpha=0.8: fast enough to track a real turn within 2 GPS ticks while
+// still damping sub-degree noise. (alpha=0.2 took 10+ ticks → diagonal road.)
 function lerpBearing(from: number, to: number, alpha: number): number {
   const diff = bearingDiff(from, to)
   return (from + diff * alpha + 360) % 360
@@ -258,8 +259,10 @@ export function HeadingAvatar() {
           // Snap: exact segment bearing, no smoothing needed
           smoothedBearingRef.current = newBearing
         } else {
-          // Raw GPS: light EMA to filter noise
-          smoothedBearingRef.current = lerpBearing(smoothedBearingRef.current, newBearing, 0.2)
+          // Raw GPS: EMA alpha=0.8 — reaches correct bearing in ~2 ticks.
+          // Lower values (0.2) caused the "diagonal road" bug: the map
+          // took 10+ seconds to rotate after a turn when no route snap.
+          smoothedBearingRef.current = lerpBearing(smoothedBearingRef.current, newBearing, 0.8)
         }
         _navBearing = smoothedBearingRef.current
       }
@@ -270,15 +273,11 @@ export function HeadingAvatar() {
       const wrap = el.querySelector<HTMLElement>('.gps-avatar-arrow')
       if (wrap && smoothedBearingRef.current !== null) {
         const courseUp = settingsStore.get().headingMode === 'course-up'
-        // course-up: map is rotated -navBearing by MapShell (east road faces up
-        //   when heading east, etc).  Counter-rotate the arrow by the same angle
-        //   so the tip always points to geographic north — independent of vehicle
-        //   direction and map rotation.  Formula: arrowDeg = (360 - navBearing) % 360.
+        // course-up: MapShell rotates the map by -navBearing so the vehicle's
+        //   direction of travel always faces screen-top.  Arrow stays at 0°
+        //   (tip points up) — it is already aligned with the road ahead.
         // north-up: map is north-up — rotate arrow to show direction of travel.
-        const nb = smoothedBearingRef.current % 360
-        const arrowDeg = courseUp
-          ? Math.round((360 - nb) % 360)
-          : Math.round(smoothedBearingRef.current)
+        const arrowDeg = courseUp ? 0 : Math.round(smoothedBearingRef.current)
         wrap.style.transform = `rotate(${arrowDeg}deg)`
       }
     })
