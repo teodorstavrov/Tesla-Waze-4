@@ -4,6 +4,9 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-10-17
+- **Course-up lateral drift fix — root cause eliminated** — two simultaneous bugs caused avatar to appear sideways: (1) EMA smoothing on snap bearing lagged 2-3 ticks at each segment change, causing the map to rotate to the wrong angle; fixed by using exact snap bearing instantly (EMA kept only for raw GPS heading fallback); (2) `easeTo(duration=500)` in course-up let bearing and position animate over 500ms while next GPS tick arrived with a new bearing mid-animation; fixed by `duration=0` for all course-up panning; (3) added route progress tracking in snap — searches only from (currentSegIdx-3) forward so snap never jumps back to already-passed segments
+
 ## 2026-10-16
 - **Voice report confirmation + auto-close** — when a road event is reported via voice assistant through the Докладвай button, the report modal now briefly shows a ✅ green confirmation card with the AI's confirmation text for 2 seconds, then automatically closes the panel; previously the modal closed silently with no feedback
 - **Course-up mode complete rewrite** — replaced hard anti-jitter cutoff with EMA bearing smoothing (lerpBearing, alpha=0.5 for snap / 0.25 for GPS); added direction-guard to snapToRoute: if nearest segment bearing is >90° off from current heading (U-turn return leg), it is flipped 180° to always match direction of travel; eliminates avatar pointing outside road and moving backwards on any street type

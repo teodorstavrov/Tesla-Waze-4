@@ -353,9 +353,14 @@ export function MapShell() {
       // Perspective padding shifts car toward bottom so more road is visible ahead.
       const topPad = (courseUp || !isTeslaBrowser) ? Math.round(window.innerHeight * 0.4) : 0
 
+      // course-up: NEVER animate — bearing and position must update together
+      // instantly. A 500ms ease changes bearing mid-animation while a new GPS
+      // tick arrives with a different bearing, causing the road to appear at
+      // an angle (lateral drift). duration=0 keeps road always vertical.
       const shouldAnimatePan =
         _perfProfile.panAnimate &&
-        (courseUp && pos.heading != null || !isTeslaBrowser)
+        !courseUp &&
+        !isTeslaBrowser
       const duration = shouldAnimatePan ? 500 : 0
 
       followStore.beginProgrammaticMove()
