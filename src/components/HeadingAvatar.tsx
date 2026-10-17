@@ -31,6 +31,7 @@ import { gpsStore } from '@/features/gps/gpsStore'
 import { routeStore } from '@/features/route/routeStore'
 import { settingsStore } from '@/features/settings/settingsStore'
 import { isTeslaBrowser } from '@/lib/browser'
+import { followStore } from '@/features/follow/followStore'
 import type { GpsPosition } from '@/features/gps/types'
 
 // Shared nav state exported for MapShell
@@ -205,12 +206,29 @@ export function HeadingAvatar() {
 
     const el = makeElement()
     map.getContainer().appendChild(el)
-    positionElement(el)
 
-    function onResize(): void { positionElement(el) }
+    // When following: avatar is pinned to the padded center (map pans underneath).
+    // When not following (user panned/zoomed): avatar tracks GPS coordinates on
+    // every map render frame so it stays over the actual GPS location on screen.
+    function updateAvatarPosition(): void {
+      if (followStore.isFollowing()) {
+        positionElement(el)
+        return
+      }
+      if (_navLat === null || _navLng === null) return
+      const pt = map.project([_navLng as number, _navLat as number])
+      el.style.left = `${pt.x - ICON_SIZE / 2}px`
+      el.style.top  = `${pt.y - ICON_SIZE / 2}px`
+    }
+
+    updateAvatarPosition()
+    map.on('render', updateAvatarPosition)
+
+    function onResize(): void { updateAvatarPosition() }
     window.addEventListener('resize', onResize, { passive: true })
 
-    const unsubSettings = settingsStore.subscribe(() => { positionElement(el) })
+    const unsubSettings = settingsStore.subscribe(() => { updateAvatarPosition() })
+    const unsubFollow   = followStore.subscribe(() => { updateAvatarPosition() })
 
     const unsubGps = gpsStore.onPosition((pos: GpsPosition) => {
       // ── 1. Position + bearing ─────────────────────────────────────────────
@@ -266,6 +284,29 @@ export function HeadingAvatar() {
         }
         _navBearing = smoothedBearingRef.current
       }
+
+      // No route snap + course-up: project GPS onto forward direction.
+      // Raw GPS has ±5m lateral noise relative to the road; in course-up mode
+      // that noise is perpendicular to "up", so it appears as rapid left/right
+      // map oscillation every GPS tick.  Projecting onto the bearing direction
+      // keeps the displayed position advancing only forward — no lateral drift.
+      // 30m safety limit resets to raw GPS if the projection drifts too far
+      // (e.g. a turn where the bearing update hasn't caught up yet).
+      if (!fromSnap && _navBearing !== null && _navLat !== null && _navLng !== null) {
+        const courseUp = settingsStore.get().headingMode === 'course-up'
+        if (courseUp) {
+          const rad     = _navBearing * Math.PI / 180
+          const dLat    = pos.lat - _navLat
+          const dLng    = pos.lng - _navLng
+          const fwd     = dLat * Math.cos(rad) + dLng * Math.sin(rad)
+          const projLat = _navLat + fwd * Math.cos(rad)
+          const projLng = _navLng + fwd * Math.sin(rad)
+          if (distM(pos.lat, pos.lng, projLat, projLng) < 30) {
+            displayLat = projLat
+            displayLng = projLng
+          }
+        }
+      }
       _navLat = displayLat
       _navLng = displayLng
 
@@ -285,6 +326,8 @@ export function HeadingAvatar() {
     return () => {
       unsubGps()
       unsubSettings()
+      unsubFollow()
+      map.off('render', updateAvatarPosition)
       window.removeEventListener('resize', onResize)
       el.remove()
       _navBearing        = null
