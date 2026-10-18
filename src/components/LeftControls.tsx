@@ -7,7 +7,7 @@ import { openLockSoundModal } from '@/components/LockSoundModal'
 import { openVoiceAssistant, MicButtonIcon } from '@/features/voice/VoiceAssistant'
 import { openVehicleProfileModal } from '@/components/VehicleProfileModal'
 import { openPricingModal } from '@/components/PricingModal'
-import { langStore, getLang } from '@/lib/locale'
+import { langStore, t, getLang } from '@/lib/locale'
 import { isPremiumEnabled } from '@/lib/featureFlags'
 
 export function LeftControls() {
