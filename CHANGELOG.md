@@ -5,6 +5,7 @@ All notable changes to TesRadar, organized by date (newest first).
 ---
 
 ## 2026-10-18
+- **Fix: Cyrillic text corrupted** — PowerShell `Set-Content -Encoding utf8` writes UTF-8 with BOM (EF BB BF), breaking all Cyrillic characters in the app; restored `i18n.ts` from git and re-applied the heading-mode key deletions using `grep -v` (no BOM)
 - **Fix: "t is not defined" crash** — `t` was accidentally removed from the LeftControls import during the course-up cleanup; two remaining `t('controls.vehicleProfile')` calls caused a runtime crash on load
 - **Removed "Картата се върти" (course-up) mode** — only north-up remains: avatar arrow rotates to show direction of travel, map stays north-aligned; removed heading toggle button from LeftControls, removed `HeadingMode` type and `setHeadingMode` from settingsStore, removed all course-up bearing/padding logic from MapShell GPS callback, removed courseUp/northUp/courseUpHint/northUpHint/orientLabel keys from all 7 i18n language blocks (35 lines), removed `heading_course_up` / `heading_north_up` voice commands from VoiceAssistant, removed forward-projection code from HeadingAvatar (was only needed for course-up)
 
