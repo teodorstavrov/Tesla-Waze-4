@@ -4,8 +4,8 @@
 // Avatar stays at a constant CSS coordinate; map pans underneath.
 // This eliminates all GPS-to-screen projection errors permanently.
 //
-// Position formula (mirrors MapShell padding exactly):
-//   topPad = (courseUp || !isTeslaBrowser) ? round(h * 0.4) : 0
+// Position formula (north-up, Tesla):
+//   topPad = 0 (centered); non-Tesla dev: h * 0.4 for perspective view
 //   avatarCenterY = h / 2 + topPad / 2
 //
 // Bearing pipeline:
@@ -29,10 +29,10 @@ import { useEffect, useRef } from 'react'
 import { getMap } from '@/components/MapShell'
 import { gpsStore } from '@/features/gps/gpsStore'
 import { routeStore } from '@/features/route/routeStore'
-import { settingsStore } from '@/features/settings/settingsStore'
 import { isTeslaBrowser } from '@/lib/browser'
 import { followStore } from '@/features/follow/followStore'
 import type { GpsPosition } from '@/features/gps/types'
+
 
 // Shared nav state exported for MapShell
 let _navBearing: number | null = null
@@ -95,10 +95,9 @@ function makeElement(): HTMLDivElement {
 }
 
 function positionElement(el: HTMLElement): void {
-  const courseUp = settingsStore.get().headingMode === 'course-up'
   const w = window.innerWidth
   const h = window.innerHeight
-  const topPad = (courseUp || !isTeslaBrowser) ? Math.round(h * 0.4) : 0
+  const topPad = isTeslaBrowser ? 0 : Math.round(h * 0.4)
   const cx = w / 2
   const cy = h / 2 + topPad / 2
   el.style.left = `${cx - ICON_SIZE / 2}px`
@@ -227,8 +226,7 @@ export function HeadingAvatar() {
     function onResize(): void { updateAvatarPosition() }
     window.addEventListener('resize', onResize, { passive: true })
 
-    const unsubSettings = settingsStore.subscribe(() => { updateAvatarPosition() })
-    const unsubFollow   = followStore.subscribe(() => { updateAvatarPosition() })
+    const unsubFollow = followStore.subscribe(() => { updateAvatarPosition() })
 
     const unsubGps = gpsStore.onPosition((pos: GpsPosition) => {
       // ── 1. Position + bearing ─────────────────────────────────────────────
@@ -256,8 +254,8 @@ export function HeadingAvatar() {
           displayLat = snap.lat
           displayLng = snap.lng
           // Snap bearing is exact (segment direction) — use directly, NO EMA.
-          // EMA lag on snap bearing is the root cause of lateral road drift
-          // in course-up mode: the map rotation is wrong for 2-3 ticks after
+          // EMA lag on snap bearing causes lateral road drift —
+          // the map lags 2-3 ticks after
           // each segment change, making the road appear at an angle.
           newBearing = snap.bearing
           fromSnap   = true
@@ -285,47 +283,18 @@ export function HeadingAvatar() {
         _navBearing = smoothedBearingRef.current
       }
 
-      // No route snap + course-up: project GPS onto forward direction.
-      // Raw GPS has ±5m lateral noise relative to the road; in course-up mode
-      // that noise is perpendicular to "up", so it appears as rapid left/right
-      // map oscillation every GPS tick.  Projecting onto the bearing direction
-      // keeps the displayed position advancing only forward — no lateral drift.
-      // 30m safety limit resets to raw GPS if the projection drifts too far
-      // (e.g. a turn where the bearing update hasn't caught up yet).
-      if (!fromSnap && _navBearing !== null && _navLat !== null && _navLng !== null) {
-        const courseUp = settingsStore.get().headingMode === 'course-up'
-        if (courseUp) {
-          const rad     = _navBearing * Math.PI / 180
-          const dLat    = pos.lat - _navLat
-          const dLng    = pos.lng - _navLng
-          const fwd     = dLat * Math.cos(rad) + dLng * Math.sin(rad)
-          const projLat = _navLat + fwd * Math.cos(rad)
-          const projLng = _navLng + fwd * Math.sin(rad)
-          if (distM(pos.lat, pos.lng, projLat, projLng) < 30) {
-            displayLat = projLat
-            displayLng = projLng
-          }
-        }
-      }
       _navLat = displayLat
       _navLng = displayLng
 
       // ── 3. Rotate arrow ───────────────────────────────────────────────────
       const wrap = el.querySelector<HTMLElement>('.gps-avatar-arrow')
       if (wrap && smoothedBearingRef.current !== null) {
-        const courseUp = settingsStore.get().headingMode === 'course-up'
-        // course-up: MapShell rotates the map by -navBearing so the vehicle's
-        //   direction of travel always faces screen-top.  Arrow stays at 0°
-        //   (tip points up) — it is already aligned with the road ahead.
-        // north-up: map is north-up — rotate arrow to show direction of travel.
-        const arrowDeg = courseUp ? 0 : Math.round(smoothedBearingRef.current)
-        wrap.style.transform = `rotate(${arrowDeg}deg)`
+        wrap.style.transform = `rotate(${Math.round(smoothedBearingRef.current)}deg)`
       }
     })
 
     return () => {
       unsubGps()
-      unsubSettings()
       unsubFollow()
       map.off('render', updateAvatarPosition)
       window.removeEventListener('resize', onResize)

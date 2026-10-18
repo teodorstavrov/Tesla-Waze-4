@@ -6,7 +6,7 @@
 // <canvas> element positioned over the map container and draw the route
 // using the Canvas 2D API. map.project([lng,lat]) converts geo coordinates
 // to screen pixels accounting for zoom, bearing and pitch — so this works
-// correctly in both north-up and course-up modes.
+// correctly in north-up mode.
 
 import { useEffect, useRef } from 'react'
 import * as maplibregl from 'maplibre-gl'

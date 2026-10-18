@@ -3,8 +3,6 @@
 // Owns the MapLibre GL map instance and wires together:
 //  • tile layer (reacts to theme/satellite changes via source.setTiles)
 //  • follow mode (disables on user drag, pans on GPS when following)
-//  • course-up rotation via map.setBearing (no CSS transform needed)
-//  • perspective pan via map.setPadding (no lookahead math needed)
 //
 // IMPORTANT: mapInstance is module-level, not React state.
 // Putting a MapLibre map in React state would cause the map to be
@@ -34,7 +32,7 @@ import { savedPlacesStore } from '@/features/places/savedPlacesStore'
 import { addStationStore } from '@/features/ev/addStationStore'
 import { meetupStore } from '@/features/meetups/meetupStore'
 import { settingsStore } from '@/features/settings/settingsStore'
-import { getNavBearing, getNavPosition } from '@/components/HeadingAvatar'
+import { getNavPosition } from '@/components/HeadingAvatar'
 import { isTeslaBrowser } from '@/lib/browser'
 import { t } from '@/lib/locale'
 import { getActivePerformanceProfile } from '@/config/performanceProfiles'
@@ -141,7 +139,7 @@ export function MapShell() {
       minZoom:            MIN_ZOOM,
       maxZoom:            MAX_ZOOM,
       attributionControl: true,
-      // Disable pitch/rotation gestures that conflict with course-up UX
+      // Disable pitch/rotation gestures — north-up only, no manual rotation
       pitchWithRotate:    false,
       // Touch: two-finger rotate/pitch is disabled; single-finger drag pans
       touchPitch:         false,
@@ -154,15 +152,7 @@ export function MapShell() {
     map.on('dragstart', () => {
       if (!followStore.isProgrammaticMove()) {
         followStore.setFollowing(false)
-        const isNavigating = routeStore.getState().mode === 'navigating'
-        if (!isNavigating && map.getBearing() !== 0) {
-          map.easeTo({
-            bearing: 0,
-            padding: { top: 0, bottom: 0, left: 0, right: 0 },
-            duration: 300,
-          })
-        }
-        logger.follow.debug('Follow disabled by drag', { isNavigating })
+        logger.follow.debug('Follow disabled by drag')
       }
     })
 
@@ -317,9 +307,8 @@ export function MapShell() {
     // Tesla: skip easeTo when movement is negligible (<3m) to avoid
     // compositor pressure from unnecessary GPU repaints.
 
-    let _lastPanLat    = 0
-    let _lastPanLng    = 0
-    let _lastBearing: number | null = null
+    let _lastPanLat = 0
+    let _lastPanLng = 0
     const PAN_MIN_M = isTeslaBrowser ? 3 : 0
 
     function _panDistM(a: number, b: number, c: number, d: number): number {
@@ -332,73 +321,30 @@ export function MapShell() {
     const unsubGps = gpsStore.onPosition((pos) => {
       if (!followStore.isFollowing()) return
 
-      // Compute mode + bearing BEFORE the position filter so we can check
-      // whether a bearing change alone warrants an update in course-up.
-      const courseUp = settingsStore.get().headingMode === 'course-up'
-      const heading  = getNavBearing() ?? pos.heading ?? 0
-      const bearing  = courseUp ? -heading : 0
-
       if (PAN_MIN_M > 0) {
         const moved = _panDistM(pos.lat, pos.lng, _lastPanLat, _lastPanLng)
-        if (moved < PAN_MIN_M && (_lastPanLat !== 0 || _lastPanLng !== 0)) {
-          if (!courseUp) return
-          // course-up: skip only when bearing also hasn't changed.
-          // At low speed (< 10 km/h) GPS ticks < 3 m, but the car may still
-          // be turning.  Skipping those ticks freezes the map bearing and
-          // makes the road appear to drift sideways.
-          if (_lastBearing === null) return
-          const bearingDelta = Math.abs(((bearing - _lastBearing + 540) % 360) - 180)
-          if (bearingDelta < 1.5) return
-        }
+        if (moved < PAN_MIN_M && (_lastPanLat !== 0 || _lastPanLng !== 0)) return
       }
-      _lastPanLat  = pos.lat
-      _lastPanLng  = pos.lng
-      _lastBearing = bearing
+      _lastPanLat = pos.lat
+      _lastPanLng = pos.lng
 
-      // Use snapped road position when available — eliminates lateral GPS drift
-      // that makes the avatar appear to slide across the road in course-up mode.
-      const navPos = getNavPosition()
+      const navPos    = getNavPosition()
       const centerLat = navPos?.lat ?? pos.lat
       const centerLng = navPos?.lng ?? pos.lng
 
-      // Perspective padding shifts car toward bottom so more road is visible ahead.
-      const topPad = (courseUp || !isTeslaBrowser) ? Math.round(window.innerHeight * 0.4) : 0
-
-      // course-up: NEVER animate — bearing and position must update together
-      // instantly. A 500ms ease changes bearing mid-animation while a new GPS
-      // tick arrives with a different bearing, causing the road to appear at
-      // an angle (lateral drift). duration=0 keeps road always vertical.
-      const shouldAnimatePan =
-        _perfProfile.panAnimate &&
-        !courseUp &&
-        !isTeslaBrowser
-      const duration = shouldAnimatePan ? 500 : 0
+      const duration = _perfProfile.panAnimate && !isTeslaBrowser ? 500 : 0
 
       followStore.beginProgrammaticMove()
       map.easeTo({
         center:  [centerLng, centerLat],
-        bearing,
-        padding: { top: topPad, bottom: 0, left: 0, right: 0 },
+        bearing: 0,
+        padding: { top: 0, bottom: 0, left: 0, right: 0 },
         duration,
       })
-      setTimeout(
-        () => followStore.endProgrammaticMove(),
-        shouldAnimatePan ? 550 : 100,
-      )
+      setTimeout(() => followStore.endProgrammaticMove(), duration > 0 ? 550 : 100)
     })
 
-    // React to settings changes: heading mode + performance profile
     const unsubSettings = settingsStore.subscribe(() => {
-      const { headingMode } = settingsStore.get()
-      if (headingMode === 'north-up') {
-        map.easeTo({
-          bearing: 0,
-          padding: { top: 0, bottom: 0, left: 0, right: 0 },
-          duration: 300,
-        })
-      } else if (headingMode === 'course-up') {
-        followStore.setFollowing(true)
-      }
       _perfProfile = getActivePerformanceProfile()
       _applyPerfAttribute()
     })

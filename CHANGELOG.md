@@ -4,6 +4,9 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-10-18
+- **Removed "Картата се върти" (course-up) mode** — only north-up remains: avatar arrow rotates to show direction of travel, map stays north-aligned; removed heading toggle button from LeftControls, removed `HeadingMode` type and `setHeadingMode` from settingsStore, removed all course-up bearing/padding logic from MapShell GPS callback, removed courseUp/northUp/courseUpHint/northUpHint/orientLabel keys from all 7 i18n language blocks (35 lines), removed `heading_course_up` / `heading_north_up` voice commands from VoiceAssistant, removed forward-projection code from HeadingAvatar (was only needed for course-up)
+
 ## 2026-10-17
 - **Course-up forward-only movement — horizontal oscillation eliminated** — root cause: without an active route, raw GPS has ±5m lateral noise relative to the road; in course-up mode the road points "up" so perpendicular noise appears as left/right map oscillation at 1Hz; fix: project GPS displacement onto the current bearing direction — only the forward component advances the displayed position, lateral noise is discarded; 30m safety limit resets to raw GPS if the projection drifts too far from actual GPS position; route snap (when navigating) already provided this guarantee for the route case
 - **Avatar stays at GPS location during map pan/zoom** — when the user manually pans or zooms the map (follow mode OFF), the avatar now stays pinned to the actual GPS geographic location on screen; implemented via `map.on('render', updateAvatarPosition)` which calls `map.project([lng, lat])` on every render frame when follow is OFF, and `positionElement()` (fixed padded center) when follow is ON; also subscribes to `followStore` changes so the avatar repositions immediately when follow mode toggles

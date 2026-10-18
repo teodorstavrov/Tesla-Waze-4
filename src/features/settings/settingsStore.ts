@@ -3,17 +3,13 @@
 
 import type { PerformanceMode } from '@/config/performanceProfiles'
 
-export type HeadingMode = 'course-up' | 'north-up'
-
 interface Settings {
-  headingMode:     HeadingMode
   showTraffic:     boolean
   performanceMode: PerformanceMode
 }
 
 const STORAGE_KEY = 'teslaradar:settings'
 const DEFAULTS: Settings = {
-  headingMode:     'course-up',
   showTraffic:     false,
   performanceMode: 'auto',
 }
@@ -37,13 +33,6 @@ function _save(s: Settings): void {
 
 export const settingsStore = {
   get(): Settings { return _load() },
-
-  setHeadingMode(mode: HeadingMode): void {
-    const s = _load()
-    s.headingMode = mode
-    _save(s)
-    _emit()
-  },
 
   toggleTraffic(): void {
     const s = _load()

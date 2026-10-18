@@ -246,7 +246,6 @@ function buildContext() {
     teslaVehicleName,
     chargingState,                          // 'charging' | 'charge complete' | 'not charging' | 'charger disconnected' | 'sleeping' | null
     // ── App settings ──────────────────────────────────────────────────
-    headingMode:      settings.headingMode,      // 'course-up' | 'north-up'
     showTraffic:      settings.showTraffic,
     performanceMode:  settings.performanceMode,
     // Map & theme
@@ -762,7 +761,7 @@ export function VoiceAssistant() {
           vehicleName: null, vehicleModel: null, vehicleYear: null, vehicleTrim: null,
           efficiencyWhKm: null, batterySource: null, degradationPct: null, usableKwh: null,
           currentKwh: null, teslaConnected: false, teslaVehicleName: null, chargingState: null,
-          headingMode: 'course-up', showTraffic: false, performanceMode: 'auto',
+          showTraffic: false, performanceMode: 'auto',
           mapMode: 'voyager', appTheme: 'dark',
           showClock: true, showRightPanel: true, settingsOpen: false,
           evStationsVisible: true, evFiltersVisible: true, showRoadworks: false,
@@ -905,14 +904,6 @@ export function VoiceAssistant() {
       // ── EV filter bar (filter chips UI) ──
       case 'toggle_ev_filters':
         filterStore.toggleFiltersBarEnabled()
-        break
-
-      // ── Map heading / rotation ──
-      case 'heading_course_up':
-        settingsStore.setHeadingMode('course-up')
-        break
-      case 'heading_north_up':
-        settingsStore.setHeadingMode('north-up')
         break
 
       // ── Zoom ──
