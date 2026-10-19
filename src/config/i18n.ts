@@ -179,6 +179,8 @@ export const DICTIONARY = {
       vehicleProfile: 'Профил на автомобила',
       translateToEnglish: 'Преведи всичко на английски',
       removeTranslation:  'Върни оригиналния език',
+      courseUp:           'Картата се върти',
+      northUp:            'Аватара се върти',
     },
 
     station: {
@@ -586,6 +588,8 @@ export const DICTIONARY = {
       vehicleProfile: 'Vehicle setup',
       translateToEnglish: 'Translate everything to English',
       removeTranslation:  'Switch back to original language',
+      courseUp:           'Rotating map',
+      northUp:            'North up',
     },
 
     station: {
@@ -990,6 +994,8 @@ export const DICTIONARY = {
       vehicleProfile: 'Kjøretøyoppsett',
       translateToEnglish: 'Oversett alt til engelsk',
       removeTranslation:  'Bytt tilbake til opprinnelig språk',
+      courseUp:           'Roter kart',
+      northUp:            'Nord opp',
     },
 
     station: {
@@ -1273,6 +1279,8 @@ export const DICTIONARY = {
       vehicleProfile: 'Fordonsinställning',
       translateToEnglish: 'Översätt allt till engelska',
       removeTranslation:  'Byt tillbaka till originalspråk',
+      courseUp:           'Rotera karta',
+      northUp:            'Nord upp',
     },
 
     station: {
@@ -1556,6 +1564,8 @@ export const DICTIONARY = {
       vehicleProfile: 'Ajoneuvon asetukset',
       translateToEnglish: 'Käännä kaikki englanniksi',
       removeTranslation:  'Vaihda takaisin alkuperäiseen kieleen',
+      courseUp:           'Käännetty kartta',
+      northUp:            'Pohjoinen ylös',
     },
 
     station: {
@@ -1838,6 +1848,8 @@ export const DICTIONARY = {
       vehicleProfile: 'Voertuiginstellingen',
       translateToEnglish: 'Vertaal alles naar het Engels',
       removeTranslation:  'Terug naar de oorspronkelijke taal',
+      courseUp:           'Kaart draaien',
+      northUp:            'Noord omhoog',
     },
 
     station: {
@@ -2123,6 +2135,8 @@ export const DICTIONARY = {
       vehicleProfile: 'Fahrzeugprofil',
       translateToEnglish: 'Alles auf Englisch übersetzen',
       removeTranslation:  'Zur Originalsprache zurückkehren',
+      courseUp:           'Karte drehen',
+      northUp:            'Norden oben',
     },
 
     station: {

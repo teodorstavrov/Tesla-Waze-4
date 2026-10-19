@@ -31,7 +31,10 @@ import { gpsStore } from '@/features/gps/gpsStore'
 import { routeStore } from '@/features/route/routeStore'
 import { isTeslaBrowser } from '@/lib/browser'
 import { followStore } from '@/features/follow/followStore'
+import { settingsStore } from '@/features/settings/settingsStore'
+import { bearingDiff, lerpBearing } from '@/lib/bearingUtils'
 import type { GpsPosition } from '@/features/gps/types'
+import type * as maplibregl from 'maplibre-gl'
 
 
 // Shared nav state exported for MapShell
@@ -62,44 +65,65 @@ function makeElement(): HTMLDivElement {
     'pointer-events:none',
     'z-index:10',
   ].join(';')
-  // 3D arrow: extrusion shadow + gradient face + glossy highlight + drop-shadow.
-  // Tip at (14,3); center at (14,14) = CSS rotation pivot = GPS point on screen.
+  // 3D mirror-chrome arrow in Tesla red (#e31937 — matches the Report button).
+  // Mirror effect: alternating light-dark-light bands simulate a polished surface
+  // reflecting sky (bright tip) → colour body → horizon (lighter mid-band) → shadow.
   root.innerHTML = `<div class="gps-avatar-arrow" style="transform:rotate(0deg);transform-origin:50% 50%">
     <svg width="${ICON_SIZE}" height="${ICON_SIZE}" viewBox="0 0 28 28" fill="none" aria-hidden="true">
       <defs>
+        <!-- Mirror-metallic body gradient: bright tip → red → lighter horizon band → dark base -->
         <linearGradient id="nav-ag" x1="14" y1="3" x2="14" y2="22" gradientUnits="userSpaceOnUse">
-          <stop offset="0%"   stop-color="#93c5fd"/>
-          <stop offset="50%"  stop-color="#2979ff"/>
-          <stop offset="100%" stop-color="#1251c5"/>
+          <stop offset="0%"   stop-color="#ffcdd2"/>
+          <stop offset="14%"  stop-color="#ff4d5e"/>
+          <stop offset="40%"  stop-color="#e31937"/>
+          <stop offset="58%"  stop-color="#f0364f"/>
+          <stop offset="80%"  stop-color="#8c0d1b"/>
+          <stop offset="100%" stop-color="#4a0610"/>
         </linearGradient>
-        <filter id="nav-as" x="-30%" y="-30%" width="160%" height="160%">
-          <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="rgba(0,20,80,0.65)"/>
+        <!-- Diagonal gloss overlay: bright upper-left → transparent lower-right -->
+        <linearGradient id="nav-gl" x1="8" y1="3" x2="20" y2="20" gradientUnits="userSpaceOnUse">
+          <stop offset="0%"   stop-color="rgba(255,255,255,0.68)"/>
+          <stop offset="38%"  stop-color="rgba(255,255,255,0.22)"/>
+          <stop offset="70%"  stop-color="rgba(255,255,255,0.04)"/>
+          <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+        </linearGradient>
+        <!-- Red-tinted drop shadow -->
+        <filter id="nav-as" x="-40%" y="-20%" width="180%" height="160%">
+          <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="rgba(110,0,18,0.82)"/>
         </filter>
       </defs>
-      <!-- Ambient glow ring -->
-      <circle cx="14" cy="14" r="13" fill="rgba(41,121,255,0.13)"/>
-      <!-- Extrusion depth face (shifted +1px right, +1.5px down) -->
-      <polygon points="15,4.5 21,23.5 15,19.5 9,23.5" fill="rgba(8,28,95,0.70)"/>
-      <!-- Main arrow face: gradient + drop shadow -->
+      <!-- Ambient red glow ring -->
+      <circle cx="14" cy="14" r="13" fill="rgba(227,25,55,0.16)"/>
+      <circle cx="14" cy="14" r="12.2" fill="none" stroke="rgba(227,25,55,0.42)" stroke-width="0.7"/>
+      <!-- 3D extrusion depth (shifted +1.5px right and +1.5px down) -->
+      <polygon points="15.5,4.5 21.5,23.5 15.5,19.5 9.5,23.5" fill="rgba(45,0,8,0.85)"/>
+      <!-- Main arrow face: mirror-metallic gradient + drop shadow -->
       <polygon points="14,3 20,22 14,18 8,22"
         fill="url(#nav-ag)" filter="url(#nav-as)"/>
-      <!-- Glossy specular highlight on upper third -->
-      <polygon points="14,3 17,13 14,12 11,13"
-        fill="rgba(255,255,255,0.38)"/>
+      <!-- Diagonal gloss overlay (upper-left light source reflection) -->
+      <polygon points="14,3 20,22 14,18 8,22"
+        fill="url(#nav-gl)"/>
+      <!-- Hot-spot specular: bright white at the very tip (mirror highlight) -->
+      <polygon points="14,3 16.5,9.5 14,8.5 11.5,9.5"
+        fill="rgba(255,255,255,0.78)"/>
       <!-- White outline for contrast on any background -->
       <polygon points="14,3 20,22 14,18 8,22"
-        fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="1.2" stroke-linejoin="round"/>
+        fill="none" stroke="rgba(255,255,255,0.78)" stroke-width="1.2" stroke-linejoin="round"/>
     </svg>
   </div>`
   return root
 }
 
-function positionElement(el: HTMLElement): void {
-  const w = window.innerWidth
-  const h = window.innerHeight
-  const topPad = isTeslaBrowser ? 0 : Math.round(h * 0.4)
-  const cx = w / 2
-  const cy = h / 2 + topPad / 2
+function positionElement(el: HTMLElement, map: maplibregl.Map, courseUp: boolean): void {
+  const container = map.getContainer()
+  const w = container.offsetWidth
+  const h = container.offsetHeight
+  const cx = Math.round(w / 2)
+  // course-up: avatar at 70% (matches camera padding top=0.4*h → anchor at 70%)
+  // north-up + Tesla: avatar at 50% (centered); north-up + non-Tesla: 70% (perspective)
+  const cy = (courseUp || !isTeslaBrowser)
+    ? Math.round(h * 0.70)
+    : Math.round(h * 0.50)
   el.style.left = `${cx - ICON_SIZE / 2}px`
   el.style.top  = `${cy - ICON_SIZE / 2}px`
 }
@@ -138,19 +162,7 @@ function projectOnSegment(
   return { lat: aLat + t * abLat, lng: aLng + t * abLng }
 }
 
-// Normalise bearing difference to [-180, 180]
-function bearingDiff(a: number, b: number): number {
-  return ((b - a) + 540) % 360 - 180
-}
-
-// EMA with 360° wrap-around. Used ONLY for raw GPS heading (noisy fallback).
-// NOT used for snap bearing — snap is exact and must update instantly.
-// alpha=0.8: fast enough to track a real turn within 2 GPS ticks while
-// still damping sub-degree noise. (alpha=0.2 took 10+ ticks → diagonal road.)
-function lerpBearing(from: number, to: number, alpha: number): number {
-  const diff = bearingDiff(from, to)
-  return (from + diff * alpha + 360) % 360
-}
+// bearingDiff and lerpBearing imported from @/lib/bearingUtils (pure math, testable).
 
 function snapToRoute(
   lat: number, lng: number,
@@ -198,6 +210,7 @@ function snapToRoute(
 export function HeadingAvatar() {
   const smoothedBearingRef = useRef<number | null>(null)
   const lastPolylineRef    = useRef<[number, number][] | null>(null)
+  const headingModeRef     = useRef(settingsStore.get().headingMode)
 
   useEffect(() => {
     const map = getMap()
@@ -210,8 +223,9 @@ export function HeadingAvatar() {
     // When not following (user panned/zoomed): avatar tracks GPS coordinates on
     // every map render frame so it stays over the actual GPS location on screen.
     function updateAvatarPosition(): void {
+      if (!map) return
       if (followStore.isFollowing()) {
-        positionElement(el)
+        positionElement(el, map, headingModeRef.current === 'course-up')
         return
       }
       if (_navLat === null || _navLng === null) return
@@ -227,6 +241,11 @@ export function HeadingAvatar() {
     window.addEventListener('resize', onResize, { passive: true })
 
     const unsubFollow = followStore.subscribe(() => { updateAvatarPosition() })
+
+    const unsubSettings = settingsStore.subscribe(() => {
+      headingModeRef.current = settingsStore.get().headingMode
+      updateAvatarPosition()
+    })
 
     const unsubGps = gpsStore.onPosition((pos: GpsPosition) => {
       // ── 1. Position + bearing ─────────────────────────────────────────────
@@ -289,13 +308,19 @@ export function HeadingAvatar() {
       // ── 3. Rotate arrow ───────────────────────────────────────────────────
       const wrap = el.querySelector<HTMLElement>('.gps-avatar-arrow')
       if (wrap && smoothedBearingRef.current !== null) {
-        wrap.style.transform = `rotate(${Math.round(smoothedBearingRef.current)}deg)`
+        // course-up: map rotates to face direction of travel; arrow stays at 0° (screen-up)
+        // north-up: map is fixed north; arrow rotates to show direction of travel
+        const deg = headingModeRef.current === 'course-up'
+          ? 0
+          : Math.round(smoothedBearingRef.current)
+        wrap.style.transform = `rotate(${deg}deg)`
       }
     })
 
     return () => {
       unsubGps()
       unsubFollow()
+      unsubSettings()
       map.off('render', updateAvatarPosition)
       window.removeEventListener('resize', onResize)
       el.remove()

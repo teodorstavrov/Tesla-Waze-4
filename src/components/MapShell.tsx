@@ -32,7 +32,8 @@ import { savedPlacesStore } from '@/features/places/savedPlacesStore'
 import { addStationStore } from '@/features/ev/addStationStore'
 import { meetupStore } from '@/features/meetups/meetupStore'
 import { settingsStore } from '@/features/settings/settingsStore'
-import { getNavPosition } from '@/components/HeadingAvatar'
+import { getNavPosition, getNavBearing } from '@/components/HeadingAvatar'
+import { bearingDiff, courseUpMapBearing } from '@/lib/bearingUtils'
 import { isTeslaBrowser } from '@/lib/browser'
 import { t } from '@/lib/locale'
 import { getActivePerformanceProfile } from '@/config/performanceProfiles'
@@ -309,6 +310,8 @@ export function MapShell() {
 
     let _lastPanLat = 0
     let _lastPanLng = 0
+    let _lastBearing = 0
+    let _prevHeadingMode = settingsStore.get().headingMode
     const PAN_MIN_M = isTeslaBrowser ? 3 : 0
 
     function _panDistM(a: number, b: number, c: number, d: number): number {
@@ -321,32 +324,81 @@ export function MapShell() {
     const unsubGps = gpsStore.onPosition((pos) => {
       if (!followStore.isFollowing()) return
 
-      if (PAN_MIN_M > 0) {
-        const moved = _panDistM(pos.lat, pos.lng, _lastPanLat, _lastPanLng)
-        if (moved < PAN_MIN_M && (_lastPanLat !== 0 || _lastPanLng !== 0)) return
+      const mode = settingsStore.get().headingMode
+
+      if (mode === 'course-up') {
+        const navBearing    = getNavBearing()
+        const targetBearing = navBearing !== null ? courseUpMapBearing(navBearing) : 0
+
+        const bearingChanged = Math.abs(bearingDiff(_lastBearing, targetBearing)) >= _perfProfile.rotationThresholdDeg
+        const moved = PAN_MIN_M > 0
+          ? _panDistM(pos.lat, pos.lng, _lastPanLat, _lastPanLng)
+          : Infinity
+        const positionChanged = moved >= PAN_MIN_M || (_lastPanLat === 0 && _lastPanLng === 0)
+
+        if (!positionChanged && !bearingChanged) return
+
+        _lastPanLat  = pos.lat
+        _lastPanLng  = pos.lng
+        _lastBearing = targetBearing
+
+        const navPos      = getNavPosition()
+        const centerLat   = navPos?.lat ?? pos.lat
+        const centerLng   = navPos?.lng ?? pos.lng
+        const containerH  = map.getContainer().offsetHeight
+
+        followStore.beginProgrammaticMove()
+        map.easeTo({
+          center:  [centerLng, centerLat],
+          bearing: targetBearing,
+          // padding.top = 0.4 * H shifts effective center so avatar sits at 70% from top
+          padding: { top: Math.round(containerH * 0.4), bottom: 0, left: 0, right: 0 },
+          duration: 0,
+        })
+        setTimeout(() => followStore.endProgrammaticMove(), 100)
+      } else {
+        // North-up: map stays aligned to north, avatar arrow shows heading
+        if (PAN_MIN_M > 0) {
+          const moved = _panDistM(pos.lat, pos.lng, _lastPanLat, _lastPanLng)
+          if (moved < PAN_MIN_M && (_lastPanLat !== 0 || _lastPanLng !== 0)) return
+        }
+        _lastPanLat = pos.lat
+        _lastPanLng = pos.lng
+
+        const navPos    = getNavPosition()
+        const centerLat = navPos?.lat ?? pos.lat
+        const centerLng = navPos?.lng ?? pos.lng
+        const duration  = _perfProfile.panAnimate && !isTeslaBrowser ? 500 : 0
+
+        followStore.beginProgrammaticMove()
+        map.easeTo({
+          center:  [centerLng, centerLat],
+          bearing: 0,
+          padding: { top: 0, bottom: 0, left: 0, right: 0 },
+          duration,
+        })
+        setTimeout(() => followStore.endProgrammaticMove(), duration > 0 ? 550 : 100)
       }
-      _lastPanLat = pos.lat
-      _lastPanLng = pos.lng
-
-      const navPos    = getNavPosition()
-      const centerLat = navPos?.lat ?? pos.lat
-      const centerLng = navPos?.lng ?? pos.lng
-
-      const duration = _perfProfile.panAnimate && !isTeslaBrowser ? 500 : 0
-
-      followStore.beginProgrammaticMove()
-      map.easeTo({
-        center:  [centerLng, centerLat],
-        bearing: 0,
-        padding: { top: 0, bottom: 0, left: 0, right: 0 },
-        duration,
-      })
-      setTimeout(() => followStore.endProgrammaticMove(), duration > 0 ? 550 : 100)
     })
 
     const unsubSettings = settingsStore.subscribe(() => {
       _perfProfile = getActivePerformanceProfile()
       _applyPerfAttribute()
+
+      const newMode = settingsStore.get().headingMode
+      if (newMode !== _prevHeadingMode) {
+        _prevHeadingMode = newMode
+        if (newMode === 'north-up') {
+          _lastBearing = 0
+          followStore.beginProgrammaticMove()
+          map.easeTo({
+            bearing: 0,
+            padding: { top: 0, bottom: 0, left: 0, right: 0 },
+            duration: 0,
+          })
+          setTimeout(() => followStore.endProgrammaticMove(), 100)
+        }
+      }
     })
 
     logger.map.info('Map initialized', {

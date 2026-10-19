@@ -9,9 +9,19 @@ import { openVehicleProfileModal } from '@/components/VehicleProfileModal'
 import { openPricingModal } from '@/components/PricingModal'
 import { langStore, t, getLang } from '@/lib/locale'
 import { isPremiumEnabled } from '@/lib/featureFlags'
+import { settingsStore } from '@/features/settings/settingsStore'
 
 export function LeftControls() {
   useSyncExternalStore(langStore.subscribe.bind(langStore), getLang, getLang)
+  const headingMode = useSyncExternalStore(
+    settingsStore.subscribe.bind(settingsStore),
+    () => settingsStore.get().headingMode,
+    () => settingsStore.get().headingMode,
+  )
+
+  function toggleHeadingMode(): void {
+    settingsStore.setHeadingMode(headingMode === 'north-up' ? 'course-up' : 'north-up')
+  }
 
   return (
     <div
@@ -40,6 +50,12 @@ export function LeftControls() {
         title={t('controls.vehicleProfile')}
         aria-label={t('controls.vehicleProfile')}>
         <CarBatteryIcon />
+      </button>
+      <button className="icon-btn" onClick={toggleHeadingMode}
+        title={headingMode === 'course-up' ? t('controls.courseUp') : t('controls.northUp')}
+        aria-label={headingMode === 'course-up' ? t('controls.courseUp') : t('controls.northUp')}
+        style={{ position: 'relative' }}>
+        {headingMode === 'course-up' ? <CourseUpIcon /> : <NorthUpIcon />}
       </button>
       {isPremiumEnabled() && (
         <button
@@ -113,6 +129,36 @@ function BellIcon() {
       stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
       <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+    </svg>
+  )
+}
+
+// Compass needle pointing north — shown when in north-up mode (click → course-up)
+function NorthUpIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="9" />
+      <polygon points="12,5 14.5,12 12,10.5 9.5,12" fill="currentColor" stroke="none" />
+      <polygon points="12,19 14.5,12 12,13.5 9.5,12" fill="currentColor" opacity="0.35" stroke="none" />
+      <line x1="12" y1="3" x2="12" y2="5" />
+      <text x="12" y="4.5" textAnchor="middle" fontSize="3.5" fontWeight="700"
+        fill="currentColor" stroke="none" dominantBaseline="middle">N</text>
+    </svg>
+  )
+}
+
+// Rotating arrows around map — shown when in course-up mode (click → north-up)
+function CourseUpIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {/* Rotation arc */}
+      <path d="M12 3 A9 9 0 0 1 21 12" />
+      <polyline points="21,8 21,12 17,12" />
+      {/* Up arrow in center */}
+      <line x1="12" y1="8" x2="12" y2="17" />
+      <polyline points="9,11 12,8 15,11" />
     </svg>
   )
 }

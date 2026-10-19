@@ -359,12 +359,16 @@ export function VoiceAssistant() {
   const audioCtxRef   = useRef<AudioContext | null>(null)
   const dismissTimer  = useRef<ReturnType<typeof setTimeout> | null>(null)
   const capturedPosRef = useRef<{ lat: number; lng: number } | null>(null)
+  const cancelledRef   = useRef(false)   // set on dismiss; checked before any async continuation
+  const fetchAbortRef  = useRef<AbortController | null>(null)  // aborted on dismiss
   // Report-mode: set when opened via Докладвай button; 3s auto-dismiss if no speech
   const reportModeRef       = useRef(false)
   const reportModeTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null)
   const reportCountdownRef  = useRef<ReturnType<typeof setInterval> | null>(null)
 
   const dismiss = useCallback(() => {
+    cancelledRef.current = true
+    fetchAbortRef.current?.abort(); fetchAbortRef.current = null
     stopSpeech()
     try { recogRef.current?.abort() } catch { /* ignore */ }
     try { recorderRef.current?.stop() } catch { /* ignore */ }
@@ -505,6 +509,7 @@ export function VoiceAssistant() {
     }
 
     recorder.onstop = () => {
+      if (cancelledRef.current) return  // dismissed before onstop fired
       if (timerRef.current) clearInterval(timerRef.current)
       releaseMicrophone(streamRef.current); streamRef.current = null
 
@@ -666,7 +671,9 @@ export function VoiceAssistant() {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ audio: base64, mimeType, lang: getLang() }),
+        signal:  fetchAbortRef.current?.signal,
       })
+      if (cancelledRef.current) return
 
       let data: { text?: string; error?: string }
       try {
@@ -696,6 +703,7 @@ export function VoiceAssistant() {
       void askAI(text)
 
     } catch (err) {
+      if (cancelledRef.current) return  // aborted by dismiss
       // Show the real error — helps diagnose during Tesla browser testing
       const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err)
       console.error('[VoiceAssistant] STT fetch threw:', msg)
@@ -716,6 +724,7 @@ export function VoiceAssistant() {
     _reportModeNext = false
 
     dismiss()  // reset any previous state
+    cancelledRef.current = false  // dismiss() sets true; fresh session starts clean
     reportModeRef.current = isReportMode  // restore after dismiss()
 
     // Tesla browser has webkitSpeechRecognition but it always fails with a
@@ -751,6 +760,7 @@ export function VoiceAssistant() {
     }
 
     const ctrl = new AbortController()
+    fetchAbortRef.current = ctrl  // allow dismiss() to abort mid-flight
     const t = setTimeout(() => ctrl.abort(), 25_000)  // 25s timeout
 
     try {
@@ -834,6 +844,7 @@ export function VoiceAssistant() {
 
     } catch (err) {
       clearTimeout(t)
+      if (cancelledRef.current) return  // aborted by dismiss
       const msg = err instanceof Error ? `${err.name}: ${err.message}` : String(err)
       console.error('[askAI] fetch threw:', msg)
       setPhase('error')
@@ -1298,6 +1309,9 @@ export function VoiceAssistant() {
         <div style={{ fontSize: 19, color: 'rgba(255,255,255,0.7)', fontWeight: 600 }}>
           {lbl('⏳ Обработвам...', '⏳ Processing...')}
         </div>
+        <button onClick={dismiss} style={cancelBtnStyle}>
+          {lbl('Отказ', 'Cancel')}
+        </button>
       </>}
 
       {/* ── ANSWER ─────────────────────────────────────────────────────── */}
