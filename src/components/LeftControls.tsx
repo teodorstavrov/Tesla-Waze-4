@@ -38,11 +38,11 @@ export function LeftControls() {
       }}
     >
       <LocationButton />
-      <button className="icon-btn" onClick={() => getMap()?.zoomIn(1)}
+      <button className="icon-btn" onClick={() => getMap()?.zoomIn({ duration: 0 })}
         title="Zoom in" aria-label="Zoom in">
         <PlusIcon />
       </button>
-      <button className="icon-btn" onClick={() => getMap()?.zoomOut(1)}
+      <button className="icon-btn" onClick={() => getMap()?.zoomOut({ duration: 0 })}
         title="Zoom out" aria-label="Zoom out">
         <MinusIcon />
       </button>

@@ -4,6 +4,9 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-10-20-b
+- **Fix: zoom buttons now instant** — `zoomIn(1)` / `zoomOut(1)` replaced with `zoomIn({duration:0})` / `zoomOut({duration:0})`; the dead-reckoning rAF loop calls `map.jumpTo()` every ~16ms which internally calls `stop()`, cancelling any running zoom animation after only ~0.05 units of progress; instant zoom applies the full ±1 step atomically before the next rAF frame
+
 ## 2026-10-20
 - **Feat: Dead-reckoning smooth navigation — 60fps map movement** — replaced the 1Hz `easeTo(duration:0)` GPS-tick approach (which caused 1-second visible jumps) with a `requestAnimationFrame` dead-reckoning loop; architecture: GPS callback now only updates module-level state (`_drLat`, `_drLng`, `_drHeading`, `_drSpeedMs`, `_drTs`, `_drBearPrev`, `_drBearTs`); a rAF loop runs at native display framerate and calls `map.jumpTo()` every ~16ms with position predicted from `speed × elapsed_time × cos/sin(heading)`; `map.jumpTo()` does not fire `dragstart` so the follow-mode guard (`beginProgrammaticMove`) is no longer needed; bearing interpolation (`lerpBearing`, 300ms blend) eliminates heading snaps at GPS tick boundaries; mode-switch transitions: course-up → north-up uses `easeTo(450ms)` then resumes rAF; north-up → course-up interpolates from current bearing (0°) to course heading over 450ms; follow re-enable immediately resumes rAF from last dead-reckoned state; result: map pans and rotates with butter-smooth 60fps motion during navigation with no sharp cuts
 
