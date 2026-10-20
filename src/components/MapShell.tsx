@@ -33,7 +33,7 @@ import { addStationStore } from '@/features/ev/addStationStore'
 import { meetupStore } from '@/features/meetups/meetupStore'
 import { settingsStore } from '@/features/settings/settingsStore'
 import { getNavPosition, getNavBearing } from '@/components/HeadingAvatar'
-import { bearingDiff, courseUpMapBearing } from '@/lib/bearingUtils'
+import { bearingDiff, courseUpMapBearing, lerpBearing } from '@/lib/bearingUtils'
 import { isTeslaBrowser } from '@/lib/browser'
 import { t } from '@/lib/locale'
 import { getActivePerformanceProfile } from '@/config/performanceProfiles'
@@ -305,98 +305,121 @@ export function MapShell() {
     // Perspective: padding.top = H*0.4 shifts effective center so car
     //   sits at ~70% from screen top instead of 50%.
     //
-    // Tesla: skip easeTo when movement is negligible (<3m) to avoid
-    // compositor pressure from unnecessary GPU repaints.
+    // ── Dead-reckoning: continuous 60fps navigation ────────────────────────
+    // GPS ticks arrive at ~1 Hz and cause 1-second position jumps.
+    // A requestAnimationFrame loop predicts position between ticks using
+    // speed × elapsed time, keeping the map moving at ~60fps instead of 1fps.
+    // Bearing interpolation smooths sudden heading changes and mode-switch
+    // rotations so there are no sharp snaps or cuts during navigation.
 
-    let _lastPanLat = 0
-    let _lastPanLng = 0
-    let _lastBearing = 0
+    let _drLat      = 0        // dead-reckoning origin latitude
+    let _drLng      = 0        // dead-reckoning origin longitude
+    let _drHeading  = 0        // direction of travel (degrees, 0=north)
+    let _drSpeedMs  = 0        // speed in m/s (0 = parked / no data yet)
+    let _drTs       = 0        // performance.now() at last GPS tick
+    let _drBearPrev = 0        // bearing before most recent heading change
+    let _drBearTs   = 0        // timestamp of most recent heading change
+    let _drRafId    = 0        // rAF handle (0 = stopped)
+    let _drTransBear: number | null = null  // bearing to transition FROM on course-up entry
+    let _drTransTs  = 0
     let _prevHeadingMode = settingsStore.get().headingMode
-    const PAN_MIN_M = isTeslaBrowser ? 3 : 0
 
-    function _panDistM(a: number, b: number, c: number, d: number): number {
-      const R = 6371000
-      const dLat = (c - a) * Math.PI / 180
-      const dLng = (d - b) * Math.PI / 180
-      return R * Math.sqrt(dLat * dLat + dLng * dLng)
+    const BEAR_SMOOTH_MS = 300   // ms to blend sudden bearing changes between GPS ticks
+    const MODE_ANIM_MS   = 450   // ms for mode-switch rotation animation
+
+    // Predict where the vehicle is right now using last GPS fix + dead reckoning
+    function _predict(now: number): { lat: number; lng: number; bearing: number } {
+      const dt = Math.min((now - _drTs) / 1000, 3)
+      let lat = _drLat, lng = _drLng
+      if (_drSpeedMs > 0.5 && _drTs > 0) {
+        const hRad = _drHeading * Math.PI / 180
+        const dist = _drSpeedMs * dt
+        const R    = 6371000
+        lat += dist * Math.cos(hRad) / R * (180 / Math.PI)
+        lng += dist * Math.sin(hRad) / R * (180 / Math.PI) / Math.cos(_drLat * Math.PI / 180)
+      }
+      // Smoothly interpolate bearing changes so heading snaps are invisible
+      const bAlpha  = Math.min((now - _drBearTs) / BEAR_SMOOTH_MS, 1)
+      const bearing = lerpBearing(_drBearPrev, _drHeading, bAlpha)
+      return { lat, lng, bearing }
     }
 
+    function _startRaf(): void {
+      if (_drRafId !== 0 || _drTs === 0) return
+      function frame(now: number): void {
+        if (!followStore.isFollowing() || _drTs === 0) { _drRafId = 0; return }
+        const { lat, lng, bearing } = _predict(now)
+        const mode       = _prevHeadingMode   // cached — avoids localStorage on every frame
+        const containerH = map.getContainer().offsetHeight
+        if (mode === 'course-up') {
+          let mapBearing = courseUpMapBearing(bearing)
+          // Smooth the initial rotation when entering course-up from north-up
+          if (_drTransBear !== null) {
+            const tAlpha = Math.min((now - _drTransTs) / MODE_ANIM_MS, 1)
+            mapBearing   = lerpBearing(_drTransBear, mapBearing, tAlpha)
+            if (tAlpha >= 1) _drTransBear = null
+          }
+          map.jumpTo({
+            center:  [lng, lat],
+            bearing: mapBearing,
+            padding: { top: Math.round(containerH * 0.4), bottom: 0, left: 0, right: 0 },
+          })
+        } else {
+          map.jumpTo({
+            center:  [lng, lat],
+            bearing: 0,
+            padding: { top: 0, bottom: 0, left: 0, right: 0 },
+          })
+        }
+        _drRafId = requestAnimationFrame(frame)
+      }
+      _drRafId = requestAnimationFrame(frame)
+    }
+
+    // GPS tick: update dead-reckoning state — the rAF loop handles all map movement
     const unsubGps = gpsStore.onPosition((pos) => {
       if (!followStore.isFollowing()) return
-
-      const mode = settingsStore.get().headingMode
-
-      if (mode === 'course-up') {
-        const navBearing    = getNavBearing()
-        const targetBearing = navBearing !== null ? courseUpMapBearing(navBearing) : 0
-
-        const bearingChanged = Math.abs(bearingDiff(_lastBearing, targetBearing)) >= _perfProfile.rotationThresholdDeg
-        const moved = PAN_MIN_M > 0
-          ? _panDistM(pos.lat, pos.lng, _lastPanLat, _lastPanLng)
-          : Infinity
-        const positionChanged = moved >= PAN_MIN_M || (_lastPanLat === 0 && _lastPanLng === 0)
-
-        if (!positionChanged && !bearingChanged) return
-
-        _lastPanLat  = pos.lat
-        _lastPanLng  = pos.lng
-        _lastBearing = targetBearing
-
-        const navPos      = getNavPosition()
-        const centerLat   = navPos?.lat ?? pos.lat
-        const centerLng   = navPos?.lng ?? pos.lng
-        const containerH  = map.getContainer().offsetHeight
-
-        followStore.beginProgrammaticMove()
-        map.easeTo({
-          center:  [centerLng, centerLat],
-          bearing: targetBearing,
-          // padding.top = 0.4 * H shifts effective center so avatar sits at 70% from top
-          padding: { top: Math.round(containerH * 0.4), bottom: 0, left: 0, right: 0 },
-          duration: 0,
-        })
-        setTimeout(() => followStore.endProgrammaticMove(), 100)
-      } else {
-        // North-up: map stays aligned to north, avatar arrow shows heading
-        if (PAN_MIN_M > 0) {
-          const moved = _panDistM(pos.lat, pos.lng, _lastPanLat, _lastPanLng)
-          if (moved < PAN_MIN_M && (_lastPanLat !== 0 || _lastPanLng !== 0)) return
-        }
-        _lastPanLat = pos.lat
-        _lastPanLng = pos.lng
-
-        const navPos    = getNavPosition()
-        const centerLat = navPos?.lat ?? pos.lat
-        const centerLng = navPos?.lng ?? pos.lng
-        const duration  = _perfProfile.panAnimate && !isTeslaBrowser ? 500 : 0
-
-        followStore.beginProgrammaticMove()
-        map.easeTo({
-          center:  [centerLng, centerLat],
-          bearing: 0,
-          padding: { top: 0, bottom: 0, left: 0, right: 0 },
-          duration,
-        })
-        setTimeout(() => followStore.endProgrammaticMove(), duration > 0 ? 550 : 100)
+      const navPos     = getNavPosition()
+      const newHeading = getNavBearing() ?? pos.heading ?? _drHeading
+      const now        = performance.now()
+      // Track bearing changes so the rAF loop can interpolate smoothly across them
+      if (_drTs > 0 && Math.abs(bearingDiff(_drHeading, newHeading)) > 0.5) {
+        _drBearPrev = _drHeading
+        _drBearTs   = now
       }
+      _drLat     = navPos?.lat ?? pos.lat
+      _drLng     = navPos?.lng ?? pos.lng
+      _drHeading = newHeading
+      _drSpeedMs = (pos.speedKmh ?? 0) / 3.6
+      _drTs      = now
+      _startRaf()
+    })
+
+    // Re-enable follow → resume rAF from last known state immediately
+    const unsubFollow = followStore.subscribe((following) => {
+      if (following && _drTs > 0) _startRaf()
     })
 
     const unsubSettings = settingsStore.subscribe(() => {
       _perfProfile = getActivePerformanceProfile()
       _applyPerfAttribute()
-
       const newMode = settingsStore.get().headingMode
       if (newMode !== _prevHeadingMode) {
+        const oldMode    = _prevHeadingMode
         _prevHeadingMode = newMode
         if (newMode === 'north-up') {
-          _lastBearing = 0
-          followStore.beginProgrammaticMove()
+          // Pause rAF, smoothly rotate map back to north via easeTo, then resume
+          if (_drRafId !== 0) { cancelAnimationFrame(_drRafId); _drRafId = 0 }
           map.easeTo({
             bearing: 0,
             padding: { top: 0, bottom: 0, left: 0, right: 0 },
-            duration: 0,
+            duration: MODE_ANIM_MS,
           })
-          setTimeout(() => followStore.endProgrammaticMove(), 100)
+          setTimeout(() => { _startRaf() }, MODE_ANIM_MS + 50)
+        } else if (newMode === 'course-up' && oldMode === 'north-up') {
+          // Animate from current map bearing (was 0 in north-up) to course heading
+          _drTransBear = map.getBearing()
+          _drTransTs   = performance.now()
         }
       }
     })
@@ -409,7 +432,9 @@ export function MapShell() {
 
     return () => {
       unsubGps()
+      unsubFollow()
       unsubSettings()
+      if (_drRafId !== 0) cancelAnimationFrame(_drRafId)
     }
   }, [])
 
