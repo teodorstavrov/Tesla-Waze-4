@@ -348,6 +348,9 @@ export function MapShell() {
       if (_drRafId !== 0 || _drTs === 0) return
       function frame(now: number): void {
         if (!followStore.isFollowing() || _drTs === 0) { _drRafId = 0; return }
+        // Skip while user is gesturing — map.jumpTo() calls stop() internally,
+        // which can call handlers.stop() and kill any active drag/pinch handler.
+        if (map.isMoving()) { _drRafId = requestAnimationFrame(frame); return }
         const { lat, lng, bearing } = _predict(now)
         const mode       = _prevHeadingMode   // cached — avoids localStorage on every frame
         const containerH = map.getContainer().offsetHeight
@@ -375,6 +378,13 @@ export function MapShell() {
       }
       _drRafId = requestAnimationFrame(frame)
     }
+
+    // Cancel the pending rAF frame the instant a drag starts so no jumpTo
+    // fires after dragstart — guarantees the map is pannable immediately.
+    function _onDragStart(): void {
+      if (_drRafId !== 0) { cancelAnimationFrame(_drRafId); _drRafId = 0 }
+    }
+    map.on('dragstart', _onDragStart)
 
     // GPS tick: update dead-reckoning state — the rAF loop handles all map movement
     const unsubGps = gpsStore.onPosition((pos) => {
@@ -434,6 +444,7 @@ export function MapShell() {
       unsubGps()
       unsubFollow()
       unsubSettings()
+      map.off('dragstart', _onDragStart)
       if (_drRafId !== 0) cancelAnimationFrame(_drRafId)
     }
   }, [])

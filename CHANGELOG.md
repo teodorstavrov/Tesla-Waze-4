@@ -4,6 +4,9 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-10-23
+- **Fix: map drag and pinch zoom now work in Tesla browser** — `map.jumpTo()` (called 60fps by the dead-reckoning rAF loop) internally calls `stop()`, which under certain conditions calls `handlers.stop()` — killing any active drag or pinch-zoom gesture handler; fix: (1) added `if (map.isMoving()) { reschedule; return }` guard inside the rAF frame — skips `jumpTo` entirely while a user gesture is active; (2) added `dragstart` listener that immediately cancels the pending rAF via `cancelAnimationFrame` so no `stop()` fires after the user starts dragging; result: panning and pinch-to-zoom work without the rAF interfering
+
 ## 2026-10-20-b
 - **Fix: zoom buttons now instant** — `zoomIn(1)` / `zoomOut(1)` replaced with `zoomIn({duration:0})` / `zoomOut({duration:0})`; the dead-reckoning rAF loop calls `map.jumpTo()` every ~16ms which internally calls `stop()`, cancelling any running zoom animation after only ~0.05 units of progress; instant zoom applies the full ±1 step atomically before the next rAF frame
 
