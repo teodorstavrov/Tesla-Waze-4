@@ -4,6 +4,10 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-10-24
+- **Feat: 2 нови немски града в police sync** — добавени Stuttgart и Dortmund към `waze-police-sync/sync.mjs` (DE: 5 → 7 града)
+- **UX: Norway/Sweden/Finland преместени в дъното на country picker** — нов ред: BG, NL, BE, DE, NO, SE, FI
+
 ## 2026-10-23
 - **Fix: map drag and pinch zoom now work in Tesla browser** — `map.jumpTo()` (called 60fps by the dead-reckoning rAF loop) internally calls `stop()`, which under certain conditions calls `handlers.stop()` — killing any active drag or pinch-zoom gesture handler; fix: (1) added `if (map.isMoving()) { reschedule; return }` guard inside the rAF frame — skips `jumpTo` entirely while a user gesture is active; (2) added `dragstart` listener that immediately cancels the pending rAF via `cancelAnimationFrame` so no `stop()` fires after the user starts dragging; result: panning and pinch-to-zoom work without the rAF interfering
 
