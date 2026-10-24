@@ -379,11 +379,26 @@ export function MapShell() {
       _drRafId = requestAnimationFrame(frame)
     }
 
-    // Cancel the pending rAF frame the instant a drag starts so no jumpTo
-    // fires after dragstart — guarantees the map is pannable immediately.
-    function _onDragStart(): void {
+    // Cancel rAF the instant a finger touches the screen — BEFORE MapLibre's
+    // gesture recognizer runs. If we wait for 'dragstart', rAF fires jumpTo()
+    // every 16ms during the recognition phase (touchstart → first threshold
+    // touchmove), each jumpTo() calls stop() internally which kills the
+    // gesture handler before dragstart ever fires.
+    function _onTouchStart(): void {
       if (_drRafId !== 0) { cancelAnimationFrame(_drRafId); _drRafId = 0 }
     }
+    // Resume rAF when finger lifts — but only if still following (a drag will
+    // have called setFollowing(false) via the dragstart handler before touchend).
+    function _onTouchEnd(): void {
+      if (followStore.isFollowing() && _drTs > 0) _startRaf()
+    }
+    const _container = map.getContainer()
+    _container.addEventListener('touchstart',  _onTouchStart, { passive: true, capture: true })
+    _container.addEventListener('touchend',    _onTouchEnd,   { passive: true })
+    _container.addEventListener('touchcancel', _onTouchEnd,   { passive: true })
+
+    // Keep dragstart handler for programmatic-move guard (setFollowing) only
+    function _onDragStart(): void { /* rAF already cancelled by touchstart */ }
     map.on('dragstart', _onDragStart)
 
     // GPS tick: update dead-reckoning state — the rAF loop handles all map movement
@@ -445,6 +460,9 @@ export function MapShell() {
       unsubFollow()
       unsubSettings()
       map.off('dragstart', _onDragStart)
+      _container.removeEventListener('touchstart',  _onTouchStart, { capture: true })
+      _container.removeEventListener('touchend',    _onTouchEnd)
+      _container.removeEventListener('touchcancel', _onTouchEnd)
       if (_drRafId !== 0) cancelAnimationFrame(_drRafId)
     }
   }, [])
