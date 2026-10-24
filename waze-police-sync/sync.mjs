@@ -90,13 +90,15 @@ const CONFIG = {
       { name: 'Dusseldorf', lat: 51.2277, lon: 6.7735, drags: 'wide' },
     ],
 
-    // Germany — 5 largest cities.
+    // Germany — 7 cities.
     de: [
       { name: 'Berlin',    lat: 52.5200, lon: 13.4050, drags: 'wide' },
       { name: 'Hamburg',   lat: 53.5511, lon: 9.9937,  drags: 'wide' },
       { name: 'Munchen',   lat: 48.1351, lon: 11.5820, drags: 'wide' },
       { name: 'Koln',      lat: 50.9333, lon: 6.9600  },
       { name: 'Frankfurt', lat: 50.1109, lon: 8.6821  },
+      { name: 'Stuttgart', lat: 48.7758, lon: 9.1829  },
+      { name: 'Dortmund',  lat: 51.5136, lon: 7.4653  },
     ],
 
     // Belgium — major cities + the busy Antwerp–Brussels–Ghent triangle (E19/E40).

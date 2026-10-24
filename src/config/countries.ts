@@ -156,10 +156,10 @@ export const COUNTRIES: Record<CountryCode, CountryConfig> = {
 // Ordered list used by the country picker UI
 export const COUNTRY_LIST: CountryConfig[] = [
   COUNTRIES.BG,
-  COUNTRIES.NO,
-  COUNTRIES.SE,
-  COUNTRIES.FI,
   COUNTRIES.NL,
   COUNTRIES.BE,
   COUNTRIES.DE,
+  COUNTRIES.NO,
+  COUNTRIES.SE,
+  COUNTRIES.FI,
 ]
