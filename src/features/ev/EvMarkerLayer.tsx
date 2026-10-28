@@ -27,7 +27,7 @@ const CLUSTER_CELL_DEG = 0.5
 function stationColor(s: NormalizedStation): string {
   if (s.source === 'user' && s.approvalStatus === 'pending') return '#a855f7'
   if (s.status === 'offline' || s.status === 'planned') return '#888'
-  if (s.source === 'fines')                              return '#0ea5e9'
+  if (s.source === 'fines')                              return '#FACC15'
   if (s.source === 'tesla')                              return '#e31937'
   if (s.maxPowerKw != null && s.maxPowerKw >= 150)       return '#F59E0B'
   if (s.maxPowerKw != null && s.maxPowerKw >= 50)        return '#22c55e'
