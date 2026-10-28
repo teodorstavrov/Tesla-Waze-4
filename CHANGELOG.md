@@ -4,6 +4,9 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-10-29
+- **Fix: fines (Finland) station markers yellow** — changed `source === 'fines'` color from `#0ea5e9` (blue) to `#FACC15` (yellow), letter F remains
+
 ## 2026-10-24b
 - **Fix: map drag and pinch zoom work in Tesla browser (v2)** — the previous fix waited for MapLibre's `dragstart` event to cancel the rAF, but `dragstart` fires only AFTER the gesture threshold is crossed; during the recognition window (touchstart → first threshold-crossing touchmove), the rAF fires `jumpTo()` every ~16ms, each call invokes `stop()` internally which kills `DragPanHandler`/`TouchZoomRotateHandler` before the gesture is recognized — so `dragstart` never fired; new fix: listen to raw `touchstart` on the map container (capture phase) and cancel the rAF immediately when a finger touches the screen; resume on `touchend`/`touchcancel` only if `followStore.isFollowing()` is still true (a drag sets it false via the existing `dragstart` handler before `touchend` fires)
 
