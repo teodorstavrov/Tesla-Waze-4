@@ -68,48 +68,48 @@ function makeClipCurve(amount: number): Float32Array<ArrayBuffer> {
 
 const SPORT_GEARS: ReadonlyArray<GearBand> = [
   { maxKmh:   5, minRpm:  500, maxRpm:  500 },   // idle (no km/h change)
-  { maxKmh:  25, minRpm:  600, maxRpm: 4200 },   // 1st
-  { maxKmh:  50, minRpm:  900, maxRpm: 3700 },   // 2nd
-  { maxKmh:  75, minRpm:  900, maxRpm: 3700 },   // 3rd
-  { maxKmh: 105, minRpm:  900, maxRpm: 3700 },   // 4th
-  { maxKmh: 135, minRpm: 1200, maxRpm: 3900 },   // 5th
-  { maxKmh: 999, minRpm: 1500, maxRpm: 5200 },   // 6th
+  { maxKmh:  25, minRpm:  600, maxRpm: 4830 },   // 1st  (+15%)
+  { maxKmh:  50, minRpm:  900, maxRpm: 4255 },   // 2nd  (+15%)
+  { maxKmh:  75, minRpm:  900, maxRpm: 4255 },   // 3rd  (+15%)
+  { maxKmh: 105, minRpm:  900, maxRpm: 4255 },   // 4th  (+15%)
+  { maxKmh: 135, minRpm: 1200, maxRpm: 4485 },   // 5th  (+15%)
+  { maxKmh: 999, minRpm: 1500, maxRpm: 5980 },   // 6th  (+15%)
 ]
 
 const MUSCLE_GEARS: ReadonlyArray<GearBand> = [
   { maxKmh:   5, minRpm:  380, maxRpm:  380 },   // idle
-  { maxKmh:  35, minRpm:  450, maxRpm: 3500 },   // 1st
-  { maxKmh:  65, minRpm:  800, maxRpm: 3300 },   // 2nd
-  { maxKmh:  95, minRpm:  800, maxRpm: 3300 },   // 3rd
-  { maxKmh: 130, minRpm:  800, maxRpm: 3500 },   // 4th
-  { maxKmh: 165, minRpm: 1100, maxRpm: 3700 },   // 5th
-  { maxKmh: 999, minRpm: 1300, maxRpm: 4700 },   // 6th
+  { maxKmh:  35, minRpm:  450, maxRpm: 4025 },   // 1st  (+15%)
+  { maxKmh:  65, minRpm:  800, maxRpm: 3795 },   // 2nd  (+15%)
+  { maxKmh:  95, minRpm:  800, maxRpm: 3795 },   // 3rd  (+15%)
+  { maxKmh: 130, minRpm:  800, maxRpm: 4025 },   // 4th  (+15%)
+  { maxKmh: 165, minRpm: 1100, maxRpm: 4255 },   // 5th  (+15%)
+  { maxKmh: 999, minRpm: 1300, maxRpm: 5405 },   // 6th  (+15%)
 ]
 
 const AMG_GEARS: ReadonlyArray<GearBand> = [
   { maxKmh:   5, minRpm:  480, maxRpm:  480 },   // idle
-  { maxKmh:  20, minRpm:  600, maxRpm: 4700 },   // 1st
-  { maxKmh:  40, minRpm: 1200, maxRpm: 4700 },   // 2nd
-  { maxKmh:  65, minRpm: 1200, maxRpm: 4900 },   // 3rd
-  { maxKmh:  90, minRpm: 1200, maxRpm: 4900 },   // 4th
-  { maxKmh: 115, minRpm: 1200, maxRpm: 4900 },   // 5th
-  { maxKmh: 150, minRpm: 1500, maxRpm: 5200 },   // 6th
-  { maxKmh: 195, minRpm: 1700, maxRpm: 5700 },   // 7th
-  { maxKmh: 999, minRpm: 2200, maxRpm: 6200 },   // 8th
+  { maxKmh:  20, minRpm:  600, maxRpm: 5405 },   // 1st  (+15%)
+  { maxKmh:  40, minRpm: 1200, maxRpm: 5405 },   // 2nd  (+15%)
+  { maxKmh:  65, minRpm: 1200, maxRpm: 5635 },   // 3rd  (+15%)
+  { maxKmh:  90, minRpm: 1200, maxRpm: 5635 },   // 4th  (+15%)
+  { maxKmh: 115, minRpm: 1200, maxRpm: 5635 },   // 5th  (+15%)
+  { maxKmh: 150, minRpm: 1500, maxRpm: 5980 },   // 6th  (+15%)
+  { maxKmh: 195, minRpm: 1700, maxRpm: 6555 },   // 7th  (+15%)
+  { maxKmh: 999, minRpm: 2200, maxRpm: 7130 },   // 8th  (+15%)
 ]
 
 // W12 Bentley — 8-speed ZF, enormous torque, rarely needs to rev high.
 // Cruise at 100 km/h ~1500 RPM, top speed 333 km/h at ~5800 RPM.
 const W12_GEARS: ReadonlyArray<GearBand> = [
   { maxKmh:   5, minRpm:  300, maxRpm:  300 },   // deep idle
-  { maxKmh:  35, minRpm:  400, maxRpm: 3500 },   // 1st
-  { maxKmh:  65, minRpm:  700, maxRpm: 3200 },   // 2nd
-  { maxKmh:  95, minRpm:  700, maxRpm: 3200 },   // 3rd
-  { maxKmh: 125, minRpm:  700, maxRpm: 3200 },   // 4th
-  { maxKmh: 160, minRpm:  900, maxRpm: 3700 },   // 5th
-  { maxKmh: 195, minRpm: 1200, maxRpm: 4200 },   // 6th
-  { maxKmh: 245, minRpm: 1500, maxRpm: 5200 },   // 7th
-  { maxKmh: 999, minRpm: 1900, maxRpm: 5900 },   // 8th
+  { maxKmh:  35, minRpm:  400, maxRpm: 4025 },   // 1st  (+15%)
+  { maxKmh:  65, minRpm:  700, maxRpm: 3680 },   // 2nd  (+15%)
+  { maxKmh:  95, minRpm:  700, maxRpm: 3680 },   // 3rd  (+15%)
+  { maxKmh: 125, minRpm:  700, maxRpm: 3680 },   // 4th  (+15%)
+  { maxKmh: 160, minRpm:  900, maxRpm: 4255 },   // 5th  (+15%)
+  { maxKmh: 195, minRpm: 1200, maxRpm: 4830 },   // 6th  (+15%)
+  { maxKmh: 245, minRpm: 1500, maxRpm: 5980 },   // 7th  (+15%)
+  { maxKmh: 999, minRpm: 1900, maxRpm: 6785 },   // 8th  (+15%)
 ]
 
 // ── Engine configs ────────────────────────────────────────────────────────

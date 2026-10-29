@@ -578,12 +578,24 @@ export function VoiceAssistant() {
     const recordStart = Date.now()
 
     // ── AnalyserNode VAD (all platforms) ──────────────────────────────────
-    const SILENCE_THRESHOLD = isTeslaBrowser ? 10 : 14  // Tesla in-car mic is quieter
-    const SILENCE_MS        = 2200
-    const MIN_RECORD_MS     = 3000
+    //
+    // Noise-rejection strategy:
+    //   1. Analyse only the speech band (300-4000 Hz) — low-frequency road/AC
+    //      rumble and high-frequency hiss are excluded from the energy average.
+    //   2. Raise the speech threshold so ambient cabin noise stays below it.
+    //   3. Require 3 consecutive frames (≈240ms) of signal above threshold
+    //      before marking "speech detected" — a single door-slam or click is
+    //      ignored.
+    //   4. 3-second silence window (user-requested) — if no speech energy for
+    //      3s after speech was detected, recording stops automatically.
+    const SILENCE_THRESHOLD   = isTeslaBrowser ? 14 : 18  // higher = stricter noise gate
+    const SILENCE_MS          = 3000   // 3s quiet after last word → stop
+    const MIN_RECORD_MS       = 1500   // minimum before silence detection kicks in
+    const SPEECH_CONFIRM_FRAMES = 3    // consecutive frames (~240ms) to confirm real speech
 
     let silenceStart: number | null = null
     let speechDetectedEver = false
+    let consecutiveSpeechFrames = 0
 
     try {
       type AC = typeof AudioContext
@@ -597,21 +609,37 @@ export function VoiceAssistant() {
       ctx.createMediaStreamSource(stream).connect(analyser)
       const freqData = new Uint8Array(analyser.frequencyBinCount)
 
+      // Compute speech-band bin indices once using actual sample rate.
+      // Speech occupies ~300-4000 Hz; bins outside this range are background noise.
+      const nyquist      = ctx.sampleRate / 2
+      const binHz        = nyquist / freqData.length
+      const speechBinLo  = Math.max(1, Math.round(300  / binHz))
+      const speechBinHi  = Math.min(freqData.length - 1, Math.round(4000 / binHz))
+      const speechBinCnt = speechBinHi - speechBinLo
+
       vadRef.current = setInterval(() => {
         analyser.getByteFrequencyData(freqData)
+        // Average energy in the 300-4000 Hz speech band only
         let sum = 0
-        for (let i = 0; i < freqData.length; i++) sum += freqData[i]
-        const avg     = sum / freqData.length
+        for (let i = speechBinLo; i < speechBinHi; i++) sum += freqData[i]
+        const avg     = sum / speechBinCnt
         const elapsed = Date.now() - recordStart
 
         if (avg >= SILENCE_THRESHOLD) {
-          speechDetectedEver = true
-          speechDetectedInVAD = true
-          silenceStart = null
+          consecutiveSpeechFrames++
+          if (consecutiveSpeechFrames >= SPEECH_CONFIRM_FRAMES) {
+            // 3 consecutive frames of speech energy → confirmed real speech
+            speechDetectedEver  = true
+            speechDetectedInVAD = true
+            silenceStart        = null
+          }
         } else {
+          consecutiveSpeechFrames = 0
           if (silenceStart === null) silenceStart = Date.now()
           const silenceDuration = Date.now() - silenceStart
-          const requiredSilence = speechDetectedEver ? SILENCE_MS : SILENCE_MS + 800
+          // Before any speech: allow 4s of total quiet (SILENCE_MS + 1000)
+          // After speech detected: stop after exactly 3s silence
+          const requiredSilence = speechDetectedEver ? SILENCE_MS : SILENCE_MS + 1000
           if (elapsed > MIN_RECORD_MS && silenceDuration > requiredSilence) {
             if (vadRef.current) { clearInterval(vadRef.current); vadRef.current = null }
             stopRecording()
