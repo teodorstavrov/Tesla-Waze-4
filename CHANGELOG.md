@@ -4,6 +4,10 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-10-29b
+- **Feat: всички двигатели +15% maxRpm** — вдигнати горните обороти на Sport V8 (до 5980), Muscle V8 (до 5405), AMG S63 (до 7130), Bentley W12 (до 6785); idle RPM непроменени
+- **Feat: voice VAD noise rejection + 3s silence auto-stop** — честотен анализ само в speech band (300–4000 Hz); 3 consecutive frames (~240ms) за потвърждение на реч преди да се брои за активна команда; silence timeout вдигнат на 3s; по-висок SILENCE_THRESHOLD (14 Tesla / 18 desktop)
+
 ## 2026-10-29
 - **Fix: fines (Finland) station markers yellow** — changed `source === 'fines'` color from `#0ea5e9` (blue) to `#FACC15` (yellow), letter F remains
 
