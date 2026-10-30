@@ -114,11 +114,11 @@ export function App() {
   // Get the audio unlock trigger
   const { unlock } = useAudioUnlock()
 
-  // Auto dark/light theme — re-checks every hour (only when not manually set)
+  // Auto dark/light theme — re-checks every minute so sunrise/sunset switch is prompt
   const applyAutoTheme = useThemeStore((s) => s.applyAutoTheme)
   useEffect(() => {
     applyAutoTheme()
-    const interval = setInterval(applyAutoTheme, 60 * 60 * 1000)
+    const interval = setInterval(applyAutoTheme, 60 * 1000)
     return () => clearInterval(interval)
   }, [applyAutoTheme])
 

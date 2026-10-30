@@ -320,6 +320,7 @@ export function MapShell() {
     let _drBearPrev = 0        // bearing before most recent heading change
     let _drBearTs   = 0        // timestamp of most recent heading change
     let _drRafId    = 0        // rAF handle (0 = stopped)
+    let _autoRecenterTimer: ReturnType<typeof setTimeout> | null = null
     let _drTransBear: number | null = null  // bearing to transition FROM on course-up entry
     let _drTransTs  = 0
     let _prevHeadingMode = settingsStore.get().headingMode
@@ -385,6 +386,7 @@ export function MapShell() {
     // touchmove), each jumpTo() calls stop() internally which kills the
     // gesture handler before dragstart ever fires.
     function _onTouchStart(): void {
+      if (_autoRecenterTimer !== null) { clearTimeout(_autoRecenterTimer); _autoRecenterTimer = null }
       if (_drRafId !== 0) { cancelAnimationFrame(_drRafId); _drRafId = 0 }
     }
     // Resume rAF when finger lifts — but only if still following (a drag will
@@ -400,6 +402,17 @@ export function MapShell() {
     // Keep dragstart handler for programmatic-move guard (setFollowing) only
     function _onDragStart(): void { /* rAF already cancelled by touchstart */ }
     map.on('dragstart', _onDragStart)
+
+    // Auto-recenter: 5s after user stops panning, re-enable follow if GPS is active
+    function _onDragEnd(): void {
+      if (_drTs === 0) return
+      if (_autoRecenterTimer !== null) clearTimeout(_autoRecenterTimer)
+      _autoRecenterTimer = setTimeout(() => {
+        _autoRecenterTimer = null
+        if (_drTs > 0) followStore.setFollowing(true)
+      }, 5000)
+    }
+    map.on('dragend', _onDragEnd)
 
     // GPS tick: update dead-reckoning state — the rAF loop handles all map movement
     const unsubGps = gpsStore.onPosition((pos) => {
@@ -460,6 +473,8 @@ export function MapShell() {
       unsubFollow()
       unsubSettings()
       map.off('dragstart', _onDragStart)
+      map.off('dragend',   _onDragEnd)
+      if (_autoRecenterTimer !== null) { clearTimeout(_autoRecenterTimer); _autoRecenterTimer = null }
       _container.removeEventListener('touchstart',  _onTouchStart, { capture: true })
       _container.removeEventListener('touchend',    _onTouchEnd)
       _container.removeEventListener('touchcancel', _onTouchEnd)
