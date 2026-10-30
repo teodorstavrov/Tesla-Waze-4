@@ -42,7 +42,6 @@ function _autoTheme(): ThemeMode {
 interface ThemeState {
   theme: ThemeMode
   mapMode: MapMode
-  manualTheme: boolean  // true once user explicitly toggles — disables auto
   toggleTheme: () => void
   toggleSatellite: () => void
   toggleNight: () => void
@@ -51,13 +50,11 @@ interface ThemeState {
 
 export const useThemeStore = create<ThemeState>()(
   persist(
-    (set, get) => ({
+    (set) => ({
       theme: _autoTheme(),
       mapMode: 'voyager',
-      manualTheme: false,
       toggleTheme: () => set((s) => ({
         theme: s.theme === 'dark' ? 'light' : 'dark',
-        manualTheme: true,
       })),
       toggleSatellite: () => set((s) => ({
         mapMode: s.mapMode === 'satellite' ? 'voyager' : 'satellite',
@@ -66,17 +63,23 @@ export const useThemeStore = create<ThemeState>()(
       toggleNight: () => set((s) => {
         const isNight = s.theme === 'dark' && s.mapMode === 'normal'
         return isNight
-          ? { theme: 'light', mapMode: 'voyager', manualTheme: true }
-          : { theme: 'dark',  mapMode: 'normal',  manualTheme: true }
+          ? { theme: 'light', mapMode: 'voyager' }
+          : { theme: 'dark',  mapMode: 'normal'  }
       }),
-      applyAutoTheme: () => {
-        if (get().manualTheme) return
-        set({ theme: _autoTheme() })
-      },
+      applyAutoTheme: () => set({ theme: _autoTheme() }),
     }),
     {
       name: 'tesla-theme',
-      partialize: (s) => ({ theme: s.theme, mapMode: s.mapMode, manualTheme: s.manualTheme }),
+      version: 1,
+      // v0 → v1: strip manualTheme (was persisted in v0, blocked auto-switching)
+      migrate: (persisted: unknown) => {
+        const s = persisted as Record<string, unknown>
+        return {
+          theme:   (s?.theme   as ThemeMode | undefined) ?? _autoTheme(),
+          mapMode: (s?.mapMode as MapMode   | undefined) ?? 'voyager',
+        }
+      },
+      partialize: (s) => ({ theme: s.theme, mapMode: s.mapMode }),
     },
   ),
 )
