@@ -1,0 +1,45 @@
+{
+  "version": "1.0.0",
+  "updatedAt": "2026-10-31",
+  "note": "Waze API PRO plan (10 000 req/month). playwrightCities are covered by waze-sync.mjs (whole-BG bbox) or future per-city Playwright extensions.",
+  "budget": {
+    "wazeApiReqPerMonth": 10000,
+    "plannedReqPerMonth": 9360,
+    "reserveReqPerMonth": 640
+  },
+  "wazeApiCities": [
+    { "id": "sofia",      "city": "Sofia",      "country": "BG", "priority": 3, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": 40 },
+    { "id": "amsterdam",  "city": "Amsterdam",  "country": "NL", "priority": 3, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": 38 },
+    { "id": "varna",      "city": "Varna",      "country": "BG", "priority": 3, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": 26 },
+    { "id": "paris",      "city": "Paris",      "country": "FR", "priority": 3, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": 15 },
+    { "id": "berlin",     "city": "Berlin",     "country": "DE", "priority": 3, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": 14 },
+    { "id": "munich",     "city": "Munich",     "country": "DE", "priority": 3, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": 13 },
+    { "id": "plovdiv",    "city": "Plovdiv",    "country": "BG", "priority": 2, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null },
+    { "id": "rotterdam",  "city": "Rotterdam",  "country": "NL", "priority": 2, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null },
+    { "id": "hamburg",    "city": "Hamburg",    "country": "DE", "priority": 2, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null },
+    { "id": "brussels",   "city": "Brussels",   "country": "BE", "priority": 2, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null },
+    { "id": "frankfurt",  "city": "Frankfurt",  "country": "DE", "priority": 2, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null },
+    { "id": "stockholm",  "city": "Stockholm",  "country": "SE", "priority": 2, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": 3 },
+    { "id": "lyon",       "city": "Lyon",       "country": "FR", "priority": 2, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null }
+  ],
+  "playwrightCities": [
+    { "id": "bg-whole",    "city": "България (цяла страна)", "country": "BG", "priority": 3, "status": "current", "scanIntervalHours": 1, "ttlMin": 135, "note": "waze-sync.mjs whole-BG bbox. Interval changed 2h→1h in waze-sync-task.xml." },
+    { "id": "den-haag",    "city": "Den Haag",    "country": "NL", "priority": 2, "status": "proposed", "scanIntervalHours": 1, "ttlMin": 135 },
+    { "id": "utrecht",     "city": "Utrecht",     "country": "NL", "priority": 1, "status": "proposed", "scanIntervalHours": 1, "ttlMin": 135 },
+    { "id": "eindhoven",   "city": "Eindhoven",   "country": "NL", "priority": 1, "status": "proposed", "scanIntervalHours": 1, "ttlMin": 135 },
+    { "id": "cologne",     "city": "Cologne",     "country": "DE", "priority": 2, "status": "proposed", "scanIntervalHours": 1, "ttlMin": 135 },
+    { "id": "dusseldorf",  "city": "Düsseldorf",  "country": "DE", "priority": 2, "status": "proposed", "scanIntervalHours": 1, "ttlMin": 135 },
+    { "id": "stuttgart",   "city": "Stuttgart",   "country": "DE", "priority": 2, "status": "proposed", "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": 4 },
+    { "id": "nuremberg",   "city": "Nuremberg",   "country": "DE", "priority": 1, "status": "proposed", "scanIntervalHours": 1, "ttlMin": 135 },
+    { "id": "marseille",   "city": "Marseille",   "country": "FR", "priority": 2, "status": "proposed", "scanIntervalHours": 1, "ttlMin": 135 },
+    { "id": "toulouse",    "city": "Toulouse",    "country": "FR", "priority": 1, "status": "proposed", "scanIntervalHours": 1, "ttlMin": 135 },
+    { "id": "bordeaux",    "city": "Bordeaux",    "country": "FR", "priority": 1, "status": "proposed", "scanIntervalHours": 1, "ttlMin": 135 },
+    { "id": "lille",       "city": "Lille",       "country": "FR", "priority": 1, "status": "proposed", "scanIntervalHours": 1, "ttlMin": 135 },
+    { "id": "antwerp",     "city": "Antwerp",     "country": "BE", "priority": 2, "status": "proposed", "scanIntervalHours": 1, "ttlMin": 135 },
+    { "id": "ghent",       "city": "Ghent",       "country": "BE", "priority": 1, "status": "proposed", "scanIntervalHours": 1, "ttlMin": 135 },
+    { "id": "gothenburg",  "city": "Gothenburg",  "country": "SE", "priority": 1, "status": "proposed", "scanIntervalHours": 1, "ttlMin": 135 },
+    { "id": "malmo",       "city": "Malmö",       "country": "SE", "priority": 1, "status": "proposed", "scanIntervalHours": 1, "ttlMin": 135 },
+    { "id": "helsinki",    "city": "Helsinki",    "country": "FI", "priority": 2, "status": "proposed", "scanIntervalHours": 1, "ttlMin": 135 },
+    { "id": "tampere",     "city": "Tampere",     "country": "FI", "priority": 1, "status": "proposed", "scanIntervalHours": 1, "ttlMin": 135 }
+  ]
+}
