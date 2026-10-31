@@ -4,6 +4,9 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-10-31
+- **Feat: премахване на Норвегия изцяло** — изтрити всички следи от Norway: country config (NO от CountryCode, COUNTRIES, COUNTRY_LIST), NorwayBetaBanner компонент, норвежки locale блок от i18n (~280 реда), sections_no.ts (10 ATK секции), NORWAY_BBOX, 17 NO lat-band региони от sync-cameras, NO от sync-stations, Norway от ai-ask knowledge base, всички no: езикови записи (TTS, route, alerts), SEO (title, meta, keywords, hreflang, JSON-LD, FAQ) — commit `25b6b44`
+
 ## 2026-10-30
 - **Feat: автоматичен нощен/дневен режим по GPS и залез/изгрев** — заменен фиксираният праг 07:00–19:00 с NOAA алгоритъм за изчисляване на реален изгрев/залез по GPS координати и часова зона на устройството; фолбек към фиксирани часове докато GPS не е активен; интервалът за проверка намален от 1 час на 1 минута за бързо превключване
 - **Feat: авто-центриране след ръчно местене на картата** — 5 секунди след последното докосване картата автоматично се върща към GPS позицията (само ако е активна навигация); нов `touchstart` анулира таймера при ново докосване
