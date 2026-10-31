@@ -322,6 +322,7 @@ function speechLang(): string {
   if (l === 'bg') return 'bg-BG'
   if (l === 'sv') return 'sv-SE'
   if (l === 'fi') return 'fi-FI'
+  if (l === 'fr') return 'fr-FR'
   return 'en-US'
 }
 

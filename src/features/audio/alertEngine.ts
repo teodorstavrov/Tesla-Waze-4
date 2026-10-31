@@ -20,7 +20,7 @@ import type { EventType } from '@/features/events/types'
 
 // Map lang code → BCP 47 speech synthesis locale
 const LANG_TO_TTS: Record<string, string> = {
-  bg: 'bg-BG', en: 'en-US', sv: 'sv-SE', fi: 'fi-FI',
+  bg: 'bg-BG', en: 'en-US', sv: 'sv-SE', fi: 'fi-FI', fr: 'fr-FR',
 }
 function _ttsLang(): string { return LANG_TO_TTS[getLang()] ?? 'en-US' }
 

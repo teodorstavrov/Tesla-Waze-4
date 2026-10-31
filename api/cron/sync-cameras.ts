@@ -6,6 +6,12 @@
 //
 //  BG  — Bulgaria (single region, small country)
 //
+//  FR  — France (split into 4 lat bands)
+//          FR-1  41.303 – 44.0   Occitanie (Pyrénées), PACA, Corsica
+//          FR-2  44.0   – 46.5   Auvergne-Rhône-Alpes, Nouvelle-Aquitaine south
+//          FR-3  46.5   – 49.0   Grand Est, Bourgogne, Île-de-France, Bretagne
+//          FR-4  49.0   – 51.124 Hauts-de-France, Normandie north
+//
 //  SE  — Sweden (split into 5 lat bands)
 //          SE-1  55.337 – 57.5   (Skåne, Blekinge, Småland)
 //          SE-2  57.5   – 59.5   (West coast, Stockholm)
@@ -83,10 +89,20 @@ const REGIONS: Record<string, { bbox: BBox; redisCountry: string }> = {
   'DE-2': { bbox: { minLat: 49.500, minLng: 5.867, maxLat: 51.500, maxLng: 15.042 }, redisCountry: 'DE' },
   'DE-3': { bbox: { minLat: 51.500, minLng: 5.867, maxLat: 53.000, maxLng: 15.042 }, redisCountry: 'DE' },
   'DE-4': { bbox: { minLat: 53.000, minLng: 5.867, maxLat: 55.059, maxLng: 15.042 }, redisCountry: 'DE' },
+
+  // ── France (4 lat bands, Redis key 'FR') ──────────────────────────────
+  //   FR-1  41.303–44.0   Occitanie (Pyrénées), PACA, Corsica
+  //   FR-2  44.0  –46.5   Auvergne-Rhône-Alpes, Nouvelle-Aquitaine south
+  //   FR-3  46.5  –49.0   Grand Est, Bourgogne, Île-de-France, Bretagne
+  //   FR-4  49.0  –51.124 Hauts-de-France, Normandie north
+  'FR-1': { bbox: { minLat: 41.303, minLng: -5.142, maxLat: 44.000, maxLng: 9.561 }, redisCountry: 'FR' },
+  'FR-2': { bbox: { minLat: 44.000, minLng: -5.142, maxLat: 46.500, maxLng: 9.561 }, redisCountry: 'FR' },
+  'FR-3': { bbox: { minLat: 46.500, minLng: -5.142, maxLat: 49.000, maxLng: 9.561 }, redisCountry: 'FR' },
+  'FR-4': { bbox: { minLat: 49.000, minLng: -5.142, maxLat: 51.124, maxLng: 9.561 }, redisCountry: 'FR' },
 }
 
 // Countries that split multiple regions into a single Redis key
-const MULTI_REGION_COUNTRIES = new Set(['SE', 'FI', 'NL', 'BE', 'DE'])
+const MULTI_REGION_COUNTRIES = new Set(['SE', 'FI', 'NL', 'BE', 'DE', 'FR'])
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   const secret = process.env['CRON_SECRET']

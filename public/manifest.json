@@ -1,7 +1,7 @@
 {
   "name": "TesRadar — EV Map & Road Events",
   "short_name": "TesRadar",
-  "description": "Real-time EV charging stations map and road events for Tesla drivers. Sweden, Finland, Netherlands, Belgium, Germany and Bulgaria. Free, no ads.",
+  "description": "Real-time EV charging stations map and road events for Tesla drivers. France, Sweden, Finland, Netherlands, Belgium, Germany and Bulgaria. Free, no ads.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0a0a0f",

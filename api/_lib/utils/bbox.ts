@@ -112,6 +112,34 @@ export const GERMANY_EAST_BBOX: BBox = {
   maxLng: 15.042,
 }
 
+/** Bbox covering all of France (mainland + Corsica) */
+export const FRANCE_BBOX: BBox = {
+  minLat: 41.303,
+  minLng: -5.142,
+  maxLat: 51.124,
+  maxLng:  9.561,
+}
+
+/**
+ * France split into west/east for OCM fetching — France has one of the
+ * largest EV charging networks in Europe; one bbox risks silently truncating
+ * at 3000 stations and missing entire regions.
+ * Split at lng 2.0: west covers Brittany, Normandy, Île-de-France, Atlantic coast;
+ *                   east covers Alsace, Lyon, Provence, PACA, Corsica.
+ */
+export const FRANCE_WEST_BBOX: BBox = {
+  minLat: 41.303,
+  minLng: -5.142,
+  maxLat: 51.124,
+  maxLng:  2.000,
+}
+export const FRANCE_EAST_BBOX: BBox = {
+  minLat: 41.303,
+  minLng:  2.000,
+  maxLat: 51.124,
+  maxLng:  9.561,
+}
+
 /**
  * Parse a comma-separated bbox string: "minLat,minLng,maxLat,maxLng".
  * Returns null if invalid.

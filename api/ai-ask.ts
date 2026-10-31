@@ -208,7 +208,7 @@ CRITICAL RULES:
 
 ━━━ TESRADAR SITE KNOWLEDGE BASE ━━━
 
-SUPPORTED COUNTRIES: Bulgaria 🇧🇬, Sweden 🇸🇪, Finland 🇫🇮, Netherlands 🇳🇱, Belgium 🇧🇪, Germany 🇩🇪
+SUPPORTED COUNTRIES: Bulgaria 🇧🇬, Sweden 🇸🇪, Finland 🇫🇮, Netherlands 🇳🇱, Belgium 🇧🇪, Germany 🇩🇪, France 🇫🇷
 
 MAP MARKERS:
 EV charging stations (⚡ icon on map):
@@ -321,7 +321,7 @@ PERFORMANCE MODES:
   quality — better graphics, more detail, higher zoom cluster threshold.
   performance — faster rendering, less detail (useful on older Tesla browsers).
 
-LANGUAGES: Bulgarian (bg), English (en), Swedish (sv), Finnish (fi), Dutch (nl), German (de).
+LANGUAGES: Bulgarian (bg), English (en), Swedish (sv), Finnish (fi), Dutch (nl), German (de), French (fr).
   The EN button in the right panel forces English regardless of country.
 
 COMMUNITY FEATURES:
@@ -685,6 +685,7 @@ function _rateLimitMsg(lang: string): string {
     fi: 'AI-raja saavutettu. Odota hetki ja yritä uudelleen.',
     nl: 'AI-limiet bereikt. Wacht even en probeer opnieuw.',
     de: 'KI-Limit erreicht. Warte kurz und versuche es erneut.',
+    fr: "Limite IA atteinte. Attendez un moment et réessayez.",
   }
   return msgs[lang] ?? 'AI rate limit reached. Please wait a moment and try again.'
 }
@@ -707,6 +708,9 @@ function _detectQuestionLang(text: string): string {
   if (/[äöüÄÖÜß]/.test(text)) return 'German'
   // Dutch-specific common digraphs (rough heuristic)
   if (/\b(ij|IJ|de|het|een|van|voor|met)\b/.test(text)) return 'Dutch'
+  // French-specific accents / common words
+  if (/[àâçéèêëîïôùûüœæ]/i.test(text)) return 'French'
+  if (/\b(je|tu|il|nous|vous|ils|le|la|les|un|une|des|du|est|sont)\b/.test(text)) return 'French'
 
   return 'English'  // default for Latin-script questions
 }

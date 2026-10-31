@@ -115,7 +115,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       const inNetherlands = lat >= 50.750 && lat <= 53.560 && lng >= 3.360 && lng <= 7.230
       const inBelgium  = lat >= 49.497 && lat <= 51.505 && lng >= 2.546 && lng <= 6.408
       const inGermany  = lat >= 47.270 && lat <= 55.059 && lng >= 5.867 && lng <= 15.042
-      if (!inBulgaria && !inSweden && !inFinland && !inNetherlands && !inBelgium && !inGermany) {
+      const inFrance   = lat >= 41.303 && lat <= 51.124 && lng >= -5.142 && lng <= 9.561
+      if (!inBulgaria && !inSweden && !inFinland && !inNetherlands && !inBelgium && !inGermany && !inFrance) {
         res.status(400).json({ error: 'Coordinates outside supported region' }); return
       }
 

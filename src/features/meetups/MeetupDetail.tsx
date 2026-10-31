@@ -10,7 +10,7 @@ import { formatRecurrence, nextOccurrence } from './recurrence'
 import type { Meetup } from './types'
 
 const LANG_LOCALE: Record<string, string> = {
-  bg: 'bg-BG', en: 'en-GB', sv: 'sv-SE', fi: 'fi-FI', nl: 'nl-NL',
+  bg: 'bg-BG', en: 'en-GB', sv: 'sv-SE', fi: 'fi-FI', nl: 'nl-NL', fr: 'fr-FR',
 }
 
 function fmt(iso: string): string {

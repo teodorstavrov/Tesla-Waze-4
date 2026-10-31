@@ -401,12 +401,14 @@ export const routeStore = {
         sv: 'Ingen internet — kan inte beräkna rutt',
         fi: 'Ei internetyhteyttä — reittiä ei voi laskea',
         nl: 'Geen internet — route kan niet worden berekend',
+        fr: "Pas d'internet — l'itinéraire ne peut pas être calculé",
       }
       const serviceMsg: Record<string, string> = {
         bg: 'Маршрутната услуга е недостъпна — опитайте отново',
         sv: 'Rutttjänsten är otillgänglig — försök igen',
         fi: 'Reitityspalvelu ei saatavilla — yritä uudelleen',
         nl: 'Routeservice niet beschikbaar — probeer opnieuw',
+        fr: "Service d'itinéraire indisponible — réessayez",
       }
       const errorMsg = isOffline
         ? (offlineMsg[_lang] ?? 'No internet — route cannot be calculated')

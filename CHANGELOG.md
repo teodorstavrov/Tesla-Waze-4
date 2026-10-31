@@ -4,6 +4,9 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-10-31 (2)
+- **Feat: добавяне на Франция** — пълна интеграция на France като нова държава: CountryCode `FR`, COUNTRIES + COUNTRY_LIST (след BG), FRANCE_BBOX + FRANCE_WEST/EAST_BBOX, 14 radar tronçon секции (A2 Valenciennes, A16 Boulogne, A25 Lille, A7 Chanas, A48 Voreppe, A51 Saint-Cannat, A71 Clermont), `fr` locale в i18n (всички ключове преведени), Lang type + VALID_LANGS, TTS `fr-FR` (TurnInstruction, alertEngine, VoiceAssistant), maneuver.ts (MODIFIER_VOICE, MODIFIER_DISPLAY, fr roundabout/arrive/depart/exit), routeStore.ts offline+service съобщения, MeetupList+MeetupDetail LANG_LOCALE, admin COUNTRY_FLAGS+countryFromCoords+LANG_FLAG, ai-ask knowledge base (SUPPORTED COUNTRIES, LANGUAGES, rate-limit, French detectLang), events/index.ts France bbox check, sync-cameras FR-1..FR-4 региони + FR в MULTI_REGION_COUNTRIES, sync-stations.ts паралелен fetch за France (Tesla+OCM west/east+OSM), vercel.json — изтрити 17 Norway NO-* cron записа, добавени FR-1..FR-4 cron; SEO: title, meta, hreflang fr-FR, og:locale fr_FR, JSON-LD areaServed+inLanguage, FAQ 2 нови FR въпроса, manifest.json, French keywords
+
 ## 2026-10-31
 - **Feat: премахване на Норвегия изцяло** — изтрити всички следи от Norway: country config (NO от CountryCode, COUNTRIES, COUNTRY_LIST), NorwayBetaBanner компонент, норвежки locale блок от i18n (~280 реда), sections_no.ts (10 ATK секции), NORWAY_BBOX, 17 NO lat-band региони от sync-cameras, NO от sync-stations, Norway от ai-ask knowledge base, всички no: езикови записи (TTS, route, alerts), SEO (title, meta, keywords, hreflang, JSON-LD, FAQ) — commit `25b6b44`
 

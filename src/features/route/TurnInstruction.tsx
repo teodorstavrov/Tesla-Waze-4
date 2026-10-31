@@ -12,7 +12,7 @@ import { isTeslaBrowser } from '@/lib/browser'
 import { audioManager } from '@/features/audio/audioManager'
 
 const LANG_TO_TTS: Record<string, string> = {
-  bg: 'bg-BG', en: 'en-US', sv: 'sv-SE', fi: 'fi-FI',
+  bg: 'bg-BG', en: 'en-US', sv: 'sv-SE', fi: 'fi-FI', fr: 'fr-FR',
 }
 
 function formatDistM(m: number): string {
@@ -62,11 +62,13 @@ export function TurnInstruction() {
       text = lang === 'bg'  ? `${t('route.inDist')} ${dist} — ${streetName}`
            : lang === 'sv'  ? `Om ${dist} — ${streetName}`
            : lang === 'fi'  ? `${dist} päässä — ${streetName}`
+           : lang === 'fr'  ? `Dans ${dist} — ${streetName}`
            : `In ${dist} — ${streetName}`
     } else if (dist) {
       text = lang === 'bg' ? `Завийте ${t('route.inDist')} ${dist}`
            : lang === 'sv' ? `Sväng om ${dist}`
            : lang === 'fi' ? `Käänny ${dist} päässä`
+           : lang === 'fr' ? `Tournez dans ${dist}`
            : `Turn in ${dist}`
     }
     if (text) setTimeout(() => audioManager.speak(text, ttsLang), 200)
