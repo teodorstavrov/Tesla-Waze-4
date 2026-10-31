@@ -4,6 +4,9 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-10-31 (9)
+- **Chore: премахнат Stockholm от Waze API сканиране** — 12 града остават (8 640 req/мес, резерв 1 360); обновен `police-scan-config.json` и `waze-api-sync.mjs`
+
 ## 2026-10-31 (8)
 - **Feat: /api/notify + имейл нотификация при 9500 Waze API req** — нов Vercel endpoint `api/notify.ts` изпраща имейл чрез Resend (изисква `RESEND_API_KEY` env var + верифициран домейн tesradar.tech в Resend); `waze-sync.mjs` вика endpoint-а без парола при >= 9500 req/месец; брояч в `waze-api-usage.json` (gitignored)
 

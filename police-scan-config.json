@@ -4,8 +4,8 @@
   "note": "Waze API PRO plan (10 000 req/month). playwrightCities are covered by waze-sync.mjs (whole-BG bbox) or future per-city Playwright extensions.",
   "budget": {
     "wazeApiReqPerMonth": 10000,
-    "plannedReqPerMonth": 9360,
-    "reserveReqPerMonth": 640
+    "plannedReqPerMonth": 8640,
+    "reserveReqPerMonth": 1360
   },
   "wazeApiCities": [
     { "id": "sofia",      "city": "Sofia",      "country": "BG", "priority": 3, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": 40 },
@@ -19,7 +19,6 @@
     { "id": "hamburg",    "city": "Hamburg",    "country": "DE", "priority": 2, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null },
     { "id": "brussels",   "city": "Brussels",   "country": "BE", "priority": 2, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null },
     { "id": "frankfurt",  "city": "Frankfurt",  "country": "DE", "priority": 2, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null },
-    { "id": "stockholm",  "city": "Stockholm",  "country": "SE", "priority": 2, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": 3 },
     { "id": "lyon",       "city": "Lyon",       "country": "FR", "priority": 2, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null }
   ],
   "playwrightCities": [
