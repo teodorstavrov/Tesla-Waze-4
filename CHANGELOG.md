@@ -4,6 +4,9 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-10-31 (8)
+- **Feat: /api/notify + имейл нотификация при 9500 Waze API req** — нов Vercel endpoint `api/notify.ts` изпраща имейл чрез Resend (изисква `RESEND_API_KEY` env var + верифициран домейн tesradar.tech в Resend); `waze-sync.mjs` вика endpoint-а без парола при >= 9500 req/месец; брояч в `waze-api-usage.json` (gitignored)
+
 ## 2026-10-31 (7)
 - **Feat: waze-api-sync.mjs** — нов локален скрипт за Waze API PRO; сканира 13 града (Sofia, Amsterdam, Varna, Paris, Berlin, Munich, Plovdiv, Rotterdam, Hamburg, Brussels, Frankfurt, Stockholm, Lyon) на всеки 1ч; POST-ва с `source: 'waze-api'`; дубликати се пропускат (DEDUP 80м); `waze-api-sync.bat` + `waze-api-sync-task.xml` за Task Scheduler; всичко gitignored
 
