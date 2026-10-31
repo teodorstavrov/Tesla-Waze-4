@@ -36,6 +36,7 @@ export interface RoadEvent {
   confirms: number
   denies: number       // vote count for "no longer there"; auto-deletes at DENY_THRESHOLD
   permanent?: boolean  // admin-added — never expires, immune to deny-votes
+  source?: 'waze-api' | 'playwright' | null  // sync source; drives badge color in admin panel
 }
 
 export const DENY_THRESHOLD = 1

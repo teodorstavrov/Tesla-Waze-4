@@ -1321,7 +1321,7 @@ function AdminMap({ events, userStations, comments, meetups, visitors, addMode, 
 
       // Add / update markers
       for (const ev of events) {
-        const revision = `${ev.type}|${ev.lat}|${ev.lng}|${String(ev.permanent)}`
+        const revision = `${ev.type}|${ev.lat}|${ev.lng}|${String(ev.permanent)}|${ev.source ?? ''}`
         if (markerRevisionRef.current.get(ev.id) === revision) continue
 
         // Remove existing marker so we can re-create it with updated data
@@ -1329,15 +1329,18 @@ function AdminMap({ events, userStations, comments, meetups, visitors, addMode, 
         if (existing) { existing.remove(); markersRef.current.delete(ev.id) }
 
         const isEditing = editingEventId === ev.id
+        const circleColor = ev.source === 'waze-api' ? '#22c55e' : '#e31937'
+        const circleBg    = ev.source === 'waze-api' ? 'rgba(34,197,94,0.18)' : 'rgba(227,25,55,0.18)'
+        const circleShadow = ev.source === 'waze-api' ? 'rgba(34,197,94,0.5)' : 'rgba(227,25,55,0.5)'
         const icon = L.divIcon({
           className: '',
           html: ev.permanent
             ? `<div style="
                 width:34px;height:34px;border-radius:50%;
-                background:rgba(227,25,55,0.18);border:${isEditing ? '3px solid #facc15' : '2.5px solid #e31937'};
+                background:${circleBg};border:${isEditing ? '3px solid #facc15' : `2.5px solid ${circleColor}`};
                 display:flex;align-items:center;justify-content:center;
                 font-size:17px;line-height:1;cursor:pointer;
-                box-shadow:0 2px 8px ${isEditing ? 'rgba(250,204,21,0.7)' : 'rgba(227,25,55,0.5)'};
+                box-shadow:0 2px 8px ${isEditing ? 'rgba(250,204,21,0.7)' : circleShadow};
               ">${eventEmoji(ev.type)}</div>`
             : `<div style="
                 font-size:24px;line-height:1;
@@ -2146,7 +2149,8 @@ function buildPopup(ev: RoadEvent): string {
       <div style="color:#888;margin-bottom:1px;font-size:11px;">📅 ${date}</div>
       <div style="color:#aaa;margin-bottom:8px;font-size:11px;">⏱ ${exp}</div>
       ${ev.description ? `<div style="color:#666;font-size:11px;margin-bottom:8px;font-style:italic;">"${ev.description}"</div>` : ''}
-      ${ev.permanent ? '<div style="font-size:10px;color:#e31937;font-weight:700;margin-bottom:8px;">🔴 СЛУЖЕБЕН</div>' : ''}
+      ${ev.permanent && ev.source === 'waze-api'   ? '<div style="font-size:10px;color:#22c55e;font-weight:700;margin-bottom:8px;">🟢 WAZE API</div>' : ''}
+      ${ev.permanent && ev.source !== 'waze-api'   ? '<div style="font-size:10px;color:#e31937;font-weight:700;margin-bottom:8px;">🔴 СЛУЖЕБЕН</div>' : ''}
       <div style="display:flex;gap:6px;">
         <button id="edit-${ev.id}" style="
           flex:1;padding:7px 0;border-radius:7px;

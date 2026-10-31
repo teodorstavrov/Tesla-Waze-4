@@ -52,6 +52,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     const customTtl = (isFinite(rawTtl) && rawTtl > 0 && rawTtl <= 7 * 24 * 60 * 60 * 1000) ? rawTtl : null
     const lifetimeMs = customTtl ?? ttlMs(type)
 
+    const rawSource = (body as { source?: unknown })?.source
+    const source = (rawSource === 'waze-api' || rawSource === 'playwright') ? rawSource : null
+
     const now = new Date()
     const event: RoadEvent = {
       id:          crypto.randomUUID(),
@@ -63,7 +66,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       expiresAt:   new Date(now.getTime() + lifetimeMs).toISOString(),
       confirms:    0,
       denies:      0,
-      permanent:   true,   // admin marker — red circle in panel; immune to deny-votes; still expires via expiresAt
+      permanent:   true,
+      source,
     }
 
     if (useRedis) { await eventRedisStore.add(event) }
