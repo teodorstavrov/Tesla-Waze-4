@@ -47,6 +47,7 @@ chrome-profile/
 *.bat
 *.log
 waze-sync.mjs
+waze-api-sync.mjs
 *-task.xml
 create-tasks.ps1
 event-finder/

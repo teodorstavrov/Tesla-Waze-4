@@ -4,6 +4,9 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-10-31 (7)
+- **Feat: waze-api-sync.mjs** — нов локален скрипт за Waze API PRO; сканира 13 града (Sofia, Amsterdam, Varna, Paris, Berlin, Munich, Plovdiv, Rotterdam, Hamburg, Brussels, Frankfurt, Stockholm, Lyon) на всеки 1ч; POST-ва с `source: 'waze-api'`; дубликати се пропускат (DEDUP 80м); `waze-api-sync.bat` + `waze-api-sync-task.xml` за Task Scheduler; всичко gitignored
+
 ## 2026-10-31 (6)
 - **Feat: цветни badges за полицейски маркери в админ панела** — зелен кръг за Waze API репорти (`source: 'waze-api'`), червен кръг за Playwright репорти (`source: 'playwright'`); добавено `source` поле в `RoadEvent` тип; `api/admin/events.ts` записва source при POST; `src/admin/AdminApp.tsx` оцветява маркерите и popup-а по source; `waze-sync.mjs` изпраща `source: 'playwright'` при POST (локален файл, gitignored)
 
