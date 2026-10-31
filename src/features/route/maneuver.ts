@@ -1,4 +1,4 @@
-// ─── Maneuver text + arrow helpers ─────────────────────────────────────
+﻿// ─── Maneuver text + arrow helpers ─────────────────────────────────────
 // Shared between routeStore (voice) and TurnInstruction (display).
 
 import type { RouteStep } from './types.js'
@@ -26,16 +26,6 @@ const MODIFIER_VOICE: Record<string, Record<string, string>> = {
     'slight left':  'keep slight left',
     'left':         'turn left',
     'sharp left':   'turn sharp left',
-  },
-  no: {
-    'uturn':        'snu bilen',
-    'sharp right':  'ta en skarp høyresving',
-    'right':        'sving til høyre',
-    'slight right': 'hold deg til høyre',
-    'straight':     'kjør rett frem',
-    'slight left':  'hold deg til venstre',
-    'left':         'sving til venstre',
-    'sharp left':   'ta en skarp venstresving',
   },
   sv: {
     'uturn':        'gör en u-sväng',
@@ -81,16 +71,6 @@ const MODIFIER_DISPLAY: Record<string, Record<string, string>> = {
     'slight left':  'Keep left',
     'left':         'Turn left',
     'sharp left':   'Sharp left',
-  },
-  no: {
-    'uturn':        'Snu bilen',
-    'sharp right':  'Skarp høyresving',
-    'right':        'Sving høyre',
-    'slight right': 'Hold høyre',
-    'straight':     'Fortsett',
-    'slight left':  'Hold venstre',
-    'left':         'Sving venstre',
-    'sharp left':   'Skarp venstresving',
   },
   sv: {
     'uturn':        'Gör en u-sväng',
@@ -139,7 +119,6 @@ function exitOrdinal(n: number, lang: string): string {
       if (n === 2) return '2nd'
       if (n === 3) return '3rd'
       return `${n}th`
-    case 'no':
     case 'fi':
       return `${n}.`
     case 'sv':
@@ -172,7 +151,6 @@ export function roundaboutExitLabel(step: RouteStep): string | null {
   const ord = exitOrdinal(step.exit, lang)
   switch (lang) {
     case 'bg': return `${ord} изход`
-    case 'no': return `${ord} avkjørsel`
     case 'sv': return `${ord} avfart`
     case 'fi': return `${ord} uloskäynti`
     default:   return `${ord} exit`
@@ -184,35 +162,34 @@ export function maneuverVoiceText(step: RouteStep): string {
   const lang = getLang()
 
   if (step.type === 'arrive')
-    return ({ bg: 'Пристигнахте', no: 'Du er fremme', sv: 'Du har anlänt', fi: 'Olet perillä' } as Record<string,string>)[lang] ?? 'You have arrived'
+    return ({ bg: 'Пристигнахте', sv: 'Du har anlänt', fi: 'Olet perillä' } as Record<string,string>)[lang] ?? 'You have arrived'
 
   if (step.type === 'depart')
-    return ({ bg: 'Тръгнете', no: 'Kjør av sted', sv: 'Starta', fi: 'Lähde' } as Record<string,string>)[lang] ?? 'Depart'
+    return ({ bg: 'Тръгнете', sv: 'Starta', fi: 'Lähde' } as Record<string,string>)[lang] ?? 'Depart'
 
   if (isRoundaboutStep(step)) {
     if (step.exit) {
       const ord = exitOrdinal(step.exit, lang)
       switch (lang) {
         case 'bg': return `Влезте в кръговото и излезте на ${ord} изход`
-        case 'no': return `I rundkjøringen, ta ${ord} avkjørsel`
         case 'sv': return `I rondellen, ta ${ord} avfart`
         case 'fi': return `Kiertoliittymässä ota ${ord} uloskäynti`
         default:   return `At the roundabout, take the ${ord} exit`
       }
     }
-    return ({ bg: 'Влезте в кръговото движение', no: 'Kjør inn i rundkjøringen', sv: 'Kör in i rondellen', fi: 'Aja kiertoliittymään' } as Record<string,string>)[lang]
+    return ({ bg: 'Влезте в кръговото движение', sv: 'Kör in i rondellen', fi: 'Aja kiertoliittymään' } as Record<string,string>)[lang]
       ?? 'Enter the roundabout'
   }
 
   if (step.type === 'exit roundabout' || step.type === 'exit rotary')
-    return ({ bg: 'Излезте от кръговото', no: 'Kjør ut av rundkjøringen', sv: 'Kör ut ur rondellen', fi: 'Aja ulos kiertoliittymästä' } as Record<string,string>)[lang]
+    return ({ bg: 'Излезте от кръговото', sv: 'Kör ut ur rondellen', fi: 'Aja ulos kiertoliittymästä' } as Record<string,string>)[lang]
       ?? 'Exit the roundabout'
 
   const voices = MODIFIER_VOICE[lang] ?? MODIFIER_VOICE['en']!
   const v = step.modifier ? voices[step.modifier] : undefined
   return v
     ? cap(v)
-    : (({ bg: 'Продължете', no: 'Fortsett', sv: 'Fortsätt', fi: 'Jatka' } as Record<string,string>)[lang] ?? 'Continue')
+    : (({ bg: 'Продължете', sv: 'Fortsätt', fi: 'Jatka' } as Record<string,string>)[lang] ?? 'Continue')
 }
 
 /** Short text for the HUD display. */
@@ -220,32 +197,31 @@ export function maneuverDisplayText(step: RouteStep): string {
   const lang = getLang()
 
   if (step.type === 'arrive')
-    return ({ bg: 'Пристигнахте', no: 'Ankommet', sv: 'Anlänt', fi: 'Perillä' } as Record<string,string>)[lang] ?? 'Arrived'
+    return ({ bg: 'Пристигнахте', sv: 'Anlänt', fi: 'Perillä' } as Record<string,string>)[lang] ?? 'Arrived'
 
   if (step.type === 'depart')
-    return ({ bg: 'Тръгнете', no: 'Kjør av sted', sv: 'Starta', fi: 'Lähde' } as Record<string,string>)[lang] ?? 'Depart'
+    return ({ bg: 'Тръгнете', sv: 'Starta', fi: 'Lähde' } as Record<string,string>)[lang] ?? 'Depart'
 
   if (isRoundaboutStep(step)) {
     if (step.exit) {
       const ord = exitOrdinal(step.exit, lang)
       switch (lang) {
         case 'bg': return `Кръгово — ${ord} изход`
-        case 'no': return `Rundkjøring — ${ord} avkjørsel`
         case 'sv': return `Rondell — ${ord} avfart`
         case 'fi': return `Kiertoliittymä — ${ord} uloskäynti`
         default:   return `Roundabout — ${ord} exit`
       }
     }
-    return ({ bg: 'Кръгово', no: 'Rundkjøring', sv: 'Rondell', fi: 'Kiertoliittymä' } as Record<string,string>)[lang] ?? 'Roundabout'
+    return ({ bg: 'Кръгово', sv: 'Rondell', fi: 'Kiertoliittymä' } as Record<string,string>)[lang] ?? 'Roundabout'
   }
 
   if (step.type === 'exit roundabout' || step.type === 'exit rotary')
-    return ({ bg: 'Излезте от кръговото', no: 'Ut av rundkjøring', sv: 'Ut ur rondell', fi: 'Ulos kiertoliittymästä' } as Record<string,string>)[lang]
+    return ({ bg: 'Излезте от кръговото', sv: 'Ut ur rondell', fi: 'Ulos kiertoliittymästä' } as Record<string,string>)[lang]
       ?? 'Exit roundabout'
 
   const displays = MODIFIER_DISPLAY[lang] ?? MODIFIER_DISPLAY['en']!
   return (step.modifier ? displays[step.modifier] : undefined)
-    ?? (({ bg: 'Продължете', no: 'Fortsett', sv: 'Fortsätt', fi: 'Jatka' } as Record<string,string>)[lang] ?? 'Continue')
+    ?? (({ bg: 'Продължете', sv: 'Fortsätt', fi: 'Jatka' } as Record<string,string>)[lang] ?? 'Continue')
 }
 
 /** Arrow rotation for the step (degrees, clockwise from up). Not used for roundabouts (RoundaboutIcon replaces TurnArrow). */

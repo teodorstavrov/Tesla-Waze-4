@@ -40,7 +40,7 @@ interface VisitorStats {
 }
 
 const COUNTRY_FLAGS: Record<string, string> = {
-  BG: '🇧🇬 BG', NO: '🇳🇴 NO', SE: '🇸🇪 SE',
+  BG: '🇧🇬 BG', SE: '🇸🇪 SE',
   FI: '🇫🇮 FI', NL: '🇳🇱 NL', BE: '🇧🇪 BE', DE: '🇩🇪 DE',
 }
 
@@ -599,7 +599,6 @@ function Dashboard({ secret }: { secret: string }) {
 
 function countryFromCoords(lat: number, lng: number): string {
   if (lat >= 41.235 && lat <= 44.215 && lng >= 22.36  && lng <= 28.609) return '🇧🇬 България'
-  if (lat >= 57.959 && lat <= 71.182 && lng >= 4.479  && lng <= 31.293) return '🇳🇴 Norge'
   if (lat >= 55.337 && lat <= 69.060 && lng >= 11.109 && lng <= 24.166) return '🇸🇪 Sverige'
   if (lat >= 59.693 && lat <= 70.093 && lng >= 20.556 && lng <= 31.587) return '🇫🇮 Suomi'
   return '🌍 Друго'
@@ -612,7 +611,7 @@ const LS_HIDE_PERMANENT = 'teslaradar:hidePermanent'
 const OUTCOME_LABEL: Record<string, string> = { intent: '🎯 Команда', qa: '💬 Въпрос', error: '❌ Грешка' }
 const OUTCOME_COLOR: Record<string, string> = { intent: '#60a5fa', qa: '#4ade80', error: '#f87171' }
 
-const LANG_FLAG: Record<string, string> = { bg: '🇧🇬', en: '🇬🇧', no: '🇳🇴', sv: '🇸🇪', fi: '🇫🇮', nl: '🇳🇱', de: '🇩🇪' }
+const LANG_FLAG: Record<string, string> = { bg: '🇧🇬', en: '🇬🇧', sv: '🇸🇪', fi: '🇫🇮', nl: '🇳🇱', de: '🇩🇪' }
 
 // ── Voice Log full-width view ────────────────────────────────────────────
 

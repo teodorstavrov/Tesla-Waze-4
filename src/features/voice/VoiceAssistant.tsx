@@ -303,7 +303,7 @@ function _buildMeetupsContext(): string {
     const lang = getLang()
     return upcoming.map(({ m, next }) => {
       const dateStr = next.toLocaleString(
-        lang === 'bg' ? 'bg-BG' : lang === 'no' ? 'nb-NO' : 'en-GB',
+        lang === 'bg' ? 'bg-BG' : 'en-GB',
         { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' },
       )
       const recur = m.recurrence && m.recurrence !== 'none' ? ` (recurring)` : ''
@@ -320,7 +320,6 @@ function _buildMeetupsContext(): string {
 function speechLang(): string {
   const l = getLang()
   if (l === 'bg') return 'bg-BG'
-  if (l === 'no') return 'nb-NO'
   if (l === 'sv') return 'sv-SE'
   if (l === 'fi') return 'fi-FI'
   return 'en-US'

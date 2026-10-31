@@ -2,7 +2,7 @@
 //
 // Two-tier storage: Redis (persistent, written by cron) → in-memory cache.
 // The /api/cameras endpoint reads from Redis — no live Overpass calls on
-// user requests (Norway's bbox is too large for a per-request query).
+// user requests (large bboxes are too slow for a per-request query).
 //
 // The cron job calls fetchCamerasFromOverpass() to refresh Redis.
 // Fallback to mirror endpoint on Overpass primary failure.

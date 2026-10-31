@@ -10,7 +10,7 @@
 // concern: worst case is a 20s delay, not a permanent stale state.
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { BULGARIA_BBOX, NORWAY_BBOX, parseBBox } from '../_lib/utils/bbox.js'
+import { BULGARIA_BBOX, parseBBox } from '../_lib/utils/bbox.js'
 import { eventMemStore } from '../_lib/events/store.js'
 import { eventRedisStore } from '../_lib/events/redisStore.js'
 import { isRedisConfigured } from '../_lib/db/redis.js'
@@ -55,16 +55,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     if (!_checkGetRL(ip)) { res.status(429).json({ error: 'Too many requests' }); return }
 
     try {
-      // Use client-supplied bbox (supports BG + NO). Fall back to Bulgaria if missing/invalid.
       const clientBBox = parseBBox(req.query['bbox'] as string | undefined)
       const bbox = clientBBox ?? BULGARIA_BBOX
-
-      // Clamp to supported regions so we never query unbounded world data
-      const BG = BULGARIA_BBOX
-      const NO = NORWAY_BBOX
-      const inBg = bbox.minLat <= BG.maxLat && bbox.maxLat >= BG.minLat
-      const inNo = bbox.minLat <= NO.maxLat && bbox.maxLat >= NO.minLat
-      const queryBBox = (!inBg && inNo) ? NO : (!inNo && inBg) ? BG : bbox
+      const queryBBox = bbox
 
       // Check in-memory cache first — coalesces concurrent requests on warm instances
       const cacheKey = `${queryBBox.minLat},${queryBBox.minLng},${queryBBox.maxLat},${queryBBox.maxLng}`
@@ -116,10 +109,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
       if (!VALID_TYPES.has(type))           { res.status(400).json({ error: `Invalid type: ${String(type)}` }); return }
       if (!isFinite(lat) || !isFinite(lng)) { res.status(400).json({ error: 'Invalid coordinates' }); return }
-      // Accept coordinates in Bulgaria or Norway
       const inBulgaria = lat >= 41.0 && lat <= 44.5 && lng >= 22.0 && lng <= 28.7
-      const inNorway   = lat >= 57.9 && lat <= 71.2 && lng >= 4.4  && lng <= 31.3
-      if (!inBulgaria && !inNorway) {
+      const inSweden   = lat >= 55.337 && lat <= 69.060 && lng >= 11.120 && lng <= 24.166
+      const inFinland  = lat >= 59.808 && lat <= 70.093 && lng >= 20.550 && lng <= 31.587
+      const inNetherlands = lat >= 50.750 && lat <= 53.560 && lng >= 3.360 && lng <= 7.230
+      const inBelgium  = lat >= 49.497 && lat <= 51.505 && lng >= 2.546 && lng <= 6.408
+      const inGermany  = lat >= 47.270 && lat <= 55.059 && lng >= 5.867 && lng <= 15.042
+      if (!inBulgaria && !inSweden && !inFinland && !inNetherlands && !inBelgium && !inGermany) {
         res.status(400).json({ error: 'Coordinates outside supported region' }); return
       }
 

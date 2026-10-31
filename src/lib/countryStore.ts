@@ -9,7 +9,7 @@
 //   countryStore.isChosen()              → boolean
 //
 // Writing:
-//   countryStore.setCountry('NO')        → persists + notifies subscribers
+//   countryStore.setCountry('SE')        → persists + notifies subscribers
 //
 // Subscribing (for React via useSyncExternalStore):
 //   countryStore.subscribe(fn)           → returns unsubscribe fn

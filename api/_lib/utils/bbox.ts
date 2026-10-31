@@ -15,14 +15,6 @@ export const BULGARIA_BBOX: BBox = {
   maxLng: 28.609,
 }
 
-/** Bbox covering all of Norway (mainland + islands) */
-export const NORWAY_BBOX: BBox = {
-  minLat: 57.959,
-  minLng:  4.479,
-  maxLat: 71.182,
-  maxLng: 31.293,
-}
-
 /** Bbox covering all of Sweden */
 export const SWEDEN_BBOX: BBox = {
   minLat: 55.337,

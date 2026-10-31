@@ -2,7 +2,7 @@
 //
 // LANGUAGE RESOLUTION ORDER (highest priority first):
 //   1. User override in localStorage  ('teslaradar:lang')
-//   2. Country default  (BG → 'bg', NO → 'en')
+//   2. Country default  (BG → 'bg', SE → 'sv')
 //   3. Hard fallback → 'bg'
 //
 // TRANSLATION LOOKUP (t function):
@@ -26,13 +26,13 @@
 import { DICTIONARY } from '@/config/i18n'
 import { countryStore } from '@/lib/countryStore'
 
-export type Lang = 'bg' | 'en' | 'no' | 'sv' | 'fi' | 'nl' | 'de'
+export type Lang = 'bg' | 'en' | 'sv' | 'fi' | 'nl' | 'de'
 
 const STORAGE_KEY = 'teslaradar:lang'
 
 // ── Language resolution ──────────────────────────────────────────────
 
-const VALID_LANGS = new Set<Lang>(['bg', 'en', 'no', 'sv', 'fi', 'nl', 'de'])
+const VALID_LANGS = new Set<Lang>(['bg', 'en', 'sv', 'fi', 'nl', 'de'])
 
 export function getLang(): Lang {
   try {

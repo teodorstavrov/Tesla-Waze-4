@@ -6,9 +6,6 @@
 //
 //  BG  — Bulgaria (single region, small country)
 //
-//  NO  — Norway (split into 17 lat bands to fit within Vercel 60s limit)
-//          NO-1A … NO-8 (south → north)
-//
 //  SE  — Sweden (split into 5 lat bands)
 //          SE-1  55.337 – 57.5   (Skåne, Blekinge, Småland)
 //          SE-2  57.5   – 59.5   (West coast, Stockholm)
@@ -25,7 +22,7 @@
 //          BE-S  49.497–50.600  Wallonia, Hainaut, Namur, Liège
 //          BE-N  50.600–51.505  Flanders, Brussels, Antwerp
 //
-// All bands for a country share the same Redis key (e.g. teslaradar:cameras:no).
+// All bands for a country share the same Redis key (e.g. teslaradar:cameras:se).
 // Each call reads existing cameras, removes old entries for its lat band, then
 // writes the merged result back.
 //
@@ -46,24 +43,6 @@ const REGIONS: Record<string, { bbox: BBox; redisCountry: string }> = {
 
   // ── Bulgaria (single region) ───────────────────────────────────────────
   BG: { bbox: BULGARIA_BBOX, redisCountry: 'BG' },
-
-  // ── Norway (17 lat bands, same Redis key 'NO') ─────────────────────────
-  'NO-1A':  { bbox: { minLat: 57.959, minLng: 4.479,  maxLat: 58.4,   maxLng: 31.293 }, redisCountry: 'NO' },
-  'NO-1B1': { bbox: { minLat: 58.4,   minLng: 4.479,  maxLat: 58.6,   maxLng: 31.293 }, redisCountry: 'NO' },
-  'NO-1B2': { bbox: { minLat: 58.6,   minLng: 4.479,  maxLat: 58.8,   maxLng: 31.293 }, redisCountry: 'NO' },
-  'NO-2':   { bbox: { minLat: 58.8,   minLng: 4.479,  maxLat: 59.5,   maxLng: 31.293 }, redisCountry: 'NO' },
-  'NO-3':   { bbox: { minLat: 59.5,   minLng: 4.479,  maxLat: 60.0,   maxLng: 31.293 }, redisCountry: 'NO' },
-  'NO-4A1': { bbox: { minLat: 60.0,   minLng: 4.479,  maxLat: 60.15,  maxLng: 31.293 }, redisCountry: 'NO' },
-  'NO-4A2': { bbox: { minLat: 60.15,  minLng: 4.479,  maxLat: 60.225, maxLng: 31.293 }, redisCountry: 'NO' },
-  'NO-4A3': { bbox: { minLat: 60.225, minLng: 4.479,  maxLat: 60.3,   maxLng: 31.293 }, redisCountry: 'NO' },
-  'NO-4B':  { bbox: { minLat: 60.3,   minLng: 4.479,  maxLat: 60.6,   maxLng: 31.293 }, redisCountry: 'NO' },
-  'NO-5A':  { bbox: { minLat: 60.6,   minLng: 4.479,  maxLat: 60.95,  maxLng: 31.293 }, redisCountry: 'NO' },
-  'NO-5B1': { bbox: { minLat: 60.95,  minLng: 4.479,  maxLat: 61.125, maxLng: 31.293 }, redisCountry: 'NO' },
-  'NO-5B2': { bbox: { minLat: 61.125, minLng: 4.479,  maxLat: 61.3,   maxLng: 31.293 }, redisCountry: 'NO' },
-  'NO-6A':  { bbox: { minLat: 61.3,   minLng: 4.479,  maxLat: 62.15,  maxLng: 31.293 }, redisCountry: 'NO' },
-  'NO-6B':  { bbox: { minLat: 62.15,  minLng: 4.479,  maxLat: 63.0,   maxLng: 31.293 }, redisCountry: 'NO' },
-  'NO-7':   { bbox: { minLat: 63.0,   minLng: 4.479,  maxLat: 67.5,   maxLng: 31.293 }, redisCountry: 'NO' },
-  'NO-8':   { bbox: { minLat: 67.5,   minLng: 4.479,  maxLat: 71.182, maxLng: 31.293 }, redisCountry: 'NO' },
 
   // ── Sweden (5 lat bands, Redis key 'SE') ──────────────────────────────
   'SE-1':   { bbox: { minLat: 55.337, minLng: 11.120, maxLat: 57.5,   maxLng: 24.166 }, redisCountry: 'SE' },
@@ -107,7 +86,7 @@ const REGIONS: Record<string, { bbox: BBox; redisCountry: string }> = {
 }
 
 // Countries that split multiple regions into a single Redis key
-const MULTI_REGION_COUNTRIES = new Set(['NO', 'SE', 'FI', 'NL', 'BE', 'DE'])
+const MULTI_REGION_COUNTRIES = new Set(['SE', 'FI', 'NL', 'BE', 'DE'])
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   const secret = process.env['CRON_SECRET']

@@ -7,11 +7,10 @@
 //           × 1.30 for I-class roads, × 1.35 for II-class roads).
 // limitKmh = car speed limit (140 on A-class, 120 on A6, 90 on I/II-class).
 //
-// For other countries see: sections_no.ts, sections_se.ts, sections_fi.ts
+// For other countries see: sections_se.ts, sections_fi.ts
 // Dispatcher:              getSectionsForCountry(code)  ← bottom of this file
 
 import type { SpeedSection } from './sectionTypes'
-import { SPEED_SECTIONS_NO } from './sections_no'
 import { SPEED_SECTIONS_SE } from './sections_se'
 import { SPEED_SECTIONS_FI } from './sections_fi'
 import { SPEED_SECTIONS_NL } from './sections_nl'
@@ -867,7 +866,6 @@ const SPEED_SECTIONS_BE: SpeedSection[] = []   // no verified official BE datase
 
 export function getSectionsForCountry(code: string): SpeedSection[] {
   switch (code) {
-    case 'NO': return SPEED_SECTIONS_NO
     case 'SE': return SPEED_SECTIONS_SE
     case 'FI': return SPEED_SECTIONS_FI
     case 'NL': return SPEED_SECTIONS_NL

@@ -49,7 +49,6 @@ import { DonationNudge } from '@/components/DonationNudge'
 import { RatingModal } from '@/components/RatingModal'
 import { VehicleProfileModal } from '@/components/VehicleProfileModal'
 import { CountryPicker } from '@/components/CountryPicker'
-import { NorwayBetaBanner } from '@/components/NorwayBetaBanner'
 import { BelgiumBetaBanner } from '@/components/BelgiumBetaBanner'
 import { LockSoundModal } from '@/components/LockSoundModal'
 import { OnlineCounter } from '@/components/OnlineCounter'
@@ -153,7 +152,6 @@ export function App() {
       <CountryBoundsLayer />
 
       {/* Layer 1: floating UI */}
-      <NorwayBetaBanner />
       <BelgiumBetaBanner />
       <LockSoundModal />
       <FloatingTitleCard />

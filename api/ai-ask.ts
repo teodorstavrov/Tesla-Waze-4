@@ -197,7 +197,7 @@ Site: tesradar.tech — free, optimized for the Tesla touchscreen browser.
 Detect the language of the user's question and respond in THAT EXACT LANGUAGE.
 - Question in Bulgarian → answer in Bulgarian
 - Question in English → answer in English
-- Question in Norwegian → answer in Norwegian
+- Question in Swedish → answer in Swedish
 - Question in German → answer in German
 NEVER switch language. NEVER answer in a different language than the question.
 
@@ -208,7 +208,7 @@ CRITICAL RULES:
 
 ━━━ TESRADAR SITE KNOWLEDGE BASE ━━━
 
-SUPPORTED COUNTRIES: Bulgaria 🇧🇬, Norway 🇳🇴, Sweden 🇸🇪, Finland 🇫🇮, Netherlands 🇳🇱, Belgium 🇧🇪, Germany 🇩🇪
+SUPPORTED COUNTRIES: Bulgaria 🇧🇬, Sweden 🇸🇪, Finland 🇫🇮, Netherlands 🇳🇱, Belgium 🇧🇪, Germany 🇩🇪
 
 MAP MARKERS:
 EV charging stations (⚡ icon on map):
@@ -232,7 +232,7 @@ Average-speed sections (corridor between 2 cameras):
   Deviation check: if you drive >50 m off the straight line between cameras, the counter silently cancels (wrong road / ramp).
   Exit result: ascending double-beep = OK (under limit); descending = over limit.
   Result card stays on screen until you tap X.
-  Countries with speed sections: Bulgaria (~47 sections), Norway (ATK), Sweden (sträckmätning), Finland (jaksonopeudenvalvonta), Netherlands (trajectcontrole), Germany. Belgium: no data yet.
+  Countries with speed sections: Bulgaria (~47 sections), Sweden (sträckmätning), Finland (jaksonopeudenvalvonta), Netherlands (trajectcontrole), Germany. Belgium: no data yet.
 
 Road events (community-reported, expire automatically):
   Police / speed check 🚔 (blue marker)
@@ -321,7 +321,7 @@ PERFORMANCE MODES:
   quality — better graphics, more detail, higher zoom cluster threshold.
   performance — faster rendering, less detail (useful on older Tesla browsers).
 
-LANGUAGES: Bulgarian (bg), English (en), Norwegian (no), Swedish (sv), Finnish (fi), Dutch (nl), German (de).
+LANGUAGES: Bulgarian (bg), English (en), Swedish (sv), Finnish (fi), Dutch (nl), German (de).
   The EN button in the right panel forces English regardless of country.
 
 COMMUNITY FEATURES:
@@ -681,7 +681,6 @@ function _clientIp(req: VercelRequest): string | undefined {
 function _rateLimitMsg(lang: string): string {
   const msgs: Record<string, string> = {
     bg: 'AI достигна лимита. Изчакай минута и опитай пак.',
-    no: 'AI-grensen er nådd. Vent et øyeblikk og prøv igjen.',
     sv: 'AI-gränsen har nåtts. Vänta en stund och försök igen.',
     fi: 'AI-raja saavutettu. Odota hetki ja yritä uudelleen.',
     nl: 'AI-limiet bereikt. Wacht even en probeer opnieuw.',
@@ -703,7 +702,6 @@ function _detectQuestionLang(text: string): string {
   if (cyrillic / clean.length > 0.25) return 'Bulgarian'
 
   // Scandinavian / Nordic distinguishers
-  if (/[æøÆØ]/.test(text)) return 'Norwegian'
   if (/[äöÄÖ]/.test(text) && !/[üÜß]/.test(text)) return 'Swedish or Finnish'
   // German-specific
   if (/[äöüÄÖÜß]/.test(text)) return 'German'

@@ -219,7 +219,7 @@ function _onGpsUpdate(): void {
       if (!_arrivedAnnounced) {
         _arrivedAnnounced = true
         const _l = getLang()
-        speak(({ bg: 'Пристигнахте на вашата дестинация', no: 'Du har ankommet din destinasjon', sv: 'Du har nått din destination', fi: 'Olet saapunut määränpäähäsi' } as Record<string,string>)[_l] ?? 'You have arrived at your destination')
+        speak(({ bg: 'Пристигнахте на вашата дестинация', sv: 'Du har nått din destination', fi: 'Olet saapunut määränpäähäsi' } as Record<string,string>)[_l] ?? 'You have arrived at your destination')
       }
       _state = { ..._state, deviated, remainingM: remaining, arrived: true }
       _emit()
@@ -398,14 +398,12 @@ export const routeStore = {
       const _lang = getLang()
       const offlineMsg: Record<string, string> = {
         bg: 'Без интернет — маршрутът не може да се изчисли',
-        no: 'Ingen internett — kan ikke beregne rute',
         sv: 'Ingen internet — kan inte beräkna rutt',
         fi: 'Ei internetyhteyttä — reittiä ei voi laskea',
         nl: 'Geen internet — route kan niet worden berekend',
       }
       const serviceMsg: Record<string, string> = {
         bg: 'Маршрутната услуга е недостъпна — опитайте отново',
-        no: 'Rutetjeneste utilgjengelig — prøv igjen',
         sv: 'Rutttjänsten är otillgänglig — försök igen',
         fi: 'Reitityspalvelu ei saatavilla — yritä uudelleen',
         nl: 'Routeservice niet beschikbaar — probeer opnieuw',
