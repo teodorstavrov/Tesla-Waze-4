@@ -2200,7 +2200,7 @@ export const DICTIONARY = {
       denyProgress:  'Votes pour supprimer',
       denyDeleting:  'Suppression...',
       filterLabel:   'Filtre bornes',
-      voiceListening: 'Écoute… Dites le type d'événement',
+      voiceListening: 'Écoute… Dites le type d\'événement',
       reportWhat:    'Que souhaitez-vous signaler ?',
       reportTitle:   'Signaler un événement',
       noActive:      'Aucun marqueur actif',
