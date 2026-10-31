@@ -4,6 +4,9 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-10-31 (3)
+- **Fix: неизбегнати апострофи във Френски i18n низове** — 22 Френски string literals съдържаха неexcaped апострофи вътре в single-quoted strings (`l'itinéraire`, `d'événement`, `aujourd'hui` и др.), причиняващи Vite/rolldown parse error при build. Всички коригирани с `\'` escape — commits `8880b49`, `779de21`
+
 ## 2026-10-31 (2)
 - **Feat: добавяне на Франция** — пълна интеграция на France като нова държава: CountryCode `FR`, COUNTRIES + COUNTRY_LIST (след BG), FRANCE_BBOX + FRANCE_WEST/EAST_BBOX, 14 radar tronçon секции (A2 Valenciennes, A16 Boulogne, A25 Lille, A7 Chanas, A48 Voreppe, A51 Saint-Cannat, A71 Clermont), `fr` locale в i18n (всички ключове преведени), Lang type + VALID_LANGS, TTS `fr-FR` (TurnInstruction, alertEngine, VoiceAssistant), maneuver.ts (MODIFIER_VOICE, MODIFIER_DISPLAY, fr roundabout/arrive/depart/exit), routeStore.ts offline+service съобщения, MeetupList+MeetupDetail LANG_LOCALE, admin COUNTRY_FLAGS+countryFromCoords+LANG_FLAG, ai-ask knowledge base (SUPPORTED COUNTRIES, LANGUAGES, rate-limit, French detectLang), events/index.ts France bbox check, sync-cameras FR-1..FR-4 региони + FR в MULTI_REGION_COUNTRIES, sync-stations.ts паралелен fetch за France (Tesla+OCM west/east+OSM), vercel.json — изтрити 17 Norway NO-* cron записа, добавени FR-1..FR-4 cron; SEO: title, meta, hreflang fr-FR, og:locale fr_FR, JSON-LD areaServed+inLanguage, FAQ 2 нови FR въпроса, manifest.json, French keywords
 
