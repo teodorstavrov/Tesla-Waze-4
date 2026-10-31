@@ -4,6 +4,9 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-10-31 (4)
+- **Fix: камери и EV станции не се показват за Франция** — `api/cameras/index.ts` SUPPORTED set не включваше `'FR'` → 400 грешка при заявка за FR камери; добавено `'FR'` в set-а; EV станции: sync-stations cron не е пускан от deploy-а на France → ще се тригерне ръчен sync
+
 ## 2026-10-31 (3)
 - **Fix: неизбегнати апострофи във Френски i18n низове** — 22 Френски string literals съдържаха неexcaped апострофи вътре в single-quoted strings (`l'itinéraire`, `d'événement`, `aujourd'hui` и др.), причиняващи Vite/rolldown parse error при build. Всички коригирани с `\'` escape — commits `8880b49`, `779de21`
 
