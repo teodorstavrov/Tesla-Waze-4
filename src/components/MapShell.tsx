@@ -403,13 +403,13 @@ export function MapShell() {
     function _onDragStart(): void { /* rAF already cancelled by touchstart */ }
     map.on('dragstart', _onDragStart)
 
-    // Auto-recenter: 5s after user stops panning, re-enable follow if GPS is active
+    // Auto-recenter: 5s after user stops panning, re-enable follow only if moving ≥ 30 km/h
     function _onDragEnd(): void {
       if (_drTs === 0) return
       if (_autoRecenterTimer !== null) clearTimeout(_autoRecenterTimer)
       _autoRecenterTimer = setTimeout(() => {
         _autoRecenterTimer = null
-        if (_drTs > 0) followStore.setFollowing(true)
+        if (_drTs > 0 && _drSpeedMs * 3.6 >= 30) followStore.setFollowing(true)
       }, 5000)
     }
     map.on('dragend', _onDragEnd)

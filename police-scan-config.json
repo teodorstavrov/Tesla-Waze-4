@@ -19,10 +19,10 @@
     { "id": "hamburg",    "city": "Hamburg",    "country": "DE", "priority": 2, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null },
     { "id": "brussels",   "city": "Brussels",   "country": "BE", "priority": 2, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null },
     { "id": "frankfurt",  "city": "Frankfurt",  "country": "DE", "priority": 2, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null },
-    { "id": "lyon",       "city": "Lyon",       "country": "FR", "priority": 2, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null }
+    { "id": "hannover",   "city": "Hannover",   "country": "DE", "priority": 2, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null }
   ],
   "playwrightCities": [
-    { "id": "bg-whole",    "city": "България (цяла страна)", "country": "BG", "priority": 3, "status": "current", "scanIntervalHours": 1, "ttlMin": 135, "note": "waze-sync.mjs whole-BG bbox. Interval changed 2h→1h in waze-sync-task.xml." },
+    { "id": "bg-whole",    "city": "България (цяла страна)", "country": "BG", "priority": 3, "status": "current", "scanIntervalHours": 2, "ttlMin": 135, "note": "waze-sync.mjs whole-BG bbox." },
     { "id": "den-haag",    "city": "Den Haag",    "country": "NL", "priority": 2, "status": "proposed", "scanIntervalHours": 1, "ttlMin": 135 },
     { "id": "utrecht",     "city": "Utrecht",     "country": "NL", "priority": 1, "status": "proposed", "scanIntervalHours": 1, "ttlMin": 135 },
     { "id": "eindhoven",   "city": "Eindhoven",   "country": "NL", "priority": 1, "status": "proposed", "scanIntervalHours": 1, "ttlMin": 135 },
