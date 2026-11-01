@@ -4,6 +4,11 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-11-01
+- **Feat: Tesla Lock Sound бутон преместен до Support the Project** — Bell иконата премахната от левия вертикален панел и добавена в горната лява лента (`FloatingTitleCard`) до ♥ бутона
+- **Fix: начален zoom 15 за всички държави** — BG/SE/FI/NL/BE: 16→15, FR: 14→15; всички 7 държави вече зареждат на еднакъв zoom 15
+- **UX: GPS аватар намален с 10%** — `ICON_SIZE` 76→68px
+
 ## 2026-10-31 (9)
 - **Chore: премахнат Stockholm от Waze API сканиране** — 12 града остават (8 640 req/мес, резерв 1 360); обновен `police-scan-config.json` и `waze-api-sync.mjs`
 
