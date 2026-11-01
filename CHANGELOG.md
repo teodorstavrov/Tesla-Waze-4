@@ -5,7 +5,7 @@ All notable changes to TesRadar, organized by date (newest first).
 ---
 
 ## 2026-11-01 (5)
-- **Feat: NL скан 24ч → 12ч** — добавен `run-nl.bat` (standalone NL run в 16:00); `register-tasks.bat` регистрира нова задача `TesRadar-TeslaNavSync-NL` (16:00 daily); заедно с chain-a (04:00) дава 12-часова честота за Нидерландия
+- **Feat: NL скан 24ч → 12ч + TTL 1500→750 мин** — добавен `run-nl.bat` (standalone NL run в 16:00); `register-tasks.bat` регистрира нова задача `TesRadar-TeslaNavSync-NL` (16:00 daily); заедно с chain-a (04:00) дава 12-часова честота за Нидерландия; `sync.mjs`: NL TTL 25ч → 750 мин (12ч30м = 12ч + 30 мин буфер)
 
 ## 2026-11-01 (4)
 - **Fix: permanent маркери защитени от eviction (MAX_EVENTS)** — `redisStore.ts`: при достигане на лимит 500 се изтрива само най-старият НЕ-permanent маркер; admin маркери (BE/NL/DE с 25ч TTL) вече не могат да бъдат изместени преди изтичане на TTL-а им

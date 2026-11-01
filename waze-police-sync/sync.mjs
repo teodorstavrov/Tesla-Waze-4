@@ -1259,8 +1259,9 @@ async function main() {
   // NL/BE sync once a day: markers live 25h (24h + 1h buffer).
   // Route syncs every 4h: markers live 4h15m (4h + 15min buffer so nothing expires early).
   // Cities keeps the server default (2h15m) by leaving markerTtlMs null.
-  markerTtlMs = (arg === 'nl' || arg === 'be' || arg === 'de') ? 25 * 60 * 60 * 1000       // 25 h
-              : arg === 'route'                                ? (4 * 60 + 15) * 60 * 1000 // 4 h 15 min
+  markerTtlMs = arg === 'nl'                ? 750 * 60 * 1000              // 12h 30m (12h cadence + 30min buffer)
+              : (arg === 'be' || arg === 'de') ? 25 * 60 * 60 * 1000       // 25 h (daily)
+              : arg === 'route'               ? (4 * 60 + 15) * 60 * 1000 // 4 h 15 min
               : null;
 
   // Cities (20 locations): 3-minute breather between the first 10 and the next 10.
