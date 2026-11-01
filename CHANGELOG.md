@@ -4,6 +4,10 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-11-01 (3)
+- **Feat: Burgas добавен към Waze API сканиране** — 13-ти град (BG, pri3, 1ч); бюджет 8640→9360 req/мес (резерв 640); обновени `police-scan-config.json` + `waze-api-sync.mjs`
+- **Fix: начален zoom 13 за всички държави** — всички 7 държави зареждат на zoom 13
+
 ## 2026-11-01 (2)
 - **Feat: auto-recenter само при > 30 km/h** — `MapShell.tsx`: 5-секундният таймер за auto-recenter вече активира follow mode само ако скоростта е ≥ 30 km/h; при паркиране или бавно движение картата остава там, където потребителят я е оставил
 - **Chore: Lyon → Hannover в Waze API сканиране** — `police-scan-config.json` + `waze-api-sync.mjs`: Lyon (FR) заменен с Hannover (DE, pri2, 1ч); 12 Waze API града остават
