@@ -1147,7 +1147,7 @@ async function trAddPolice(lat, lng, id) {
     lat, lng,
     description: `${TAG}:${id}`, // lets us recognise & dedup our own markers
   };
-  if (markerTtlMs) payload.ttlMs = markerTtlMs; // NL/BE live longer (4h15m) than BG default (2h15m)
+  if (markerTtlMs) payload.ttlMs = markerTtlMs; // NL/BE/DE live 25h; route 4h15m; cities → server default (2h15m)
   const r = await fetch(`${CONFIG.tesradarBase}/api/admin/events`, {
     method: 'POST', headers: trHeaders(), body: JSON.stringify(payload),
   });

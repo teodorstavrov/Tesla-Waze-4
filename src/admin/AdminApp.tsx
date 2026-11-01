@@ -54,6 +54,7 @@ interface RoadEvent {
   confirms: number
   description: string | null
   permanent?: boolean
+  source?: string
 }
 
 // ── Styles ──────────────────────────────────────────────────────────────
@@ -1329,9 +1330,9 @@ function AdminMap({ events, userStations, comments, meetups, visitors, addMode, 
         if (existing) { existing.remove(); markersRef.current.delete(ev.id) }
 
         const isEditing = editingEventId === ev.id
-        const circleColor = ev.source === 'waze-api' ? '#22c55e' : '#e31937'
-        const circleBg    = ev.source === 'waze-api' ? 'rgba(34,197,94,0.18)' : 'rgba(227,25,55,0.18)'
-        const circleShadow = ev.source === 'waze-api' ? 'rgba(34,197,94,0.5)' : 'rgba(227,25,55,0.5)'
+        const circleColor  = ev.source === 'waze-api' ? '#22c55e' : ev.source === 'playwright' ? '#f97316' : '#e31937'
+        const circleBg     = ev.source === 'waze-api' ? 'rgba(34,197,94,0.18)' : ev.source === 'playwright' ? 'rgba(249,115,22,0.18)' : 'rgba(227,25,55,0.18)'
+        const circleShadow = ev.source === 'waze-api' ? 'rgba(34,197,94,0.5)'  : ev.source === 'playwright' ? 'rgba(249,115,22,0.5)'  : 'rgba(227,25,55,0.5)'
         const icon = L.divIcon({
           className: '',
           html: ev.permanent
@@ -2150,7 +2151,8 @@ function buildPopup(ev: RoadEvent): string {
       <div style="color:#aaa;margin-bottom:8px;font-size:11px;">⏱ ${exp}</div>
       ${ev.description ? `<div style="color:#666;font-size:11px;margin-bottom:8px;font-style:italic;">"${ev.description}"</div>` : ''}
       ${ev.permanent && ev.source === 'waze-api'   ? '<div style="font-size:10px;color:#22c55e;font-weight:700;margin-bottom:8px;">🟢 WAZE API</div>' : ''}
-      ${ev.permanent && ev.source !== 'waze-api'   ? '<div style="font-size:10px;color:#e31937;font-weight:700;margin-bottom:8px;">🔴 СЛУЖЕБЕН</div>' : ''}
+      ${ev.permanent && ev.source === 'playwright' ? '<div style="font-size:10px;color:#f97316;font-weight:700;margin-bottom:8px;">🟠 PLAYWRIGHT</div>' : ''}
+      ${ev.permanent && ev.source !== 'waze-api' && ev.source !== 'playwright' ? '<div style="font-size:10px;color:#e31937;font-weight:700;margin-bottom:8px;">🔴 СЛУЖЕБЕН</div>' : ''}
       <div style="display:flex;gap:6px;">
         <button id="edit-${ev.id}" style="
           flex:1;padding:7px 0;border-radius:7px;

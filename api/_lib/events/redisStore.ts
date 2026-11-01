@@ -56,8 +56,17 @@ export const eventRedisStore = {
   async add(event: RoadEvent): Promise<void> {
     let all = _pruneExpired(await _readAll())
     if (all.length >= MAX_EVENTS) {
-      // Evict oldest
-      all = all.sort((a, b) => a.reportedAt.localeCompare(b.reportedAt)).slice(1)
+      // Evict the oldest non-permanent event only. Permanent (admin-sync) markers
+      // must not be evicted before their TTL — they were added intentionally with
+      // a specific lifetime (e.g. 25 h for BE/NL/DE teslanav groups).
+      const oldestNonPerm = all
+        .filter((e) => !e.permanent)
+        .sort((a, b) => a.reportedAt.localeCompare(b.reportedAt))[0]
+      if (oldestNonPerm) {
+        all = all.filter((e) => e.id !== oldestNonPerm.id)
+      }
+      // If every event is permanent and we're still at the cap, raise the effective
+      // limit so admin markers are never silently dropped.
     }
     all.push(event)
     await _write(all)
