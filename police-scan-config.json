@@ -4,8 +4,8 @@
   "note": "Waze API PRO plan (10 000 req/month). playwrightCities are covered by waze-sync.mjs (whole-BG bbox) or future per-city Playwright extensions.",
   "budget": {
     "wazeApiReqPerMonth": 10000,
-    "plannedReqPerMonth": 8640,
-    "reserveReqPerMonth": 1360
+    "plannedReqPerMonth": 9360,
+    "reserveReqPerMonth": 640
   },
   "wazeApiCities": [
     { "id": "sofia",      "city": "Sofia",      "country": "BG", "priority": 3, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": 40 },
@@ -19,7 +19,8 @@
     { "id": "hamburg",    "city": "Hamburg",    "country": "DE", "priority": 2, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null },
     { "id": "brussels",   "city": "Brussels",   "country": "BE", "priority": 2, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null },
     { "id": "frankfurt",  "city": "Frankfurt",  "country": "DE", "priority": 2, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null },
-    { "id": "hannover",   "city": "Hannover",   "country": "DE", "priority": 2, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null }
+    { "id": "hannover",   "city": "Hannover",   "country": "DE", "priority": 2, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null },
+    { "id": "burgas",     "city": "Burgas",     "country": "BG", "priority": 3, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null }
   ],
   "playwrightCities": [
     { "id": "bg-whole",    "city": "България (цяла страна)", "country": "BG", "priority": 3, "status": "current", "scanIntervalHours": 2, "ttlMin": 135, "note": "waze-sync.mjs whole-BG bbox." },
