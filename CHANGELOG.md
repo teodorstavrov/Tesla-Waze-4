@@ -4,6 +4,11 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-11-01 (2)
+- **Feat: auto-recenter само при > 30 km/h** — `MapShell.tsx`: 5-секундният таймер за auto-recenter вече активира follow mode само ако скоростта е ≥ 30 km/h; при паркиране или бавно движение картата остава там, където потребителят я е оставил
+- **Chore: Lyon → Hannover в Waze API сканиране** — `police-scan-config.json` + `waze-api-sync.mjs`: Lyon (FR) заменен с Hannover (DE, pri2, 1ч); 12 Waze API града остават
+- **Chore: BG Playwright scan 1ч → 2ч** — `police-scan-config.json`: bg-whole scanIntervalHours 1→2
+
 ## 2026-11-01
 - **Feat: Tesla Lock Sound бутон преместен до Support the Project** — Bell иконата премахната от левия вертикален панел и добавена в горната лява лента (`FloatingTitleCard`) до ♥ бутона
 - **Fix: начален zoom 15 за всички държави** — BG/SE/FI/NL/BE: 16→15, FR: 14→15; всички 7 държави вече зареждат на еднакъв zoom 15
