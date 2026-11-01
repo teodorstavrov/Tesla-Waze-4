@@ -3,7 +3,6 @@
 import { useSyncExternalStore } from 'react'
 import { LocationButton } from '@/components/LocationButton'
 import { getMap } from '@/components/MapShell'
-import { openLockSoundModal } from '@/components/LockSoundModal'
 import { openVoiceAssistant, MicButtonIcon } from '@/features/voice/VoiceAssistant'
 import { openVehicleProfileModal } from '@/components/VehicleProfileModal'
 import { openPricingModal } from '@/components/PricingModal'
@@ -70,10 +69,6 @@ export function LeftControls() {
       )}
       {/* Secondary: hidden on Tesla small screens (< 700px) to free space for larger buttons */}
       <div className="left-ctrl-secondary" style={{ display: 'contents' }}>
-        <button className="icon-btn" onClick={openLockSoundModal}
-          title="Tesla Lock Sounds" aria-label="Tesla Lock Sounds">
-          <BellIcon />
-        </button>
         <button className="icon-btn" onClick={openVoiceAssistant}
           title="TesRadar AI" aria-label="TesRadar AI — voice assistant"
           style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
@@ -122,16 +117,6 @@ function CarBatteryIcon() {
   )
 }
 
-
-function BellIcon() {
-  return (
-    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-    </svg>
-  )
-}
 
 // Compass needle pointing north — shown when in north-up mode (click → course-up)
 function NorthUpIcon() {

@@ -50,7 +50,7 @@ export function getNavPosition(): { lat: number; lng: number } | null {
 // Reset to 0 when route polyline reference changes (new route loaded).
 let _currentSegmentIdx = 0
 
-const ICON_SIZE   = 76
+const ICON_SIZE   = 68
 const SNAP_DIST_M = 60
 
 // ── DOM factory ───────────────────────────────────────────────────────────────

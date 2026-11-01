@@ -3,6 +3,7 @@ import { useSyncExternalStore } from 'react'
 import { routeStore } from '@/features/route/routeStore'
 import { openRatingModal } from '@/components/RatingModal'
 import { openSupportModal } from '@/components/SupportModal'
+import { openLockSoundModal } from '@/components/LockSoundModal'
 import { isTeslaBrowser } from '@/lib/browser'
 import { t, getLang, langStore } from '@/lib/locale'
 
@@ -86,6 +87,33 @@ export function FloatingTitleCard() {
             }}
           >
             ♥
+          </button>
+          <button
+            onClick={openLockSoundModal}
+            title="Tesla Lock Sounds"
+            aria-label="Tesla Lock Sounds"
+            style={{
+              width: 'clamp(28px, 4vh, 42px)', height: 'clamp(28px, 4vh, 42px)',
+              borderRadius: 10,
+              background: isTeslaBrowser ? 'rgba(13,13,19,0.97)' : 'rgba(18,18,26,0.82)',
+              border: '1px solid rgba(255,255,255,0.14)',
+              backdropFilter: isTeslaBrowser ? undefined : 'blur(10px)',
+              WebkitBackdropFilter: isTeslaBrowser ? undefined : 'blur(10px)',
+              color: 'rgba(255,255,255,0.75)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              touchAction: 'manipulation',
+              boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+              opacity: 0.5,
+            }}
+          >
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
           </button>
         </>
       )}
