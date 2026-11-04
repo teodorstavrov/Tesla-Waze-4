@@ -4,6 +4,13 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-11-04
+
+- **UX: Задръстване и Строителство премахнати от „Добави маркер"** — `AdminApp.tsx`: типовете `traffic` и `construction` вече не се показват в секцията за добавяне на маркери в Admin Panel; останали: Полиция, Катастрофа, Опасност, Камера
+- **UX: „Пътни събития" секция скрита от Admin Panel sidebar** — `AdminApp.tsx`: `EventsListPanel` (списък с 277+ маркери) премахнат от лявото меню; намалява шума, маркерите на картата се запазват
+- **Feat: авто-центриране при ≥ 30 km/h** — `MapShell.tsx`: при всеки GPS тик, ако follow mode е изключен (ръчно преместена карта) и скоростта е ≥ 30 km/h, follow se включва автоматично; под 30 km/h (паркиране/маневриране) картата остава неподвижна
+- **Fix: Waze API sync fetch timeout** — `waze-api-sync.mjs`: добавен 15-секунден AbortController timeout за всяка fetch заявка; предотвратява висене при бавна мрежа/таймаут на openwebninja.com и последващ kill от Task Scheduler; `waze-api-sync-task.xml`: ExecutionTimeLimit 5→15 мин
+
 ## 2026-11-01 (5)
 - **Feat: NL скан 24ч → 12ч + TTL 1500→750 мин** — добавен `run-nl.bat` (standalone NL run в 16:00); `register-tasks.bat` регистрира нова задача `TesRadar-TeslaNavSync-NL` (16:00 daily); заедно с chain-a (04:00) дава 12-часова честота за Нидерландия; `sync.mjs`: NL TTL 25ч → 750 мин (12ч30м = 12ч + 30 мин буфер)
 
