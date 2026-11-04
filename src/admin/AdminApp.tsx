@@ -6,12 +6,10 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import type L from 'leaflet'
 
 const EVENT_LABELS: Record<string, string> = {
-  police:       '🚔 Полиция',
-  accident:     '💥 Катастрофа',
-  hazard:       '⚠️ Опасност',
-  traffic:      '🚗 Задръстване',
-  camera:      '📷 Камера',
-  construction: '🏗️ Строителство',
+  police:   '🚔 Полиция',
+  accident: '💥 Катастрофа',
+  hazard:   '⚠️ Опасност',
+  camera:   '📷 Камера',
 }
 const EVENT_TYPES = Object.keys(EVENT_LABELS) as EventType[]
 type EventType = 'police' | 'accident' | 'hazard' | 'traffic' | 'camera' | 'construction'
@@ -529,13 +527,6 @@ function Dashboard({ secret }: { secret: string }) {
           onEdit={setEditingMeetup}
         />
 
-        {/* Road events list */}
-        <EventsListPanel
-          events={events}
-          editingId={editingEvent?.id ?? null}
-          onEdit={setEditingEvent}
-          onDelete={(id) => { void deleteEvent(id) }}
-        />
 
         {/* AI Assistant stats */}
         <AiStatsPanel stats={aiStats} />

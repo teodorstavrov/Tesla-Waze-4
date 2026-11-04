@@ -416,7 +416,11 @@ export function MapShell() {
 
     // GPS tick: update dead-reckoning state — the rAF loop handles all map movement
     const unsubGps = gpsStore.onPosition((pos) => {
-      if (!followStore.isFollowing()) return
+      // Auto-recenter: if not following and speed > 30 km/h, re-enable follow
+      if (!followStore.isFollowing()) {
+        if ((pos.speedKmh ?? 0) >= 30) followStore.setFollowing(true)
+        else return
+      }
       const navPos     = getNavPosition()
       const newHeading = getNavBearing() ?? pos.heading ?? _drHeading
       const now        = performance.now()
