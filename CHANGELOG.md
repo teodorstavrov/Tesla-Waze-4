@@ -4,6 +4,14 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-11-05 (2)
+
+- **Waze API: Paris премахнат** — 14→13 града (9 360 req/мес, резерв +640); `waze-api-sync.mjs` + `police-scan-config.json` обновени
+- **TeslaNAV: 40 нови града добавени** — BG (13 × 1ч + 6 × 2ч A2 Hemus), BE (11 × 24ч), DE (9 × 2ч), FR Paris (prop, 2ч); общо 51 teslanav записа; `police-scan-config.json` обновен с teslanavCities секция
+- **Artifact обновен** — Paris преместен от Waze в teslanav (prop), всички нови 40 teslanav града добавени в таблицата
+
+---
+
 ## 2026-11-05
 
 - **UX: Експорт/Импорт бутони премахнати от Admin Panel** — `AdminApp.tsx`: секцията с ⬇ Експорт и ⬆ Импорт на служебни маркери (под VisitorStatsPanel) е скрита; функциите остават в кода за евентуална бъдеща употреба
