@@ -464,21 +464,6 @@ function Dashboard({ secret }: { secret: string }) {
         {/* Visitor tracking */}
         <VisitorStatsPanel visitors={visitors} stats={visitorStats} onRefresh={loadAll} />
 
-        {/* Export / Import permanent markers */}
-        <div style={{ padding: '10px 18px', borderBottom: '1px solid rgba(255,255,255,0.07)', display: 'flex', gap: 8 }}>
-          <button
-            style={{ ...S.btn, flex: 1, background: 'rgba(255,255,255,0.06)', color: '#ccc', fontSize: 12 }}
-            onClick={exportPermanent}
-            title="Изтегли JSON с всички служебни маркери">
-            ⬇ Експорт
-          </button>
-          <label style={{ ...S.btn, flex: 1, background: 'rgba(255,255,255,0.06)', color: '#ccc', fontSize: 12, cursor: 'pointer', textAlign: 'center' }}
-            title="Зареди JSON с маркери">
-            ⬆ Импорт
-            <input type="file" accept=".json" style={{ display: 'none' }}
-              onChange={(e) => { const f = e.target.files?.[0]; if (f) void importPermanent(f); e.target.value = '' }} />
-          </label>
-        </div>
 
         {/* Add marker controls */}
         <div style={{ padding: '14px 18px', borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
