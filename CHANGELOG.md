@@ -4,6 +4,14 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-11-06 (2)
+
+- **UX: LoginGate — logo, red branding, English** — replaced emoji with `/logo_icon.svg`; orange `#f97316` → red `#DA0708` (from logo); subtitle → "Navigate smart"; all UI text translated to English
+- **API: register — admin email notification** — `api/auth/register.ts` now sends a fire-and-forget email to `teodorstavrov@gmail.com` on every new user registration (name, email, Tesla model, timestamp)
+- **API: register/login** — all error messages translated to English
+
+---
+
 ## 2026-11-06
 
 - **Feat: PIN login gate за всички потребители** — `LoginGate.tsx`: full-screen overlay преди картата; регистрация (Иmе + Имейл + Tesla модел) → PIN изпратен по имейл чрез Resend; вход с имейл + PIN; PIN се помни в localStorage за автоматичен вход следващия път

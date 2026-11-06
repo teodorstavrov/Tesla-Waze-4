@@ -6,8 +6,9 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { redis } from '../_lib/db/redis.js'
 
-const RESEND_KEY  = process.env['RESEND_API_KEY']
-const FROM_EMAIL  = 'TesRadar <noreply@tesradar.tech>'
+const RESEND_KEY   = process.env['RESEND_API_KEY']
+const FROM_EMAIL   = 'TesRadar <noreply@tesradar.tech>'
+const ADMIN_EMAIL  = 'teodorstavrov@gmail.com'
 
 export interface TesRadarUser {
   name:       string
@@ -49,6 +50,28 @@ async function sendPinEmail(to: string, name: string, pin: string): Promise<void
   if (!r.ok) throw new Error(`Resend error: ${await r.text()}`)
 }
 
+async function sendAdminNotification(user: TesRadarUser): Promise<void> {
+  if (!RESEND_KEY) return
+  const model = user.teslaModel || '(not specified)'
+  await fetch('https://api.resend.com/emails', {
+    method:  'POST',
+    headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      from:    FROM_EMAIL,
+      to:      [ADMIN_EMAIL],
+      subject: `New TesRadar registration: ${user.name}`,
+      text: [
+        `New user registered on TesRadar:`,
+        '',
+        `Name:        ${user.name}`,
+        `Email:       ${user.email}`,
+        `Tesla model: ${model}`,
+        `Registered:  ${new Date(user.createdAt).toISOString()}`,
+      ].join('\n'),
+    }),
+  }).catch((e) => console.error('Admin notification failed:', e))
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   res.setHeader('Access-Control-Allow-Origin', '*')
   res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS')
@@ -64,7 +87,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const teslaModel: string = String(body.teslaModel ?? '').trim()
 
   if (!name || !email || !email.includes('@')) {
-    res.status(400).json({ error: 'Моля попълни всички полета.' }); return
+    res.status(400).json({ error: 'Please fill in all required fields.' }); return
   }
 
   const pin  = generatePin()
@@ -79,8 +102,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     await sendPinEmail(email, name, pin)
   } catch (e) {
     console.error('PIN email failed:', e)
-    res.status(500).json({ error: 'Грешка при изпращане на имейл. Опитай отново.' }); return
+    res.status(500).json({ error: 'Failed to send email. Please try again.' }); return
   }
+
+  // Fire-and-forget admin notification — does not block the response
+  void sendAdminNotification(user)
 
   res.status(200).json({ ok: true })
 }

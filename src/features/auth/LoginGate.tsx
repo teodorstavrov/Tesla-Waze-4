@@ -40,10 +40,10 @@ function AuthScreen() {
       <div style={S.card}>
         {/* Logo */}
         <div style={S.logo}>
-          <span style={S.logoIcon}>🚔</span>
+          <img src="/logo_icon.svg" style={S.logoImg} alt="TesRadar" />
           <div>
             <div style={S.logoTitle}>TesRadar</div>
-            <div style={S.logoSub}>Радар за трафик в реално време</div>
+            <div style={S.logoSub}>Navigate smart</div>
           </div>
         </div>
 
@@ -70,7 +70,7 @@ function AuthScreen() {
       </div>
 
       <p style={S.disclaimer}>
-        TesRadar не е свързан с и не е одобрен от Tesla, Inc.
+        TesRadar is not affiliated with or endorsed by Tesla, Inc.
       </p>
     </div>
   )
@@ -95,29 +95,29 @@ function RegisterForm({
 
   async function handleSubmit() {
     setError('')
-    if (!name.trim() || !email.trim()) { setError('Попълни всички задължителни полета.'); return }
-    if (!email.includes('@'))          { setError('Въведи валиден имейл адрес.'); return }
+    if (!name.trim() || !email.trim()) { setError('Please fill in all required fields.'); return }
+    if (!email.includes('@'))          { setError('Please enter a valid email address.'); return }
     setLoading(true)
     const result = await authStore.register(name.trim(), email.trim(), teslaModel.trim())
     setLoading(false)
     if (result.ok) { onRegistered(email.trim().toLowerCase()); return }
-    setError(result.error ?? 'Грешка при регистрация.')
+    setError(result.error ?? 'Registration error. Please try again.')
   }
 
   return (
     <>
-      <div style={S.heading}>Поискай достъп</div>
+      <div style={S.heading}>Request Access</div>
       <div style={S.subheading}>
-        Регистрирай се безплатно — ще получиш PIN код по имейл веднага.
+        Register for free — you'll receive a PIN code by email instantly.
       </div>
 
       <div style={S.field}>
-        <label style={S.label}>Имe *</label>
+        <label style={S.label}>Name *</label>
         <input
           ref={nameRef}
           style={S.input}
           type="text"
-          placeholder="Твоето име"
+          placeholder="Your name"
           value={name}
           onChange={(e) => setName(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && void handleSubmit()}
@@ -125,11 +125,11 @@ function RegisterForm({
       </div>
 
       <div style={S.field}>
-        <label style={S.label}>Имейл *</label>
+        <label style={S.label}>Email *</label>
         <input
           style={S.input}
           type="email"
-          placeholder="твоят@имейл.com"
+          placeholder="your@email.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && void handleSubmit()}
@@ -137,7 +137,7 @@ function RegisterForm({
       </div>
 
       <div style={S.field}>
-        <label style={S.label}>Модел Tesla</label>
+        <label style={S.label}>Tesla model</label>
         <input
           style={S.input}
           type="text"
@@ -155,15 +155,15 @@ function RegisterForm({
         onClick={() => void handleSubmit()}
         disabled={loading}
       >
-        {loading ? 'Изпращане…' : 'Поискай PIN код →'}
+        {loading ? 'Sending…' : 'Get my PIN →'}
       </button>
 
       <p style={S.note}>
-        Ще изпратим PIN на твоя имейл — без парола на Tesla акаунта.
+        We'll send a PIN to your email — no Tesla account password needed.
       </p>
 
       <button style={S.switchBtn} onClick={onSwitchToLogin}>
-        Вече имам PIN → Влез
+        I have a PIN → Sign in
       </button>
     </>
   )
@@ -173,13 +173,13 @@ function RegisterForm({
 function CheckEmailView({ email, onLogin }: { email: string; onLogin: () => void }) {
   return (
     <>
-      <div style={{ ...S.heading, fontSize: '1.4rem' }}>Провери имейла си ✉</div>
+      <div style={{ ...S.heading, fontSize: '1.4rem' }}>Check your inbox ✉</div>
       <div style={S.subheading}>
-        Изпратихме PIN код на <strong style={{ color: '#f97316' }}>{email}</strong>.
-        Въведи го на следващия екран.
+        We've sent a PIN to <strong style={{ color: '#DA0708' }}>{email}</strong>.
+        Enter it on the next screen.
       </div>
       <button style={S.btn} onClick={onLogin}>
-        Въведи PIN →
+        Enter PIN →
       </button>
     </>
   )
@@ -205,26 +205,26 @@ function LoginForm({
 
   async function handleLogin() {
     setError('')
-    if (!email.trim() || !pin.trim()) { setError('Въведи имейл и PIN.'); return }
+    if (!email.trim() || !pin.trim()) { setError('Please enter your email and PIN.'); return }
     setLoading(true)
     const result = await authStore.login(email.trim().toLowerCase(), pin.trim())
     setLoading(false)
-    if (!result.ok) setError(result.error ?? 'Невалиден имейл или PIN.')
+    if (!result.ok) setError(result.error ?? 'Invalid email or PIN.')
   }
 
   return (
     <>
-      <div style={S.heading}>Вход с PIN</div>
+      <div style={S.heading}>Sign In</div>
       <div style={S.subheading}>
-        Използвай имейла и PIN кода, получен при регистрацията.
+        Use the email and PIN code you received during registration.
       </div>
 
       <div style={S.field}>
-        <label style={S.label}>Имейл</label>
+        <label style={S.label}>Email</label>
         <input
           style={S.input}
           type="email"
-          placeholder="твоят@имейл.com"
+          placeholder="your@email.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && pinRef.current?.focus()}
@@ -232,7 +232,7 @@ function LoginForm({
       </div>
 
       <div style={S.field}>
-        <label style={S.label}>PIN код</label>
+        <label style={S.label}>PIN code</label>
         <input
           ref={pinRef}
           style={{ ...S.input, letterSpacing: '0.3em', fontFamily: 'monospace', fontSize: '1.2rem' }}
@@ -253,11 +253,11 @@ function LoginForm({
         onClick={() => void handleLogin()}
         disabled={loading}
       >
-        {loading ? 'Проверка…' : 'Влез →'}
+        {loading ? 'Verifying…' : 'Sign in →'}
       </button>
 
       <button style={S.switchBtn} onClick={onSwitchToRegister}>
-        Нямам PIN → Регистрация
+        No PIN yet → Register
       </button>
     </>
   )
@@ -281,18 +281,18 @@ const S: Record<string, React.CSSProperties> = {
     width:        '36px',
     height:       '36px',
     borderRadius: '50%',
-    border:       '3px solid rgba(249,115,22,0.2)',
-    borderTop:    '3px solid #f97316',
+    border:       '3px solid rgba(218,7,8,0.2)',
+    borderTop:    '3px solid #DA0708',
     animation:    'tesradar-spin 0.7s linear infinite',
   },
   card: {
     background:   '#0f1318',
-    border:       '1px solid rgba(249,115,22,0.18)',
+    border:       '1px solid rgba(218,7,8,0.22)',
     borderRadius: '16px',
     padding:      '28px 24px',
     width:        '100%',
     maxWidth:     '420px',
-    boxShadow:    '0 0 48px rgba(249,115,22,0.07)',
+    boxShadow:    '0 0 48px rgba(218,7,8,0.09)',
   },
   logo: {
     display:    'flex',
@@ -300,9 +300,12 @@ const S: Record<string, React.CSSProperties> = {
     gap:        '12px',
     marginBottom: '4px',
   },
-  logoIcon: {
-    fontSize:   '2rem',
-    lineHeight: 1,
+  logoImg: {
+    width:        '72px',
+    height:       '48px',
+    borderRadius: '6px',
+    objectFit:    'cover',
+    flexShrink:   0,
   },
   logoTitle: {
     fontSize:   '1.4rem',
@@ -317,7 +320,7 @@ const S: Record<string, React.CSSProperties> = {
   },
   divider: {
     height:     '1px',
-    background: 'rgba(249,115,22,0.12)',
+    background: 'rgba(218,7,8,0.15)',
     margin:     '20px 0',
   },
   heading: {
@@ -361,7 +364,7 @@ const S: Record<string, React.CSSProperties> = {
   },
   btn: {
     width:        '100%',
-    background:   'linear-gradient(135deg, #f97316, #fb923c)',
+    background:   'linear-gradient(135deg, #DA0708, #b80006)',
     border:       'none',
     borderRadius: '10px',
     padding:      '14px',
@@ -387,7 +390,7 @@ const S: Record<string, React.CSSProperties> = {
     width:      '100%',
     background: 'none',
     border:     'none',
-    color:      '#f97316',
+    color:      '#DA0708',
     fontSize:   '0.85rem',
     fontWeight: 600,
     cursor:     'pointer',
@@ -422,7 +425,7 @@ if (typeof document !== 'undefined') {
     const st = document.createElement('style')
     st.id = id
     st.textContent = `@keyframes tesradar-spin { to { transform: rotate(360deg); } }
-      #tesradar-login-gate input:focus { border-color: #f97316 !important; box-shadow: 0 0 0 2px rgba(249,115,22,0.25) !important; }`
+      #tesradar-login-gate input:focus { border-color: #DA0708 !important; box-shadow: 0 0 0 2px rgba(218,7,8,0.3) !important; }`
     document.head.appendChild(st)
   }
 }

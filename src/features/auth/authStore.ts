@@ -80,7 +80,7 @@ async function init() {
 
 async function login(email: string, pin: string): Promise<{ ok: boolean; error?: string }> {
   const result = await verify(email, pin)
-  if (!result.ok) return { ok: false, error: 'Невалиден имейл или PIN.' }
+  if (!result.ok) return { ok: false, error: 'Invalid email or PIN.' }
   save({ email, pin, name: result.name ?? '' })
   setState({ status: 'authenticated', name: result.name ?? null, email })
   return { ok: true }
@@ -97,9 +97,9 @@ async function register(
     })
     if (r.ok) return { ok: true }
     const data = await r.json() as { error?: string }
-    return { ok: false, error: data.error ?? 'Грешка при регистрация.' }
+    return { ok: false, error: data.error ?? 'Registration error. Please try again.' }
   } catch {
-    return { ok: false, error: 'Мрежова грешка. Провери интернет.' }
+    return { ok: false, error: 'Network error. Please check your connection.' }
   }
 }
 

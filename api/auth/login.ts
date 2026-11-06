@@ -20,13 +20,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const pin:   string = String(body.pin   ?? '').trim()
 
   if (!email || !pin) {
-    res.status(400).json({ error: 'Моля въведи имейл и PIN.' }); return
+    res.status(400).json({ error: 'Please enter your email and PIN.' }); return
   }
 
   const user = await redis.get<TesRadarUser>(`user:${email}`)
 
   if (!user || user.pin !== pin) {
-    res.status(401).json({ error: 'Невалиден имейл или PIN.' }); return
+    res.status(401).json({ error: 'Invalid email or PIN.' }); return
   }
 
   res.status(200).json({ ok: true, name: user.name })
