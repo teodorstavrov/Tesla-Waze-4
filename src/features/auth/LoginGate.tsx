@@ -40,7 +40,7 @@ function AuthScreen() {
       <div style={S.card}>
         {/* Logo */}
         <div style={S.logo}>
-          <img src="/logo_icon.svg" style={S.logoImg} alt="TesRadar" />
+          <img src="/logo_app.png" style={S.logoImg} alt="TesRadar" />
           <div>
             <div style={S.logoTitle}>TesRadar</div>
             <div style={S.logoSub}>Navigate smart</div>
@@ -301,10 +301,9 @@ const S: Record<string, React.CSSProperties> = {
     marginBottom: '4px',
   },
   logoImg: {
-    width:        '72px',
-    height:       '48px',
-    borderRadius: '6px',
-    objectFit:    'cover',
+    width:        '56px',
+    height:       '56px',
+    objectFit:    'contain',
     flexShrink:   0,
   },
   logoTitle: {
