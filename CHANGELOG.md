@@ -4,6 +4,12 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-11-06 (3)
+
+- **Feat: Forgot PIN flow** — "Forgot PIN?" button on login screen → email input → `/api/auth/resend-pin` generates new PIN and re-sends it; always returns 200 (no email enumeration); new `api/auth/resend-pin.ts` endpoint
+
+---
+
 ## 2026-11-06 (2)
 
 - **UX: LoginGate — logo, red branding, English** — replaced emoji with `/logo_icon.svg`; orange `#f97316` → red `#DA0708` (from logo); subtitle → "Navigate smart"; all UI text translated to English

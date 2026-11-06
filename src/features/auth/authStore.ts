@@ -103,10 +103,24 @@ async function register(
   }
 }
 
+async function resendPin(email: string): Promise<{ ok: boolean; error?: string }> {
+  try {
+    await fetch('/api/auth/resend-pin', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ email }),
+    })
+    return { ok: true }
+  } catch {
+    return { ok: false, error: 'Network error. Please check your connection.' }
+  }
+}
+
 export const authStore = {
   getState: () => _state,
   subscribe: (fn: Listener) => { _listeners.add(fn); return () => _listeners.delete(fn) },
   init,
   login,
   register,
+  resendPin,
 }

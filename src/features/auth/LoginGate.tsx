@@ -5,7 +5,7 @@
 import { useState, useEffect, useRef, type ReactNode } from 'react'
 import { authStore } from './authStore'
 
-type View = 'register' | 'login' | 'check-email'
+type View = 'register' | 'login' | 'check-email' | 'forgot-pin'
 
 export function LoginGate({ children }: { children: ReactNode }) {
   const [status, setStatus] = useState(authStore.getState().status)
@@ -65,6 +65,12 @@ function AuthScreen() {
           <LoginForm
             defaultEmail={regEmail}
             onSwitchToRegister={() => setView('register')}
+            onForgotPin={() => setView('forgot-pin')}
+          />
+        )}
+        {view === 'forgot-pin' && (
+          <ForgotPinView
+            onBack={() => setView('login')}
           />
         )}
       </div>
@@ -185,13 +191,80 @@ function CheckEmailView({ email, onLogin }: { email: string; onLogin: () => void
   )
 }
 
+// ── Forgot PIN view ───────────────────────────────────────────────────────────
+function ForgotPinView({ onBack }: { onBack: () => void }) {
+  const [email,   setEmail]   = useState('')
+  const [loading, setLoading] = useState(false)
+  const [sent,    setSent]    = useState(false)
+
+  async function handleSubmit() {
+    if (!email.trim() || !email.includes('@')) return
+    setLoading(true)
+    await authStore.resendPin(email.trim().toLowerCase())
+    setLoading(false)
+    setSent(true)
+  }
+
+  if (sent) {
+    return (
+      <>
+        <div style={{ ...S.heading, fontSize: '1.4rem' }}>Check your inbox ✉</div>
+        <div style={S.subheading}>
+          If <strong style={{ color: '#DA0708' }}>{email}</strong> is registered,
+          a new PIN has been sent.
+        </div>
+        <button style={S.btn} onClick={onBack}>
+          Back to Sign in →
+        </button>
+      </>
+    )
+  }
+
+  return (
+    <>
+      <div style={S.heading}>Forgot PIN?</div>
+      <div style={S.subheading}>
+        Enter your email and we'll send you a new PIN.
+      </div>
+
+      <div style={S.field}>
+        <label style={S.label}>Email</label>
+        <input
+          style={S.input}
+          type="email"
+          placeholder="your@email.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && void handleSubmit()}
+          // eslint-disable-next-line jsx-a11y/no-autofocus
+          autoFocus
+        />
+      </div>
+
+      <button
+        style={{ ...S.btn, opacity: loading ? 0.7 : 1 }}
+        onClick={() => void handleSubmit()}
+        disabled={loading}
+      >
+        {loading ? 'Sending…' : 'Send new PIN →'}
+      </button>
+
+      <button style={S.switchBtn} onClick={onBack}>
+        ← Back to Sign in
+      </button>
+    </>
+  )
+}
+
 // ── Login form ────────────────────────────────────────────────────────────────
 function LoginForm({
   defaultEmail,
   onSwitchToRegister,
+  onForgotPin,
 }: {
   defaultEmail: string
   onSwitchToRegister: () => void
+  onForgotPin: () => void
 }) {
   const [email,   setEmail]   = useState(defaultEmail)
   const [pin,     setPin]     = useState('')
@@ -254,6 +327,10 @@ function LoginForm({
         disabled={loading}
       >
         {loading ? 'Verifying…' : 'Sign in →'}
+      </button>
+
+      <button style={S.switchBtn} onClick={onForgotPin}>
+        Forgot PIN?
       </button>
 
       <button style={S.switchBtn} onClick={onSwitchToRegister}>
