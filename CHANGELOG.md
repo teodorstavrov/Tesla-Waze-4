@@ -4,6 +4,15 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-11-06
+
+- **Feat: PIN login gate за всички потребители** — `LoginGate.tsx`: full-screen overlay преди картата; регистрация (Иmе + Имейл + Tesla модел) → PIN изпратен по имейл чрез Resend; вход с имейл + PIN; PIN се помни в localStorage за автоматичен вход следващия път
+- **API: `/api/auth/register`** — генерира 6-цифрен PIN, записва потребителя в Redis (`user:{email}` + hash `users`), изпраща имейл с PIN
+- **API: `/api/auth/login`** — верифицира имейл + PIN срещу Redis; 401 при грешни credentials
+- **Storage**: потребителски имейли в **Upstash Redis** (hash `users`); Resend само изпраща, не съхранява
+
+---
+
 ## 2026-11-05 (2)
 
 - **Waze API: Paris премахнат** — 14→13 града (9 360 req/мес, резерв +640); `waze-api-sync.mjs` + `police-scan-config.json` обновени

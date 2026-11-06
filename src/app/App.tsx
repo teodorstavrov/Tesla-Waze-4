@@ -6,6 +6,7 @@
 // Phase 21: turn-by-turn navigation HUD + voice directions.
 
 import { useEffect, lazy, Suspense } from 'react'
+import { LoginGate } from '@/features/auth/LoginGate'
 import { MapShell } from '@/components/MapShell'
 import { HeadingAvatar } from '@/components/HeadingAvatar'
 import { FloatingTitleCard } from '@/components/FloatingTitleCard'
@@ -122,8 +123,9 @@ export function App() {
   }, [applyAutoTheme])
 
   return (
-    // Any tap on the app unlocks audio — safe since tryUnlock() is idempotent
-    // eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions
+    <LoginGate>
+    {/* Any tap on the app unlocks audio — safe since tryUnlock() is idempotent */}
+    {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
     <div
       onClick={unlock}
       style={{
@@ -226,5 +228,6 @@ export function App() {
       {/* Tesla browser diagnostic panel — shown only with ?teslaDebug=1 */}
       <TeslaDebugPanel />
     </div>
+    </LoginGate>
   )
 }
