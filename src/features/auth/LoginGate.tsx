@@ -90,10 +90,9 @@ function RegisterForm({
   onRegistered: (email: string) => void
   onSwitchToLogin: () => void
 }) {
-  const [name,       setName]       = useState('')
-  const [email,      setEmail]      = useState('')
-  const [teslaModel, setTeslaModel] = useState('')
-  const [loading,    setLoading]    = useState(false)
+  const [name,    setName]    = useState('')
+  const [email,   setEmail]   = useState('')
+  const [loading, setLoading] = useState(false)
   const [error,      setError]      = useState('')
   const nameRef = useRef<HTMLInputElement>(null)
 
@@ -104,7 +103,7 @@ function RegisterForm({
     if (!name.trim() || !email.trim()) { setError('Please fill in all required fields.'); return }
     if (!email.includes('@'))          { setError('Please enter a valid email address.'); return }
     setLoading(true)
-    const result = await authStore.register(name.trim(), email.trim(), teslaModel.trim())
+    const result = await authStore.register(name.trim(), email.trim(), '')
     setLoading(false)
     if (result.ok) { onRegistered(email.trim().toLowerCase()); return }
     setError(result.error ?? 'Registration error. Please try again.')
@@ -138,18 +137,6 @@ function RegisterForm({
           placeholder="your@email.com"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && void handleSubmit()}
-        />
-      </div>
-
-      <div style={S.field}>
-        <label style={S.label}>Tesla model</label>
-        <input
-          style={S.input}
-          type="text"
-          placeholder="Model 3, Model Y…"
-          value={teslaModel}
-          onChange={(e) => setTeslaModel(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && void handleSubmit()}
         />
       </div>
