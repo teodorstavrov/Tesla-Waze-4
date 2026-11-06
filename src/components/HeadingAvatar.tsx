@@ -50,7 +50,7 @@ export function getNavPosition(): { lat: number; lng: number } | null {
 // Reset to 0 when route polyline reference changes (new route loaded).
 let _currentSegmentIdx = 0
 
-const ICON_SIZE   = 68
+const ICON_SIZE   = 54
 const SNAP_DIST_M = 60
 
 // ── DOM factory ───────────────────────────────────────────────────────────────
@@ -89,12 +89,12 @@ function makeElement(): HTMLDivElement {
         </linearGradient>
         <!-- Red-tinted drop shadow -->
         <filter id="nav-as" x="-40%" y="-20%" width="180%" height="160%">
-          <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="rgba(110,0,18,0.82)"/>
+          <feDropShadow dx="0" dy="2.5" stdDeviation="2.2" flood-color="rgba(110,0,18,0.95)"/>
         </filter>
       </defs>
       <!-- Ambient red glow ring -->
-      <circle cx="14" cy="14" r="13" fill="rgba(227,25,55,0.16)"/>
-      <circle cx="14" cy="14" r="12.2" fill="none" stroke="rgba(227,25,55,0.42)" stroke-width="0.7"/>
+      <circle cx="14" cy="14" r="13" fill="rgba(227,25,55,0.26)"/>
+      <circle cx="14" cy="14" r="12.2" fill="none" stroke="rgba(227,25,55,0.62)" stroke-width="0.9"/>
       <!-- 3D extrusion depth (shifted +1.5px right and +1.5px down) -->
       <polygon points="15.5,4.5 21.5,23.5 15.5,19.5 9.5,23.5" fill="rgba(45,0,8,0.85)"/>
       <!-- Main arrow face: mirror-metallic gradient + drop shadow -->
@@ -108,7 +108,7 @@ function makeElement(): HTMLDivElement {
         fill="rgba(255,255,255,0.78)"/>
       <!-- White outline for contrast on any background -->
       <polygon points="14,3 20,22 14,18 8,22"
-        fill="none" stroke="rgba(255,255,255,0.78)" stroke-width="1.2" stroke-linejoin="round"/>
+        fill="none" stroke="rgba(255,255,255,0.88)" stroke-width="1.5" stroke-linejoin="round"/>
     </svg>
   </div>`
   return root
