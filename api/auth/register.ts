@@ -14,6 +14,7 @@ export interface TesRadarUser {
   name:       string
   email:      string
   teslaModel: string
+  country:    string
   pin:        string
   createdAt:  number
 }
@@ -65,6 +66,7 @@ async function sendAdminNotification(user: TesRadarUser): Promise<void> {
         '',
         `Name:        ${user.name}`,
         `Email:       ${user.email}`,
+        `Country:     ${user.country || '(not specified)'}`,
         `Tesla model: ${model}`,
         `Registered:  ${new Date(user.createdAt).toISOString()}`,
       ].join('\n'),
@@ -85,18 +87,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const name:       string = String(body.name       ?? '').trim()
   const email:      string = String(body.email      ?? '').trim().toLowerCase()
   const teslaModel: string = String(body.teslaModel ?? '').trim()
+  const country:    string = String(body.country    ?? '').trim()
 
   if (!name || !email || !email.includes('@')) {
     res.status(400).json({ error: 'Please fill in all required fields.' }); return
   }
 
   const pin  = generatePin()
-  const user: TesRadarUser = { name, email, teslaModel, pin, createdAt: Date.now() }
+  const user: TesRadarUser = { name, email, teslaModel, country, pin, createdAt: Date.now() }
 
   await redis.set(`user:${email}`, user)
 
-  // Index for admin listing: users hash, field=email, value=JSON (name, model, createdAt)
-  await redis.hset('users', email, JSON.stringify({ name, teslaModel, createdAt: user.createdAt }))
+  // Index for admin listing: users hash, field=email, value=JSON (name, model, country, createdAt)
+  await redis.hset('users', email, JSON.stringify({ name, teslaModel, country, createdAt: user.createdAt }))
 
   try {
     await sendPinEmail(email, name, pin)

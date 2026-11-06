@@ -92,8 +92,9 @@ function RegisterForm({
 }) {
   const [name,    setName]    = useState('')
   const [email,   setEmail]   = useState('')
+  const [country, setCountry] = useState('')
   const [loading, setLoading] = useState(false)
-  const [error,      setError]      = useState('')
+  const [error,   setError]   = useState('')
   const nameRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { nameRef.current?.focus() }, [])
@@ -103,7 +104,7 @@ function RegisterForm({
     if (!name.trim() || !email.trim()) { setError('Please fill in all required fields.'); return }
     if (!email.includes('@'))          { setError('Please enter a valid email address.'); return }
     setLoading(true)
-    const result = await authStore.register(name.trim(), email.trim(), '')
+    const result = await authStore.register(name.trim(), email.trim(), '', country)
     setLoading(false)
     if (result.ok) { onRegistered(email.trim().toLowerCase()); return }
     setError(result.error ?? 'Registration error. Please try again.')
@@ -139,6 +140,26 @@ function RegisterForm({
           onChange={(e) => setEmail(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && void handleSubmit()}
         />
+      </div>
+
+      <div style={S.field}>
+        <label style={S.label}>Country</label>
+        <div style={S.countryGrid}>
+          {COUNTRIES.map((c) => (
+            <button
+              key={c.code}
+              style={{
+                ...S.countryBtn,
+                ...(country === c.code ? S.countryBtnActive : {}),
+              }}
+              onClick={() => setCountry(c.code)}
+              type="button"
+            >
+              <span style={S.countryFlag}>{c.flag}</span>
+              <span style={S.countryName}>{c.name}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {error && <div style={S.error}>{error}</div>}
@@ -327,6 +348,15 @@ function LoginForm({
   )
 }
 
+// ── Countries ─────────────────────────────────────────────────────────────────
+const COUNTRIES = [
+  { code: 'BG', flag: '🇧🇬', name: 'Bulgaria'    },
+  { code: 'NL', flag: '🇳🇱', name: 'Netherlands'  },
+  { code: 'BE', flag: '🇧🇪', name: 'Belgium'      },
+  { code: 'DE', flag: '🇩🇪', name: 'Germany'      },
+  { code: 'FR', flag: '🇫🇷', name: 'France'       },
+]
+
 // ── Styles ────────────────────────────────────────────────────────────────────
 const S: Record<string, React.CSSProperties> = {
   root: {
@@ -478,6 +508,41 @@ const S: Record<string, React.CSSProperties> = {
     fontSize:  '0.68rem',
     color:     '#374151',
     textAlign: 'center',
+  },
+  countryGrid: {
+    display:             'grid',
+    gridTemplateColumns: 'repeat(3, 1fr)',
+    gap:                 '8px',
+  },
+  countryBtn: {
+    display:        'flex',
+    flexDirection:  'column',
+    alignItems:     'center',
+    justifyContent: 'center',
+    gap:            '4px',
+    padding:        '10px 6px',
+    background:     '#161b24',
+    border:         '1px solid rgba(255,255,255,0.08)',
+    borderRadius:   '10px',
+    cursor:         'pointer',
+    fontFamily:     'inherit',
+    WebkitTapHighlightColor: 'transparent',
+    touchAction:    'manipulation',
+  },
+  countryBtnActive: {
+    background:  'rgba(218,7,8,0.12)',
+    border:      '1px solid rgba(218,7,8,0.6)',
+  },
+  countryFlag: {
+    fontSize:   '1.8rem',
+    lineHeight: 1,
+  },
+  countryName: {
+    fontSize:   '0.65rem',
+    color:      '#9ca3af',
+    fontWeight: 600,
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.03em',
   },
 }
 
