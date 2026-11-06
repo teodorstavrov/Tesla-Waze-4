@@ -363,11 +363,12 @@ function LoginForm({
 
 // ── Countries ─────────────────────────────────────────────────────────────────
 const COUNTRIES = [
-  { code: 'BG', flag: '🇧🇬', name: 'Bulgaria'    },
-  { code: 'NL', flag: '🇳🇱', name: 'Netherlands'  },
-  { code: 'BE', flag: '🇧🇪', name: 'Belgium'      },
-  { code: 'DE', flag: '🇩🇪', name: 'Germany'      },
-  { code: 'FR', flag: '🇫🇷', name: 'France'       },
+  { code: 'BG',    flag: '🇧🇬', name: 'Bulgaria'    },
+  { code: 'NL',    flag: '🇳🇱', name: 'Netherlands'  },
+  { code: 'BE',    flag: '🇧🇪', name: 'Belgium'      },
+  { code: 'DE',    flag: '🇩🇪', name: 'Germany'      },
+  { code: 'FR',    flag: '🇫🇷', name: 'France'       },
+  { code: 'OTHER', flag: '🌍',  name: 'Other'        },
 ]
 
 // ── Styles ────────────────────────────────────────────────────────────────────
