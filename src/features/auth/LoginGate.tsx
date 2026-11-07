@@ -525,19 +525,19 @@ const S: Record<string, React.CSSProperties> = {
   },
   countryGrid: {
     display:             'grid',
-    gridTemplateColumns: 'repeat(3, 1fr)',
-    gap:                 '8px',
+    gridTemplateColumns: 'repeat(6, 1fr)',
+    gap:                 '5px',
   },
   countryBtn: {
     display:        'flex',
     flexDirection:  'column',
     alignItems:     'center',
     justifyContent: 'center',
-    gap:            '4px',
-    padding:        '10px 6px',
+    gap:            '3px',
+    padding:        '7px 2px',
     background:     '#161b24',
     border:         '1px solid rgba(255,255,255,0.08)',
-    borderRadius:   '10px',
+    borderRadius:   '8px',
     cursor:         'pointer',
     fontFamily:     'inherit',
     WebkitTapHighlightColor: 'transparent',
@@ -548,15 +548,15 @@ const S: Record<string, React.CSSProperties> = {
     border:      '1px solid rgba(218,7,8,0.6)',
   },
   countryFlag: {
-    fontSize:   '1.8rem',
+    fontSize:   '1.35rem',
     lineHeight: 1,
   },
   countryName: {
-    fontSize:   '0.65rem',
+    fontSize:   '0.55rem',
     color:      '#9ca3af',
     fontWeight: 600,
     textTransform: 'uppercase' as const,
-    letterSpacing: '0.03em',
+    letterSpacing: '0.02em',
   },
 }
 
