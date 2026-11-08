@@ -194,7 +194,7 @@ function Dashboard({ secret }: { secret: string }) {
   const [visitors,     setVisitors]     = useState<VisitorInfo[]>([])
   const [visitorStats, setVisitorStats] = useState<VisitorStats | null>(null)
   const [aiStats,      setAiStats]      = useState<AiStats | null>(null)
-  const [activeView,   setActiveView]   = useState<'map' | 'voice-log'>('map')
+  const [activeView,   setActiveView]   = useState<'map' | 'voice-log' | 'users'>('map')
   const [syncing, setSyncing] = useState(false)
   const [syncMsg, setSyncMsg] = useState('')
   const [addMode, setAddMode] = useState(false)
@@ -415,7 +415,7 @@ function Dashboard({ secret }: { secret: string }) {
           </div>
           {/* View switcher */}
           <div style={{ display: 'flex', gap: 5 }}>
-            {(['map', 'voice-log'] as const).map(v => (
+            {(['map', 'voice-log', 'users'] as const).map(v => (
               <button key={v} onClick={() => setActiveView(v)} style={{
                 flex: 1, padding: '6px 0', borderRadius: 7, border: '1px solid',
                 borderColor: activeView === v ? 'rgba(227,25,55,0.6)' : 'rgba(255,255,255,0.08)',
@@ -423,7 +423,7 @@ function Dashboard({ secret }: { secret: string }) {
                 color: activeView === v ? '#fff' : '#666',
                 cursor: 'pointer', fontSize: 12, fontWeight: activeView === v ? 700 : 400,
               }}>
-                {v === 'map' ? '🗺 Карта' : '🎤 Гласови'}
+                {v === 'map' ? '🗺 Карта' : v === 'voice-log' ? '🎤 Гласови' : '👥 Потребители'}
               </button>
             ))}
           </div>
@@ -517,9 +517,11 @@ function Dashboard({ secret }: { secret: string }) {
         <AiStatsPanel stats={aiStats} />
       </div>
 
-      {/* ── Right panel: map or voice log ── */}
+      {/* ── Right panel: map, voice log, or users ── */}
       {activeView === 'voice-log' ? (
         <VoiceLogView secret={secret} initialStats={aiStats} />
+      ) : activeView === 'users' ? (
+        <UsersView secret={secret} />
       ) : (
         <div style={{ flex: 1, position: 'relative' }}>
           {addMode && (
@@ -590,6 +592,162 @@ const OUTCOME_LABEL: Record<string, string> = { intent: '🎯 Команда', q
 const OUTCOME_COLOR: Record<string, string> = { intent: '#60a5fa', qa: '#4ade80', error: '#f87171' }
 
 const LANG_FLAG: Record<string, string> = { bg: '🇧🇬', en: '🇬🇧', sv: '🇸🇪', fi: '🇫🇮', nl: '🇳🇱', de: '🇩🇪', fr: '🇫🇷' }
+
+// ── Users view ───────────────────────────────────────────────────────────
+
+interface AdminUser {
+  email:      string
+  name:       string
+  teslaModel: string
+  country:    string
+  createdAt:  string
+}
+
+const COUNTRY_EMOJI: Record<string, string> = {
+  BG: '🇧🇬', BG2: '🇧🇬', NL: '🇳🇱', DE: '🇩🇪', BE: '🇧🇪', SE: '🇸🇪', FI: '🇫🇮', FR: '🇫🇷',
+  GB: '🇬🇧', US: '🇺🇸', AT: '🇦🇹', CH: '🇨🇭', PL: '🇵🇱', CZ: '🇨🇿', SK: '🇸🇰', HU: '🇭🇺',
+  RO: '🇷🇴', GR: '🇬🇷', IT: '🇮🇹', ES: '🇪🇸', PT: '🇵🇹', DK: '🇩🇰', NO: '🇳🇴',
+}
+
+function countryEmoji(cc: string): string {
+  return COUNTRY_EMOJI[cc.toUpperCase()] ?? '🌍'
+}
+
+function UsersView({ secret }: { secret: string }) {
+  const [users,   setUsers]   = useState<AdminUser[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error,   setError]   = useState('')
+  const [sortKey, setSortKey] = useState<'createdAt' | 'country' | 'name'>('createdAt')
+  const [sortAsc, setSortAsc] = useState(false)
+
+  const headers = useMemo(() => ({ Authorization: `Bearer ${secret}` }), [secret])
+
+  useEffect(() => {
+    setLoading(true)
+    fetch('/api/admin/users', { headers })
+      .then(r => r.ok ? r.json() as Promise<{ users: AdminUser[] }> : Promise.reject(r.status))
+      .then(d => { setUsers(d.users); setLoading(false) })
+      .catch(() => { setError('Грешка при зареждане'); setLoading(false) })
+  }, [secret]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function toggleSort(key: typeof sortKey) {
+    if (sortKey === key) setSortAsc(v => !v)
+    else { setSortKey(key); setSortAsc(true) }
+  }
+
+  const sorted = useMemo(() => {
+    return [...users].sort((a, b) => {
+      const va = a[sortKey] ?? '', vb = b[sortKey] ?? ''
+      return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va)
+    })
+  }, [users, sortKey, sortAsc])
+
+  // Country breakdown
+  const byCountry = useMemo(() => {
+    const map: Record<string, number> = {}
+    for (const u of users) {
+      const cc = (u.country || 'XX').toUpperCase()
+      map[cc] = (map[cc] ?? 0) + 1
+    }
+    return Object.entries(map).sort((a, b) => b[1] - a[1])
+  }, [users])
+
+  const thStyle = (key: typeof sortKey) => ({
+    padding: '8px 12px', textAlign: 'left' as const, fontSize: 11, fontWeight: 700,
+    color: sortKey === key ? '#e31937' : '#666',
+    textTransform: 'uppercase' as const, letterSpacing: '0.07em',
+    cursor: 'pointer', userSelect: 'none' as const, whiteSpace: 'nowrap' as const,
+    borderBottom: '1px solid rgba(255,255,255,0.07)',
+  })
+  const tdStyle = {
+    padding: '9px 12px', fontSize: 13, color: '#ccc',
+    borderBottom: '1px solid rgba(255,255,255,0.04)',
+    whiteSpace: 'nowrap' as const, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis',
+  }
+
+  return (
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', background: '#0d0d14', overflow: 'hidden' }}>
+      {/* Toolbar */}
+      <div style={{
+        padding: '14px 24px', borderBottom: '1px solid rgba(255,255,255,0.07)',
+        display: 'flex', gap: 16, alignItems: 'center', flexShrink: 0,
+      }}>
+        <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>👥 Потребители</div>
+        {!loading && <div style={{ fontSize: 12, color: '#444' }}>{users.length} регистрирани</div>}
+        <button
+          onClick={() => { setLoading(true); fetch('/api/admin/users', { headers }).then(r => r.json() as Promise<{ users: AdminUser[] }>).then(d => { setUsers(d.users); setLoading(false) }).catch(() => setLoading(false)) }}
+          style={{ marginLeft: 'auto', ...S.btn, padding: '5px 14px', background: 'rgba(255,255,255,0.06)', color: '#aaa', fontSize: 12 }}>
+          ↺ Опресни
+        </button>
+      </div>
+
+      <div style={{ flex: 1, overflow: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+        {loading && <div style={{ color: '#555', fontSize: 14, padding: '40px 0', textAlign: 'center' }}>Зареждане…</div>}
+        {error   && <div style={{ color: '#f87171', fontSize: 14 }}>{error}</div>}
+
+        {!loading && !error && (
+          <>
+            {/* Dashboard */}
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '14px 20px', minWidth: 120 }}>
+                <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Общо</div>
+                <div style={{ fontSize: 28, fontWeight: 700, color: '#fff' }}>{users.length}</div>
+              </div>
+              {byCountry.map(([cc, cnt]) => (
+                <div key={cc} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '14px 20px', minWidth: 100 }}>
+                  <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
+                    {countryEmoji(cc)} {cc}
+                  </div>
+                  <div style={{ fontSize: 24, fontWeight: 700, color: '#fff' }}>{cnt}</div>
+                  <div style={{ fontSize: 11, color: '#444', marginTop: 2 }}>{Math.round(cnt / users.length * 100)}%</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Table */}
+            <div style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, overflow: 'hidden' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ background: 'rgba(255,255,255,0.03)' }}>
+                    <th style={thStyle('name')} onClick={() => toggleSort('name')}>
+                      Потребител {sortKey === 'name' ? (sortAsc ? '↑' : '↓') : ''}
+                    </th>
+                    <th style={{ ...thStyle('name'), cursor: 'default' }}>Имейл</th>
+                    <th style={{ ...thStyle('name'), cursor: 'default' }}>Модел</th>
+                    <th style={thStyle('country')} onClick={() => toggleSort('country')}>
+                      Държава {sortKey === 'country' ? (sortAsc ? '↑' : '↓') : ''}
+                    </th>
+                    <th style={thStyle('createdAt')} onClick={() => toggleSort('createdAt')}>
+                      Регистриран {sortKey === 'createdAt' ? (sortAsc ? '↑' : '↓') : ''}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {sorted.map(u => (
+                    <tr key={u.email} style={{ transition: 'background 0.1s' }}
+                      onMouseEnter={e => { (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(255,255,255,0.03)' }}
+                      onMouseLeave={e => { (e.currentTarget as HTMLTableRowElement).style.background = '' }}>
+                      <td style={{ ...tdStyle, color: '#fff', fontWeight: 500 }}>{u.name || '—'}</td>
+                      <td style={{ ...tdStyle, color: '#7a9fbf' }}>{u.email}</td>
+                      <td style={{ ...tdStyle, color: '#aaa' }}>{u.teslaModel || '—'}</td>
+                      <td style={tdStyle}>{u.country ? `${countryEmoji(u.country)} ${u.country.toUpperCase()}` : '—'}</td>
+                      <td style={{ ...tdStyle, color: '#555' }}>
+                        {u.createdAt ? new Date(u.createdAt).toLocaleDateString('bg-BG', { dateStyle: 'medium' }) : '—'}
+                      </td>
+                    </tr>
+                  ))}
+                  {sorted.length === 0 && (
+                    <tr><td colSpan={5} style={{ ...tdStyle, textAlign: 'center', color: '#444', padding: '32px 12px' }}>Няма потребители</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
 
 // ── Voice Log full-width view ────────────────────────────────────────────
 

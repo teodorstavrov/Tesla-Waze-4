@@ -4,6 +4,12 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-11-08 (4)
+
+- **Feat: admin panel — Users tab** — new "👥 Потребители" tab between Карта and Гласови; shows a country breakdown dashboard (total + per-country counts + percentages) and a sortable table of all registered users (name, email, Tesla model, country, registration date); backed by new `GET /api/admin/users` endpoint that reads the Redis `users` hash
+
+---
+
 ## 2026-11-08 (3)
 
 - **Fix: police markers not appearing on static map** — `EventMarkerLayer` now polls every 2 minutes regardless of map movement; previously events only refreshed on `moveend` so a parked car never received new cron-posted markers
