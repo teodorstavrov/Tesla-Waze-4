@@ -603,141 +603,167 @@ interface AdminUser {
   createdAt:  string
 }
 
-const COUNTRY_EMOJI: Record<string, string> = {
-  BG: '🇧🇬', BG2: '🇧🇬', NL: '🇳🇱', DE: '🇩🇪', BE: '🇧🇪', SE: '🇸🇪', FI: '🇫🇮', FR: '🇫🇷',
+type UserSortKey = 'createdAt' | 'country' | 'name'
+
+const COUNTRY_EMOJI_MAP: Record<string, string> = {
+  BG: '🇧🇬', NL: '🇳🇱', DE: '🇩🇪', BE: '🇧🇪', SE: '🇸🇪', FI: '🇫🇮', FR: '🇫🇷',
   GB: '🇬🇧', US: '🇺🇸', AT: '🇦🇹', CH: '🇨🇭', PL: '🇵🇱', CZ: '🇨🇿', SK: '🇸🇰', HU: '🇭🇺',
   RO: '🇷🇴', GR: '🇬🇷', IT: '🇮🇹', ES: '🇪🇸', PT: '🇵🇹', DK: '🇩🇰', NO: '🇳🇴',
 }
 
-function countryEmoji(cc: string): string {
-  return COUNTRY_EMOJI[cc.toUpperCase()] ?? '🌍'
+function getCountryEmoji(cc: string): string {
+  return COUNTRY_EMOJI_MAP[cc.toUpperCase()] ?? '🌍'
+}
+
+function sortUsers(list: AdminUser[], key: UserSortKey, asc: boolean): AdminUser[] {
+  return [...list].sort((a, b) => {
+    const va = a[key] ?? ''
+    const vb = b[key] ?? ''
+    return asc ? va.localeCompare(vb) : vb.localeCompare(va)
+  })
+}
+
+function countByCountry(list: AdminUser[]): Array<[string, number]> {
+  const map: Record<string, number> = {}
+  for (const u of list) {
+    const cc = (u.country || 'XX').toUpperCase()
+    map[cc] = (map[cc] ?? 0) + 1
+  }
+  return Object.entries(map).sort((a, b) => b[1] - a[1])
 }
 
 function UsersView({ secret }: { secret: string }) {
   const [users,   setUsers]   = useState<AdminUser[]>([])
   const [loading, setLoading] = useState(true)
   const [error,   setError]   = useState('')
-  const [sortKey, setSortKey] = useState<'createdAt' | 'country' | 'name'>('createdAt')
+  const [sortKey, setSortKey] = useState<UserSortKey>('createdAt')
   const [sortAsc, setSortAsc] = useState(false)
 
-  const headers = useMemo(() => ({ Authorization: `Bearer ${secret}` }), [secret])
-
-  useEffect(() => {
+  function loadUsers() {
     setLoading(true)
-    fetch('/api/admin/users', { headers })
-      .then(r => r.ok ? r.json() as Promise<{ users: AdminUser[] }> : Promise.reject(r.status))
-      .then(d => { setUsers(d.users); setLoading(false) })
-      .catch(() => { setError('Грешка при зареждане'); setLoading(false) })
-  }, [secret]) // eslint-disable-line react-hooks/exhaustive-deps
+    setError('')
+    fetch('/api/admin/users', { headers: { Authorization: `Bearer ${secret}` } })
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`)
+        return r.json() as Promise<{ users: AdminUser[] }>
+      })
+      .then((d) => {
+        setUsers(Array.isArray(d.users) ? d.users : [])
+        setLoading(false)
+      })
+      .catch((e: unknown) => {
+        setError(String(e))
+        setLoading(false)
+      })
+  }
 
-  function toggleSort(key: typeof sortKey) {
-    if (sortKey === key) setSortAsc(v => !v)
+  useEffect(() => { loadUsers() }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  function toggleSort(key: UserSortKey) {
+    if (sortKey === key) setSortAsc((v) => !v)
     else { setSortKey(key); setSortAsc(true) }
   }
 
-  const sorted = useMemo(() => {
-    return [...users].sort((a, b) => {
-      const va = a[sortKey] ?? '', vb = b[sortKey] ?? ''
-      return sortAsc ? va.localeCompare(vb) : vb.localeCompare(va)
-    })
-  }, [users, sortKey, sortAsc])
+  const sorted    = sortUsers(users, sortKey, sortAsc)
+  const byCountry = countByCountry(users)
 
-  // Country breakdown
-  const byCountry = useMemo(() => {
-    const map: Record<string, number> = {}
-    for (const u of users) {
-      const cc = (u.country || 'XX').toUpperCase()
-      map[cc] = (map[cc] ?? 0) + 1
-    }
-    return Object.entries(map).sort((a, b) => b[1] - a[1])
-  }, [users])
-
-  const thStyle = (key: typeof sortKey) => ({
-    padding: '8px 12px', textAlign: 'left' as const, fontSize: 11, fontWeight: 700,
-    color: sortKey === key ? '#e31937' : '#666',
-    textTransform: 'uppercase' as const, letterSpacing: '0.07em',
-    cursor: 'pointer', userSelect: 'none' as const, whiteSpace: 'nowrap' as const,
-    borderBottom: '1px solid rgba(255,255,255,0.07)',
-  })
-  const tdStyle = {
+  const thBase: React.CSSProperties = {
+    padding: '8px 12px', textAlign: 'left', fontSize: 11, fontWeight: 700,
+    textTransform: 'uppercase', letterSpacing: '0.07em',
+    cursor: 'pointer', borderBottom: '1px solid rgba(255,255,255,0.08)',
+    whiteSpace: 'nowrap',
+  }
+  const tdBase: React.CSSProperties = {
     padding: '9px 12px', fontSize: 13, color: '#ccc',
-    borderBottom: '1px solid rgba(255,255,255,0.04)',
-    whiteSpace: 'nowrap' as const, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis',
+    borderBottom: '1px solid rgba(255,255,255,0.05)',
+    whiteSpace: 'nowrap', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis',
   }
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', background: '#0d0d14', overflow: 'hidden' }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#0d0d14', overflow: 'hidden', minHeight: 0 }}>
       {/* Toolbar */}
       <div style={{
         padding: '14px 24px', borderBottom: '1px solid rgba(255,255,255,0.07)',
         display: 'flex', gap: 16, alignItems: 'center', flexShrink: 0,
       }}>
         <div style={{ fontSize: 15, fontWeight: 700, color: '#fff' }}>👥 Потребители</div>
-        {!loading && <div style={{ fontSize: 12, color: '#444' }}>{users.length} регистрирани</div>}
+        {!loading && <div style={{ fontSize: 13, color: '#888' }}>{users.length} регистрирани</div>}
         <button
-          onClick={() => { setLoading(true); fetch('/api/admin/users', { headers }).then(r => r.json() as Promise<{ users: AdminUser[] }>).then(d => { setUsers(d.users); setLoading(false) }).catch(() => setLoading(false)) }}
-          style={{ marginLeft: 'auto', ...S.btn, padding: '5px 14px', background: 'rgba(255,255,255,0.06)', color: '#aaa', fontSize: 12 }}>
+          onClick={loadUsers}
+          style={{ marginLeft: 'auto', padding: '5px 14px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: 12, background: 'rgba(255,255,255,0.08)', color: '#ccc' }}>
           ↺ Опресни
         </button>
       </div>
 
       <div style={{ flex: 1, overflow: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
-        {loading && <div style={{ color: '#555', fontSize: 14, padding: '40px 0', textAlign: 'center' }}>Зареждане…</div>}
-        {error   && <div style={{ color: '#f87171', fontSize: 14 }}>{error}</div>}
+
+        {loading && (
+          <div style={{ color: '#aaa', fontSize: 15, padding: '48px 0', textAlign: 'center' }}>
+            Зареждане…
+          </div>
+        )}
+
+        {!loading && error && (
+          <div style={{ color: '#f87171', fontSize: 14, padding: '12px 0' }}>⚠ {error}</div>
+        )}
 
         {!loading && !error && (
           <>
-            {/* Dashboard */}
+            {/* Dashboard tiles */}
             <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-              <div style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '14px 20px', minWidth: 120 }}>
-                <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Общо</div>
+              <div style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '14px 20px', minWidth: 110 }}>
+                <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Общо</div>
                 <div style={{ fontSize: 28, fontWeight: 700, color: '#fff' }}>{users.length}</div>
               </div>
               {byCountry.map(([cc, cnt]) => (
-                <div key={cc} style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '14px 20px', minWidth: 100 }}>
-                  <div style={{ fontSize: 11, color: '#555', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
-                    {countryEmoji(cc)} {cc}
+                <div key={cc} style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '14px 20px', minWidth: 100 }}>
+                  <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>
+                    {getCountryEmoji(cc)} {cc}
                   </div>
                   <div style={{ fontSize: 24, fontWeight: 700, color: '#fff' }}>{cnt}</div>
-                  <div style={{ fontSize: 11, color: '#444', marginTop: 2 }}>{Math.round(cnt / users.length * 100)}%</div>
+                  <div style={{ fontSize: 11, color: '#777', marginTop: 2 }}>
+                    {users.length > 0 ? `${Math.round(cnt / users.length * 100)}%` : ''}
+                  </div>
                 </div>
               ))}
             </div>
 
             {/* Table */}
-            <div style={{ background: 'rgba(255,255,255,0.025)', border: '1px solid rgba(255,255,255,0.07)', borderRadius: 10, overflow: 'hidden' }}>
+            <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 10, overflow: 'hidden' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                 <thead>
-                  <tr style={{ background: 'rgba(255,255,255,0.03)' }}>
-                    <th style={thStyle('name')} onClick={() => toggleSort('name')}>
+                  <tr style={{ background: 'rgba(255,255,255,0.05)' }}>
+                    <th style={{ ...thBase, color: sortKey === 'name' ? '#e31937' : '#888' }} onClick={() => toggleSort('name')}>
                       Потребител {sortKey === 'name' ? (sortAsc ? '↑' : '↓') : ''}
                     </th>
-                    <th style={{ ...thStyle('name'), cursor: 'default' }}>Имейл</th>
-                    <th style={{ ...thStyle('name'), cursor: 'default' }}>Модел</th>
-                    <th style={thStyle('country')} onClick={() => toggleSort('country')}>
+                    <th style={{ ...thBase, color: '#888', cursor: 'default' }}>Имейл</th>
+                    <th style={{ ...thBase, color: '#888', cursor: 'default' }}>Модел</th>
+                    <th style={{ ...thBase, color: sortKey === 'country' ? '#e31937' : '#888' }} onClick={() => toggleSort('country')}>
                       Държава {sortKey === 'country' ? (sortAsc ? '↑' : '↓') : ''}
                     </th>
-                    <th style={thStyle('createdAt')} onClick={() => toggleSort('createdAt')}>
+                    <th style={{ ...thBase, color: sortKey === 'createdAt' ? '#e31937' : '#888' }} onClick={() => toggleSort('createdAt')}>
                       Регистриран {sortKey === 'createdAt' ? (sortAsc ? '↑' : '↓') : ''}
                     </th>
                   </tr>
                 </thead>
                 <tbody>
-                  {sorted.map(u => (
-                    <tr key={u.email} style={{ transition: 'background 0.1s' }}
-                      onMouseEnter={e => { (e.currentTarget as HTMLTableRowElement).style.background = 'rgba(255,255,255,0.03)' }}
-                      onMouseLeave={e => { (e.currentTarget as HTMLTableRowElement).style.background = '' }}>
-                      <td style={{ ...tdStyle, color: '#fff', fontWeight: 500 }}>{u.name || '—'}</td>
-                      <td style={{ ...tdStyle, color: '#7a9fbf' }}>{u.email}</td>
-                      <td style={{ ...tdStyle, color: '#aaa' }}>{u.teslaModel || '—'}</td>
-                      <td style={tdStyle}>{u.country ? `${countryEmoji(u.country)} ${u.country.toUpperCase()}` : '—'}</td>
-                      <td style={{ ...tdStyle, color: '#555' }}>
-                        {u.createdAt ? new Date(u.createdAt).toLocaleDateString('bg-BG', { dateStyle: 'medium' }) : '—'}
+                  {sorted.map((u) => (
+                    <tr key={u.email}>
+                      <td style={{ ...tdBase, color: '#fff', fontWeight: 500 }}>{u.name || '—'}</td>
+                      <td style={{ ...tdBase, color: '#7a9fbf' }}>{u.email}</td>
+                      <td style={{ ...tdBase, color: '#aaa' }}>{u.teslaModel || '—'}</td>
+                      <td style={tdBase}>{u.country ? `${getCountryEmoji(u.country)} ${u.country.toUpperCase()}` : '—'}</td>
+                      <td style={{ ...tdBase, color: '#888' }}>
+                        {u.createdAt ? new Date(u.createdAt).toLocaleDateString('bg-BG') : '—'}
                       </td>
                     </tr>
                   ))}
                   {sorted.length === 0 && (
-                    <tr><td colSpan={5} style={{ ...tdStyle, textAlign: 'center', color: '#444', padding: '32px 12px' }}>Няма потребители</td></tr>
+                    <tr>
+                      <td colSpan={5} style={{ ...tdBase, textAlign: 'center', color: '#888', padding: '36px 12px' }}>
+                        Няма регистрирани потребители
+                      </td>
+                    </tr>
                   )}
                 </tbody>
               </table>
