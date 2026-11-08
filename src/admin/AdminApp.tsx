@@ -617,8 +617,8 @@ function getCountryEmoji(cc: string): string {
 
 function sortUsers(list: AdminUser[], key: UserSortKey, asc: boolean): AdminUser[] {
   return [...list].sort((a, b) => {
-    const va = a[key] ?? ''
-    const vb = b[key] ?? ''
+    const va = String(a[key] ?? '')
+    const vb = String(b[key] ?? '')
     return asc ? va.localeCompare(vb) : vb.localeCompare(va)
   })
 }

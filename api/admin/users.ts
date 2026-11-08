@@ -31,10 +31,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       const data = JSON.parse(json) as { name?: string; teslaModel?: string; country?: string; createdAt?: string }
       return {
         email,
-        name:       data.name       ?? '',
-        teslaModel: data.teslaModel ?? '',
-        country:    data.country    ?? '',
-        createdAt:  data.createdAt  ?? '',
+        name:       String(data.name       ?? ''),
+        teslaModel: String(data.teslaModel ?? ''),
+        country:    String(data.country    ?? ''),
+        createdAt:  String(data.createdAt  ?? ''),
       }
     } catch {
       return { email, name: '', teslaModel: '', country: '', createdAt: '' }
