@@ -55,6 +55,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     const rawSource = (body as { source?: unknown })?.source
     const source = (rawSource === 'waze-api' || rawSource === 'playwright') ? rawSource : null
 
+    // Allow cron scripts to pass the original Waze publish time as reportedAt.
+    // expiresAt is always computed from now so the TTL window is correct.
+    const rawReportedAt = (body as { reportedAt?: unknown })?.reportedAt
+    const customReportedAt = typeof rawReportedAt === 'string' && !isNaN(Date.parse(rawReportedAt))
+      ? rawReportedAt
+      : null
+
     const now = new Date()
     const event: RoadEvent = {
       id:          crypto.randomUUID(),
@@ -62,7 +69,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       lat,
       lng,
       description: description?.replace(/<[^>]*>/g, '').trim().slice(0, 200) ?? null,
-      reportedAt:  now.toISOString(),
+      reportedAt:  customReportedAt ?? now.toISOString(),
       expiresAt:   new Date(now.getTime() + lifetimeMs).toISOString(),
       confirms:    0,
       denies:      0,
