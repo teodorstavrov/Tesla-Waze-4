@@ -5,7 +5,7 @@
 // Phase 14: auto dark/light theme + onboarding.
 // Phase 21: turn-by-turn navigation HUD + voice directions.
 
-import { useEffect, lazy, Suspense } from 'react'
+import { useEffect } from 'react'
 import { LoginGate } from '@/features/auth/LoginGate'
 import { MapShell } from '@/components/MapShell'
 import { HeadingAvatar } from '@/components/HeadingAvatar'
@@ -15,7 +15,7 @@ import { SearchBar } from '@/components/SearchBar'
 import { LeftControls } from '@/components/LeftControls'
 import { RightControls } from '@/components/RightControls'
 import { BottomDock } from '@/components/BottomDock'
-const Onboarding   = lazy(() => import('@/components/Onboarding').then(m => ({ default: m.Onboarding })))
+import { Onboarding } from '@/components/Onboarding'
 import { useUserPosition } from '@/features/gps/useUserPosition'
 import { useAudioUnlock } from '@/features/audio/useAudioUnlock'
 import { EvMarkerLayer } from '@/features/ev/EvMarkerLayer'
@@ -23,7 +23,7 @@ import { StationPanel } from '@/features/ev/StationPanel'
 import { FilterBar } from '@/features/ev/FilterBar'
 import { AddStationForm } from '@/features/ev/AddStationForm'
 import { EventMarkerLayer } from '@/features/events/EventMarkerLayer'
-const ReportModal  = lazy(() => import('@/features/events/ReportModal').then(m => ({ default: m.ReportModal })))
+import { ReportModal } from '@/features/events/ReportModal'
 import { EventPanel } from '@/features/events/EventPanel'
 import { CameraMarkerLayer } from '@/features/cameras/CameraMarkerLayer'
 import { SectionLayer } from '@/features/cameras/SectionLayer'
@@ -42,7 +42,7 @@ import { CountryBoundsLayer } from '@/components/CountryBoundsLayer'
 import { RoutePanel } from '@/features/route/RoutePanel'
 import { TurnInstruction } from '@/features/route/TurnInstruction'
 import { AlertToast } from '@/features/audio/AlertToast'
-const OfflineToast = lazy(() => import('@/components/OfflineToast').then(m => ({ default: m.OfflineToast })))
+import { OfflineToast } from '@/components/OfflineToast'
 import { SettingsPanel } from '@/components/SettingsPanel'
 import { SupportModal } from '@/components/SupportModal'
 import { TermsModal } from '@/components/TermsModal'
@@ -181,7 +181,7 @@ export function App() {
       <MeetupList />
       <MeetupDetail />
       <MeetupTodayToast />
-      <Suspense fallback={null}><ReportModal /></Suspense>
+      <ReportModal />
 
       {/* Layer 4: alert toast (above everything) */}
       <AlertToast />
@@ -190,10 +190,10 @@ export function App() {
       <VoiceAssistant />
 
       {/* Layer 5: first-visit onboarding (above toast, dismissable) */}
-      <Suspense fallback={null}><Onboarding /></Suspense>
+      <Onboarding />
 
       {/* Layer 6: offline indicator */}
-      <Suspense fallback={null}><OfflineToast /></Suspense>
+      <OfflineToast />
 
       {/* Layer 7: support/donation modal (portal, above everything) */}
       {/* Wire stripeLink + qrImageUrl when Stripe is ready */}
