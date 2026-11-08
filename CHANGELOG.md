@@ -4,6 +4,12 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-11-08 (3)
+
+- **Fix: police markers not appearing on static map** — `EventMarkerLayer` now polls every 2 minutes regardless of map movement; previously events only refreshed on `moveend` so a parked car never received new cron-posted markers
+
+---
+
 ## 2026-11-08 (2)
 
 - **Fix: manual map drag on desktop browsers** — added `mousedown`/`mouseup` handlers on the map container (mirrors `touchstart`/`touchend`). Without this, the rAF dead-reckoning loop calls `jumpTo()` before `dragstart` fires, which calls MapLibre's internal `stop()` and kills the drag gesture. Desktop map is now pannable with mouse.

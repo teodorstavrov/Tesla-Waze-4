@@ -70,12 +70,8 @@ export function formatExpiresIn(expiresAt: string): string {
  * Always shows both age and remaining lifetime for all events.
  */
 export function reportedLine(reportedAt: string, expiresAt: string, _permanent?: boolean): string {
-  const lang    = getLang()
-  const ago     = formatTimeAgo(reportedAt)
-  const expires = formatExpiresIn(expiresAt)
-  return lang === 'bg'
-    ? `Добавено ${ago} · ${expires}`
-    : `Added ${ago} · ${expires}`
+  void reportedAt
+  return formatExpiresIn(expiresAt)
 }
 
 /**

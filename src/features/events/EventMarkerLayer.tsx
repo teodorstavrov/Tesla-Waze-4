@@ -89,28 +89,31 @@ export function EventMarkerLayer() {
       const unsub = eventStore.subscribe(syncMarkers)
       syncMarkers()
 
+      function fetchCurrent(): void {
+        const b = map.getBounds()
+        eventStore.fetch({
+          minLat: b.getSouth(), minLng: b.getWest(),
+          maxLat: b.getNorth(), maxLng: b.getEast(),
+        })
+      }
+
       function onMoveEnd(): void {
         if (moveTimer) clearTimeout(moveTimer)
         const debounce = getActivePerformanceProfile().mapMoveDebounceMs
-        moveTimer = setTimeout(() => {
-          const b = map.getBounds()
-          eventStore.fetch({
-            minLat: b.getSouth(), minLng: b.getWest(),
-            maxLat: b.getNorth(), maxLng: b.getEast(),
-          })
-        }, debounce)
+        moveTimer = setTimeout(fetchCurrent, debounce)
       }
 
       map.on('moveend', onMoveEnd)
 
-      const b = map.getBounds()
-      eventStore.fetch({
-        minLat: b.getSouth(), minLng: b.getWest(),
-        maxLat: b.getNorth(), maxLng: b.getEast(),
-      })
+      // Periodic refresh every 2 min — ensures new cron-added markers appear
+      // even when the map is static (parked car, desktop viewer).
+      const pollInterval = setInterval(fetchCurrent, 2 * 60 * 1000)
+
+      fetchCurrent()
 
       return () => {
         if (moveTimer) clearTimeout(moveTimer)
+        clearInterval(pollInterval)
         map.off('moveend', onMoveEnd)
         unsub()
         for (const m of registry.values()) m.remove()
