@@ -4,6 +4,13 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-11-09
+
+- **Fix: admin Users tab scroll** — outer div now uses `height: '100vh'` instead of `minHeight: 0`; all registered users are now visible when scrolling down (matches VoiceLogView pattern)
+- **Feat: "Other" country text input** — when a user selects "🌍 Other" in the registration form, a text field appears below the country grid to enter a custom country name; the entered value is stored in Redis instead of the code "OTHER"
+
+---
+
 ## 2026-11-08 (4)
 
 - **Feat: admin panel — Users tab** — new "👥 Потребители" tab between Карта and Гласови; shows a country breakdown dashboard (total + per-country counts + percentages) and a sortable table of all registered users (name, email, Tesla model, country, registration date); backed by new `GET /api/admin/users` endpoint that reads the Redis `users` hash

@@ -90,12 +90,13 @@ function RegisterForm({
   onRegistered: (email: string) => void
   onSwitchToLogin: () => void
 }) {
-  const [name,       setName]       = useState('')
-  const [email,      setEmail]      = useState('')
-  const [teslaModel, setTeslaModel] = useState('')
-  const [country,    setCountry]    = useState('')
-  const [loading,    setLoading]    = useState(false)
-  const [error,      setError]      = useState('')
+  const [name,          setName]          = useState('')
+  const [email,         setEmail]         = useState('')
+  const [teslaModel,    setTeslaModel]    = useState('')
+  const [country,       setCountry]       = useState('')
+  const [countryOther,  setCountryOther]  = useState('')
+  const [loading,       setLoading]       = useState(false)
+  const [error,         setError]         = useState('')
   const nameRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => { nameRef.current?.focus() }, [])
@@ -105,7 +106,8 @@ function RegisterForm({
     if (!name.trim() || !email.trim()) { setError('Please fill in all required fields.'); return }
     if (!email.includes('@'))          { setError('Please enter a valid email address.'); return }
     setLoading(true)
-    const result = await authStore.register(name.trim(), email.trim(), teslaModel.trim(), country)
+    const effectiveCountry = country === 'OTHER' ? (countryOther.trim() || 'OTHER') : country
+    const result = await authStore.register(name.trim(), email.trim(), teslaModel.trim(), effectiveCountry)
     setLoading(false)
     if (result.ok) { onRegistered(email.trim().toLowerCase()); return }
     setError(result.error ?? 'Registration error. Please try again.')
@@ -173,6 +175,16 @@ function RegisterForm({
             </button>
           ))}
         </div>
+        {country === 'OTHER' && (
+          <input
+            style={{ ...S.input, marginTop: '8px' }}
+            type="text"
+            placeholder="Enter your country name…"
+            value={countryOther}
+            onChange={(e) => setCountryOther(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && void handleSubmit()}
+          />
+        )}
       </div>
 
       {error && <div style={S.error}>{error}</div>}

@@ -680,7 +680,7 @@ function UsersView({ secret }: { secret: string }) {
   }
 
   return (
-    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', background: '#0d0d14', overflow: 'hidden', minHeight: 0 }}>
+    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', height: '100vh', background: '#0d0d14', overflow: 'hidden' }}>
       {/* Toolbar */}
       <div style={{
         padding: '14px 24px', borderBottom: '1px solid rgba(255,255,255,0.07)',
