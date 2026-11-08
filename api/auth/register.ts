@@ -108,8 +108,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     res.status(500).json({ error: 'Failed to send email. Please try again.' }); return
   }
 
-  // Fire-and-forget admin notification — does not block the response
-  void sendAdminNotification(user)
+  // Await admin notification before closing — Vercel kills the function after res.json()
+  await sendAdminNotification(user)
 
   res.status(200).json({ ok: true })
 }
