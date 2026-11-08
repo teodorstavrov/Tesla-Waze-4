@@ -380,7 +380,7 @@ export function MapShell() {
       _drRafId = requestAnimationFrame(frame)
     }
 
-    // Cancel rAF the instant a finger touches the screen — BEFORE MapLibre's
+    // Cancel rAF the instant a finger/mouse touches the screen — BEFORE MapLibre's
     // gesture recognizer runs. If we wait for 'dragstart', rAF fires jumpTo()
     // every 16ms during the recognition phase (touchstart → first threshold
     // touchmove), each jumpTo() calls stop() internally which kills the
@@ -394,10 +394,20 @@ export function MapShell() {
     function _onTouchEnd(): void {
       if (followStore.isFollowing() && _drTs > 0) _startRaf()
     }
+    // Desktop mouse: same rAF management as touch so mouse drag works on desktop browsers
+    function _onMouseDown(): void {
+      if (_autoRecenterTimer !== null) { clearTimeout(_autoRecenterTimer); _autoRecenterTimer = null }
+      if (_drRafId !== 0) { cancelAnimationFrame(_drRafId); _drRafId = 0 }
+    }
+    function _onMouseUp(): void {
+      if (followStore.isFollowing() && _drTs > 0) _startRaf()
+    }
     const _container = map.getContainer()
     _container.addEventListener('touchstart',  _onTouchStart, { passive: true, capture: true })
     _container.addEventListener('touchend',    _onTouchEnd,   { passive: true })
     _container.addEventListener('touchcancel', _onTouchEnd,   { passive: true })
+    _container.addEventListener('mousedown',   _onMouseDown,  { passive: true, capture: true })
+    _container.addEventListener('mouseup',     _onMouseUp,    { passive: true })
 
     // Keep dragstart handler for programmatic-move guard (setFollowing) only
     function _onDragStart(): void { /* rAF already cancelled by touchstart */ }
@@ -482,6 +492,8 @@ export function MapShell() {
       _container.removeEventListener('touchstart',  _onTouchStart, { capture: true })
       _container.removeEventListener('touchend',    _onTouchEnd)
       _container.removeEventListener('touchcancel', _onTouchEnd)
+      _container.removeEventListener('mousedown',   _onMouseDown,  { capture: true })
+      _container.removeEventListener('mouseup',     _onMouseUp)
       if (_drRafId !== 0) cancelAnimationFrame(_drRafId)
     }
   }, [])
