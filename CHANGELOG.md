@@ -4,6 +4,21 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-11-08 (2)
+
+- **Fix: manual map drag on desktop browsers** — added `mousedown`/`mouseup` handlers on the map container (mirrors `touchstart`/`touchend`). Without this, the rAF dead-reckoning loop calls `jumpTo()` before `dragstart` fires, which calls MapLibre's internal `stop()` and kills the drag gesture. Desktop map is now pannable with mouse.
+
+---
+
+## 2026-11-08
+
+- **Fix: admin email notifications** — `sendAdminNotification()` се извиква с `await` ПРЕДИ `res.json()` (Vercel прекратява функцията веднага след отговора; fire-and-forget не работи в serverless)
+- **UX: country бутони в един ред** — grid `repeat(6, 1fr)`, намален font/padding за да се събират BG/NL/BE/DE/FR/Other в 420px card без wrap
+- **Feat: Tesla model поле** — върнато в регистрационната форма
+- **Feat: Other country** — добавен 6-ти бутон "🌍 Other" за потребители извън основните държави
+
+---
+
 ## 2026-11-06 (3)
 
 - **Feat: Forgot PIN flow** — "Forgot PIN?" button on login screen → email input → `/api/auth/resend-pin` generates new PIN and re-sends it; always returns 200 (no email enumeration); new `api/auth/resend-pin.ts` endpoint

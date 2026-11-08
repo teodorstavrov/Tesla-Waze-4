@@ -286,7 +286,7 @@ function Dashboard({ secret }: { secret: string }) {
       const REGIONS: Record<string, string[]> = {
         DE: ['DE-1','DE-2','DE-3','DE-4'],
         SE: ['SE-1','SE-2','SE-3','SE-4','SE-5'],
-        FI: ['FI-1','FI-2','FI-3'],
+        FR: ['FR-1','FR-2','FR-3','FR-4'],
         NL: ['NL-1','NL-2A','NL-2B','NL-2C','NL-3'],
         BE: ['BE-S','BE-N'],
         BG: ['BG'],
@@ -450,7 +450,7 @@ function Dashboard({ secret }: { secret: string }) {
               </button>
             </div>
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 6 }}>
-              {(['DE','SE','FI','NL','BE','BG'] as const).map((cc) => (
+              {(['DE','SE','FR','NL','BE','BG'] as const).map((cc) => (
                 <button key={cc} style={{ ...S.btn, fontSize: 11, padding: '5px 10px', background: 'rgba(255,255,255,0.05)', color: '#aaa' }}
                   onClick={() => { void triggerCameraSync(cc) }} disabled={syncing}>
                   📷 {cc}
