@@ -695,7 +695,7 @@ function UsersView({ secret }: { secret: string }) {
         </button>
       </div>
 
-      <div style={{ flex: 1, overflow: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
 
         {loading && (
           <div style={{ color: '#aaa', fontSize: 15, padding: '48px 0', textAlign: 'center' }}>
@@ -754,7 +754,7 @@ function UsersView({ secret }: { secret: string }) {
                       <td style={{ ...tdBase, color: '#aaa' }}>{u.teslaModel || '—'}</td>
                       <td style={tdBase}>{u.country ? `${getCountryEmoji(u.country)} ${u.country.toUpperCase()}` : '—'}</td>
                       <td style={{ ...tdBase, color: '#888' }}>
-                        {u.createdAt ? new Date(u.createdAt).toLocaleDateString('bg-BG') : '—'}
+                        {u.createdAt ? new Date(Number(u.createdAt)).toLocaleDateString('bg-BG') : '—'}
                       </td>
                     </tr>
                   ))}

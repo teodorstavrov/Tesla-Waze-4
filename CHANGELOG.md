@@ -4,6 +4,13 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-11-09 (3)
+
+- **Fix: admin Users tab — Invalid Date** — `createdAt` is stored in Redis as a Unix ms timestamp string; use `new Date(Number(createdAt))` instead of `new Date(createdAt)` to parse it correctly
+- **Fix: admin Users tab — scroll** — content area flex item was missing `minHeight: 0`; without it the flex item grows to fit all content instead of scrolling; adding it allows all users to be visible via scroll
+
+---
+
 ## 2026-11-09 (2)
 
 - **Config: police sync update** — `police-scan-config.json` v2026-11-09: Brussels removed from Waze API cities (now covered by teslanav); Stara Zagora added (prop); Blagoevgrad added to teslanavCities (prop); `waze-api-sync.mjs` CITIES updated accordingly (brussels → stara-zagora, budget stays 13 × 720 = 9 360 req/мес)
