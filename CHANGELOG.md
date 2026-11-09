@@ -4,6 +4,12 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-11-09 (4)
+
+- **Fix: admin Users tab scroll (take 2)** — replace flex column scroll container with plain block div; flex children with `min-height: auto` were preventing the container from constraining its height, so overflow never triggered
+
+---
+
 ## 2026-11-09 (3)
 
 - **Fix: admin Users tab — Invalid Date** — `createdAt` is stored in Redis as a Unix ms timestamp string; use `new Date(Number(createdAt))` instead of `new Date(createdAt)` to parse it correctly

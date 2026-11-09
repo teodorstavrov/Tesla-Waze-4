@@ -695,7 +695,7 @@ function UsersView({ secret }: { secret: string }) {
         </button>
       </div>
 
-      <div style={{ flex: 1, minHeight: 0, overflow: 'auto', padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 20 }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '20px 24px' }}>
 
         {loading && (
           <div style={{ color: '#aaa', fontSize: 15, padding: '48px 0', textAlign: 'center' }}>
@@ -710,7 +710,7 @@ function UsersView({ secret }: { secret: string }) {
         {!loading && !error && (
           <>
             {/* Dashboard tiles */}
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
               <div style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '14px 20px', minWidth: 110 }}>
                 <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Общо</div>
                 <div style={{ fontSize: 28, fontWeight: 700, color: '#fff' }}>{users.length}</div>
