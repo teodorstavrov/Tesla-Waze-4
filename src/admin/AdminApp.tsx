@@ -1398,7 +1398,7 @@ const TESLANAV_ZONES: { name: string; lat: number; lon: number; country: 'BG' | 
   { name: 'Varna-S',   lat: 43.1820, lon: 27.9050, country: 'BG', dlat: 0.27, dlon: 0.40 },
   { name: 'Burgas',    lat: 42.5048, lon: 27.4626, country: 'BG', dlat: 0.27, dlon: 0.40 },
   { name: 'Plovdiv',   lat: 42.1354, lon: 24.7453, country: 'BG', dlat: 0.27, dlon: 0.40 },
-  { name: 'Sofia-C',   lat: 42.6977, lon: 23.3219, country: 'BG', dlat: 0.27, dlon: 0.40 },
+  { name: 'Sofia-C',   lat: 42.4277, lon: 23.2019, country: 'BG', dlat: 0.27, dlon: 0.40 },
   { name: 'Sofia-NE',  lat: 42.7400, lon: 23.4150, country: 'BG', dlat: 0.22, dlon: 0.32 },
   { name: 'Sofia-NW',  lat: 42.7400, lon: 23.2300, country: 'BG', dlat: 0.22, dlon: 0.32 },
   { name: 'Sofia-SE',  lat: 42.6550, lon: 23.4150, country: 'BG', dlat: 0.22, dlon: 0.32 },
