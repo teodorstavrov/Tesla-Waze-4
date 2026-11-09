@@ -4,6 +4,12 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-11-09 (9)
+
+- **Fix: teslanav zones + config sort** — Sofia-SE: 30% E (lon→23.5110); Blagoevgrad: върната; Sofia-NE: премахната; Yambol-Sliven: преместена в BG wide секция; `police-scan-config.json` wazeApiCities + teslanavCities сортирани по държава (BG→NL→DE→BE→FR); tnl-dusseldorf коригиран в DE секция
+
+---
+
 ## 2026-11-09 (8)
 
 - **Fix: teslanav coverage zones (2 промени)** — Sofia-SE: 30% E (lon 23.4150→23.5110); Blagoevgrad (Sofia-C): премахната зона
