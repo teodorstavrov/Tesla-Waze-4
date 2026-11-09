@@ -4,6 +4,12 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-11-09 (5)
+
+- **Feat: admin map — Teslanav coverage overlay** — "🛰 Teslanav покритие" toggle button on the map view draws color-coded dashed rectangles for all 49 teslanav scan points (BG red, NL orange, DE amber, BE blue); size reflects drag pattern (standard/wide/priority); tooltip shows city name on hover
+
+---
+
 ## 2026-11-09 (4)
 
 - **Fix: admin Users tab scroll (take 2)** — replace flex column scroll container with plain block div; flex children with `min-height: auto` were preventing the container from constraining its height, so overflow never triggered

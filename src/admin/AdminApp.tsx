@@ -194,10 +194,11 @@ function Dashboard({ secret }: { secret: string }) {
   const [visitors,     setVisitors]     = useState<VisitorInfo[]>([])
   const [visitorStats, setVisitorStats] = useState<VisitorStats | null>(null)
   const [aiStats,      setAiStats]      = useState<AiStats | null>(null)
-  const [activeView,   setActiveView]   = useState<'map' | 'voice-log' | 'users'>('map')
+  const [activeView,    setActiveView]    = useState<'map' | 'voice-log' | 'users'>('map')
   const [syncing, setSyncing] = useState(false)
   const [syncMsg, setSyncMsg] = useState('')
   const [addMode, setAddMode] = useState(false)
+  const [showCoverage, setShowCoverage] = useState(false)
   const [selType, setSelType] = useState<EventType>('police')
   const [editingEvent,  setEditingEvent]  = useState<RoadEvent | null>(null)
   const [editingMeetup, setEditingMeetup] = useState<AdminMeetup | null>(null)
@@ -535,6 +536,20 @@ function Dashboard({ secret }: { secret: string }) {
               📍 Кликни на картата за да добавиш: {EVENT_LABELS[selType]}
             </div>
           )}
+          {/* Teslanav coverage toggle */}
+          <button
+            onClick={() => setShowCoverage(v => !v)}
+            style={{
+              position: 'absolute', top: 12, right: 12, zIndex: 1000,
+              padding: '6px 14px', borderRadius: 8, border: '1px solid',
+              borderColor: showCoverage ? 'rgba(99,220,255,0.7)' : 'rgba(255,255,255,0.15)',
+              background: showCoverage ? 'rgba(99,220,255,0.15)' : 'rgba(0,0,0,0.55)',
+              color: showCoverage ? '#63dcff' : '#aaa',
+              fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              backdropFilter: 'blur(4px)',
+            }}>
+            🛰 Teslanav покритие
+          </button>
           <AdminMap
             events={events}
             userStations={userStations}
@@ -542,6 +557,7 @@ function Dashboard({ secret }: { secret: string }) {
             meetups={meetups}
             visitors={visitors}
             addMode={addMode}
+            showCoverage={showCoverage}
             editingEventId={editingEvent?.id ?? null}
             onMapClick={(lat, lng) => { void addEvent(lat, lng) }}
             onDelete={(id) => { void deleteEvent(id) }}
@@ -1369,6 +1385,77 @@ function Row({ label, count, total, color = '#e31937' }: { label: string; count:
   )
 }
 
+// ── Teslanav scan zones (from waze-police-sync/sync.mjs) ─────────────────
+// dlat/dlon = half-size of the coverage rectangle in degrees.
+// Sizes based on zoom-13 viewport (~17km×8.5km) + spoke extensions:
+//   standard (4 spokes 0.7×): ~20km radius → dlat 0.18 dlon 0.26
+//   wide     (8 spokes 0.7×): ~25km radius → dlat 0.22 dlon 0.32
+//   priority (12 spokes 2×) : ~30km radius → dlat 0.27 dlon 0.40
+const TESLANAV_ZONES: { name: string; lat: number; lon: number; country: 'BG' | 'NL' | 'DE' | 'BE'; dlat: number; dlon: number }[] = [
+  // ── BG cities (priority) ──
+  { name: 'Varna-C',   lat: 43.2080, lon: 27.8850, country: 'BG', dlat: 0.27, dlon: 0.40 },
+  { name: 'Varna-W',   lat: 43.2200, lon: 27.8200, country: 'BG', dlat: 0.27, dlon: 0.40 },
+  { name: 'Varna-S',   lat: 43.1820, lon: 27.9050, country: 'BG', dlat: 0.27, dlon: 0.40 },
+  { name: 'Burgas',    lat: 42.5048, lon: 27.4626, country: 'BG', dlat: 0.27, dlon: 0.40 },
+  { name: 'Plovdiv',   lat: 42.1354, lon: 24.7453, country: 'BG', dlat: 0.27, dlon: 0.40 },
+  { name: 'Sofia-C',   lat: 42.6977, lon: 23.3219, country: 'BG', dlat: 0.27, dlon: 0.40 },
+  { name: 'Sofia-NE',  lat: 42.7400, lon: 23.4150, country: 'BG', dlat: 0.22, dlon: 0.32 },
+  { name: 'Sofia-NW',  lat: 42.7400, lon: 23.2300, country: 'BG', dlat: 0.22, dlon: 0.32 },
+  { name: 'Sofia-SE',  lat: 42.6550, lon: 23.4150, country: 'BG', dlat: 0.22, dlon: 0.32 },
+  { name: 'Sofia-SW',  lat: 42.6550, lon: 23.2300, country: 'BG', dlat: 0.22, dlon: 0.32 },
+  { name: 'Ruse',      lat: 43.8356, lon: 25.9657, country: 'BG', dlat: 0.18, dlon: 0.26 },
+  { name: 'Dobrich',   lat: 43.5726, lon: 27.8273, country: 'BG', dlat: 0.18, dlon: 0.26 },
+  { name: 'Shumen',    lat: 43.2712, lon: 26.9361, country: 'BG', dlat: 0.18, dlon: 0.26 },
+  // ── A2 Hemus corridor (standard) ──
+  { name: 'A2-Devnya',      lat: 43.2260, lon: 27.5680, country: 'BG', dlat: 0.18, dlon: 0.26 },
+  { name: 'A2-Targovishte', lat: 43.2510, lon: 26.5720, country: 'BG', dlat: 0.18, dlon: 0.26 },
+  { name: 'A2-V.Tarnovo',   lat: 43.0757, lon: 25.6172, country: 'BG', dlat: 0.18, dlon: 0.26 },
+  { name: 'A2-Sevlievo',    lat: 43.0260, lon: 25.1030, country: 'BG', dlat: 0.18, dlon: 0.26 },
+  { name: 'A2-Yablanitsa',  lat: 43.0240, lon: 24.1120, country: 'BG', dlat: 0.18, dlon: 0.26 },
+  { name: 'A2-Vitinya',     lat: 42.8300, lon: 23.5700, country: 'BG', dlat: 0.18, dlon: 0.26 },
+  // ── Netherlands ──
+  { name: 'Amsterdam',      lat: 52.3676, lon:  4.9041, country: 'NL', dlat: 0.22, dlon: 0.32 },
+  { name: 'Rotterdam',      lat: 51.9244, lon:  4.4777, country: 'NL', dlat: 0.18, dlon: 0.26 },
+  { name: 'Den Haag',       lat: 52.0705, lon:  4.3007, country: 'NL', dlat: 0.18, dlon: 0.26 },
+  { name: 'A2-Utrecht',     lat: 52.0907, lon:  5.1214, country: 'NL', dlat: 0.18, dlon: 0.26 },
+  { name: 'A2-Vianen',      lat: 51.9900, lon:  5.0950, country: 'NL', dlat: 0.18, dlon: 0.26 },
+  { name: 'A2-Geldermalsen',lat: 51.8800, lon:  5.2600, country: 'NL', dlat: 0.18, dlon: 0.26 },
+  { name: 'A2-Zaltbommel',  lat: 51.8120, lon:  5.2460, country: 'NL', dlat: 0.18, dlon: 0.26 },
+  { name: 'A2-Den Bosch',   lat: 51.6978, lon:  5.3037, country: 'NL', dlat: 0.18, dlon: 0.26 },
+  { name: 'A2-Boxtel',      lat: 51.5600, lon:  5.3300, country: 'NL', dlat: 0.18, dlon: 0.26 },
+  { name: 'Eindhoven',      lat: 51.4416, lon:  5.4697, country: 'NL', dlat: 0.18, dlon: 0.26 },
+  { name: 'Düsseldorf',     lat: 51.2277, lon:  6.7735, country: 'NL', dlat: 0.22, dlon: 0.32 },
+  // ── Germany ──
+  { name: 'Berlin',    lat: 52.5200, lon: 13.4050, country: 'DE', dlat: 0.22, dlon: 0.32 },
+  { name: 'Hamburg',   lat: 53.5511, lon:  9.9937, country: 'DE', dlat: 0.22, dlon: 0.32 },
+  { name: 'München',   lat: 48.1351, lon: 11.5820, country: 'DE', dlat: 0.22, dlon: 0.32 },
+  { name: 'Köln',      lat: 50.9333, lon:  6.9600, country: 'DE', dlat: 0.18, dlon: 0.26 },
+  { name: 'Frankfurt', lat: 50.1109, lon:  8.6821, country: 'DE', dlat: 0.18, dlon: 0.26 },
+  { name: 'Stuttgart', lat: 48.7758, lon:  9.1829, country: 'DE', dlat: 0.18, dlon: 0.26 },
+  { name: 'Dortmund',  lat: 51.5136, lon:  7.4653, country: 'DE', dlat: 0.18, dlon: 0.26 },
+  { name: 'Leipzig',   lat: 51.3397, lon: 12.3731, country: 'DE', dlat: 0.18, dlon: 0.26 },
+  { name: 'Dresden',   lat: 51.0504, lon: 13.7373, country: 'DE', dlat: 0.18, dlon: 0.26 },
+  // ── Belgium ──
+  { name: 'Brussels',    lat: 50.8503, lon: 4.3517, country: 'BE', dlat: 0.22, dlon: 0.32 },
+  { name: 'Antwerp',     lat: 51.2194, lon: 4.4025, country: 'BE', dlat: 0.22, dlon: 0.32 },
+  { name: 'Ghent',       lat: 51.0543, lon: 3.7174, country: 'BE', dlat: 0.18, dlon: 0.26 },
+  { name: 'Liège',       lat: 50.6326, lon: 5.5797, country: 'BE', dlat: 0.18, dlon: 0.26 },
+  { name: 'Charleroi',   lat: 50.4114, lon: 4.4447, country: 'BE', dlat: 0.18, dlon: 0.26 },
+  { name: 'Bruges',      lat: 51.2093, lon: 3.2247, country: 'BE', dlat: 0.18, dlon: 0.26 },
+  { name: 'Leuven',      lat: 50.8798, lon: 4.7005, country: 'BE', dlat: 0.18, dlon: 0.26 },
+  { name: 'Namur',       lat: 50.4674, lon: 4.8720, country: 'BE', dlat: 0.18, dlon: 0.26 },
+  { name: 'Mechelen',    lat: 51.0259, lon: 4.4776, country: 'BE', dlat: 0.18, dlon: 0.26 },
+  { name: 'E19 Mechelen',lat: 51.1200, lon: 4.4600, country: 'BE', dlat: 0.18, dlon: 0.26 },
+  { name: 'E40 Aalst',   lat: 50.9400, lon: 4.0400, country: 'BE', dlat: 0.18, dlon: 0.26 },
+]
+
+const COVERAGE_COLOR: Record<'BG' | 'NL' | 'DE' | 'BE', string> = {
+  BG: '#e31937',
+  NL: '#FF8C00',
+  DE: '#F5C518',
+  BE: '#3B82F6',
+}
+
 // ── Leaflet map component ────────────────────────────────────────────────
 
 interface AdminMapProps {
@@ -1378,6 +1465,7 @@ interface AdminMapProps {
   meetups:          AdminMeetup[]
   visitors:         VisitorInfo[]
   addMode:          boolean
+  showCoverage:     boolean
   editingEventId:   string | null
   onMapClick:       (lat: number, lng: number) => void
   onDelete:         (id: string) => void
@@ -1387,7 +1475,7 @@ interface AdminMapProps {
   onDeleteMeetup:   (id: string) => void
 }
 
-function AdminMap({ events, userStations, comments, meetups, visitors, addMode, editingEventId, onMapClick, onDelete, onEdit, onApproveStation, onRejectStation, onDeleteMeetup }: AdminMapProps) {
+function AdminMap({ events, userStations, comments, meetups, visitors, addMode, showCoverage, editingEventId, onMapClick, onDelete, onEdit, onApproveStation, onRejectStation, onDeleteMeetup }: AdminMapProps) {
   const containerRef        = useRef<HTMLDivElement>(null)
   const mapRef              = useRef<L.Map | null>(null)
   const markersRef          = useRef<Map<string, L.Marker>>(new Map())
@@ -1396,6 +1484,7 @@ function AdminMap({ events, userStations, comments, meetups, visitors, addMode, 
   const commentMarkersRef   = useRef<Map<string, L.Marker>>(new Map())
   const meetupMarkersRef    = useRef<Map<string, L.Marker>>(new Map())
   const visitorLayerRef     = useRef<L.CircleMarker[]>([])
+  const coverageLayersRef   = useRef<L.Layer[]>([])
   const visitorsRef         = useRef<VisitorInfo[]>(visitors)
   const [mapReady, setMapReady] = useState(false)
   const addModeRef          = useRef(addMode)
@@ -1460,6 +1549,54 @@ function AdminMap({ events, userStations, comments, meetups, visitors, addMode, 
     if (!el) return
     el.style.cursor = addMode ? 'crosshair' : ''
   }, [addMode])
+
+  // Teslanav coverage overlay
+  useEffect(() => {
+    if (!mapReady) return
+    const map = mapRef.current
+    if (!map) return
+
+    void import('leaflet').then((Lm) => {
+      const L = Lm.default
+
+      // Remove existing coverage layers
+      coverageLayersRef.current.forEach((l) => l.remove())
+      coverageLayersRef.current = []
+
+      if (!showCoverage) return
+
+      TESLANAV_ZONES.forEach((z) => {
+        const color = COVERAGE_COLOR[z.country]
+        const bounds: L.LatLngBoundsLiteral = [
+          [z.lat - z.dlat, z.lon - z.dlon],
+          [z.lat + z.dlat, z.lon + z.dlon],
+        ]
+        const rect = L.rectangle(bounds, {
+          color,
+          weight: 1.5,
+          opacity: 0.7,
+          fillColor: color,
+          fillOpacity: 0.08,
+          dashArray: '4 4',
+          interactive: true,
+        })
+        rect.bindTooltip(`<b>${z.name}</b><br/>${z.country}`, { sticky: true, opacity: 0.9 })
+        rect.addTo(map)
+
+        const dot = L.circleMarker([z.lat, z.lon], {
+          radius: 4,
+          color,
+          fillColor: color,
+          fillOpacity: 0.9,
+          weight: 1.5,
+          interactive: false,
+        })
+        dot.addTo(map)
+
+        coverageLayersRef.current.push(rect, dot)
+      })
+    })
+  }, [mapReady, showCoverage])
 
   // Sync markers when events change — revision tracking so edits re-render
   useEffect(() => {
