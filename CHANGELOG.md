@@ -4,6 +4,12 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-11-09 (6)
+
+- **Fix: teslanav coverage zones (3 adjustments)** — Varna-W: 30% west (lon 27.8200→27.7000); Sofia-SW: 30% west (lon 23.2300→23.1340); Sofia-C renamed to Blagoevgrad (coordinates unchanged)
+
+---
+
 ## 2026-11-09 (5)
 
 - **Feat: admin map — Teslanav coverage overlay** — "🛰 Teslanav покритие" toggle button on the map view draws color-coded dashed rectangles for all 49 teslanav scan points (BG red, NL orange, DE amber, BE blue); size reflects drag pattern (standard/wide/priority); tooltip shows city name on hover
