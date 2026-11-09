@@ -4,6 +4,12 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-11-09 (7)
+
+- **Fix: teslanav coverage zones (5 adjustments + 1 нова зона)** — Sofia-NW: 150% N (lat 42.7400→43.0700); Varna-W: 30% W (lon 27.7000→27.5800); Sofia-SW: 100% W (lon 23.1340→22.8140); A2-Vitinya: 30% N (lat 42.8300→42.8840); нова зона Yambol-Sliven (42.5856, 26.4163, wide) покриваща Ямбол + Сливен
+
+---
+
 ## 2026-11-09 (6)
 
 - **Fix: teslanav coverage zones (3 adjustments)** — Varna-W: 30% west (lon 27.8200→27.7000); Sofia-SW: 30% west (lon 23.2300→23.1340); Sofia-C renamed to Blagoevgrad (coordinates unchanged)
