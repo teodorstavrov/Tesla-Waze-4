@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "updatedAt": "2026-11-05",
+  "updatedAt": "2026-11-09",
   "note": "Waze API PRO plan (10 000 req/month). teslanavCities are covered by teslanav sync scripts.",
   "budget": {
     "wazeApiReqPerMonth": 10000,
@@ -9,19 +9,19 @@
   },
   "bgScanIntervalHours": 2,
   "wazeApiCities": [
-    { "id": "sofia",           "city": "Sofia",           "country": "BG", "priority": 3, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": 40 },
-    { "id": "amsterdam",       "city": "Amsterdam",       "country": "NL", "priority": 3, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": 38 },
-    { "id": "varna",           "city": "Varna",           "country": "BG", "priority": 3, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": 26 },
-    { "id": "berlin",          "city": "Berlin",          "country": "DE", "priority": 3, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": 14 },
-    { "id": "munich",          "city": "Munich",          "country": "DE", "priority": 3, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": 13 },
-    { "id": "plovdiv",         "city": "Plovdiv",         "country": "BG", "priority": 2, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null },
-    { "id": "rotterdam",       "city": "Rotterdam",       "country": "NL", "priority": 2, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null },
-    { "id": "hamburg",         "city": "Hamburg",         "country": "DE", "priority": 2, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null },
-    { "id": "brussels",        "city": "Brussels",        "country": "BE", "priority": 2, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null },
-    { "id": "frankfurt",       "city": "Frankfurt",       "country": "DE", "priority": 2, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null },
-    { "id": "hannover",        "city": "Hannover",        "country": "DE", "priority": 2, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null },
-    { "id": "burgas",          "city": "Burgas",          "country": "BG", "priority": 3, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null },
-    { "id": "veliko-turnovo",  "city": "Veliko Turnovo",  "country": "BG", "priority": 2, "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null }
+    { "id": "sofia",            "city": "Sofia",           "country": "BG", "priority": 3, "status": "cur",  "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": 40 },
+    { "id": "amsterdam",        "city": "Amsterdam",       "country": "NL", "priority": 3, "status": "cur",  "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": 38 },
+    { "id": "varna",            "city": "Varna",           "country": "BG", "priority": 3, "status": "cur",  "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": 26 },
+    { "id": "berlin",           "city": "Berlin",          "country": "DE", "priority": 3, "status": "cur",  "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": 14 },
+    { "id": "munich",           "city": "Munich",          "country": "DE", "priority": 3, "status": "cur",  "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": 13 },
+    { "id": "plovdiv",          "city": "Plovdiv",         "country": "BG", "priority": 2, "status": "cur",  "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null },
+    { "id": "rotterdam",        "city": "Rotterdam",       "country": "NL", "priority": 2, "status": "cur",  "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null },
+    { "id": "hamburg",          "city": "Hamburg",         "country": "DE", "priority": 2, "status": "cur",  "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null },
+    { "id": "frankfurt",        "city": "Frankfurt",       "country": "DE", "priority": 2, "status": "cur",  "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null },
+    { "id": "hannover",         "city": "Hannover",        "country": "DE", "priority": 2, "status": "cur",  "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null },
+    { "id": "burgas",           "city": "Burgas",          "country": "BG", "priority": 3, "status": "cur",  "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null },
+    { "id": "c1793865564409",   "city": "Veliko Turnovo",  "country": "BG", "priority": 2, "status": "prop", "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null },
+    { "id": "c1794211062633",   "city": "Stara Zagora",    "country": "BG", "priority": 2, "status": "prop", "scanIntervalHours": 1, "ttlMin": 135, "gaUsers": null }
   ],
   "playwrightCities": [
     { "id": "bg-whole", "city": "България (цяла страна)", "country": "BG", "priority": 3, "status": "old", "scanIntervalHours": 2, "ttlMin": 135, "note": "waze-sync-task — 2ч repeat. Замени с teslanav cities group." }
@@ -77,6 +77,7 @@
     { "id": "tnde-dortmund",   "city": "Dortmund",        "country": "DE", "priority": 1, "status": "cur", "scanIntervalHours": 2 },
     { "id": "tnde-leipzig",    "city": "Leipzig",         "country": "DE", "priority": 1, "status": "cur", "scanIntervalHours": 2 },
     { "id": "tnde-dresden",    "city": "Dresden",         "country": "DE", "priority": 1, "status": "cur", "scanIntervalHours": 2 },
-    { "id": "c1793881714671",  "city": "Paris",           "country": "FR", "priority": 2, "status": "prop", "scanIntervalHours": 2 }
+    { "id": "c1793881714671",  "city": "Paris",           "country": "FR", "priority": 2, "status": "prop", "scanIntervalHours": 2 },
+    { "id": "c1794211140483",  "city": "Blagoevgrad",     "country": "BG", "priority": 2, "status": "prop", "scanIntervalHours": 1 }
   ]
 }

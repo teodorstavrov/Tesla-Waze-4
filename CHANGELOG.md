@@ -4,6 +4,12 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-11-09 (2)
+
+- **Config: police sync update** — `police-scan-config.json` v2026-11-09: Brussels removed from Waze API cities (now covered by teslanav); Stara Zagora added (prop); Blagoevgrad added to teslanavCities (prop); `waze-api-sync.mjs` CITIES updated accordingly (brussels → stara-zagora, budget stays 13 × 720 = 9 360 req/мес)
+
+---
+
 ## 2026-11-09
 
 - **Fix: admin Users tab scroll** — outer div now uses `height: '100vh'` instead of `minHeight: 0`; all registered users are now visible when scrolling down (matches VoiceLogView pattern)
