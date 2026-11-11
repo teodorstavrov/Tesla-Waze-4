@@ -709,6 +709,7 @@ async function previewLoop(loop, card) {
   if (!rendered) return;
 
   G.previewCtx = new AudioContext();
+  await G.previewCtx.resume();
   const gainNode = G.previewCtx.createGain();
   gainNode.connect(G.previewCtx.destination);
   G.previewSrc = G.previewCtx.createBufferSource();

@@ -43,6 +43,10 @@ export const audioManager = {
   /** Soft UI feedback pop — panel opens, toast appears. */
   uiBeep(): void {
     if (_state.muted || !_state.canUseAudio || !_ctx) return
+    if (_ctx.state === 'suspended') {
+      void _ctx.resume().then(() => { if (_ctx?.state === 'running') audioManager.uiBeep() })
+      return
+    }
     try {
       const osc  = _ctx.createOscillator()
       const gain = _ctx.createGain()
@@ -62,6 +66,10 @@ export const audioManager = {
   /** Two ascending tones — marker placed / action confirmed. */
   confirmBeep(): void {
     if (_state.muted || !_state.canUseAudio || !_ctx) return
+    if (_ctx.state === 'suspended') {
+      void _ctx.resume().then(() => { if (_ctx?.state === 'running') audioManager.confirmBeep() })
+      return
+    }
     try {
       const t = _ctx.currentTime
       for (const [freq, offset] of [[680, 0], [960, 0.1]] as [number, number][]) {
@@ -85,6 +93,10 @@ export const audioManager = {
    *  Works on Tesla browser (no isTeslaBrowser guard — explicit police sound). */
   siren(durationS = 3): void {
     if (_state.muted || !_state.canUseAudio || !_ctx) return
+    if (_ctx.state === 'suspended') {
+      void _ctx.resume().then(() => { if (_ctx?.state === 'running') audioManager.siren(durationS) })
+      return
+    }
     try {
       const t   = _ctx.currentTime
       const osc = _ctx.createOscillator()
@@ -112,6 +124,10 @@ export const audioManager = {
   /** Short attention beep before speech. Freq in Hz, duration in ms. */
   beep(freq = 880, durationMs = 120): void {
     if (_state.muted || !_state.canUseAudio || !_ctx) return
+    if (_ctx.state === 'suspended') {
+      void _ctx.resume().then(() => { if (_ctx?.state === 'running') audioManager.beep(freq, durationMs) })
+      return
+    }
     try {
       const osc  = _ctx.createOscillator()
       const gain = _ctx.createGain()
@@ -145,7 +161,8 @@ export const audioManager = {
   },
 
   async tryUnlock(): Promise<void> {
-    if (_state.unlocked) return
+    // Allow re-unlock when context was auto-suspended by Chrome (inactivity / page hidden)
+    if (_state.unlocked && _ctx?.state !== 'suspended') return
 
     let canAudio  = false
     let canSpeech = false
