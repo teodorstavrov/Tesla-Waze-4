@@ -4,6 +4,14 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-11-12 (1)
+
+- **Fix: аудио — auto-resume на спрян AudioContext** — Chrome спира AudioContext при неактивност; всички звукови методи (beep, siren, uiBeep, confirmBeep) вече автоматично го възобновяват. Engine Builder preview: добавен `resume()` преди playback (AudioContext след `await` стартира suspended)
+- **Fix: рерутинг при отклонение от маршрут** — два бъга: (1) trigger-ът използваше флаг-преход `!_state.deviated → deviated` — веднъж setnat на true, никога не тригерира отново; заменен с директна проверка `deviated && !_isRerouting` (cooldown throttle остава); (2) `_isRerouting` оставаше `true` при AbortError, блокирайки всички бъдещи рерутинги
+- **Fix: задължителен избор на държава при регистрация** — поле Country * с validation message при непопълнено
+
+---
+
 ## 2026-11-09 (9)
 
 - **Fix: teslanav zones + config sort** — Sofia-SE: 30% E (lon→23.5110); Blagoevgrad: върната; Sofia-NE: премахната; Yambol-Sliven: преместена в BG wide секция; `police-scan-config.json` wazeApiCities + teslanavCities сортирани по държава (BG→NL→DE→BE→FR); tnl-dusseldorf коригиран в DE секция

@@ -311,11 +311,14 @@ function _onGpsUpdate(): void {
     distDelta > 10   // update HUD every ~10m (at 60 km/h GPS gives ~17m/tick)
 
   if (changed) {
-    const justDeviated = !_state.deviated && deviated && !_isRerouting
     _state = { ..._state, deviated, remainingM: remaining, currentStepIndex: newStep, distToNextStepM }
     _emit()
-    if (justDeviated) void routeStore.reroute()
   }
+
+  // Reroute whenever confirmed off-route — reroute() throttles via REROUTE_COOLDOWN_MS.
+  // Previously used a transition flag (!_state.deviated → deviated) which got stuck:
+  // after deviated:true was set in state, the transition never fired again.
+  if (deviated && !_isRerouting) void routeStore.reroute()
 }
 
 function _startGpsTracking(): void {
@@ -511,8 +514,8 @@ export const routeStore = {
           ?? `Route recalculated. ${_rd}${_rv}`)
       }
     } catch (err) {
-      if ((err as Error).name === 'AbortError') return
       _isRerouting = false
+      if ((err as Error).name === 'AbortError') return
       _state = { ..._state, status: 'error', error: (err as Error).message }
       logger.route.warn('Reroute failed', { err: String(err) })
       _emit()

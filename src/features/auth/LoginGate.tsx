@@ -105,6 +105,7 @@ function RegisterForm({
     setError('')
     if (!name.trim() || !email.trim()) { setError('Please fill in all required fields.'); return }
     if (!email.includes('@'))          { setError('Please enter a valid email address.'); return }
+    if (!country)                      { setError('Please select your country.'); return }
     setLoading(true)
     const effectiveCountry = country === 'OTHER' ? (countryOther.trim() || 'OTHER') : country
     const result = await authStore.register(name.trim(), email.trim(), teslaModel.trim(), effectiveCountry)
@@ -158,7 +159,7 @@ function RegisterForm({
       </div>
 
       <div style={S.field}>
-        <label style={S.label}>Country</label>
+        <label style={S.label}>Country *</label>
         <div style={S.countryGrid}>
           {COUNTRIES.map((c) => (
             <button
