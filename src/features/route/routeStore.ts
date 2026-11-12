@@ -149,7 +149,7 @@ let _abort: AbortController | null = null
 let _unsubGps: (() => void) | null = null
 let _lastRerouteAt = 0
 const REROUTE_COOLDOWN_MS    = 8000  // 8s — allows retry after transient network failure
-const DEVIATION_THRESHOLD_M  = 80    // metres from polyline before considering off-route
+const DEVIATION_THRESHOLD_M  = 100   // metres from polyline before considering off-route
 const DEVIATION_CONFIRM_TICKS = 2    // consecutive GPS ticks above threshold → auto-reroute (~2 s)
 let _deviationTicks = 0
 let _isRerouting    = false          // true while reroute fetch is in-flight
@@ -275,7 +275,7 @@ function _onGpsUpdate(): void {
   let distToNextStepM: number | null = null
   if (nextStep && nextStep.type !== 'depart' && nextStep.type !== 'arrive') {
     // Road distance to next maneuver: remaining polyline distance minus segments after this step.
-    const distAfterM = steps.slice(newStep + 1).reduce((acc, s) => acc + (s.distanceM ?? 0), 0)
+    const distAfterM = steps.slice(newStep).reduce((acc, s) => acc + (s.distanceM ?? 0), 0)
     const d = Math.max(0, remainingDistanceM(idx) - distAfterM)
 
     // While in the post-turn buffer, hide the HUD counter so it doesn't awkwardly

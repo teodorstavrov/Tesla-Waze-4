@@ -4,6 +4,13 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-11-12 (2)
+
+- **Fix: грешно разстояние до следващ завой** — формулата `steps.slice(newStep + 1)` показваше разстоянието до СЛЕДВАЩИЯ завой след целевия (off-by-one); при достигане на завой показваше ~1км вместо ~0м. Оправено на `steps.slice(newStep)`
+- **Настройка: праг за отклонение 80м → 100м** — `DEVIATION_THRESHOLD_M` увеличен до 100м за по-малко false reroutes при GPS jitter
+
+---
+
 ## 2026-11-12 (1)
 
 - **Fix: аудио — auto-resume на спрян AudioContext** — Chrome спира AudioContext при неактивност; всички звукови методи (beep, siren, uiBeep, confirmBeep) вече автоматично го възобновяват. Engine Builder preview: добавен `resume()` преди playback (AudioContext след `await` стартира suspended)
