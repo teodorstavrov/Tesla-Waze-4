@@ -4,6 +4,12 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-11-12 (3)
+
+- **Fix: режим Картата се върти при навигация** — два проблема: (1) при зареждане на маршрут `fitBounds` нулираше bearing на 0° (north-up) и при повторно включване на follow се прескачаше директно на course-up bearing без анимация; оправено с `_drTransBear` при re-enable на follow (същата анимация като при смяна на режима от настройките); (2) `touchZoomRotate` беше активен и двупалечното въртене на Tesla touchscreen можеше временно да смени bearing; изключен с `disableRotation()`
+
+---
+
 ## 2026-11-12 (2)
 
 - **Fix: грешно разстояние до следващ завой** — формулата `steps.slice(newStep + 1)` показваше разстоянието до СЛЕДВАЩИЯ завой след целевия (off-by-one); при достигане на завой показваше ~1км вместо ~0м. Оправено на `steps.slice(newStep)`

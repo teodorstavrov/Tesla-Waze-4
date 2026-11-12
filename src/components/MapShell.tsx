@@ -447,9 +447,26 @@ export function MapShell() {
       _startRaf()
     })
 
-    // Re-enable follow → resume rAF from last known state immediately
+    // Disable two-finger rotation — course-up mode drives bearing via GPS/snap;
+    // accidental touch rotation creates a wrong bearing until the next rAF tick.
+    map.touchZoomRotate.disableRotation()
+
+    // Re-enable follow → resume rAF; animate bearing if in course-up and map has drifted
     const unsubFollow = followStore.subscribe((following) => {
-      if (following && _drTs > 0) _startRaf()
+      if (following && _drTs > 0) {
+        // When follow re-enables in course-up mode (e.g. after fitBounds or user drag),
+        // the map may be at bearing=0 (north-up). Animate back to course-up bearing
+        // the same way the settings switch does, so there's no instant snap.
+        if (_prevHeadingMode === 'course-up') {
+          const currentBearing = map.getBearing()
+          const targetBearing  = courseUpMapBearing(_drHeading)
+          if (Math.abs(bearingDiff(currentBearing, targetBearing)) > 5) {
+            _drTransBear = currentBearing
+            _drTransTs   = performance.now()
+          }
+        }
+        _startRaf()
+      }
     })
 
     const unsubSettings = settingsStore.subscribe(() => {
