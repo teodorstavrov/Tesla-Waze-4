@@ -4,6 +4,12 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-11-13 (2)
+
+- **Fix: PIN имейл попада в Junk** — добавен HTML вариант на имейла (table layout, inline CSS) за по-добра доставяемост; добавен `X-Entity-Ref-ID` header (предотвратява threading/дедупликация на множество PIN имейли); добавен `reply_to`; PIN премахнат от Subject (spam signal); добавен footer "Ако не си се регистрирал..." (сигнал за transactional имейл)
+
+---
+
 ## 2026-11-13 (1)
 
 - **Fix: обратен завой при навигация — Картата се върти** — два бъга: (1) direction guard ползваше `smoothedBearingRef` вместо GPS heading при обръщане; след обратен завой `smoothedBearingRef = 0°` (стара посока) и snap bearing = 0° → diff = 0° → без flip → картата не се завърташе; оправено: при GPS heading, отклонен > 120° от smooth bearing, се ползва GPS heading като reference → flip тригерира; (2) direction guard при flip връщаше snap позицията (по маршрута) → аватарът се движеше назад по маршрута; оправено: при flip се връща GPS позицията на шофьора
