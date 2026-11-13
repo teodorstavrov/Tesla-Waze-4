@@ -4,6 +4,12 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-11-13 (1)
+
+- **Fix: обратен завой при навигация — Картата се върти** — два бъга: (1) direction guard ползваше `smoothedBearingRef` вместо GPS heading при обръщане; след обратен завой `smoothedBearingRef = 0°` (стара посока) и snap bearing = 0° → diff = 0° → без flip → картата не се завърташе; оправено: при GPS heading, отклонен > 120° от smooth bearing, се ползва GPS heading като reference → flip тригерира; (2) direction guard при flip връщаше snap позицията (по маршрута) → аватарът се движеше назад по маршрута; оправено: при flip се връща GPS позицията на шофьора
+
+---
+
 ## 2026-11-12 (3)
 
 - **Fix: режим Картата се върти при навигация** — два проблема: (1) при зареждане на маршрут `fitBounds` нулираше bearing на 0° (north-up) и при повторно включване на follow се прескачаше директно на course-up bearing без анимация; оправено с `_drTransBear` при re-enable на follow (същата анимация като при смяна на режима от настройките); (2) `touchZoomRotate` беше активен и двупалечното въртене на Tesla touchscreen можеше временно да смени bearing; изключен с `disableRotation()`

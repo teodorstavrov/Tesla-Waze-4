@@ -195,10 +195,12 @@ function snapToRoute(
   if (bestSnap.idx > _currentSegmentIdx) _currentSegmentIdx = bestSnap.idx
 
   // Safety direction-guard: snap landed on U-turn return leg → flip 180°
+  // Return GPS position (lat, lng) instead of snap position to prevent the
+  // avatar from drifting backward along the route when the driver reverses.
   if (refBearing !== null) {
     const diff = Math.abs(bearingDiff(refBearing, bestSnap.bearing))
     if (diff > 90) {
-      return { lat: bestSnap.lat, lng: bestSnap.lng, bearing: (bestSnap.bearing + 180) % 360 }
+      return { lat, lng, bearing: (bestSnap.bearing + 180) % 360 }
     }
   }
 
@@ -264,11 +266,17 @@ export function HeadingAvatar() {
       }
 
       if (activeRoute?.polyline.length) {
-        const snap = snapToRoute(
-          pos.lat, pos.lng,
-          activeRoute.polyline,
-          smoothedBearingRef.current ?? pos.heading ?? null,
-        )
+        // Direction-guard reference: normally use smoothed bearing (stable, no GPS noise).
+        // Exception: when GPS heading has diverged > 120° from smooth bearing, the driver
+        // has reversed (U-turn). Switch to GPS heading so the guard flips the snap bearing.
+        // The 120° threshold avoids false triggers on sharp route turns (< 120°).
+        const snapRefBearing =
+          (pos.heading !== null &&
+           smoothedBearingRef.current !== null &&
+           Math.abs(bearingDiff(pos.heading, smoothedBearingRef.current)) > 120)
+            ? pos.heading
+            : (smoothedBearingRef.current ?? pos.heading ?? null)
+        const snap = snapToRoute(pos.lat, pos.lng, activeRoute.polyline, snapRefBearing)
         if (snap) {
           displayLat = snap.lat
           displayLng = snap.lng
