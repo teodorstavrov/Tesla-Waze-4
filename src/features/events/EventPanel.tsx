@@ -107,7 +107,7 @@ export function EventPanel() {
         bottom:        90,
         left:          '50%',
         transform:     'translateX(-50%)',
-        width:         'min(480px, calc(100vw - 24px))',
+        width:         'min(384px, calc(100vw - 24px))',
         zIndex:        500,
       }}
     >
@@ -116,10 +116,10 @@ export function EventPanel() {
         aria-label={label}
         className={isTeslaBrowser ? 'glass tesla-overlay-inner' : 'glass'}
         style={{
-          padding:       'clamp(12px, 2.5vh, 20px) clamp(14px, 2.8vh, 22px)',
+          padding:       'clamp(10px, 2vh, 16px) clamp(11px, 2.24vh, 18px)',
           display:       'flex',
           flexDirection: 'column',
-          gap:           'clamp(9px, 1.8vh, 14px)',
+          gap:           'clamp(7px, 1.44vh, 11px)',
           ...(isTeslaBrowser ? {} : {
             opacity:    isVisible ? 1 : 0,
             transform:  isVisible ? 'scale(1)' : 'scale(0.97)',
@@ -132,18 +132,18 @@ export function EventPanel() {
         {event && (
           <>
             {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
               <div style={{
-                width: 'clamp(38px, 6.5vh, 52px)', height: 'clamp(38px, 6.5vh, 52px)', borderRadius: '50%', flexShrink: 0,
+                width: 'clamp(30px, 5.2vh, 42px)', height: 'clamp(30px, 5.2vh, 42px)', borderRadius: '50%', flexShrink: 0,
                 background: `${color}22`, border: `2px solid ${color}`,
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: 'clamp(18px, 3vh, 24px)',
+                fontSize: 'clamp(14px, 2.4vh, 19px)',
               }}>
                 {emoji}
               </div>
 
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 'clamp(14px, 2.3vh, 19px)', fontWeight: 700, color }}>
+                <div style={{ fontSize: 'clamp(11px, 1.84vh, 15px)', fontWeight: 700, color }}>
                   {label}
                 </div>
                 {timeLine && (
@@ -163,13 +163,13 @@ export function EventPanel() {
                   background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)',
                   color: 'var(--text-secondary)', cursor: 'pointer',
                   padding: 0, borderRadius: '50%', lineHeight: 1, flexShrink: 0,
-                  width: 'clamp(32px, 5.5vh, 42px)', height: 'clamp(32px, 5.5vh, 42px)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  width: 'clamp(26px, 4.4vh, 34px)', height: 'clamp(26px, 4.4vh, 34px)', display: 'flex', alignItems: 'center', justifyContent: 'center',
                   position: 'relative',
                 }}
               >
                 {showVoting
                   ? <span style={{
-                      fontSize: 15, fontWeight: 700, lineHeight: 1,
+                      fontSize: 12, fontWeight: 700, lineHeight: 1,
                       color: 'var(--text-secondary)',
                     }}>
                       {countdown}
@@ -184,7 +184,7 @@ export function EventPanel() {
             </div>
 
             {event.description && !event.description.startsWith('wazesync:') && (
-              <div style={{ fontSize: 13, color: 'var(--text-primary)', lineHeight: 1.5 }}>
+              <div style={{ fontSize: 11, color: 'var(--text-primary)', lineHeight: 1.5 }}>
                 {event.description}
               </div>
             )}
@@ -208,14 +208,14 @@ export function EventPanel() {
             )}
 
             {/* Actions — only when opened by proximity engine */}
-            {showVoting && <div style={{ display: 'flex', gap: 8 }}>
+            {showVoting && <div style={{ display: 'flex', gap: 6 }}>
               <button
                 onClick={() => { void handleConfirm() }}
                 disabled={confirming || denying}
                 style={{
-                  flex: 1, padding: 'clamp(9px, 1.8vh, 14px) 0', borderRadius: 10,
+                  flex: 1, padding: 'clamp(7px, 1.44vh, 11px) 0', borderRadius: 8,
                   background: 'rgba(34,197,94,0.2)', border: '1.5px solid rgba(34,197,94,0.6)',
-                  color: '#22c55e', fontSize: 'clamp(13px, 2.2vh, 18px)', fontWeight: 700,
+                  color: '#22c55e', fontSize: 'clamp(10px, 1.76vh, 14px)', fontWeight: 700,
                   cursor: 'pointer', touchAction: 'manipulation',
                   opacity: confirming ? 0.6 : 1,
                 }}
@@ -226,9 +226,9 @@ export function EventPanel() {
                 onClick={() => { void handleDeny() }}
                 disabled={confirming || denying}
                 style={{
-                  flex: 1, padding: 'clamp(9px, 1.8vh, 14px) 0', borderRadius: 10,
+                  flex: 1, padding: 'clamp(7px, 1.44vh, 11px) 0', borderRadius: 8,
                   background: 'rgba(239,68,68,0.12)', border: '1.5px solid rgba(239,68,68,0.4)',
-                  color: '#f87171', fontSize: 'clamp(13px, 2.2vh, 18px)', fontWeight: 700,
+                  color: '#f87171', fontSize: 'clamp(10px, 1.76vh, 14px)', fontWeight: 700,
                   cursor: 'pointer', touchAction: 'manipulation',
                   opacity: denying ? 0.6 : 1,
                 }}

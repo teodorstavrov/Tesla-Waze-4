@@ -4,6 +4,12 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-11-13 (3)
+
+- **Намалени информационни панели с 20%** — `StationPanel`, `EventPanel`, `MeetupDetail`: ширина (~400→320px, ~480→384px, ~420→336px maxWidth), padding, font sizes, button sizes намалени с ~20%
+
+---
+
 ## 2026-11-13 (2)
 
 - **Fix: PIN имейл попада в Junk** — добавен HTML вариант на имейла (table layout, inline CSS) за по-добра доставяемост; добавен `X-Entity-Ref-ID` header (предотвратява threading/дедупликация на множество PIN имейли); добавен `reply_to`; PIN премахнат от Subject (spam signal); добавен footer "Ако не си се регистрирал..." (сигнал за transactional имейл)

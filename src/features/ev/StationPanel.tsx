@@ -62,7 +62,7 @@ export function StationPanel() {
         bottom:    'max(24px, calc(170px - 19vw))',
         left:      '50%',
         transform: 'translateX(-50%)',
-        width:     'min(400px, calc(100vw - 24px))',
+        width:     'min(320px, calc(100vw - 24px))',
         zIndex:    500,
       }}
     >
@@ -71,10 +71,10 @@ export function StationPanel() {
         aria-label={station?.name ?? ''}
         className={isTeslaBrowser ? 'glass tesla-overlay-inner' : 'glass'}
         style={{
-          padding:       'clamp(10px, 2vh, 16px) clamp(12px, 2.5vh, 20px)',
+          padding:       'clamp(8px, 1.6vh, 13px) clamp(10px, 2vh, 16px)',
           display:       'flex',
           flexDirection: 'column',
-          gap:           12,
+          gap:           10,
           ...(isTeslaBrowser ? {} : {
             opacity:       shown ? 1 : 0,
             transform:     shown ? 'scale(1)' : 'scale(0.97)',
@@ -85,23 +85,23 @@ export function StationPanel() {
         {station && (
           <>
             {/* Header */}
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{
-                  fontSize: 'clamp(14px, 2.2vh, 18px)', fontWeight: 700,
+                  fontSize: 'clamp(11px, 1.76vh, 14px)', fontWeight: 700,
                   color: 'var(--text-primary)',
                   whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
                 }}>
                   {station.name}
                 </div>
                 {(station.address || station.city) && (
-                  <div style={{ fontSize: 'clamp(11px, 1.7vh, 14px)', color: 'var(--text-secondary)', marginTop: 2 }}>
+                  <div style={{ fontSize: 'clamp(9px, 1.36vh, 11px)', color: 'var(--text-secondary)', marginTop: 2 }}>
                     {[station.address, station.city].filter(Boolean).join(', ')}
                   </div>
                 )}
               </div>
 
-              <div style={{ display: 'flex', gap: 6, flexShrink: 0, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+              <div style={{ display: 'flex', gap: 5, flexShrink: 0, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                 <SourceBadge source={station.source} />
                 {station.source === 'user' && <ApprovalBadge approvalStatus={station.approvalStatus} />}
                 <StatusBadge status={station.status} />
@@ -111,11 +111,11 @@ export function StationPanel() {
                   style={{
                     background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.12)',
                     color: 'var(--text-secondary)', cursor: 'pointer',
-                    padding: 0, borderRadius: 8, lineHeight: 1, flexShrink: 0,
-                    width: 36, height: 36, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    padding: 0, borderRadius: 7, lineHeight: 1, flexShrink: 0,
+                    width: 29, height: 29, display: 'flex', alignItems: 'center', justifyContent: 'center',
                   }}
                 >
-                  <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"
+                  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" aria-hidden="true"
                     stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
                     <line x1="3" y1="3" x2="13" y2="13" />
                     <line x1="13" y1="3" x2="3" y2="13" />
@@ -125,7 +125,7 @@ export function StationPanel() {
             </div>
 
             {/* Info row */}
-            <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
               {station.network && (
                 <InfoItem label={t('station.network')} value={station.network} />
               )}
@@ -166,7 +166,7 @@ export function StationPanel() {
             {/* Last updated + refresh */}
             {station.lastUpdated && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontSize: 12, color: 'var(--text-secondary)' }}>
+                <div style={{ fontSize: 10, color: 'var(--text-secondary)' }}>
                   {refreshedAt
                     ? t('station.justUpdated')
                     : `${t('station.updatedPrefix')} ${formatAge(station.lastUpdated)}`}
@@ -179,10 +179,10 @@ export function StationPanel() {
                   style={{
                     background: 'rgba(255,255,255,0.06)',
                     border: '1px solid rgba(255,255,255,0.12)',
-                    borderRadius: 8, cursor: refreshing ? 'default' : 'pointer',
-                    padding: '5px 10px', display: 'flex', alignItems: 'center', gap: 5,
+                    borderRadius: 6, cursor: refreshing ? 'default' : 'pointer',
+                    padding: '4px 8px', display: 'flex', alignItems: 'center', gap: 4,
                     color: refreshing ? 'rgba(255,255,255,0.3)' : 'rgba(255,255,255,0.6)',
-                    fontSize: 12, fontWeight: 600, touchAction: 'manipulation',
+                    fontSize: 10, fontWeight: 600, touchAction: 'manipulation',
                   }}
                 >
                   <RefreshIcon spinning={refreshing} />
@@ -195,7 +195,7 @@ export function StationPanel() {
             <CommentSection station={station} />
 
             {/* Actions */}
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 6 }}>
               <button
                 onClick={() => {
                   void routeStore.navigateTo({ lat: station.lat, lng: station.lng, name: station.name })
@@ -203,19 +203,19 @@ export function StationPanel() {
                 }}
                 style={{
                   flex: 1,
-                  padding: 'clamp(7px, 1.4vh, 11px) 0',
-                  borderRadius: 10,
+                  padding: 'clamp(6px, 1.12vh, 9px) 0',
+                  borderRadius: 8,
                   background: '#2B7FFF22',
                   border: '1.5px solid #2B7FFF55',
                   color: '#2B7FFF',
-                  fontSize: 'clamp(12px, 1.9vh, 15px)',
+                  fontSize: 'clamp(10px, 1.52vh, 12px)',
                   fontWeight: 700,
                   cursor: 'pointer',
                   touchAction: 'manipulation',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 6,
+                  gap: 5,
                 }}
               >
                 {t('station.navigate')}
@@ -231,12 +231,12 @@ export function StationPanel() {
                       addStationStore.openEdit(station, ownerToken)
                     }}
                     style={{
-                      padding: '11px 16px',
-                      borderRadius: 10,
+                      padding: '9px 13px',
+                      borderRadius: 8,
                       background: 'rgba(168,85,247,0.12)',
                       border: '1.5px solid rgba(168,85,247,0.4)',
                       color: '#c084fc',
-                      fontSize: 14,
+                      fontSize: 11,
                       fontWeight: 700,
                       cursor: 'pointer',
                       touchAction: 'manipulation',
@@ -290,9 +290,9 @@ function CommentSection({ station }: { station: NormalizedStation }) {
   if (state === 'sent') {
     return (
       <div style={{
-        padding: '10px 14px', borderRadius: 10,
+        padding: '8px 11px', borderRadius: 8,
         background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.3)',
-        fontSize: 13, color: '#4ade80', textAlign: 'center',
+        fontSize: 10, color: '#4ade80', textAlign: 'center',
       }}>
         ✓ {t('station.commentSent')}
       </div>
@@ -305,13 +305,13 @@ function CommentSection({ station }: { station: NormalizedStation }) {
         <button
           onClick={() => { setOpen(true); setTimeout(() => textareaRef.current?.focus(), 50) }}
           style={{
-            width: '100%', padding: '9px 0', borderRadius: 10, cursor: 'pointer',
+            width: '100%', padding: '7px 0', borderRadius: 8, cursor: 'pointer',
             background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
-            color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: 600,
+            color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 600,
             touchAction: 'manipulation', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
           }}
         >
-          <span style={{ fontSize: 15 }}>💬</span>
+          <span style={{ fontSize: 12 }}>💬</span>
           {t('station.commentBtn')}
         </button>
       ) : (
@@ -324,7 +324,7 @@ function CommentSection({ station }: { station: NormalizedStation }) {
             rows={3}
             style={{
               background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.15)',
-              borderRadius: 10, color: '#fff', padding: '10px 12px', fontSize: 14,
+              borderRadius: 8, color: '#fff', padding: '8px 10px', fontSize: 11,
               outline: 'none', width: '100%', boxSizing: 'border-box', resize: 'none',
               fontFamily: 'inherit',
             }}
@@ -332,13 +332,13 @@ function CommentSection({ station }: { station: NormalizedStation }) {
           {state === 'error' && (
             <div style={{ fontSize: 12, color: '#f87171' }}>{t('station.commentError')}</div>
           )}
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', gap: 6 }}>
             <button
               onClick={() => { setOpen(false); setText(''); setState('idle') }}
               style={{
-                flex: 1, padding: '9px 0', borderRadius: 10, cursor: 'pointer',
+                flex: 1, padding: '7px 0', borderRadius: 8, cursor: 'pointer',
                 background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.12)',
-                color: 'rgba(255,255,255,0.5)', fontSize: 13, fontWeight: 600, touchAction: 'manipulation',
+                color: 'rgba(255,255,255,0.5)', fontSize: 10, fontWeight: 600, touchAction: 'manipulation',
               }}
             >
               ✕
@@ -347,10 +347,10 @@ function CommentSection({ station }: { station: NormalizedStation }) {
               onClick={() => { void handleSubmit() }}
               disabled={!text.trim() || state === 'sending'}
               style={{
-                flex: 3, padding: '9px 0', borderRadius: 10, cursor: 'pointer',
+                flex: 3, padding: '7px 0', borderRadius: 8, cursor: 'pointer',
                 background: text.trim() && state !== 'sending' ? 'rgba(249,115,22,0.85)' : 'rgba(249,115,22,0.2)',
                 border: 'none', color: text.trim() && state !== 'sending' ? '#fff' : 'rgba(255,255,255,0.3)',
-                fontSize: 14, fontWeight: 700, touchAction: 'manipulation',
+                fontSize: 11, fontWeight: 700, touchAction: 'manipulation',
               }}
             >
               {state === 'sending' ? t('station.commentSending') : t('station.commentSubmit')}
@@ -367,10 +367,10 @@ function CommentSection({ station }: { station: NormalizedStation }) {
 function InfoItem({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <div style={{ fontSize: 12, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
+      <div style={{ fontSize: 10, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
         {label}
       </div>
-      <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', marginTop: 1 }}>
+      <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)', marginTop: 1 }}>
         {value}
       </div>
     </div>
@@ -379,20 +379,20 @@ function InfoItem({ label, value }: { label: string; value: string }) {
 
 function ConnectorList({ connectors }: { connectors: Connector[] }) {
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
       {connectors.map((c, i) => (
         <div
           key={i}
           style={{
-            padding: '4px 10px',
-            borderRadius: 12,
+            padding: '3px 8px',
+            borderRadius: 10,
             background: 'rgba(255,255,255,0.08)',
             border: '1px solid rgba(255,255,255,0.12)',
-            fontSize: 13,
+            fontSize: 10,
             color: 'var(--text-primary)',
             display: 'flex',
             alignItems: 'center',
-            gap: 5,
+            gap: 4,
           }}
         >
           <span style={{ fontWeight: 700 }}>{c.type}</span>
@@ -402,8 +402,8 @@ function ConnectorList({ connectors }: { connectors: Connector[] }) {
           {c.count > 1 && (
             <span style={{
               background: 'rgba(255,255,255,0.15)',
-              borderRadius: 8, padding: '0 5px',
-              fontSize: 10, fontWeight: 700,
+              borderRadius: 6, padding: '0 4px',
+              fontSize: 8, fontWeight: 700,
             }}>
               ×{c.count}
             </span>
@@ -468,7 +468,7 @@ function ApprovalBadge({ approvalStatus }: { approvalStatus?: 'pending' | 'appro
 function RefreshIcon({ spinning }: { spinning: boolean }) {
   return (
     <svg
-      width="13" height="13" viewBox="0 0 24 24" fill="none"
+      width="10" height="10" viewBox="0 0 24 24" fill="none"
       stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
       aria-hidden="true"
       style={spinning ? { animation: 'spin 0.8s linear infinite' } : undefined}

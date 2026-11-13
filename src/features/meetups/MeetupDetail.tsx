@@ -119,11 +119,11 @@ function MeetupDetailInner({ m }: { m: Meetup }) {
   return (
     <div style={overlay} onClick={() => meetupStore.closeDetail()}>
       <div style={card} onClick={(e) => e.stopPropagation()}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '16px 18px 8px' }}>
-          <div style={{ fontSize: 18, fontWeight: 800, paddingRight: 8 }}>📅 {m.title}</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '13px 14px 6px' }}>
+          <div style={{ fontSize: 14, fontWeight: 800, paddingRight: 6 }}>📅 {m.title}</div>
           <button onClick={() => meetupStore.closeDetail()} style={closeBtn}>✕</button>
         </div>
-        <div style={{ padding: '0 18px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ padding: '0 14px 13px', display: 'flex', flexDirection: 'column', gap: 6 }}>
           {/* Date: show next occurrence for recurring events */}
           {m.recurrence && m.recurrence !== 'none'
             ? <Row icon="🕒" text={fmt(nextOccurrence(new Date(m.date), m.recurrence).toISOString())} />
@@ -138,7 +138,7 @@ function MeetupDetailInner({ m }: { m: Meetup }) {
             } />
           )}
           {m.description && (
-            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5, background: 'rgba(255,255,255,0.04)', borderRadius: 8, padding: '8px 10px', marginTop: 2 }}>
+            <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.7)', lineHeight: 1.5, background: 'rgba(255,255,255,0.04)', borderRadius: 6, padding: '6px 8px', marginTop: 2 }}>
               {m.description}
             </div>
           )}
@@ -148,7 +148,7 @@ function MeetupDetailInner({ m }: { m: Meetup }) {
           {m.facebook && <Row icon="f" text={isUrl(m.facebook) ? <a href={m.facebook} target="_blank" rel="noopener noreferrer" style={link}>{t('meetup.facebookGroup')}</a> : m.facebook} />}
 
           {/* RSVP buttons */}
-          <div style={{ display: 'flex', gap: 8, marginTop: 6 }}>
+          <div style={{ display: 'flex', gap: 6, marginTop: 5 }}>
             <button
               onClick={() => void rsvpToggle('attend')}
               style={{
@@ -178,12 +178,12 @@ function MeetupDetailInner({ m }: { m: Meetup }) {
           {/* Navigate — available to everyone */}
           <button
             onClick={() => { void routeStore.navigateTo({ lat: m.lat, lng: m.lng, name: m.title }); meetupStore.closeDetail() }}
-            style={{ ...btn, marginTop: 8, width: '100%', background: '#e31937', border: 'none', fontWeight: 800, fontSize: 15 }}
+            style={{ ...btn, marginTop: 6, width: '100%', background: '#e31937', border: 'none', fontWeight: 800, fontSize: 12 }}
           >
             {t('meetup.navigate')}
           </button>
 
-          <div style={{ display: 'flex', gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 6, marginTop: 6, flexWrap: 'wrap' }}>
             {/* Follow — for non-owners */}
             {!isOwner && (
               <button onClick={follow} disabled={following} style={{ ...btn, flex: 1, background: following ? 'rgba(34,197,94,0.15)' : '#6366f1', color: following ? '#22c55e' : '#fff', border: 'none' }}>
@@ -215,8 +215,8 @@ function MeetupDetailInner({ m }: { m: Meetup }) {
 
 function Row({ icon, text }: { icon: string; text: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', gap: 10, alignItems: 'center', fontSize: 14, color: 'rgba(255,255,255,0.85)' }}>
-      <span style={{ width: 20, textAlign: 'center', color: 'rgba(255,255,255,0.6)' }}>{icon}</span>
+    <div style={{ display: 'flex', gap: 8, alignItems: 'center', fontSize: 11, color: 'rgba(255,255,255,0.85)' }}>
+      <span style={{ width: 16, textAlign: 'center', color: 'rgba(255,255,255,0.6)' }}>{icon}</span>
       <span>{text}</span>
     </div>
   )
@@ -227,12 +227,12 @@ const overlay: React.CSSProperties = {
   display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 12,
 }
 const card: React.CSSProperties = {
-  background: '#161622', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 16,
-  width: '100%', maxWidth: 420, color: '#fff', display: 'flex', flexDirection: 'column',
+  background: '#161622', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 13,
+  width: '100%', maxWidth: 336, color: '#fff', display: 'flex', flexDirection: 'column',
 }
-const closeBtn: React.CSSProperties = { background: 'transparent', color: 'rgba(255,255,255,0.6)', border: 'none', fontSize: 18, cursor: 'pointer', padding: '2px 6px' }
+const closeBtn: React.CSSProperties = { background: 'transparent', color: 'rgba(255,255,255,0.6)', border: 'none', fontSize: 14, cursor: 'pointer', padding: '2px 5px' }
 const link: React.CSSProperties = { color: '#a5b4fc', textDecoration: 'none' }
 const btn: React.CSSProperties = {
-  borderRadius: 10, padding: '11px 16px', fontSize: 14, fontWeight: 700, cursor: 'pointer',
+  borderRadius: 8, padding: '9px 13px', fontSize: 11, fontWeight: 700, cursor: 'pointer',
   color: '#fff', border: '1px solid rgba(255,255,255,0.15)', touchAction: 'manipulation',
 }
