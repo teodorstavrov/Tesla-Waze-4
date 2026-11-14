@@ -121,6 +121,70 @@ export const audioManager = {
     }
   },
 
+  /** GTA-style wanted level alert — short siren burst on level appear/increase.
+   *  level 1–2: single sweep 1000→380 Hz; level 3–5: double sweep (more urgent). */
+  wantedAlert(level: number): void {
+    if (_state.muted || !_state.canUseAudio || !_ctx) return
+    if (_ctx.state === 'suspended') {
+      void _ctx.resume().then(() => { if (_ctx?.state === 'running') audioManager.wantedAlert(level) })
+      return
+    }
+    try {
+      const t          = _ctx.currentTime
+      const sweeps     = level >= 3 ? 2 : 1
+      const sweepDur   = 0.28
+      const sweepGap   = 0.07
+      const totalDur   = sweeps * sweepDur + (sweeps - 1) * sweepGap
+      const vol        = level >= 4 ? 0.28 : 0.20
+
+      const osc  = _ctx.createOscillator()
+      const gain = _ctx.createGain()
+      osc.connect(gain)
+      gain.connect(_ctx.destination)
+      osc.type = 'sawtooth'
+
+      gain.gain.setValueAtTime(vol, t)
+      gain.gain.setValueAtTime(0.001, t + totalDur)
+
+      for (let i = 0; i < sweeps; i++) {
+        const offset = i * (sweepDur + sweepGap)
+        osc.frequency.setValueAtTime(1050, t + offset)
+        osc.frequency.exponentialRampToValueAtTime(380, t + offset + sweepDur)
+      }
+
+      osc.start(t)
+      osc.stop(t + totalDur)
+    } catch (err) {
+      logger.audio.warn('wantedAlert failed', err)
+    }
+  },
+
+  /** GTA-style wanted cleared — two descending tones signaling "you're safe". */
+  wantedCleared(): void {
+    if (_state.muted || !_state.canUseAudio || !_ctx) return
+    if (_ctx.state === 'suspended') {
+      void _ctx.resume().then(() => { if (_ctx?.state === 'running') audioManager.wantedCleared() })
+      return
+    }
+    try {
+      const t = _ctx.currentTime
+      for (const [freq, offset] of [[680, 0], [480, 0.12]] as [number, number][]) {
+        const osc  = _ctx.createOscillator()
+        const gain = _ctx.createGain()
+        osc.connect(gain)
+        gain.connect(_ctx.destination)
+        osc.type = 'sine'
+        osc.frequency.value = freq
+        gain.gain.setValueAtTime(0.14, t + offset)
+        gain.gain.exponentialRampToValueAtTime(0.001, t + offset + 0.18)
+        osc.start(t + offset)
+        osc.stop(t + offset + 0.18)
+      }
+    } catch (err) {
+      logger.audio.warn('wantedCleared failed', err)
+    }
+  },
+
   /** Short attention beep before speech. Freq in Hz, duration in ms. */
   beep(freq = 880, durationMs = 120): void {
     if (_state.muted || !_state.canUseAudio || !_ctx) return

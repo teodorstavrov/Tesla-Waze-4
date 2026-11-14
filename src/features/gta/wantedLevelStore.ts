@@ -17,6 +17,7 @@
 import { gpsStore } from '@/features/gps/gpsStore'
 import { eventStore } from '@/features/events/eventStore'
 import { sectionStore } from '@/features/cameras/sectionEngine'
+import { audioManager } from '@/features/audio/audioManager'
 import { haversineMeters } from '@/lib/geo'
 
 let _level     = 0
@@ -76,8 +77,17 @@ function _onPosition(): void {
 
   const next = Math.min(5, _speedStars(pos.speedKmh, limitKmh) + _policeStars(nearestPoliceM))
   if (next !== _level) {
+    const prev = _level
     _level = next
     _emit()
+
+    if (next > 0 && next > prev) {
+      // Level appeared or increased → GTA siren burst
+      audioManager.wantedAlert(next)
+    } else if (next === 0 && prev > 0) {
+      // Level cleared → dismissal sound
+      audioManager.wantedCleared()
+    }
   }
 }
 
