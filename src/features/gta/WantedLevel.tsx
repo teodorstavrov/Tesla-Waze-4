@@ -54,13 +54,15 @@ export function WantedLevel() {
     () => 0,
   )
 
-  const { wantedLevelEnabled, wantedLevelEffects } = useSyncExternalStore(
+  const wantedLevelEnabled = useSyncExternalStore(
     settingsStore.subscribe.bind(settingsStore),
-    () => {
-      const s = settingsStore.get()
-      return { wantedLevelEnabled: s.wantedLevelEnabled, wantedLevelEffects: s.wantedLevelEffects }
-    },
-    () => ({ wantedLevelEnabled: true, wantedLevelEffects: false }),
+    () => settingsStore.get().wantedLevelEnabled,
+    () => true,
+  )
+  const wantedLevelEffects = useSyncExternalStore(
+    settingsStore.subscribe.bind(settingsStore),
+    () => settingsStore.get().wantedLevelEffects,
+    () => false,
   )
 
   if (!wantedLevelEnabled) return null
