@@ -64,16 +64,6 @@ function PanelContent() {
     filterStore.getState,
     filterStore.getState,
   )
-  const wantedLevelEnabled = useSyncExternalStore(
-    settingsStore.subscribe.bind(settingsStore),
-    () => settingsStore.get().wantedLevelEnabled,
-    () => true,
-  )
-  const wantedLevelEffects = useSyncExternalStore(
-    settingsStore.subscribe.bind(settingsStore),
-    () => settingsStore.get().wantedLevelEffects,
-    () => false,
-  )
   const { theme, mapMode, toggleNight, toggleSatellite } = useThemeStore()
   const isNight     = theme === 'dark' && mapMode === 'normal'
   const isSatellite = mapMode === 'satellite'
@@ -161,24 +151,6 @@ function PanelContent() {
         state={showRoadworks}
         stateColor="#f97316"
         onToggle={() => roadworksStore.toggle()}
-      />
-
-      {/* GTA Wanted Level */}
-      <Row
-        icon={<WantedIcon active={wantedLevelEnabled} />}
-        label={t('settings.wantedLevel')}
-        state={wantedLevelEnabled}
-        stateColor="#fbbf24"
-        onToggle={() => settingsStore.toggleWantedLevel()}
-      />
-
-      {/* Wanted Level Effects (opt-in animations — disable on old hardware) */}
-      <Row
-        icon={<SparkleIcon active={wantedLevelEffects && wantedLevelEnabled} />}
-        label={t('settings.wantedLevelEffects')}
-        state={wantedLevelEffects && wantedLevelEnabled}
-        stateColor="#f97316"
-        onToggle={() => { if (wantedLevelEnabled) settingsStore.toggleWantedLevelEffects() }}
       />
 
       {/* Night / Day mode */}
@@ -427,31 +399,6 @@ function ClockIcon() {
       stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
       <circle cx="12" cy="12" r="10" />
       <polyline points="12 6 12 12 16 14" />
-    </svg>
-  )
-}
-
-function WantedIcon({ active }: { active: boolean }) {
-  const c = active ? '#fbbf24' : 'currentColor'
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <polygon
-        points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26"
-        fill={active ? '#fbbf2422' : 'none'}
-        stroke={c}
-        strokeWidth="1.5"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
-}
-
-function SparkleIcon({ active }: { active: boolean }) {
-  const c = active ? '#f97316' : 'currentColor'
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
-      stroke={c} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
     </svg>
   )
 }

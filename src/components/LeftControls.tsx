@@ -37,20 +37,20 @@ export function LeftControls() {
       }}
     >
       <LocationButton />
-      <button className="icon-btn gta-btn" onClick={() => getMap()?.zoomIn({ duration: 0 })}
+      <button className="icon-btn" onClick={() => getMap()?.zoomIn({ duration: 0 })}
         title="Zoom in" aria-label="Zoom in">
         <PlusIcon />
       </button>
-      <button className="icon-btn gta-btn" onClick={() => getMap()?.zoomOut({ duration: 0 })}
+      <button className="icon-btn" onClick={() => getMap()?.zoomOut({ duration: 0 })}
         title="Zoom out" aria-label="Zoom out">
         <MinusIcon />
       </button>
-      <button className="icon-btn gta-btn" onClick={openVehicleProfileModal}
+      <button className="icon-btn" onClick={openVehicleProfileModal}
         title={t('controls.vehicleProfile')}
         aria-label={t('controls.vehicleProfile')}>
         <CarBatteryIcon />
       </button>
-      <button className="icon-btn gta-btn" onClick={toggleHeadingMode}
+      <button className="icon-btn" onClick={toggleHeadingMode}
         title={headingMode === 'course-up' ? t('controls.courseUp') : t('controls.northUp')}
         aria-label={headingMode === 'course-up' ? t('controls.courseUp') : t('controls.northUp')}
         style={{ position: 'relative' }}>
@@ -58,7 +58,7 @@ export function LeftControls() {
       </button>
       {isPremiumEnabled() && (
         <button
-          className="icon-btn gta-btn"
+          className="icon-btn"
           onClick={openPricingModal}
           title="Plans & pricing"
           aria-label="Plans & pricing"
@@ -69,7 +69,7 @@ export function LeftControls() {
       )}
       {/* Secondary: hidden on Tesla small screens (< 700px) to free space for larger buttons */}
       <div className="left-ctrl-secondary" style={{ display: 'contents' }}>
-        <button className="icon-btn gta-btn" onClick={openVoiceAssistant}
+        <button className="icon-btn" onClick={openVoiceAssistant}
           title="TesRadar AI" aria-label="TesRadar AI — voice assistant"
           style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
           <MicButtonIcon />

@@ -9,8 +9,6 @@ interface Settings {
   showTraffic:          boolean
   performanceMode:      PerformanceMode
   headingMode:          HeadingMode
-  wantedLevelEnabled:   boolean
-  wantedLevelEffects:   boolean
 }
 
 const STORAGE_KEY = 'teslaradar:settings'
@@ -18,8 +16,6 @@ const DEFAULTS: Settings = {
   showTraffic:          false,
   performanceMode:      'auto',
   headingMode:          'north-up',
-  wantedLevelEnabled:   true,
-  wantedLevelEffects:   false,  // default OFF — safe for all Tesla hardware (MCU1/MCU2/MCU3)
 }
 
 type Listener = () => void
@@ -59,20 +55,6 @@ export const settingsStore = {
   setHeadingMode(mode: HeadingMode): void {
     const s = _load()
     s.headingMode = mode
-    _save(s)
-    _emit()
-  },
-
-  toggleWantedLevel(): void {
-    const s = _load()
-    s.wantedLevelEnabled = !s.wantedLevelEnabled
-    _save(s)
-    _emit()
-  },
-
-  toggleWantedLevelEffects(): void {
-    const s = _load()
-    s.wantedLevelEffects = !s.wantedLevelEffects
     _save(s)
     _emit()
   },
