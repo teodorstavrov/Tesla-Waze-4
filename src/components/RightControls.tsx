@@ -96,7 +96,7 @@ export function RightControls() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(4px, 1vh, 8px)', opacity: 0.5 }}>
           <div style={{ position: 'relative' }}>
             <button
-              className="icon-btn"
+              className="icon-btn gta-btn"
               onClick={handleTraffic}
               title={showTraffic ? 'Hide traffic' : 'Show traffic'}
               aria-label={showTraffic ? 'Hide traffic' : 'Show traffic'}
@@ -120,7 +120,7 @@ export function RightControls() {
 
           <div style={{ position: 'relative' }}>
             <button
-              className="icon-btn"
+              className="icon-btn gta-btn"
               onClick={handleRoadworks}
               title={showRoadworks ? 'Hide road closures' : 'Show road closures'}
               aria-label={showRoadworks ? 'Hide road closures' : 'Show road closures'}
@@ -144,7 +144,7 @@ export function RightControls() {
           <ThemeToggle />
           <SatelliteButton />
           <button
-            className="icon-btn"
+            className="icon-btn gta-btn"
             onClick={openCountryPicker}
             title="Switch country"
             aria-label="Switch country"
@@ -158,7 +158,7 @@ export function RightControls() {
             rel="noopener noreferrer"
             title="TesRadar Facebook група"
             aria-label="TesRadar Facebook група"
-            className="icon-btn"
+            className="icon-btn gta-btn"
             style={{ width: 63, height: 63, display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', color: 'inherit' }}
           >
             <FacebookIcon />
@@ -168,7 +168,7 @@ export function RightControls() {
 
       {/* EN translate toggle — always visible, independent of country selection */}
       <button
-        className="icon-btn"
+        className="icon-btn gta-btn"
         onClick={handleToggleEnglish}
         title={isEnglishOverride ? t('controls.removeTranslation') : t('controls.translateToEnglish')}
         aria-label={isEnglishOverride ? t('controls.removeTranslation') : t('controls.translateToEnglish')}
@@ -189,7 +189,7 @@ export function RightControls() {
 
       {/* Gear — always visible */}
       <button
-        className="icon-btn"
+        className="icon-btn gta-btn"
         onClick={uiStore.toggleSettings}
         title="Settings"
         aria-label="Settings"
