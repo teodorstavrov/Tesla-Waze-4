@@ -17,6 +17,45 @@ import type { RoadEvent } from './types.js'
 
 const NEW_THRESHOLD_MS = 2 * 60 * 1000
 
+// Waze-style police badge SVG: orange ring → white separator → blue circle → officer illustration
+function makePoliceElement(animation: string): HTMLDivElement {
+  const wrap = document.createElement('div')
+  wrap.className = 'marker-scale-wrap'
+  wrap.style.cursor = 'pointer'
+  // SVG uses drop-shadow filter instead of box-shadow (works on non-rectangular shapes)
+  wrap.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="46" height="46" viewBox="0 0 46 46"
+      style="display:block;filter:drop-shadow(0 2px 5px rgba(0,0,0,0.6));animation:${animation}">
+    <!-- Orange outer ring -->
+    <circle cx="23" cy="23" r="22.5" fill="#f97316"/>
+    <!-- White separator -->
+    <circle cx="23" cy="23" r="19.5" fill="white"/>
+    <!-- Blue background -->
+    <circle cx="23" cy="23" r="18" fill="#2563eb"/>
+    <!-- Police cap top -->
+    <path d="M14 21 Q23 12.5 32 21 L31 22.2 L15 22.2 Z" fill="#1e3a8a"/>
+    <!-- Cap brim -->
+    <rect x="13" y="21.8" width="20" height="2.4" rx="1.2" fill="#152b6b"/>
+    <!-- Badge star on cap -->
+    <polygon points="23,16 23.9,18.7 26.8,18.7 24.5,20.4 25.4,23.1 23,21.4 20.6,23.1 21.5,20.4 19.2,18.7 22.1,18.7"
+      fill="#fbbf24"/>
+    <!-- Face (skin tone ellipse) -->
+    <ellipse cx="23" cy="28" rx="6" ry="6" fill="#fde3a7"/>
+    <!-- Eyes -->
+    <circle cx="20.8" cy="26.8" r="0.95" fill="#374151"/>
+    <circle cx="25.2" cy="26.8" r="0.95" fill="#374151"/>
+    <!-- Smile -->
+    <path d="M20 29.5 Q23 32.5 26 29.5" fill="none" stroke="#92400e" stroke-width="0.9" stroke-linecap="round"/>
+    <!-- Uniform body -->
+    <path d="M15 38 Q18.5 32.5 23 32.5 Q27.5 32.5 31 38 L32 44 L14 44 Z" fill="#1e3a8a"/>
+    <!-- Shirt front / tie area -->
+    <path d="M21 33 L23 34.5 L25 33 L24.5 37 L21.5 37 Z" fill="white" opacity="0.88"/>
+    <!-- Chest badge (5-point star) -->
+    <polygon points="23,34 23.6,35.8 25.5,35.8 24.1,36.9 24.6,38.7 23,37.6 21.4,38.7 21.9,36.9 20.5,35.8 22.4,35.8"
+      fill="#fbbf24"/>
+  </svg>`
+  return wrap
+}
+
 function makeElement(event: RoadEvent): HTMLDivElement {
   const color = EVENT_COLORS[event.type] ?? '#888'
   const emoji = EVENT_EMOJI[event.type]  ?? '📍'
@@ -26,12 +65,13 @@ function makeElement(event: RoadEvent): HTMLDivElement {
     ? 'event-new-pulse 0.9s ease-out 3'
     : 'none'
 
-  const isPolice = event.type === 'police'
-  const bg      = isPolice ? color          : `${color}22`
-  const border  = isPolice ? '3px solid #fff' : `2px solid ${color}`
-  const shadow  = isPolice ? '0 2px 10px rgba(0,0,0,0.7)' : '0 2px 8px rgba(0,0,0,0.55)'
-  const size    = isPolice ? 40 : 36
-  const font    = isPolice ? 19 : 17
+  if (event.type === 'police') {
+    return makePoliceElement(animation)
+  }
+
+  const bg     = `${color}22`
+  const border = `2px solid ${color}`
+  const shadow = '0 2px 8px rgba(0,0,0,0.55)'
 
   const wrap = document.createElement('div')
   wrap.className = 'marker-scale-wrap'
@@ -39,10 +79,10 @@ function makeElement(event: RoadEvent): HTMLDivElement {
 
   const inner = document.createElement('div')
   inner.style.cssText = [
-    `width:${size}px`, `height:${size}px`, 'border-radius:50%',
+    'width:36px', 'height:36px', 'border-radius:50%',
     `background:${bg}`, `border:${border}`,
     'display:flex', 'align-items:center', 'justify-content:center',
-    `font-size:${font}px`, 'line-height:1',
+    'font-size:17px', 'line-height:1',
     `box-shadow:${shadow}`,
     `animation:${animation}`,
   ].join(';')
