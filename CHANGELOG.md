@@ -4,6 +4,14 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-11-14
+
+- **Fix: зарядни станции BG изчезнали** — Overpass sync cron е изпращал всичките 14 паралелни заявки (7 държави × tesla+osm) към един и същи endpoint, причинявайки rate-limit → нулеви резултати. Решение: 4 вълни по 2 държави, всяка заявка насочена към различен mirror (api.de / kumi.systems / private.coffee), OCM/Fines вървят паралелно на фона. Добавено детайлно логване на грешки по провайдър.
+- **Fix: `/api/online` crash** — `void redis.hset()` е хвърлял unhandled rejection при недостъпен Redis → process exit 128. Поправено с `.catch()` handler.
+- **API meta**: Добавен `fines` провайдър в `/api/ev/stations` meta отговора за по-добра диагностика.
+
+---
+
 ## 2026-11-13 (3)
 
 - **Намалени информационни панели с 20%** — `StationPanel`, `EventPanel`, `MeetupDetail`: ширина (~400→320px, ~480→384px, ~420→336px maxWidth), padding, font sizes, button sizes намалени с ~20%

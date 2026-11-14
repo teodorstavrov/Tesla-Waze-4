@@ -27,6 +27,7 @@ export interface StationSyncMeta {
     tesla: Pick<ProviderMeta, 'status' | 'count'>
     ocm:   Pick<ProviderMeta, 'status' | 'count'>
     osm:   Pick<ProviderMeta, 'status' | 'count'>
+    fines?: Pick<ProviderMeta, 'status' | 'count'>
   }
 }
 

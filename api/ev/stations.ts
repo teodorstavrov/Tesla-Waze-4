@@ -123,6 +123,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
             tesla: { ...(syncMeta?.providers.tesla ?? EMPTY_META), fetchMs: 0 },
             ocm:   { ...(syncMeta?.providers.ocm   ?? EMPTY_META), fetchMs: 0 },
             osm:   { ...(syncMeta?.providers.osm   ?? EMPTY_META), fetchMs: 0 },
+            ...(syncMeta?.providers.fines ? { fines: { ...syncMeta.providers.fines, fetchMs: 0 } } : {}),
             user:  { status: 'ok', count: userInBBox.length, fetchMs: 0 },
           },
           total:        stations.length,

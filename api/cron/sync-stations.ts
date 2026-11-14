@@ -85,56 +85,101 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   // ── Fetch all providers for all countries in parallel ─────────────
   const t0 = Date.now()
 
-  const [
-    bgTeslaResult, bgOcmResult, bgOsmResult, bgFinesResult,
-    seTeslaResult, seOcmResult, seOsmResult,
-    fiTeslaResult, fiOcmResult, fiOsmResult,
-    nlTeslaResult, nlOcmWestResult, nlOcmEastResult, nlOsmResult,
-    beTeslaResult, beOcmWestResult, beOcmEastResult, beOsmResult,
-    deTeslaResult, deOcmWestResult, deOcmEastResult, deOsmResult,
-    frTeslaResult, frOcmWestResult, frOcmEastResult, frOsmResult,
-  ] = await Promise.allSettled([
-    fetchTeslaStations(BULGARIA_BBOX),
-    fetchOCMStations(BULGARIA_BBOX),           // ~350   stations, 1 page
-    fetchOverpassStations(BULGARIA_BBOX),
-    fetchFinesStations(),                       // BG-only network, no bbox needed
-    fetchTeslaStations(SWEDEN_BBOX),
-    fetchOCMStations(SWEDEN_BBOX),             // 3 000  stations (6 pages)
-    fetchOverpassStations(SWEDEN_BBOX),
-    fetchTeslaStations(FINLAND_BBOX),
-    fetchOCMStations(FINLAND_BBOX),            // 3 000  stations (6 pages)
-    fetchOverpassStations(FINLAND_BBOX),
-    fetchTeslaStations(NETHERLANDS_BBOX),
-    fetchOCMStations(NETHERLANDS_WEST_BBOX),   // 3 000  west NL (Amsterdam/Rotterdam/Den Haag)
-    fetchOCMStations(NETHERLANDS_EAST_BBOX),   // 3 000  east NL (Utrecht/Eindhoven/Groningen)
-    fetchOverpassStations(NETHERLANDS_BBOX),
-    fetchTeslaStations(BELGIUM_BBOX),
-    fetchOCMStations(BELGIUM_WEST_BBOX),       // 3 000  west BE (Flanders, Brussels, Antwerp)
-    fetchOCMStations(BELGIUM_EAST_BBOX),       // 3 000  east BE (Wallonia, Liège, Namur)
-    fetchOverpassStations(BELGIUM_BBOX),
-    fetchTeslaStations(GERMANY_BBOX),
-    fetchOCMStations(GERMANY_WEST_BBOX),       // 3 000  west DE (NRW, Hessen, Baden-Württemberg)
-    fetchOCMStations(GERMANY_EAST_BBOX),       // 3 000  east DE (Berlin, Brandenburg, Bayern east)
-    fetchOverpassStations(GERMANY_BBOX),
-    fetchTeslaStations(FRANCE_BBOX),
-    fetchOCMStations(FRANCE_WEST_BBOX),        // 3 000  west FR (Bretagne, Normandie, Île-de-France)
-    fetchOCMStations(FRANCE_EAST_BBOX),        // 3 000  east FR (Alsace, Lyon, PACA, Corsica)
-    fetchOverpassStations(FRANCE_BBOX),
+  // OCM and Fines run in parallel (non-Overpass) while Overpass runs in waves below.
+  // Each Overpass provider gets a urlIndex (0=overpass-api.de, 1=kumi.systems, 2=private.coffee)
+  // to spread 14 simultaneous queries across the 3 public mirrors instead of all hitting one.
+  const bgOcmPromise      = fetchOCMStations(BULGARIA_BBOX)
+  const bgFinesPromise    = fetchFinesStations()
+  const seOcmPromise      = fetchOCMStations(SWEDEN_BBOX)
+  const fiOcmPromise      = fetchOCMStations(FINLAND_BBOX)
+  const nlOcmWestPromise  = fetchOCMStations(NETHERLANDS_WEST_BBOX)
+  const nlOcmEastPromise  = fetchOCMStations(NETHERLANDS_EAST_BBOX)
+  const beOcmWestPromise  = fetchOCMStations(BELGIUM_WEST_BBOX)
+  const beOcmEastPromise  = fetchOCMStations(BELGIUM_EAST_BBOX)
+  const deOcmWestPromise  = fetchOCMStations(GERMANY_WEST_BBOX)
+  const deOcmEastPromise  = fetchOCMStations(GERMANY_EAST_BBOX)
+  const frOcmWestPromise  = fetchOCMStations(FRANCE_WEST_BBOX)
+  const frOcmEastPromise  = fetchOCMStations(FRANCE_EAST_BBOX)
+
+  // Overpass in 4 waves — each wave sends at most 2 queries per server
+  // Wave 1: BG + SE  (urlIndex: BG→0,1  SE→2,0)
+  const [bgTeslaResult, bgOsmResult, seTeslaResult, seOsmResult] = await Promise.allSettled([
+    fetchTeslaStations(BULGARIA_BBOX, 0),
+    fetchOverpassStations(BULGARIA_BBOX, 1),
+    fetchTeslaStations(SWEDEN_BBOX, 2),
+    fetchOverpassStations(SWEDEN_BBOX, 0),
+  ])
+  // Wave 2: FI + NL  (urlIndex: FI→1,2  NL→0,1)
+  const [fiTeslaResult, fiOsmResult, nlTeslaResult, nlOsmResult] = await Promise.allSettled([
+    fetchTeslaStations(FINLAND_BBOX, 1),
+    fetchOverpassStations(FINLAND_BBOX, 2),
+    fetchTeslaStations(NETHERLANDS_BBOX, 0),
+    fetchOverpassStations(NETHERLANDS_BBOX, 1),
+  ])
+  // Wave 3: BE + DE  (urlIndex: BE→2,0  DE→1,2)
+  const [beTeslaResult, beOsmResult, deTeslaResult, deOsmResult] = await Promise.allSettled([
+    fetchTeslaStations(BELGIUM_BBOX, 2),
+    fetchOverpassStations(BELGIUM_BBOX, 0),
+    fetchTeslaStations(GERMANY_BBOX, 1),
+    fetchOverpassStations(GERMANY_BBOX, 2),
+  ])
+  // Wave 4: FR  (urlIndex: FR→0,1)
+  const [frTeslaResult, frOsmResult] = await Promise.allSettled([
+    fetchTeslaStations(FRANCE_BBOX, 0),
+    fetchOverpassStations(FRANCE_BBOX, 1),
   ])
 
-  function unwrap(r: PromiseSettledResult<ProviderResult>): ProviderResult | null {
-    return r.status === 'fulfilled' ? r.value : null
+  // Collect OCM + Fines (they've been running in parallel with the Overpass waves)
+  const [bgOcmResult, bgFinesResult, seOcmResult, fiOcmResult,
+         nlOcmWestResult, nlOcmEastResult, beOcmWestResult, beOcmEastResult,
+         deOcmWestResult, deOcmEastResult, frOcmWestResult, frOcmEastResult] =
+    await Promise.allSettled([
+      bgOcmPromise, bgFinesPromise, seOcmPromise, fiOcmPromise,
+      nlOcmWestPromise, nlOcmEastPromise, beOcmWestPromise, beOcmEastPromise,
+      deOcmWestPromise, deOcmEastPromise, frOcmWestPromise, frOcmEastPromise,
+    ])
+
+  function unwrap(r: PromiseSettledResult<ProviderResult>, label: string): ProviderResult | null {
+    if (r.status === 'rejected') {
+      console.error(`[SYNC] ${label} rejected:`, r.reason)
+      return null
+    }
+    if (r.value.meta.status === 'error') {
+      console.warn(`[SYNC] ${label} error: ${r.value.meta.error ?? 'unknown'}`)
+    } else {
+      console.log(`[SYNC] ${label} ok: ${r.value.meta.count} stations`)
+    }
+    return r.value
   }
 
   // Merge each country separately so dedup only fires within the same country
   // Fines is highest priority for BG — placed first so its stations win dedup
-  const bgResults = [bgFinesResult, bgTeslaResult, bgOcmResult, bgOsmResult].map(unwrap).filter((r): r is ProviderResult => r !== null)
-  const seResults = [seTeslaResult, seOcmResult, seOsmResult].map(unwrap).filter((r): r is ProviderResult => r !== null)
-  const fiResults = [fiTeslaResult, fiOcmResult, fiOsmResult].map(unwrap).filter((r): r is ProviderResult => r !== null)
-  const nlResults = [nlTeslaResult, nlOcmWestResult, nlOcmEastResult, nlOsmResult].map(unwrap).filter((r): r is ProviderResult => r !== null)
-  const beResults = [beTeslaResult, beOcmWestResult, beOcmEastResult, beOsmResult].map(unwrap).filter((r): r is ProviderResult => r !== null)
-  const deResults = [deTeslaResult, deOcmWestResult, deOcmEastResult, deOsmResult].map(unwrap).filter((r): r is ProviderResult => r !== null)
-  const frResults = [frTeslaResult, frOcmWestResult, frOcmEastResult, frOsmResult].map(unwrap).filter((r): r is ProviderResult => r !== null)
+  const bgResults = [
+    unwrap(bgFinesResult, 'BG-fines'), unwrap(bgTeslaResult, 'BG-tesla'),
+    unwrap(bgOcmResult, 'BG-ocm'),    unwrap(bgOsmResult,   'BG-osm'),
+  ].filter((r): r is ProviderResult => r !== null)
+  const seResults = [
+    unwrap(seTeslaResult, 'SE-tesla'), unwrap(seOcmResult, 'SE-ocm'), unwrap(seOsmResult, 'SE-osm'),
+  ].filter((r): r is ProviderResult => r !== null)
+  const fiResults = [
+    unwrap(fiTeslaResult, 'FI-tesla'), unwrap(fiOcmResult, 'FI-ocm'), unwrap(fiOsmResult, 'FI-osm'),
+  ].filter((r): r is ProviderResult => r !== null)
+  const nlResults = [
+    unwrap(nlTeslaResult, 'NL-tesla'), unwrap(nlOcmWestResult, 'NL-ocm-w'),
+    unwrap(nlOcmEastResult, 'NL-ocm-e'), unwrap(nlOsmResult, 'NL-osm'),
+  ].filter((r): r is ProviderResult => r !== null)
+  const beResults = [
+    unwrap(beTeslaResult, 'BE-tesla'), unwrap(beOcmWestResult, 'BE-ocm-w'),
+    unwrap(beOcmEastResult, 'BE-ocm-e'), unwrap(beOsmResult, 'BE-osm'),
+  ].filter((r): r is ProviderResult => r !== null)
+  const deResults = [
+    unwrap(deTeslaResult, 'DE-tesla'), unwrap(deOcmWestResult, 'DE-ocm-w'),
+    unwrap(deOcmEastResult, 'DE-ocm-e'), unwrap(deOsmResult, 'DE-osm'),
+  ].filter((r): r is ProviderResult => r !== null)
+  const frResults = [
+    unwrap(frTeslaResult, 'FR-tesla'), unwrap(frOcmWestResult, 'FR-ocm-w'),
+    unwrap(frOcmEastResult, 'FR-ocm-e'), unwrap(frOsmResult, 'FR-osm'),
+  ].filter((r): r is ProviderResult => r !== null)
 
   if (bgResults.length === 0 && seResults.length === 0 && fiResults.length === 0 && nlResults.length === 0 && beResults.length === 0 && deResults.length === 0 && frResults.length === 0) {
     res.status(502).json({ error: 'All providers failed — nothing to store' })

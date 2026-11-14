@@ -216,7 +216,7 @@ async function queryOverpass(query: string, url: string): Promise<OverpassRespon
 
 // ── Public API ────────────────────────────────────────────────────
 
-export async function fetchOverpassStations(bbox: BBox): Promise<ProviderResult> {
+export async function fetchOverpassStations(bbox: BBox, urlIndex = 0): Promise<ProviderResult> {
   const t0 = Date.now()
   const qbbox = quantizeBBox(bbox)
   const key = bboxCacheKey('osm', qbbox)
@@ -230,8 +230,10 @@ export async function fetchOverpassStations(bbox: BBox): Promise<ProviderResult>
     const bboxStr = toOverpassBBox(qbbox)
     const query = buildQuery(bboxStr)
 
+    // Rotate starting URL to distribute load across Overpass mirrors
+    const urls = [...OVERPASS_URLS.slice(urlIndex % OVERPASS_URLS.length), ...OVERPASS_URLS.slice(0, urlIndex % OVERPASS_URLS.length)]
     let data: OverpassResponse | null = null
-    for (const url of OVERPASS_URLS) {
+    for (const url of urls) {
       try { data = await queryOverpass(query, url); break } catch { /* try next */ }
     }
     if (!data) throw new Error('All Overpass mirrors failed')

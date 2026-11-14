@@ -55,7 +55,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const lat  = Math.round(rawLat * 10) / 10   // ~11 km precision for privacy
         const lng  = Math.round(rawLng * 10) / 10
         const record = JSON.stringify({ lat, lng, country: rawCountry, lastSeen: now, firstSeen: rawFirst })
-        void redis.hset(VISITORS_KEY, sid, record)
+        redis.hset(VISITORS_KEY, sid, record).catch((e) => console.warn('[online] hset failed', e))
       }
 
       return res.status(200).json({ count })
