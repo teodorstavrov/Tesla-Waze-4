@@ -617,6 +617,43 @@ interface AdminUser {
   teslaModel: string
   country:    string
   createdAt:  string
+  drip?: {
+    sent:    Record<string, string>         // email № → ISO time sent
+    planned: Record<string, string | null>  // email № → YYYY-MM-DD, null = skipped
+  }
+}
+
+function fmtDripDate(iso: string): string {
+  const d = new Date(iso.length === 10 ? iso + 'T12:00:00Z' : iso)
+  return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString('bg-BG', { day: '2-digit', month: '2-digit' })
+}
+
+function DripCell({ drip }: { drip?: AdminUser['drip'] }) {
+  if (!drip) return <span style={{ color: '#555' }}>—</span>
+  const nums    = Array.from({ length: 10 }, (_, i) => String(i + 1))
+  const sent    = nums.filter((n) => drip.sent[n])
+  const next    = nums.find((n) => !drip.sent[n] && drip.planned[n])
+  const tooltip = nums.map((n) => {
+    if (drip.sent[n])            return `№${n}: получен ${fmtDripDate(drip.sent[n])}`
+    if (drip.planned[n] == null) return `№${n}: не се изпраща`
+    return `№${n}: планиран ${fmtDripDate(drip.planned[n] as string)}`
+  }).join('\n')
+
+  return (
+    <div title={tooltip} style={{ display: 'flex', flexWrap: 'wrap', gap: 4, cursor: 'help' }}>
+      {sent.map((n) => (
+        <span key={n} style={{ fontSize: 11, fontWeight: 600, padding: '2px 6px', borderRadius: 5, background: 'rgba(74,222,128,0.15)', color: '#4ade80' }}>
+          №{n} · {fmtDripDate(drip.sent[n])}
+        </span>
+      ))}
+      {next && (
+        <span style={{ fontSize: 11, padding: '2px 6px', borderRadius: 5, border: '1px dashed rgba(255,255,255,0.18)', color: '#888' }}>
+          следващ №{next} · {fmtDripDate(drip.planned[next] as string)}
+        </span>
+      )}
+      {sent.length === 0 && !next && <span style={{ color: '#555' }}>—</span>}
+    </div>
+  )
 }
 
 type UserSortKey = 'createdAt' | 'country' | 'name'
@@ -760,6 +797,7 @@ function UsersView({ secret }: { secret: string }) {
                     <th style={{ ...thBase, color: sortKey === 'createdAt' ? '#e31937' : '#888' }} onClick={() => toggleSort('createdAt')}>
                       Регистриран {sortKey === 'createdAt' ? (sortAsc ? '↑' : '↓') : ''}
                     </th>
+                    <th style={{ ...thBase, color: '#888', cursor: 'default' }}>Имейли от курса</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -772,11 +810,14 @@ function UsersView({ secret }: { secret: string }) {
                       <td style={{ ...tdBase, color: '#888' }}>
                         {u.createdAt ? new Date(Number(u.createdAt)).toLocaleDateString('bg-BG') : '—'}
                       </td>
+                      <td style={{ ...tdBase, whiteSpace: 'normal', maxWidth: 380 }}>
+                        <DripCell drip={u.drip} />
+                      </td>
                     </tr>
                   ))}
                   {sorted.length === 0 && (
                     <tr>
-                      <td colSpan={5} style={{ ...tdBase, textAlign: 'center', color: '#888', padding: '36px 12px' }}>
+                      <td colSpan={6} style={{ ...tdBase, textAlign: 'center', color: '#888', padding: '36px 12px' }}>
                         Няма регистрирани потребители
                       </td>
                     </tr>

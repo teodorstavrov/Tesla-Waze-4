@@ -5,6 +5,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { isAuthorized, unauthorized } from '../_lib/admin/auth.js'
 import { redis, isRedisConfigured } from '../_lib/db/redis.js'
+import { dripKey, plannedDates } from '../_lib/drip/schedule.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -43,5 +44,24 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
   users.sort((a, b) => (b.createdAt > a.createdAt ? 1 : -1))
 
-  res.status(200).json({ users })
+  // Re-engage course: what each user has received (drip:{email}) and what is planned.
+  let sentRaw: unknown[] = []
+  try {
+    sentRaw = users.length ? await redis.pipeline(users.map((u) => ['HGETALL', dripKey(u.email)])) : []
+  } catch {
+    sentRaw = []
+  }
+
+  const withDrip = users.map((u, i) => {
+    const sent: Record<string, string> = {}
+    const r = sentRaw[i]
+    if (Array.isArray(r)) {
+      for (let j = 0; j + 1 < r.length; j += 2) sent[String(r[j])] = String(r[j + 1] ?? '')
+    } else if (r && typeof r === 'object') {
+      Object.assign(sent, r as Record<string, string>)
+    }
+    return { ...u, drip: { sent, planned: plannedDates(u.createdAt, u.country) } }
+  })
+
+  res.status(200).json({ users: withDrip })
 }
