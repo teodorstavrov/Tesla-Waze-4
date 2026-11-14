@@ -8,12 +8,15 @@
 // At 100 km/h the car travels ~56m in 2s — acceptable latency for a fun HUD.
 //
 // FORMULA:
-//   Speed stars (0–3): <70 km/h = 0, 70–99 = 1, 100–129 = 2, ≥130 = 3
+//   Speed stars (0–3):
+//     • Inside speed section: stars by km/h OVER the section limit (+10/+20/+30)
+//     • No section data: absolute fallback — 60/90/120 km/h (city/road/highway)
 //   Police stars (0–2): >500m = 0, 200–500m = 1, ≤200m = 2
 //   Total = min(speed + police, 5)
 
 import { gpsStore } from '@/features/gps/gpsStore'
 import { eventStore } from '@/features/events/eventStore'
+import { sectionStore } from '@/features/cameras/sectionEngine'
 import { haversineMeters } from '@/lib/geo'
 
 let _level     = 0
@@ -25,11 +28,23 @@ type Listener = () => void
 const _listeners = new Set<Listener>()
 function _emit(): void { _listeners.forEach((fn) => fn()) }
 
-function _speedStars(kmh: number | null): number {
+function _speedStars(kmh: number | null, limitKmh: number | null): number {
   if (kmh === null) return 0
-  if (kmh >= 130) return 3
-  if (kmh >= 100) return 2
-  if (kmh >= 70)  return 1
+
+  if (limitKmh !== null && limitKmh > 0) {
+    // Inside a speed section — relative to the enforced limit
+    const over = kmh - limitKmh
+    if (over >= 30) return 3
+    if (over >= 20) return 2
+    if (over >= 10) return 1
+    return 0
+  }
+
+  // No speed limit known — absolute fallback thresholds
+  // (≈ 10 km/h over city/road/highway defaults)
+  if (kmh >= 120) return 3
+  if (kmh >= 90)  return 2
+  if (kmh >= 60)  return 1
   return 0
 }
 
@@ -55,7 +70,11 @@ function _onPosition(): void {
     if (nearestPoliceM === null || d < nearestPoliceM) nearestPoliceM = d
   }
 
-  const next = Math.min(5, _speedStars(pos.speedKmh) + _policeStars(nearestPoliceM))
+  // Use section's enforced limit when actively inside one; null otherwise
+  const { session } = sectionStore.getState()
+  const limitKmh = session?.section.limitKmh ?? null
+
+  const next = Math.min(5, _speedStars(pos.speedKmh, limitKmh) + _policeStars(nearestPoliceM))
   if (next !== _level) {
     _level = next
     _emit()
