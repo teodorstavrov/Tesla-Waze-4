@@ -244,6 +244,14 @@ body,
   to { transform: rotate(360deg); }
 }
 
+/* ─── GTA Wanted Level pulse (effects mode, opt-in) ─────────────────── */
+/* Applied only when wantedLevelEffects is enabled by the user.          */
+/* Uses opacity only — compositor-only, no layout recalculation.         */
+@keyframes wanted-pulse {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0.6; }
+}
+
 /* ─── EV station tooltip ─────────────────────────────────────────────── */
 .ev-tooltip {
   background: rgba(16, 16, 24, 0.94) !important;

@@ -65,6 +65,8 @@ import { batteryTracker } from '@/features/planning/batteryTracker'
 import { useThemeStore } from '@/features/theme/store'
 import { teslaStore } from '@/features/tesla/teslaStore'
 import { teslaPoller } from '@/features/tesla/teslaPoller'
+import { WantedLevel } from '@/features/gta/WantedLevel'
+import { wantedLevelStore } from '@/features/gta/wantedLevelStore'
 
 export function App() {
   // Start GPS watching (feeds gpsStore; no rerenders from GPS ticks)
@@ -75,6 +77,7 @@ export function App() {
   useEffect(() => { batteryTracker.start() }, [])
   useEffect(() => { sectionEngine.start() }, [])
   useEffect(() => { teslaPoller.start() }, [])
+  useEffect(() => { wantedLevelStore.start() }, [])
 
   // Tesla connection: check status on app load + handle OAuth redirect result
   useEffect(() => {
@@ -182,6 +185,9 @@ export function App() {
       <MeetupDetail />
       <MeetupTodayToast />
       <ReportModal />
+
+      {/* GTA Wanted Level HUD — pointer-events:none, never blocks taps */}
+      <WantedLevel />
 
       {/* Layer 4: alert toast (above everything) */}
       <AlertToast />
