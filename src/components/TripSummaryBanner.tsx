@@ -82,6 +82,8 @@ export function TripSummaryBanner({ onClick }: { onClick?: () => void } = {}) {
       ? { bottom: 24, left: isTeslaBrowser ? '25%' : 'calc(25% - 40px)', transform: 'translateX(-50%)' }
       : { bottom: 30, right: 12, transform: 'translateZ(0)' }
 
+  const completedPct = route.distanceM > 0 ? (1 - remainingRatio) * 100 : 0
+
   return (
     <div
       role={interactive ? 'button' : undefined}
@@ -97,10 +99,12 @@ export function TripSummaryBanner({ onClick }: { onClick?: () => void } = {}) {
         touchAction:         interactive ? 'manipulation' : undefined,
         background:          'rgba(0,0,0,0.55)',
         borderRadius:        10,
+        overflow:            'hidden',
         padding:             'clamp(5px, 1vh, 7px) clamp(9px, 1.8vh, 13px)',
-        display:             'grid',
-        gridTemplateColumns: isPhone ? `repeat(${cols}, 1fr)` : '1fr 1fr',
-        gap:                 isPhone ? '4px 10px' : '4px 16px',
+        paddingBottom:       'clamp(8px, 1.4vh, 11px)',
+        display:             'flex',
+        flexDirection:       'column',
+        gap:                 0,
         minWidth:            isPhone ? undefined : 160,
         backdropFilter:      'blur(6px)',
         WebkitBackdropFilter: 'blur(6px)',
@@ -109,12 +113,39 @@ export function TripSummaryBanner({ onClick }: { onClick?: () => void } = {}) {
           : '1px solid rgba(255,255,255,0.08)',
       }}
     >
-      <StatRow icon="🕐" value={etaTime}                    label={t('route.arrival')} />
-      <StatRow icon="⏱"  value={fmtDuration(remainingSec)} label={t('route.remaining')} />
-      <StatRow icon="📍" value={`${kmLabel} ${t('routePanel.km')}`} label={t('route.distance')} />
-      {arrivalPct != null && (
-        <StatRow icon="🔋" value={`~${arrivalPct}%`} label={t('route.battery')} accent={batteryColor(arrivalPct)} />
-      )}
+      {/* Stats grid */}
+      <div style={{
+        display:             'grid',
+        gridTemplateColumns: isPhone ? `repeat(${cols}, 1fr)` : '1fr 1fr',
+        gap:                 isPhone ? '4px 10px' : '4px 16px',
+      }}>
+        <StatRow icon="🕐" value={etaTime}                    label={t('route.arrival')} />
+        <StatRow icon="⏱"  value={fmtDuration(remainingSec)} label={t('route.remaining')} />
+        <StatRow icon="📍" value={`${kmLabel} ${t('routePanel.km')}`} label={t('route.distance')} />
+        {arrivalPct != null && (
+          <StatRow icon="🔋" value={`~${arrivalPct}%`} label={t('route.battery')} accent={batteryColor(arrivalPct)} />
+        )}
+      </div>
+
+      {/* Progress bar — full-bleed at bottom */}
+      <div style={{
+        marginTop:    'clamp(5px, 1vh, 7px)',
+        marginLeft:   'calc(-1 * clamp(9px, 1.8vh, 13px))',
+        marginRight:  'calc(-1 * clamp(9px, 1.8vh, 13px))',
+        marginBottom: 'calc(-1 * clamp(8px, 1.4vh, 11px))',
+        height:       4,
+        background:   'rgba(255,255,255,0.10)',
+        position:     'relative',
+      }}>
+        <div style={{
+          position:     'absolute',
+          inset:        0,
+          right:        `${100 - completedPct}%`,
+          background:   'linear-gradient(90deg, #3b82f6, #22c55e)',
+          borderRadius: '0 2px 0 0',
+          transition:   'right 1s linear',
+        }} />
+      </div>
     </div>
   )
 }
