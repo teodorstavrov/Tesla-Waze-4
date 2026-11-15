@@ -9,6 +9,7 @@ import { vehicleProfileStore } from '@/features/planning/store'
 import { estimateArrivalBattery } from '@/features/planning/estimator'
 import { gpsStore } from '@/features/gps/gpsStore'
 import { isPhone, isTeslaBrowser } from '@/lib/browser'
+import { t, getLang, langStore } from '@/lib/locale'
 
 function pad(n: number): string { return n.toString().padStart(2, '0') }
 function fmtTime(date: Date): string { return `${pad(date.getHours())}:${pad(date.getMinutes())}` }
@@ -16,8 +17,8 @@ function fmtTime(date: Date): string { return `${pad(date.getHours())}:${pad(dat
 function fmtDuration(totalSeconds: number): string {
   const h = Math.floor(totalSeconds / 3600)
   const m = Math.floor((totalSeconds % 3600) / 60)
-  if (h > 0) return `${h}ч ${pad(m)}м`
-  return `${m} мин`
+  if (h > 0) return `${h}${t('routePanel.hours')} ${pad(m)}${t('routePanel.mins')}`
+  return `${m} ${t('routePanel.mins')}`
 }
 
 function batteryColor(pct: number): string {
@@ -28,6 +29,7 @@ function batteryColor(pct: number): string {
 }
 
 export function TripSummaryBanner({ onClick }: { onClick?: () => void } = {}) {
+  useSyncExternalStore(langStore.subscribe.bind(langStore), getLang, getLang)
   const routeState = useSyncExternalStore(routeStore.subscribe, routeStore.getState, routeStore.getState)
   const battery    = useSyncExternalStore(batteryStore.subscribe, batteryStore.getState, batteryStore.getState)
 
@@ -107,11 +109,11 @@ export function TripSummaryBanner({ onClick }: { onClick?: () => void } = {}) {
           : '1px solid rgba(255,255,255,0.08)',
       }}
     >
-      <StatRow icon="🕐" value={etaTime}                    label="пристигане" />
-      <StatRow icon="⏱"  value={fmtDuration(remainingSec)} label="оставащо" />
-      <StatRow icon="📍" value={`${kmLabel} км`}            label="разстояние" />
+      <StatRow icon="🕐" value={etaTime}                    label={t('route.arrival')} />
+      <StatRow icon="⏱"  value={fmtDuration(remainingSec)} label={t('route.remaining')} />
+      <StatRow icon="📍" value={`${kmLabel} ${t('routePanel.km')}`} label={t('route.distance')} />
       {arrivalPct != null && (
-        <StatRow icon="🔋" value={`~${arrivalPct}%`} label="батерия" accent={batteryColor(arrivalPct)} />
+        <StatRow icon="🔋" value={`~${arrivalPct}%`} label={t('route.battery')} accent={batteryColor(arrivalPct)} />
       )}
     </div>
   )

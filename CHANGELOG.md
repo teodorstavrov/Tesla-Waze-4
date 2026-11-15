@@ -4,6 +4,13 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-11-15
+
+- **i18n: навигационен панел превод** — `TripSummaryBanner` надписите "пристигане", "оставащо", "разстояние", "батерия" вече се превеждат според избраната страна/език. Добавени ключове `route.distance` и `route.battery` за всички 7 езика (bg, en, sv, fi, nl, de, fr). `fmtDuration` използва `routePanel.hours`/`mins` вместо хардкодни `ч`/`м`.
+- **feat: Waze-style police officer icon** — Нова SVG икона за полиция: оранжев пръстен, бял separator, синьо кръгче, илюстриран полицай с каска, лице, жетон и значка.
+
+---
+
 ## 2026-11-14
 
 - **Fix: зарядни станции BG изчезнали** — Overpass sync cron е изпращал всичките 14 паралелни заявки (7 държави × tesla+osm) към един и същи endpoint, причинявайки rate-limit → нулеви резултати. Решение: 4 вълни по 2 държави, всяка заявка насочена към различен mirror (api.de / kumi.systems / private.coffee), OCM/Fines вървят паралелно на фона. Добавено детайлно логване на грешки по провайдър.

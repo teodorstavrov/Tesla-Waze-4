@@ -149,6 +149,8 @@ export const DICTIONARY = {
       arrived:       'Пристигнахте!',
       viaHemus:      'Via A2 Хемус',
       inDist:        'след',
+      distance:      'Разстояние',
+      battery:       'Батерия',
     },
 
     search: {
@@ -558,6 +560,8 @@ export const DICTIONARY = {
       arrived:       'Arrived!',
       viaHemus:      'Via A2 Hemus',
       inDist:        'in',
+      distance:      'Distance',
+      battery:       'Battery',
     },
 
     search: {
@@ -964,6 +968,8 @@ export const DICTIONARY = {
       arrived:       'Framme!',
       viaHemus:      'Via A2 Hemus',
       inDist:        'om',
+      distance:      'Avstånd',
+      battery:       'Batteri',
     },
 
     search: {
@@ -1249,6 +1255,8 @@ export const DICTIONARY = {
       arrived:       'Perillä!',
       viaHemus:      'Via A2 Hemus',
       inDist:        'päässä',
+      distance:      'Etäisyys',
+      battery:       'Akku',
     },
 
     search: {
@@ -1533,6 +1541,8 @@ export const DICTIONARY = {
       arrived:       'Aangekomen!',
       viaHemus:      'Via A2 Hemus',
       inDist:        'over',
+      distance:      'Afstand',
+      battery:       'Batterij',
     },
 
     search: {
@@ -1820,6 +1830,8 @@ export const DICTIONARY = {
       arrived:       'Angekommen!',
       viaHemus:      'Via A2 Hemus',
       inDist:        'in',
+      distance:      'Distanz',
+      battery:       'Batterie',
     },
 
     search: {
@@ -2228,6 +2240,8 @@ export const DICTIONARY = {
       arrived:       'Arrivé !',
       viaHemus:      'Via A2 Hemus',
       inDist:        'dans',
+      distance:      'Distance',
+      battery:       'Batterie',
     },
 
     search: {
