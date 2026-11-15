@@ -133,18 +133,39 @@ export function TripSummaryBanner({ onClick }: { onClick?: () => void } = {}) {
         marginLeft:   'calc(-1 * clamp(9px, 1.8vh, 13px))',
         marginRight:  'calc(-1 * clamp(9px, 1.8vh, 13px))',
         marginBottom: 'calc(-1 * clamp(8px, 1.4vh, 11px))',
-        height:       4,
-        background:   'rgba(255,255,255,0.10)',
+        height:       11,
         position:     'relative',
       }}>
+        {/* Track */}
         <div style={{
-          position:     'absolute',
-          inset:        0,
-          right:        `${100 - completedPct}%`,
-          background:   'linear-gradient(90deg, #3b82f6, #22c55e)',
-          borderRadius: '0 2px 0 0',
-          transition:   'right 1s linear',
+          position:   'absolute',
+          bottom:     0, left: 0, right: 0,
+          height:     4,
+          background: 'rgba(255,255,255,0.10)',
         }} />
+        {/* Fill */}
+        <div style={{
+          position:   'absolute',
+          bottom:     0, left: 0,
+          right:      `${100 - completedPct}%`,
+          height:     4,
+          background: 'linear-gradient(90deg, #3b82f6, #22c55e)',
+          transition: 'right 1s linear',
+        }} />
+        {/* Arrow avatar */}
+        <div style={{
+          position:   'absolute',
+          bottom:     0,
+          left:       `clamp(4%, ${completedPct}%, 97%)`,
+          transform:  'translateX(-50%)',
+          transition: 'left 1s linear',
+          lineHeight: 0,
+          filter:     'drop-shadow(0 0 3px rgba(0,0,0,0.9))',
+        }}>
+          <svg width="11" height="11" viewBox="0 0 11 11" fill="none" aria-hidden="true">
+            <polygon points="1,1 10,5.5 1,10" fill="white" />
+          </svg>
+        </div>
       </div>
     </div>
   )
