@@ -89,37 +89,35 @@ export const audioManager = {
     }
   },
 
-  /** Police siren — wailing sweep 600↔1200 Hz for durationS seconds.
-   *  Works on Tesla browser (no isTeslaBrowser guard — explicit police sound). */
-  siren(durationS = 3): void {
+  /** Soft 3-tone descending chime for police close alert (replaces siren).
+   *  Three sine pulses 660→550→440 Hz — attention-getting but not startling. */
+  policeChime(): void {
     if (_state.muted || !_state.canUseAudio || !_ctx) return
     if (_ctx.state === 'suspended') {
-      void _ctx.resume().then(() => { if (_ctx?.state === 'running') audioManager.siren(durationS) })
+      void _ctx.resume().then(() => { if (_ctx?.state === 'running') audioManager.policeChime() })
       return
     }
     try {
-      const t   = _ctx.currentTime
-      const osc = _ctx.createOscillator()
-      const gain = _ctx.createGain()
-      osc.connect(gain)
-      gain.connect(_ctx.destination)
-      osc.type = 'sawtooth'
-      gain.gain.setValueAtTime(0.22, t)
-      gain.gain.setValueAtTime(0.001, t + durationS)
-      // Sweep 600↔1200 Hz every 0.5 s
-      const steps = Math.ceil(durationS / 0.5)
-      for (let i = 0; i < steps; i++) {
-        const fromHz = i % 2 === 0 ? 600 : 1200
-        const toHz   = i % 2 === 0 ? 1200 : 600
-        osc.frequency.setValueAtTime(fromHz, t + i * 0.5)
-        osc.frequency.linearRampToValueAtTime(toHz, t + (i + 1) * 0.5)
+      const t = _ctx.currentTime
+      for (const [freq, offset] of [[660, 0], [550, 0.22], [440, 0.44]] as [number, number][]) {
+        const osc  = _ctx.createOscillator()
+        const gain = _ctx.createGain()
+        osc.connect(gain)
+        gain.connect(_ctx.destination)
+        osc.type = 'sine'
+        osc.frequency.value = freq
+        gain.gain.setValueAtTime(0.13, t + offset)
+        gain.gain.exponentialRampToValueAtTime(0.001, t + offset + 0.18)
+        osc.start(t + offset)
+        osc.stop(t + offset + 0.18)
       }
-      osc.start(t)
-      osc.stop(t + durationS)
     } catch (err) {
-      logger.audio.warn('siren failed', err)
+      logger.audio.warn('policeChime failed', err)
     }
   },
+
+  /** @deprecated use policeChime() — kept for compatibility */
+  siren(_durationS = 3): void { audioManager.policeChime() },
 
   /** Short attention beep before speech. Freq in Hz, duration in ms. */
   beep(freq = 880, durationMs = 120): void {

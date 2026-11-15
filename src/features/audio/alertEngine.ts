@@ -163,7 +163,7 @@ function _onPosition(): void {
       } else {
         const text = _alertText(event.type)
         logger.audio.info('Proximity alert (zone entry)', { type: event.type, distM: Math.round(distM) })
-        audioManager.beep(880, event.type === 'police' ? 150 : 100)
+        audioManager.beep(event.type === 'police' ? 600 : 880, event.type === 'police' ? 200 : 100)
         if (!isTeslaBrowser) setTimeout(() => audioManager.speak(text, _ttsLang()), 200)
         _showToast(event.type, event.id, text, Math.round(distM))
       }
@@ -178,7 +178,7 @@ function _onPosition(): void {
         && !eventStore.isSelfReported(event.id) && _isInDirectionOfTravel(pos, event)) {
       const text = t('alerts.policeClose')
       logger.audio.info('Police close warning (zone entry)', { distM: Math.round(distM) })
-      audioManager.siren(3)
+      audioManager.policeChime()
       if (!isTeslaBrowser) setTimeout(() => audioManager.speak(text, _ttsLang()), 600)
       _showToast(event.type, event.id, text, Math.round(distM))
     }
