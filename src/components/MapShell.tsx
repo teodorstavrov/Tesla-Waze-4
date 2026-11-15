@@ -469,6 +469,12 @@ export function MapShell() {
       }
     })
 
+    // Apply saved pitch on init
+    const initPitch = settingsStore.get().mapPitch
+    if (initPitch > 0) map.setPitch(initPitch)
+
+    let _prevPitch = initPitch
+
     const unsubSettings = settingsStore.subscribe(() => {
       _perfProfile = getActivePerformanceProfile()
       _applyPerfAttribute()
@@ -490,6 +496,11 @@ export function MapShell() {
           _drTransBear = map.getBearing()
           _drTransTs   = performance.now()
         }
+      }
+      const newPitch = settingsStore.get().mapPitch
+      if (newPitch !== _prevPitch) {
+        _prevPitch = newPitch
+        map.easeTo({ pitch: newPitch, duration: isTeslaBrowser ? 0 : 350 })
       }
     })
 

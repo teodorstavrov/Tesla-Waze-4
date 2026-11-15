@@ -183,6 +183,8 @@ export const DICTIONARY = {
       removeTranslation:  'Върни оригиналния език',
       courseUp:           'Картата се върти',
       northUp:            'Аватара се върти',
+      tiltUp:             'Наклон нагоре',
+      tiltDown:           'Наклон надолу',
     },
 
     station: {
@@ -594,6 +596,8 @@ export const DICTIONARY = {
       removeTranslation:  'Switch back to original language',
       courseUp:           'Rotating map',
       northUp:            'North up',
+      tiltUp:             'Tilt up',
+      tiltDown:           'Tilt down',
     },
 
     station: {
@@ -1002,6 +1006,8 @@ export const DICTIONARY = {
       removeTranslation:  'Byt tillbaka till originalspråk',
       courseUp:           'Rotera karta',
       northUp:            'Nord upp',
+      tiltUp:             'Luta upp',
+      tiltDown:           'Luta ner',
     },
 
     station: {
@@ -1289,6 +1295,8 @@ export const DICTIONARY = {
       removeTranslation:  'Vaihda takaisin alkuperäiseen kieleen',
       courseUp:           'Käännetty kartta',
       northUp:            'Pohjoinen ylös',
+      tiltUp:             'Kallista ylös',
+      tiltDown:           'Kallista alas',
     },
 
     station: {
@@ -1575,6 +1583,8 @@ export const DICTIONARY = {
       removeTranslation:  'Terug naar de oorspronkelijke taal',
       courseUp:           'Kaart draaien',
       northUp:            'Noord omhoog',
+      tiltUp:             'Kantelen omhoog',
+      tiltDown:           'Kantelen omlaag',
     },
 
     station: {
@@ -1864,6 +1874,8 @@ export const DICTIONARY = {
       removeTranslation:  'Zur Originalsprache zurückkehren',
       courseUp:           'Karte drehen',
       northUp:            'Norden oben',
+      tiltUp:             'Neigung hoch',
+      tiltDown:           'Neigung runter',
     },
 
     station: {
@@ -2274,6 +2286,8 @@ export const DICTIONARY = {
       removeTranslation:  'Revenir à la langue d\'origine',
       courseUp:           'Orienter la carte',
       northUp:            'Nord en haut',
+      tiltUp:             'Incliner vers le haut',
+      tiltDown:           'Incliner vers le bas',
     },
 
     station: {

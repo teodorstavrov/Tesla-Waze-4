@@ -5,10 +5,15 @@ import type { PerformanceMode } from '@/config/performanceProfiles'
 
 export type HeadingMode = 'north-up' | 'course-up'
 
+export const PITCH_STEP = 15
+export const PITCH_MIN  = 0
+export const PITCH_MAX  = 60
+
 interface Settings {
   showTraffic:          boolean
   performanceMode:      PerformanceMode
   headingMode:          HeadingMode
+  mapPitch:             number
 }
 
 const STORAGE_KEY = 'teslaradar:settings'
@@ -16,6 +21,7 @@ const DEFAULTS: Settings = {
   showTraffic:          false,
   performanceMode:      'auto',
   headingMode:          'north-up',
+  mapPitch:             0,
 }
 
 type Listener = () => void
@@ -55,6 +61,13 @@ export const settingsStore = {
   setHeadingMode(mode: HeadingMode): void {
     const s = _load()
     s.headingMode = mode
+    _save(s)
+    _emit()
+  },
+
+  setMapPitch(pitch: number): void {
+    const s = _load()
+    s.mapPitch = Math.max(PITCH_MIN, Math.min(PITCH_MAX, pitch))
     _save(s)
     _emit()
   },

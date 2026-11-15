@@ -8,7 +8,7 @@ import { openVehicleProfileModal } from '@/components/VehicleProfileModal'
 import { openPricingModal } from '@/components/PricingModal'
 import { langStore, t, getLang } from '@/lib/locale'
 import { isPremiumEnabled } from '@/lib/featureFlags'
-import { settingsStore } from '@/features/settings/settingsStore'
+import { settingsStore, PITCH_STEP, PITCH_MIN, PITCH_MAX } from '@/features/settings/settingsStore'
 
 export function LeftControls() {
   useSyncExternalStore(langStore.subscribe.bind(langStore), getLang, getLang)
@@ -16,6 +16,11 @@ export function LeftControls() {
     settingsStore.subscribe.bind(settingsStore),
     () => settingsStore.get().headingMode,
     () => settingsStore.get().headingMode,
+  )
+  const mapPitch = useSyncExternalStore(
+    settingsStore.subscribe.bind(settingsStore),
+    () => settingsStore.get().mapPitch,
+    () => 0,
   )
 
   function toggleHeadingMode(): void {
@@ -44,6 +49,26 @@ export function LeftControls() {
       <button className="icon-btn" onClick={() => getMap()?.zoomOut({ duration: 0 })}
         title="Zoom out" aria-label="Zoom out">
         <MinusIcon />
+      </button>
+      <button
+        className="icon-btn"
+        onClick={() => settingsStore.setMapPitch(mapPitch + PITCH_STEP)}
+        disabled={mapPitch >= PITCH_MAX}
+        title={t('controls.tiltUp')}
+        aria-label={t('controls.tiltUp')}
+        style={{ opacity: mapPitch >= PITCH_MAX ? 0.3 : 1 }}
+      >
+        <TiltUpIcon />
+      </button>
+      <button
+        className="icon-btn"
+        onClick={() => settingsStore.setMapPitch(mapPitch - PITCH_STEP)}
+        disabled={mapPitch <= PITCH_MIN}
+        title={t('controls.tiltDown')}
+        aria-label={t('controls.tiltDown')}
+        style={{ opacity: mapPitch <= PITCH_MIN ? 0.3 : 1 }}
+      >
+        <TiltDownIcon />
       </button>
       <button className="icon-btn" onClick={openVehicleProfileModal}
         title={t('controls.vehicleProfile')}
@@ -117,6 +142,44 @@ function CarBatteryIcon() {
   )
 }
 
+
+// Perspective grid — tilt up (more 3D)
+function TiltUpIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+      {/* Horizon lines converging — wider at bottom, narrower at top */}
+      <line x1="10" y1="7"  x2="14" y2="7"  />
+      <line x1="7"  y1="12" x2="17" y2="12" />
+      <line x1="4"  y1="17" x2="20" y2="17" />
+      {/* Side edges forming trapezoid */}
+      <line x1="10" y1="7"  x2="4"  y2="17" />
+      <line x1="14" y1="7"  x2="20" y2="17" />
+      {/* Up arrow top-right */}
+      <polyline points="19,4 21,2 23,4" strokeWidth="1.5" />
+      <line x1="21" y1="2" x2="21" y2="6" strokeWidth="1.5" />
+    </svg>
+  )
+}
+
+// Flat grid — tilt down (more top-down)
+function TiltDownIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+      {/* Equal horizontal lines — flat top-down view */}
+      <line x1="4" y1="8"  x2="20" y2="8"  />
+      <line x1="4" y1="13" x2="20" y2="13" />
+      <line x1="4" y1="18" x2="20" y2="18" />
+      {/* Vertical sides */}
+      <line x1="4"  y1="8" x2="4"  y2="18" />
+      <line x1="20" y1="8" x2="20" y2="18" />
+      {/* Down arrow top-right */}
+      <polyline points="19,2 21,4 23,2" strokeWidth="1.5" />
+      <line x1="21" y1="4" x2="21" y2="0" strokeWidth="1.5" />
+    </svg>
+  )
+}
 
 // Compass needle pointing north — shown when in north-up mode (click → course-up)
 function NorthUpIcon() {
