@@ -89,10 +89,10 @@ export const audioManager = {
     }
   },
 
-  /** Police siren — sawtooth sweep 600↔1200 Hz, soft fade-in then sustain then fade-out.
+  /** Police siren — triangle sweep 600↔1200 Hz, soft fade-in then sustain then fade-out.
    *  Starts quiet (0.001) and builds to full volume over buildS seconds so it
    *  doesn't startle the driver, then fades out in the last 0.3 s. */
-  policeChime(totalS = 2.5, buildS = 0.6): void {
+  policeChime(totalS = 3.0, buildS = 0.9): void {
     if (_state.muted || !_state.canUseAudio || !_ctx) return
     if (_ctx.state === 'suspended') {
       void _ctx.resume().then(() => { if (_ctx?.state === 'running') audioManager.policeChime(totalS, buildS) })
@@ -104,7 +104,7 @@ export const audioManager = {
       const gain = _ctx.createGain()
       osc.connect(gain)
       gain.connect(_ctx.destination)
-      osc.type = 'sawtooth'
+      osc.type = 'triangle'
       // Envelope: fade in → sustain → fade out
       gain.gain.setValueAtTime(0.001, t)
       gain.gain.linearRampToValueAtTime(0.22, t + buildS)
