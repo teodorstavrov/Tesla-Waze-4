@@ -60,7 +60,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     } else if (r && typeof r === 'object') {
       Object.assign(sent, r as Record<string, string>)
     }
-    return { ...u, drip: { sent, planned: plannedDates(u.createdAt, u.country) } }
+    return { ...u, drip: { sent, planned: plannedDates(u.createdAt, u.country, u.email) } }
   })
 
   res.status(200).json({ users: withDrip })

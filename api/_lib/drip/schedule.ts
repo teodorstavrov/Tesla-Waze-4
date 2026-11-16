@@ -7,9 +7,20 @@
 //   moved off weekends to Monday and never closer than 2 days to the previous one.
 // • BE, DE, FR skip email 5 (average-speed cameras) pending a legal check.
 //
+// • Resend allows 100 emails a day. The course uses at most DRIP_DAILY_CAP of
+//   them and leaves PIN_RESERVE for PIN/login emails. Existing users are split
+//   into two waves by a hash of the email: wave A gets each email on its date,
+//   wave B one day later (113 users → ~57 a day). The cron must still stop at
+//   DRIP_DAILY_CAP and carry the rest to the next weekday.
+//
 // Sent state lives in Redis hash `drip:{email}`: field = email number (1–10),
 // value = ISO timestamp of when it was sent. The future cron writes it;
 // the admin panel reads it.
+
+export const RESEND_DAILY_LIMIT = 100
+export const PIN_RESERVE        = 15
+export const DRIP_DAILY_CAP     = RESEND_DAILY_LIMIT - PIN_RESERVE // 85
+export const DRIP_WAVES         = 2
 
 export const DRIP_ANCHOR = Date.UTC(2026, 10, 16) // Mon 16 Nov 2026 = day 0
 const DAY = 86_400_000
@@ -26,6 +37,20 @@ export const DRIP_EMAILS: ReadonlyArray<{ n: number; offset: number; feature: st
   { n: 9,  offset: 35, feature: 'Любими места и зимен обхват' },
   { n: 10, offset: 42, feature: 'Оценка и подкрепа' },
 ]
+
+/** FNV-1a over the lower-cased email; same function as in the plan page. */
+function hashEmail(email: string): number {
+  const s = email.trim().toLowerCase()
+  let h = 0x811c9dc5
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i)
+    h = Math.imul(h, 0x01000193) >>> 0
+  }
+  return h >>> 0
+}
+
+/** 0 = wave A, 1 = wave B (one day later). */
+export const dripWave = (email: string): number => hashEmail(email) % DRIP_WAVES
 
 const SKIP_EMAIL_5 = new Set(['BE', 'DE', 'FR'])
 
@@ -44,7 +69,7 @@ function offWeekend(ms: number): number {
 }
 
 /** Planned send date (YYYY-MM-DD, UTC) per email number; null = skipped for this user. */
-export function plannedDates(createdAt: number | string, country: string): Record<number, string | null> {
+export function plannedDates(createdAt: number | string, country: string, email = ''): Record<number, string | null> {
   const created  = Number(createdAt)
   const cc       = String(country || '').trim().toUpperCase()
   const existing = !Number.isFinite(created) || created < DRIP_ANCHOR + DAY
@@ -54,7 +79,9 @@ export function plannedDates(createdAt: number | string, country: string): Recor
   let prev: number | null = null
   for (const m of DRIP_EMAILS) {
     if (m.n === 5 && SKIP_EMAIL_5.has(cc)) { out[m.n] = null; continue }
-    let d = existing ? DRIP_ANCHOR + m.offset * DAY : offWeekend(regDay + m.offset * DAY)
+    let d = existing
+      ? DRIP_ANCHOR + (m.offset + dripWave(email)) * DAY
+      : offWeekend(regDay + m.offset * DAY)
     if (!existing && prev !== null && d < prev + 2 * DAY) d = offWeekend(prev + 2 * DAY)
     prev = d
     out[m.n] = new Date(d).toISOString().slice(0, 10)
