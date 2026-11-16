@@ -17,6 +17,8 @@ export interface TesRadarUser {
   country:    string
   pin:        string
   createdAt:  number
+  /** Opted in to tips and news emails (re-engage course). Missing = registered before the checkbox. */
+  marketing?: boolean
 }
 
 function generatePin(): string {
@@ -127,18 +129,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   const email:      string = String(body.email      ?? '').trim().toLowerCase()
   const teslaModel: string = String(body.teslaModel ?? '').trim()
   const country:    string = String(body.country    ?? '').trim()
+  const marketing:  boolean = body.marketing !== false
 
   if (!name || !email || !email.includes('@')) {
     res.status(400).json({ error: 'Please fill in all required fields.' }); return
   }
 
   const pin  = generatePin()
-  const user: TesRadarUser = { name, email, teslaModel, country, pin, createdAt: Date.now() }
+  const user: TesRadarUser = { name, email, teslaModel, country, pin, createdAt: Date.now(), marketing }
 
   await redis.set(`user:${email}`, user)
 
   // Index for admin listing: users hash, field=email, value=JSON (name, model, country, createdAt)
-  await redis.hset('users', email, JSON.stringify({ name, teslaModel, country, createdAt: user.createdAt }))
+  await redis.hset('users', email, JSON.stringify({ name, teslaModel, country, createdAt: user.createdAt, marketing }))
 
   try {
     await sendPinEmail(email, name, pin)

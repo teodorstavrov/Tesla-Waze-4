@@ -5,7 +5,7 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { isAuthorized, unauthorized } from '../_lib/admin/auth.js'
 import { redis, isRedisConfigured } from '../_lib/db/redis.js'
-import { dripKey, plannedDates } from '../_lib/drip/schedule.js'
+import { UNSUB_SET, dripKey, plannedDates } from '../_lib/drip/schedule.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -47,10 +47,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   // Re-engage course: what each user has received (drip:{email}) and what is planned.
   let sentRaw: unknown[] = []
   try {
-    sentRaw = users.length ? await redis.pipeline(users.map((u) => ['HGETALL', dripKey(u.email)])) : []
+    sentRaw = await redis.pipeline([['SMEMBERS', UNSUB_SET], ...users.map((u) => ['HGETALL', dripKey(u.email)])])
   } catch {
     sentRaw = []
   }
+  const unsubList = sentRaw.shift()
+  const unsub = new Set(Array.isArray(unsubList) ? unsubList.map(String) : [])
 
   const withDrip = users.map((u, i) => {
     const sent: Record<string, string> = {}
@@ -60,7 +62,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     } else if (r && typeof r === 'object') {
       Object.assign(sent, r as Record<string, string>)
     }
-    return { ...u, drip: { sent, planned: plannedDates(u.createdAt, u.country, u.email) } }
+    return { ...u, drip: { sent, planned: plannedDates(u.createdAt, u.country, u.email), unsubscribed: unsub.has(u.email.toLowerCase()) } }
   })
 
   res.status(200).json({ users: withDrip })

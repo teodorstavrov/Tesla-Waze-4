@@ -8,18 +8,20 @@
 // • BE, DE, FR skip email 5 (average-speed cameras) pending a legal check.
 //
 // • Resend allows 100 emails a day. The course uses at most DRIP_DAILY_CAP of
-//   them and leaves PIN_RESERVE for PIN/login emails. Existing users are split
+//   them and leaves OTHER_EMAIL_RESERVE for PIN, admin and meetup emails. Existing users are split
 //   into two waves by a hash of the email: wave A gets each email on its date,
-//   wave B one day later (113 users → ~57 a day). The cron must still stop at
-//   DRIP_DAILY_CAP and carry the rest to the next weekday.
+//   wave B one day later (113 users → ~57 a day). The cron stops at
+//   DRIP_DAILY_CAP, sends each user at most one email per run and keeps at
+//   least 2 days between two emails, so a late start simply shifts everything.
 //
 // Sent state lives in Redis hash `drip:{email}`: field = email number (1–10),
 // value = ISO timestamp of when it was sent. The future cron writes it;
 // the admin panel reads it.
 
 export const RESEND_DAILY_LIMIT = 100
-export const PIN_RESERVE        = 15
-export const DRIP_DAILY_CAP     = RESEND_DAILY_LIMIT - PIN_RESERVE // 85
+// PIN emails, the admin copy of each registration and meetup reminders share the quota.
+export const OTHER_EMAIL_RESERVE = 30
+export const DRIP_DAILY_CAP      = RESEND_DAILY_LIMIT - OTHER_EMAIL_RESERVE // 70
 export const DRIP_WAVES         = 2
 
 export const DRIP_ANCHOR = Date.UTC(2026, 10, 16) // Mon 16 Nov 2026 = day 0
@@ -87,4 +89,41 @@ export function plannedDates(createdAt: number | string, country: string, email 
     out[m.n] = new Date(d).toISOString().slice(0, 10)
   }
   return out
+}
+
+export const SKIPS_EMAIL_5 = (country: string): boolean => SKIP_EMAIL_5.has(String(country || '').trim().toUpperCase())
+
+/** Addresses never to send to (invalid). */
+export const DRIP_EXCLUDE = new Set([
+  'mihailnikolov13@gmai.com',
+  'ibrishimov55@gmail',
+])
+
+export const UNSUB_SET = 'email:unsub'
+
+const MIN_GAP_DAYS = 2
+
+/**
+ * Which course email (if any) is due for this user today.
+ * `sent` is the drip:{email} hash (email № → ISO time). `today` is a YYYY-MM-DD (UTC).
+ */
+export function nextDue(
+  user: { email: string; country: string; createdAt: number | string },
+  sent: Record<string, string>,
+  today: string,
+): { n: number; planned: string } | null {
+  const planned = plannedDates(user.createdAt, user.country, user.email)
+  let last: string | null = null
+  for (const m of DRIP_EMAILS) {
+    const p = planned[m.n]
+    if (p == null) continue                         // skipped for this country
+    if (sent[String(m.n)]) { last = sent[String(m.n)].slice(0, 10); continue }
+    if (p > today) return null                      // not yet
+    if (last) {
+      const gap = (Date.parse(today) - Date.parse(last)) / DAY
+      if (gap < MIN_GAP_DAYS) return null
+    }
+    return { n: m.n, planned: p }
+  }
+  return null                                       // course finished
 }

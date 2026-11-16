@@ -620,6 +620,7 @@ interface AdminUser {
   drip?: {
     sent:    Record<string, string>         // email № → ISO time sent
     planned: Record<string, string | null>  // email № → YYYY-MM-DD, null = skipped
+    unsubscribed?: boolean
   }
 }
 
@@ -630,6 +631,7 @@ function fmtDripDate(iso: string): string {
 
 function DripCell({ drip }: { drip?: AdminUser['drip'] }) {
   if (!drip) return <span style={{ color: '#555' }}>—</span>
+  if (drip.unsubscribed) return <span style={{ fontSize: 11, fontWeight: 600, color: '#f87171' }}>отписан</span>
   const nums    = Array.from({ length: 10 }, (_, i) => String(i + 1))
   const sent    = nums.filter((n) => drip.sent[n])
   const next    = nums.find((n) => !drip.sent[n] && drip.planned[n])

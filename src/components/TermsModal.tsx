@@ -79,7 +79,7 @@ const CONTENT = {
         },
         {
           heading: '3. Как използваме данните',
-          body: 'Данните се използват за: предоставяне и подобряване на услугата; анализ на анонимни тенденции в използването; отговор на запитвания чрез формата за контакт; и осигуряване на техническата стабилност.',
+          body: 'Данните се използват за: предоставяне и подобряване на услугата; анализ на анонимни тенденции в използването; отговор на запитвания чрез формата за контакт; и осигуряване на техническата стабилност.\n\nИмейл адресът ви се използва за изпращане на PIN кода за вход и, ако не сте отказали при регистрация, за съвети и новини за TesRadar (около един имейл седмично). Всеки такъв имейл съдържа връзка за отписване с едно натискане, а можете да се отпишете и с отговор на имейла. Отписването не засяга имейлите с PIN код.',
         },
         {
           heading: '4. Трети страни',
@@ -163,7 +163,7 @@ const CONTENT = {
         },
         {
           heading: '3. How We Use Your Data',
-          body: 'Data is used to: provide and improve the service; analyse anonymous usage trends; respond to contact form inquiries; and maintain the technical stability of the application.',
+          body: 'Data is used to: provide and improve the service; analyse anonymous usage trends; respond to contact form inquiries; and maintain the technical stability of the application.\n\nYour email address is used to send your sign-in PIN and, unless you opted out at registration, tips and news about TesRadar (about one email a week). Every such email has a one-click unsubscribe link, and you can also unsubscribe by replying. Unsubscribing does not affect PIN emails.',
         },
         {
           heading: '4. Third-Party Services',

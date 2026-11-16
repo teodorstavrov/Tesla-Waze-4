@@ -116,6 +116,10 @@
     {
       "path": "/api/cron/sync-cameras?country=FR-4",
       "schedule": "13 7 * * 0"
+    },
+    {
+      "path": "/api/cron/drip",
+      "schedule": "0 17 * * 1-5"
     }
   ],
   "rewrites": [

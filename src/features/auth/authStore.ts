@@ -87,13 +87,13 @@ async function login(email: string, pin: string): Promise<{ ok: boolean; error?:
 }
 
 async function register(
-  name: string, email: string, teslaModel: string, country = '',
+  name: string, email: string, teslaModel: string, country = '', marketing = true,
 ): Promise<{ ok: boolean; error?: string }> {
   try {
     const r = await fetch('/api/auth/register', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ name, email, teslaModel, country }),
+      body:    JSON.stringify({ name, email, teslaModel, country, marketing }),
     })
     if (r.ok) return { ok: true }
     const data = await r.json() as { error?: string }

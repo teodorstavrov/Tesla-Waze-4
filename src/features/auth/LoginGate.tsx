@@ -95,6 +95,7 @@ function RegisterForm({
   const [teslaModel,    setTeslaModel]    = useState('')
   const [country,       setCountry]       = useState('')
   const [countryOther,  setCountryOther]  = useState('')
+  const [marketing,     setMarketing]     = useState(true)
   const [loading,       setLoading]       = useState(false)
   const [error,         setError]         = useState('')
   const nameRef = useRef<HTMLInputElement>(null)
@@ -108,7 +109,7 @@ function RegisterForm({
     if (!country)                      { setError('Please select your country.'); return }
     setLoading(true)
     const effectiveCountry = country === 'OTHER' ? (countryOther.trim() || 'OTHER') : country
-    const result = await authStore.register(name.trim(), email.trim(), teslaModel.trim(), effectiveCountry)
+    const result = await authStore.register(name.trim(), email.trim(), teslaModel.trim(), effectiveCountry, marketing)
     setLoading(false)
     if (result.ok) { onRegistered(email.trim().toLowerCase()); return }
     setError(result.error ?? 'Registration error. Please try again.')
@@ -187,6 +188,16 @@ function RegisterForm({
           />
         )}
       </div>
+
+      <label style={{ display: 'flex', gap: '10px', alignItems: 'flex-start', margin: '4px 0 14px', cursor: 'pointer', fontSize: '13px', lineHeight: 1.45, color: 'rgba(255,255,255,0.75)' }}>
+        <input
+          type="checkbox"
+          checked={marketing}
+          onChange={(e) => setMarketing(e.target.checked)}
+          style={{ width: '20px', height: '20px', marginTop: '1px', flexShrink: 0, accentColor: '#DA0708' }}
+        />
+        <span>Send me tips and news about TesRadar (about one email a week). You can unsubscribe at any time.</span>
+      </label>
 
       {error && <div style={S.error}>{error}</div>}
 
