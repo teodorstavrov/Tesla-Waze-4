@@ -89,34 +89,43 @@ export const audioManager = {
     }
   },
 
-  /** Soft 3-tone descending chime for police close alert (replaces siren).
-   *  Three sine pulses 660→550→440 Hz — attention-getting but not startling. */
-  policeChime(): void {
+  /** Police siren — sawtooth sweep 600↔1200 Hz, soft fade-in then sustain then fade-out.
+   *  Starts quiet (0.001) and builds to full volume over buildS seconds so it
+   *  doesn't startle the driver, then fades out in the last 0.3 s. */
+  policeChime(totalS = 2.5, buildS = 0.6): void {
     if (_state.muted || !_state.canUseAudio || !_ctx) return
     if (_ctx.state === 'suspended') {
-      void _ctx.resume().then(() => { if (_ctx?.state === 'running') audioManager.policeChime() })
+      void _ctx.resume().then(() => { if (_ctx?.state === 'running') audioManager.policeChime(totalS, buildS) })
       return
     }
     try {
-      const t = _ctx.currentTime
-      for (const [freq, offset] of [[660, 0], [550, 0.22], [440, 0.44]] as [number, number][]) {
-        const osc  = _ctx.createOscillator()
-        const gain = _ctx.createGain()
-        osc.connect(gain)
-        gain.connect(_ctx.destination)
-        osc.type = 'sine'
-        osc.frequency.value = freq
-        gain.gain.setValueAtTime(0.13, t + offset)
-        gain.gain.exponentialRampToValueAtTime(0.001, t + offset + 0.18)
-        osc.start(t + offset)
-        osc.stop(t + offset + 0.18)
+      const t    = _ctx.currentTime
+      const osc  = _ctx.createOscillator()
+      const gain = _ctx.createGain()
+      osc.connect(gain)
+      gain.connect(_ctx.destination)
+      osc.type = 'sawtooth'
+      // Envelope: fade in → sustain → fade out
+      gain.gain.setValueAtTime(0.001, t)
+      gain.gain.linearRampToValueAtTime(0.22, t + buildS)
+      gain.gain.setValueAtTime(0.22, t + totalS - 0.3)
+      gain.gain.linearRampToValueAtTime(0.001, t + totalS)
+      // Frequency sweep 600↔1200 Hz every 0.5 s
+      const steps = Math.ceil(totalS / 0.5)
+      for (let i = 0; i < steps; i++) {
+        const fromHz = i % 2 === 0 ? 600 : 1200
+        const toHz   = i % 2 === 0 ? 1200 : 600
+        osc.frequency.setValueAtTime(fromHz, t + i * 0.5)
+        osc.frequency.linearRampToValueAtTime(toHz, t + (i + 1) * 0.5)
       }
+      osc.start(t)
+      osc.stop(t + totalS)
     } catch (err) {
       logger.audio.warn('policeChime failed', err)
     }
   },
 
-  /** @deprecated use policeChime() — kept for compatibility */
+  /** @deprecated alias */
   siren(_durationS = 3): void { audioManager.policeChime() },
 
   /** Short attention beep before speech. Freq in Hz, duration in ms. */
