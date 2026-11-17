@@ -92,14 +92,23 @@ function _makeTileStyle(
         attribution,
       },
     },
-    layers: [{
-      id: 'base-tiles',
-      type: 'raster',
-      source: 'base-tiles',
-      paint: {
-        'raster-fade-duration': isTeslaBrowser ? 0 : 300,
+    layers: [
+      // Neutral background so unloaded tiles show grey instead of black,
+      // especially visible at high pitch angles near the horizon.
+      {
+        id: 'background',
+        type: 'background',
+        paint: { 'background-color': '#888888' },
       },
-    }],
+      {
+        id: 'base-tiles',
+        type: 'raster',
+        source: 'base-tiles',
+        paint: {
+          'raster-fade-duration': isTeslaBrowser ? 0 : 300,
+        },
+      },
+    ],
   }
 }
 
@@ -133,17 +142,22 @@ export function MapShell() {
     const [initLat, initLng] = initCountry.center  // stored as [lat, lng]
 
     const map = new maplibregl.Map({
-      container:          containerRef.current,
-      style:              _makeTileStyle(TILE_LIGHT, TILE_ATTRIBUTION),
-      center:             [initLng, initLat],  // MapLibre: [lng, lat]
-      zoom:               initCountry.zoom,
-      minZoom:            MIN_ZOOM,
-      maxZoom:            MAX_ZOOM,
-      attributionControl: true,
+      container:                containerRef.current,
+      style:                    _makeTileStyle(TILE_LIGHT, TILE_ATTRIBUTION),
+      center:                   [initLng, initLat],  // MapLibre: [lng, lat]
+      zoom:                     initCountry.zoom,
+      minZoom:                  MIN_ZOOM,
+      maxZoom:                  MAX_ZOOM,
+      attributionControl:       true,
       // Disable pitch/rotation gestures — north-up only, no manual rotation
-      pitchWithRotate:    false,
+      pitchWithRotate:          false,
       // Touch: two-finger rotate/pitch is disabled; single-finger drag pans
-      touchPitch:         false,
+      touchPitch:               false,
+      // Large tile cache: default is ~35 tiles (viewport px / 65536).
+      // At 60° pitch the horizon needs many more tiles; 600 tiles ≈ 60 MB RAM.
+      maxTileCacheSize:         600,
+      // More parallel tile requests → horizon fills in faster during rotation.
+      maxParallelImageRequests: 32,
     })
 
     mapInstance = map
