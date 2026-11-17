@@ -74,16 +74,19 @@ function offWeekend(ms: number): number {
 export function plannedDates(createdAt: number | string, country: string, email = ''): Record<number, string | null> {
   const created  = Number(createdAt)
   const cc       = String(country || '').trim().toUpperCase()
-  const existing = !Number.isFinite(created) || created < DRIP_ANCHOR + DAY
+  const preview  = DRIP_PREVIEW.has(email.trim().toLowerCase())
+  const existing = preview || !Number.isFinite(created) || created < DRIP_ANCHOR + DAY
   const regDay   = Number.isFinite(created) ? dayStart(created) : DRIP_ANCHOR
 
   const out: Record<number, string | null> = {}
   let prev: number | null = null
   for (const m of DRIP_EMAILS) {
     if (m.n === 5 && SKIP_EMAIL_5.has(cc)) { out[m.n] = null; continue }
-    let d = existing
-      ? DRIP_ANCHOR + (m.offset + dripWave(email)) * DAY
-      : offWeekend(regDay + m.offset * DAY)
+    let d = preview
+      ? prevWeekday(DRIP_ANCHOR + (m.offset - 1) * DAY)
+      : existing
+        ? DRIP_ANCHOR + (m.offset + dripWave(email)) * DAY
+        : offWeekend(regDay + m.offset * DAY)
     if (!existing && prev !== null && d < prev + 2 * DAY) d = offWeekend(prev + 2 * DAY)
     prev = d
     out[m.n] = new Date(d).toISOString().slice(0, 10)
@@ -92,6 +95,22 @@ export function plannedDates(createdAt: number | string, country: string, email 
 }
 
 export const SKIPS_EMAIL_5 = (country: string): boolean => SKIP_EMAIL_5.has(String(country || '').trim().toUpperCase())
+
+/**
+ * Owner's test inboxes: they get every course email one weekday before
+ * wave A, so each email can be checked before real users see it.
+ */
+export const DRIP_PREVIEW = new Set([
+  'teodorstavrov@gmail.com',
+  'tstavrov@lirex.com',
+])
+
+function prevWeekday(ms: number): number {
+  const wd = new Date(ms).getUTCDay()
+  if (wd === 6) return ms - DAY      // Saturday → Friday
+  if (wd === 0) return ms - 2 * DAY  // Sunday → Friday
+  return ms
+}
 
 /** Addresses never to send to (invalid). */
 export const DRIP_EXCLUDE = new Set([
@@ -121,7 +140,8 @@ export function nextDue(
     if (p > today) return null                      // not yet
     if (last) {
       const gap = (Date.parse(today) - Date.parse(last)) / DAY
-      if (gap < MIN_GAP_DAYS) return null
+      const min = DRIP_PREVIEW.has(user.email.trim().toLowerCase()) ? 1 : MIN_GAP_DAYS
+      if (gap < min) return null
     }
     return { n: m.n, planned: p }
   }
