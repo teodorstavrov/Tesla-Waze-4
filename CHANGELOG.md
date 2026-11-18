@@ -6,6 +6,7 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ## 2026-11-18
 
+- **fix: полицейска сирена по-силна** — gain увеличен от 0.22 → 0.38 (peak sustain), за да се чува по-ясно в движещ се автомобил.
 - **debug: аудио + GPS + алерт диагностики в TeslaDebugPanel** — при отваряне на `tesradar.tech/?teslaDebug=1` се вижда: аудио отключено ли е, muted ли, AudioContext.state, GPS статус/позиция/heading, брой заредени events и полицейски маркери. Два теcт бутона: `UNLOCK + BEEP` и `SIREN TEST`. Помага за диагностика на "спряха нотификациите".
 - **fix: информационният банер при полиция е изместен 20vh на юг** — `translateY(20vh)` добавен към контейнера на EventPanel (бутони "Потвърждавам" / "Вече го няма"), за да е по-ниско на екрана на Tesla.
 

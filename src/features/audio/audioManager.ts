@@ -107,8 +107,8 @@ export const audioManager = {
       osc.type = 'triangle'
       // Envelope: fade in → sustain → fade out
       gain.gain.setValueAtTime(0.001, t)
-      gain.gain.linearRampToValueAtTime(0.22, t + buildS)
-      gain.gain.setValueAtTime(0.22, t + totalS - 0.3)
+      gain.gain.linearRampToValueAtTime(0.38, t + buildS)
+      gain.gain.setValueAtTime(0.38, t + totalS - 0.3)
       gain.gain.linearRampToValueAtTime(0.001, t + totalS)
       // Frequency sweep 600↔1200 Hz every 0.5 s
       const steps = Math.ceil(totalS / 0.5)
