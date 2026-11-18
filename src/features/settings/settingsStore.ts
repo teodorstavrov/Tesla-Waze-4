@@ -21,7 +21,7 @@ const DEFAULTS: Settings = {
   showTraffic:          false,
   performanceMode:      'auto',
   headingMode:          'north-up',
-  mapPitch:             0,
+  mapPitch:             45,
 }
 
 type Listener = () => void
