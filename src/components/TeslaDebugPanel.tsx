@@ -9,6 +9,9 @@ import { useState, useEffect } from 'react'
 import { isTeslaBrowser, isTesla2026Zoomed, TESLA_COMPAT_VIEWPORT_W, teslaZoomedSignals } from '@/lib/browser'
 import { evStore } from '@/features/ev/evStore'
 import { filterStore } from '@/features/ev/filterStore'
+import { audioManager } from '@/features/audio/audioManager'
+import { eventStore } from '@/features/events/eventStore'
+import { gpsStore } from '@/features/gps/gpsStore'
 
 const ENABLED = new URLSearchParams(window.location.search).get('teslaDebug') === '1'
 
@@ -131,10 +134,54 @@ export function TeslaDebugPanel() {
         </>
       })()}
 
+      {/* Audio diagnostics */}
       <Divider />
+      <div style={{ fontSize: 9.5, color: '#4ade80', fontWeight: 700, marginBottom: 3 }}>
+        AUDIO
+      </div>
+      {(() => {
+        const audio = audioManager.getState()
+        const ctx   = audioManager.getContext()
+        return <>
+          <Row label="unlocked:"     value={audio.unlocked    ? 'YES ✓' : 'NO — tap screen!'} ok={audio.unlocked} />
+          <Row label="canUseAudio:"  value={audio.canUseAudio ? 'YES ✓' : 'NO ✗'}             ok={audio.canUseAudio} />
+          <Row label="muted:"        value={audio.muted       ? 'YES ✗' : 'NO ✓'}             ok={!audio.muted} />
+          <Row label="ctx.state:"    value={ctx?.state ?? 'null'}                               ok={ctx?.state === 'running'} />
+        </>
+      })()}
+      <div style={{ display: 'flex', gap: 6, marginTop: 5, pointerEvents: 'auto' }}>
+        <button
+          style={{ flex: 1, fontSize: 9, padding: '4px 0', background: 'rgba(74,222,128,0.15)', border: '1px solid #4ade80', borderRadius: 4, color: '#4ade80', cursor: 'pointer' }}
+          onPointerDown={(e) => { e.stopPropagation(); void audioManager.tryUnlock().then(() => audioManager.beep(880, 300)) }}
+        >UNLOCK + BEEP</button>
+        <button
+          style={{ flex: 1, fontSize: 9, padding: '4px 0', background: 'rgba(74,222,128,0.15)', border: '1px solid #4ade80', borderRadius: 4, color: '#4ade80', cursor: 'pointer' }}
+          onPointerDown={(e) => { e.stopPropagation(); audioManager.policeChime() }}
+        >SIREN TEST</button>
+      </div>
+
+      {/* Alert engine / events */}
+      <Divider />
+      <div style={{ fontSize: 9.5, color: '#4ade80', fontWeight: 700, marginBottom: 3 }}>
+        EVENTS + GPS
+      </div>
+      {(() => {
+        const evState  = eventStore.getState()
+        const gpsPos   = gpsStore.getPosition()
+        const gpsStatus = gpsStore.getStatus()
+        const police   = evState.events.filter((e) => e.type === 'police')
+        return <>
+          <Row label="gps.status:"     value={gpsStatus}            ok={gpsStatus === 'active'} />
+          <Row label="gps.lat:"        value={gpsPos ? gpsPos.lat.toFixed(5) : 'null'}          ok={!!gpsPos} />
+          <Row label="gps.heading:"    value={gpsPos?.heading != null ? `${Math.round(gpsPos.heading)}°` : 'null (slow/no GPS)'} />
+          <Row label="events.status:"  value={evState.status}       ok={evState.status === 'ok'} />
+          <Row label="events.total:"   value={evState.events.length} ok={evState.events.length > 0} />
+          <Row label="police.count:"   value={police.length}         ok={police.length > 0} />
+        </>
+      })()}
 
       {/* User agent */}
-      <div style={{ fontSize: 8, color: 'rgba(180,255,180,0.4)', wordBreak: 'break-all' }}>
+      <div style={{ fontSize: 8, color: 'rgba(180,255,180,0.4)', wordBreak: 'break-all', marginTop: 6 }}>
         {navigator.userAgent}
       </div>
     </div>
