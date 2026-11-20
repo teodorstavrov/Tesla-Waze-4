@@ -1,4 +1,5 @@
 // ─── Tesla EV Nav — App root ───────────────────────────────────────────
+// GTA VI Mode: data-gta attribute on <html> drives all Vice City CSS.
 // Phase 1+2: foundation shell + GPS/follow/audio UX.
 // Phase 4: EV marker layer + station panel.
 // Phase 6: road event markers + report modal.
@@ -6,7 +7,10 @@
 // Phase 21: turn-by-turn navigation HUD + voice directions.
 
 import { useEffect } from 'react'
+import { useSyncExternalStore } from 'react'
 import { LoginGate } from '@/features/auth/LoginGate'
+import { GTAHud } from '@/features/gta/GTAHud'
+import { gtaModeStore } from '@/features/gta/gtaModeStore'
 import { MapShell } from '@/components/MapShell'
 import { HeadingAvatar } from '@/components/HeadingAvatar'
 import { FloatingTitleCard } from '@/components/FloatingTitleCard'
@@ -67,6 +71,36 @@ import { teslaStore } from '@/features/tesla/teslaStore'
 import { teslaPoller } from '@/features/tesla/teslaPoller'
 
 export function App() {
+  // GTA VI Mode — sync data-gta HTML attribute so CSS cascade fires correctly
+  const gtaActive = useSyncExternalStore(
+    gtaModeStore.subscribe.bind(gtaModeStore),
+    () => gtaModeStore.isActive(),
+    () => false,
+  )
+  useEffect(() => {
+    if (gtaActive) {
+      document.documentElement.setAttribute('data-gta', '')
+      const q = gtaModeStore.getQuality()
+      if (q === 'lite') document.documentElement.setAttribute('data-gta-lite', '')
+      else              document.documentElement.removeAttribute('data-gta-lite')
+    } else {
+      document.documentElement.removeAttribute('data-gta')
+      document.documentElement.removeAttribute('data-gta-lite')
+    }
+  }, [gtaActive])
+
+  // Also sync data-gta-lite when quality changes independently
+  const gtaQuality = useSyncExternalStore(
+    gtaModeStore.subscribe.bind(gtaModeStore),
+    () => gtaModeStore.getQuality(),
+    () => 'full' as const,
+  )
+  useEffect(() => {
+    if (!gtaActive) return
+    if (gtaQuality === 'lite') document.documentElement.setAttribute('data-gta-lite', '')
+    else                       document.documentElement.removeAttribute('data-gta-lite')
+  }, [gtaActive, gtaQuality])
+
   // Start GPS watching (feeds gpsStore; no rerenders from GPS ticks)
   useUserPosition()
 
@@ -184,6 +218,9 @@ export function App() {
 
       {/* Layer 4: alert toast (above everything) */}
       <AlertToast />
+
+      {/* GTA VI Mode — HUD overlay + toggle button */}
+      <GTAHud />
 
       {/* Voice AI — renders nothing when idle, overlay on demand */}
       <VoiceAssistant />

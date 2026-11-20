@@ -23,6 +23,7 @@ import {
   TILE_ATTRIBUTION, TILE_SATELLITE_ATTRIBUTION, MAPTILER_ENABLED,
   TILE_TRAFFIC,
 } from '@/lib/constants'
+import { gtaModeStore } from '@/features/gta/gtaModeStore'
 import { countryStore } from '@/lib/countryStore'
 import { useThemeStore } from '@/features/theme/store'
 import { followStore } from '@/features/follow/followStore'
@@ -131,6 +132,11 @@ export function MapShell() {
   const showTraffic = useSyncExternalStore(
     settingsStore.subscribe.bind(settingsStore),
     () => settingsStore.get().showTraffic,
+    () => false,
+  )
+  const gtaActive = useSyncExternalStore(
+    gtaModeStore.subscribe.bind(gtaModeStore),
+    () => gtaModeStore.isActive(),
     () => false,
   )
 
@@ -556,10 +562,13 @@ export function MapShell() {
     }
   }, [])
 
-  // ── Update tile source when theme/satellite changes ───────────
+  // ── Update tile source when theme/satellite/GTA mode changes ───
   useEffect(() => {
     if (!mapInstance) return
     const map = mapInstance
+
+    // GTA mode: always use OSM + Vice City filter, unless satellite is active
+    const isGtaTile = gtaActive && mapMode !== 'satellite'
 
     const url =
       mapMode === 'satellite'                     ? TILE_SATELLITE
@@ -568,23 +577,31 @@ export function MapShell() {
       : theme === 'dark'                          ? TILE_DARK
       :                                             TILE_LIGHT
 
-    const isDarkTile = mapMode !== 'satellite' && theme === 'dark' && !MAPTILER_ENABLED
+    const isDarkTile = !isGtaTile && mapMode !== 'satellite' && theme === 'dark' && !MAPTILER_ENABLED
 
     const apply = () => {
       const src = map.getSource<maplibregl.RasterTileSource>('base-tiles')
       if (!src) return
       src.setTiles(_expandTileUrl(url))
-      // CSS invert filter for OSM dark mode — applied to the canvas element
       const canvas = map.getCanvas()
-      if (isDarkTile) canvas.classList.add('map-tiles-dark')
-      else            canvas.classList.remove('map-tiles-dark')
+      // Apply the correct CSS filter class — GTA overrides dark
+      if (isGtaTile) {
+        canvas.classList.add('map-tiles-gta')
+        canvas.classList.remove('map-tiles-dark')
+      } else if (isDarkTile) {
+        canvas.classList.add('map-tiles-dark')
+        canvas.classList.remove('map-tiles-gta')
+      } else {
+        canvas.classList.remove('map-tiles-dark')
+        canvas.classList.remove('map-tiles-gta')
+      }
       map.triggerRepaint()
-      logger.map.debug('Tile updated', { mapMode, theme })
+      logger.map.debug('Tile updated', { mapMode, theme, gtaActive })
     }
 
     if (map.isStyleLoaded()) apply()
     else map.once('style.load', apply)
-  }, [theme, mapMode])
+  }, [theme, mapMode, gtaActive])
 
   // ── Traffic overlay (TomTom raster) ──────────────────────────
   useEffect(() => {

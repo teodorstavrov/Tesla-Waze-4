@@ -1,0 +1,232 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   GTA VI MODE — VICE CITY
+   All rules scoped under [data-gta] so Standard Mode is untouched.
+   Tesla performance rules under [data-gta][data-tesla] mirror globals.css.
+
+   Vice City Palette:
+     Background:    #080D20  (deep navy)
+     Panel:         #111A32  (secondary navy)
+     Purple:        #8B42FF
+     Magenta:       #F329A7
+     Cyan:          #00D9FF
+     Electric Blue: #287BFF
+     Orange:        #FFB52E
+     Text:          #F5F6FF
+     Text-dim:      #A8B2D1
+     Alert:         #FF405C
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── 1. CSS token overrides ───────────────────────────────────────────────── */
+[data-gta] {
+  --glass-bg:         rgba(8, 13, 32, 0.95);
+  --glass-border:     rgba(139, 66, 255, 0.40);
+  --glass-shadow:     0 4px 32px rgba(0, 0, 0, 0.90), 0 0 0 1px rgba(139, 66, 255, 0.12);
+  --accent:           #F329A7;
+  --accent-dim:       rgba(243, 41, 167, 0.22);
+  --text-primary:     #F5F6FF;
+  --text-secondary:   #A8B2D1;
+  --surface-hover:    rgba(139, 66, 255, 0.18);
+
+  /* GTA-specific tokens (also available to inline styles via var()) */
+  --gta-purple:       #8B42FF;
+  --gta-magenta:      #F329A7;
+  --gta-cyan:         #00D9FF;
+  --gta-orange:       #FFB52E;
+  --gta-bg:           #080D20;
+  --gta-panel:        #111A32;
+  --gta-border:       rgba(139, 66, 255, 0.40);
+  --gta-glow-purple:  0 0 14px rgba(139, 66, 255, 0.55);
+  --gta-glow-magenta: 0 0 14px rgba(243, 41, 167, 0.55);
+  --gta-glow-cyan:    0 0 14px rgba(0, 217, 255, 0.55);
+}
+
+/* ── 2. App background ────────────────────────────────────────────────────── */
+[data-gta] body,
+[data-gta] #root > div {
+  background: #080D20 !important;
+}
+
+[data-gta] #map {
+  background: #080D20 !important;
+}
+
+/* ── 3. Map canvas — Vice City color transform ────────────────────────────── */
+/* Applied via JS (same mechanism as .map-tiles-dark).
+   OSM tiles + invert(100%) hue-rotate(210deg) = deep navy/purple Vice City look.
+   210° vs standard 180°: +30° shifts palette toward purple/cyan. */
+.map-tiles-gta {
+  filter: invert(100%) hue-rotate(210deg) saturate(1.45) brightness(0.78) contrast(1.08);
+}
+
+/* ── 4. Glass panels ──────────────────────────────────────────────────────── */
+[data-gta] .glass {
+  background:    rgba(8, 13, 32, 0.96) !important;
+  border:        1px solid rgba(139, 66, 255, 0.40) !important;
+  box-shadow:    0 4px 32px rgba(0, 0, 0, 0.90), 0 0 0 1px rgba(139, 66, 255, 0.10) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* ── 5. Icon buttons — right controls strip ───────────────────────────────── */
+[data-gta] .icon-btn {
+  background:    rgba(8, 13, 32, 0.92) !important;
+  border:        1px solid rgba(139, 66, 255, 0.38) !important;
+  color:         #A8B2D1 !important;
+  box-shadow:    0 2px 10px rgba(0, 0, 0, 0.60) !important;
+}
+
+[data-gta] .icon-btn:hover {
+  background:    rgba(139, 66, 255, 0.18) !important;
+  border-color:  rgba(139, 66, 255, 0.70) !important;
+  color:         #F5F6FF !important;
+}
+
+[data-gta] .icon-btn:active {
+  transform: scale(0.93);
+}
+
+[data-gta] .icon-btn.active {
+  background:    rgba(243, 41, 167, 0.22) !important;
+  border-color:  #F329A7 !important;
+  color:         #F329A7 !important;
+}
+
+/* ── 6. Left controls — large XL buttons ─────────────────────────────────── */
+/* Standard mode: white semi-transparent → GTA mode: dark navy + cyan accent */
+[data-gta] .left-controls-xl .icon-btn {
+  background:    rgba(8, 13, 32, 0.92) !important;
+  border:        1px solid rgba(0, 217, 255, 0.35) !important;
+  color:         #A8B2D1 !important;
+  box-shadow:    0 2px 10px rgba(0, 0, 0, 0.60) !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+[data-gta] .left-controls-xl .icon-btn:hover {
+  background:    rgba(0, 217, 255, 0.14) !important;
+  border-color:  rgba(0, 217, 255, 0.65) !important;
+  color:         #00D9FF !important;
+}
+
+[data-gta] .left-controls-xl .icon-btn:active {
+  background:    rgba(0, 217, 255, 0.22) !important;
+  transform: scale(0.93) !important;
+}
+
+[data-gta] .left-controls-xl .icon-btn.active {
+  background:    rgba(243, 41, 167, 0.28) !important;
+  border-color:  #F329A7 !important;
+  color:         #F329A7 !important;
+}
+
+/* ── 7. GPS avatar ─────────────────────────────────────────────────────────── */
+[data-gta] .gps-avatar-circle {
+  background:  #00D9FF !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+  box-shadow:  0 3px 14px rgba(0, 217, 255, 0.70) !important;
+}
+
+[data-gta] .gps-avatar-halo {
+  background: rgba(0, 217, 255, 0.20) !important;
+}
+
+/* ── 8. EV tooltip ─────────────────────────────────────────────────────────── */
+[data-gta] .ev-tooltip {
+  background:    rgba(8, 13, 32, 0.98) !important;
+  border:        1px solid rgba(0, 217, 255, 0.35) !important;
+  color:         #F5F6FF !important;
+}
+
+/* ── 9. Nav popup (long-press) ─────────────────────────────────────────────── */
+[data-gta] .nav-popup .maplibregl-popup-content {
+  background:    rgba(8, 13, 32, 0.98) !important;
+  border:        1px solid rgba(139, 66, 255, 0.45) !important;
+  box-shadow:    0 5px 24px rgba(0, 0, 0, 0.85) !important;
+}
+
+/* ── 10. Attribution (bottom-right) ───────────────────────────────────────── */
+[data-gta] .maplibregl-ctrl-attrib {
+  background: rgba(8, 13, 32, 0.80) !important;
+  color:       #A8B2D1 !important;
+}
+
+/* ── 11. Scrollbar ─────────────────────────────────────────────────────────── */
+[data-gta] ::-webkit-scrollbar-thumb {
+  background: rgba(139, 66, 255, 0.35);
+}
+
+/* ── 12. Event marker new-pulse — Vice City neon white pulse ──────────────── */
+[data-gta] @keyframes event-new-pulse {
+  0%   { box-shadow: 0 0 0 0 rgba(139, 66, 255, 0.70), 0 2px 8px rgba(0,0,0,0.55); }
+  60%  { box-shadow: 0 0 0 10px rgba(139, 66, 255, 0), 0 2px 8px rgba(0,0,0,0.55); }
+  100% { box-shadow: 0 0 0 0 rgba(139, 66, 255, 0), 0 2px 8px rgba(0,0,0,0.55); }
+}
+
+/* ── 13. Tesla flat-mode overrides for GTA ────────────────────────────────── */
+/* Extend [data-tesla] perf rules so they work correctly in GTA mode too */
+[data-gta][data-tesla] .glass {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: rgba(6, 10, 26, 0.98) !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(139, 66, 255, 0.20) !important;
+}
+
+[data-gta][data-tesla] .icon-btn {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+[data-gta][data-tesla] .left-controls-xl .icon-btn {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+[data-gta][data-tesla] .tesla-overlay-inner {
+  background: rgba(6, 10, 26, 0.99) !important;
+  box-shadow: 0 0 0 1px rgba(139, 66, 255, 0.20) !important;
+  border-color: rgba(139, 66, 255, 0.20) !important;
+}
+
+/* ── 14. Lite quality mode — strip all glow/blur effects ─────────────────── */
+/* Applied when [data-gta-lite] is set alongside [data-gta] */
+[data-gta][data-gta-lite] .glass {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background: rgba(6, 10, 26, 0.98) !important;
+}
+
+[data-gta][data-gta-lite] .icon-btn {
+  box-shadow: none !important;
+}
+
+/* ── 15. GTA HUD panel (GTAHud.tsx) ──────────────────────────────────────── */
+.gta-hud-panel {
+  background:    rgba(8, 13, 32, 0.90);
+  border:        1px solid rgba(139, 66, 255, 0.45);
+  border-radius: 12px;
+  box-shadow:    0 4px 24px rgba(0, 0, 0, 0.80), 0 0 0 1px rgba(139, 66, 255, 0.10);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+
+[data-tesla] .gta-hud-panel {
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  background:    rgba(6, 10, 26, 0.98);
+}
+
+/* ── 16. GTA toggle button ─────────────────────────────────────────────────── */
+/* Defined here, applied via inline style in GTAHud.tsx for portability */
+.gta-toggle-active {
+  animation: gta-toggle-pulse 2.5s ease-in-out infinite;
+}
+
+@keyframes gta-toggle-pulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(243, 41, 167, 0.50); }
+  50%       { box-shadow: 0 0 22px rgba(243, 41, 167, 0.85); }
+}
+
+[data-tesla] .gta-toggle-active {
+  animation: none !important;
+  box-shadow: 0 0 0 1px rgba(243, 41, 167, 0.60) !important;
+}
