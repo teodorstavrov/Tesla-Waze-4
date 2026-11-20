@@ -83,14 +83,14 @@ export function RightControls() {
 
   return (
     <>
-    {/* Tilt controls — bottom-right, smaller */}
+    {/* Tilt controls — bottom-right, horizontal, left of right-controls strip */}
     <div style={{
       position:      'absolute',
-      right:         12,
-      bottom:        80,
+      right:         83,
+      bottom:        90,
       zIndex:        400,
       display:       'flex',
-      flexDirection: 'column',
+      flexDirection: 'row',
       gap:           6,
     }}>
       <button
