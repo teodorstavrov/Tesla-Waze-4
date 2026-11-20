@@ -278,6 +278,7 @@ export function BottomDock() {
 
       {/* Report — primary CTA */}
       <button
+        className="report-btn"
         aria-label={t('dock.report')}
         title={t('dock.report')}
         onClick={() => { eventStore.openReportModal() }}

@@ -146,7 +146,37 @@
   color:         #F329A7 !important;
 }
 
-/* ── 7. GPS avatar ─────────────────────────────────────────────────────────── */
+/* ── 7. GTA VI Mode toggle button in left strip ──────────────────────────── */
+/* When active: magenta glow. Standard mode: subtle. Always no left/right border. */
+[data-gta] .gta-mode-toggle {
+  color:         #F329A7 !important;
+  border-top-color:    rgba(243, 41, 167, 0.55) !important;
+  border-bottom-color: rgba(243, 41, 167, 0.55) !important;
+  background:    rgba(243, 41, 167, 0.18) !important;
+}
+
+.gta-mode-toggle:not([aria-pressed="true"]) {
+  opacity: 0.55;
+}
+
+/* ── 7b. Report button in GTA mode ───────────────────────────────────────── */
+/* Match other buttons style: no left/right border, 30% bg, but wider + reddish */
+[data-gta] .report-btn {
+  background:    rgba(200, 20, 40, 0.30) !important;
+  border-radius: 10px !important;
+  border-top:    1px solid rgba(227, 25, 55, 0.50) !important;
+  border-bottom: 1px solid rgba(227, 25, 55, 0.50) !important;
+  border-left:   none !important;
+  border-right:  none !important;
+  box-shadow:    none !important;
+  color:         rgba(255, 190, 200, 0.95) !important;
+}
+
+[data-gta] .report-btn:active {
+  transform: scale(0.96) !important;
+}
+
+/* ── 7c. GPS avatar ────────────────────────────────────────────────────────── */
 [data-gta] .gps-avatar-circle {
   background:  #00D9FF !important;
   border-color: rgba(255, 255, 255, 0.5) !important;

@@ -9,9 +9,15 @@ import { openPricingModal } from '@/components/PricingModal'
 import { langStore, t, getLang } from '@/lib/locale'
 import { isPremiumEnabled } from '@/lib/featureFlags'
 import { settingsStore } from '@/features/settings/settingsStore'
+import { gtaModeStore } from '@/features/gta/gtaModeStore'
 
 export function LeftControls() {
   useSyncExternalStore(langStore.subscribe.bind(langStore), getLang, getLang)
+  const gtaActive = useSyncExternalStore(
+    gtaModeStore.subscribe.bind(gtaModeStore),
+    () => gtaModeStore.isActive(),
+    () => false,
+  )
   const headingMode = useSyncExternalStore(
     settingsStore.subscribe.bind(settingsStore),
     () => settingsStore.get().headingMode,
@@ -78,6 +84,28 @@ export function LeftControls() {
           </span>
         </button>
       </div>
+
+      {/* GTA VI Mode toggle — always at bottom of left strip, same width, taller */}
+      <button
+        className={`icon-btn gta-mode-toggle${gtaActive ? ' active' : ''}`}
+        onClick={gtaModeStore.toggle}
+        title={gtaActive ? 'Standard Mode' : 'GTA VI Mode'}
+        aria-label={gtaActive ? 'Switch to Standard Mode' : 'Switch to GTA VI Mode'}
+        aria-pressed={gtaActive}
+        style={{
+          display:       'flex',
+          flexDirection: 'column',
+          alignItems:    'center',
+          justifyContent:'center',
+          gap:           3,
+          height:        80,
+        }}
+      >
+        <span style={{ fontSize: 18, lineHeight: 1 }}>🎮</span>
+        <span style={{ fontSize: 7, fontWeight: 800, letterSpacing: '0.08em', lineHeight: 1, textTransform: 'uppercase' }}>
+          {gtaActive ? 'VICE' : 'GTA VI'}
+        </span>
+      </button>
     </div>
   )
 }

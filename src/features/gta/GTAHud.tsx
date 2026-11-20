@@ -143,51 +143,6 @@ export function GTAHud() {
         />
       )}
 
-      {/* ── Toggle button — always visible, bottom-left ── */}
-      <button
-        onClick={gtaModeStore.toggle}
-        title={gtaActive ? 'Standard Mode' : 'GTA VI Mode — Vice City'}
-        aria-label={gtaActive ? 'Switch to Standard Mode' : 'Switch to GTA VI Mode'}
-        aria-pressed={gtaActive}
-        className={gtaActive ? 'gta-toggle-active' : ''}
-        style={{
-          position:    'absolute',
-          left:        12,
-          bottom:      110,
-          zIndex:      410,
-          width:       gtaActive ? 56 : 44,
-          height:      gtaActive ? 56 : 44,
-          borderRadius: gtaActive ? 14 : 10,
-          background:  gtaActive
-            ? 'rgba(243, 41, 167, 0.28)'
-            : 'rgba(255, 255, 255, 0.50)',
-          border: gtaActive
-            ? '1.5px solid #F329A7'
-            : '1px solid rgba(255, 255, 255, 0.30)',
-          color:    gtaActive ? '#F329A7' : '#111',
-          cursor:   'pointer',
-          touchAction: 'manipulation',
-          userSelect: 'none',
-          WebkitUserSelect: 'none',
-          display:  'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 1,
-          transition: isTeslaBrowser ? undefined : 'width 0.2s, height 0.2s, background 0.2s',
-        }}
-      >
-        <span style={{ fontSize: gtaActive ? 20 : 16, lineHeight: 1 }}>🎮</span>
-        {gtaActive && (
-          <span style={{
-            fontSize: 7, fontWeight: 800, letterSpacing: '0.08em',
-            lineHeight: 1, textTransform: 'uppercase', color: '#F329A7',
-          }}>
-            VICE
-          </span>
-        )}
-      </button>
-
       {/* ── GTA VI HUD badge + WantedLevel — top-center ── */}
       {gtaActive && (
         <div
@@ -268,17 +223,17 @@ export function GTAHud() {
         <GtaGearIcon />
       </button>
 
-      {/* ── City Activity + Quality toggle — top-right, below stats card ── */}
+      {/* ── City Activity + Quality toggle — top-left, below Vice City logo ── */}
       {gtaActive && (
         <div style={{
           position:  'absolute',
-          right:     12,
-          top:       182,
+          left:      12,
+          top:       72,
           zIndex:    405,
           display:   'flex',
           flexDirection: 'column',
           gap:       6,
-          alignItems: 'flex-end',
+          alignItems: 'flex-start',
           pointerEvents: 'none',
         }}>
           {/* Quality toggle */}
