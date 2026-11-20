@@ -4,7 +4,6 @@
 
 import { useSyncExternalStore, useState, useEffect } from 'react'
 import { eventStore } from './eventStore.js'
-import { reportVoiceStore } from '@/features/voice/VoiceAssistant'
 import { gpsStore } from '@/features/gps/gpsStore'
 import { addStationStore } from '@/features/ev/addStationStore'
 import { meetupStore } from '@/features/meetups/meetupStore'
@@ -32,22 +31,6 @@ export function ReportModal() {
 
   const [submitting, setSubmitting] = useState(false)
   const [shown, setShown] = useState(false)
-
-  const voiceListening = useSyncExternalStore(
-    reportVoiceStore.subscribe,
-    reportVoiceStore.isListening,
-    reportVoiceStore.isListening,
-  )
-  const voiceSeconds = useSyncExternalStore(
-    reportVoiceStore.subscribe,
-    reportVoiceStore.secondsLeft,
-    reportVoiceStore.secondsLeft,
-  )
-  const voiceConfirm = useSyncExternalStore(
-    reportVoiceStore.subscribe,
-    reportVoiceStore.confirm,
-    reportVoiceStore.confirm,
-  )
 
   useEffect(() => {
     if (open) {
@@ -89,45 +72,6 @@ export function ReportModal() {
     eventStore.closeReportModal()
   }
 
-  // Voice confirmation — shown for ~2s after a successful voice report
-  if (voiceConfirm) {
-    return (
-      <>
-        <div style={{
-          position: 'fixed', inset: 0, zIndex: 600,
-          background: isTeslaBrowser ? 'rgba(0,0,0,0.80)' : 'rgba(0,0,0,0.65)',
-        }} />
-        <div
-          role="status"
-          aria-live="polite"
-          style={{
-            position: 'fixed',
-            top: '50%', left: '50%',
-            transform: 'translate(-50%, -50%)',
-            zIndex: 601,
-            width: 'min(360px, calc(100vw - 48px))',
-            padding: '32px 28px',
-            display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16,
-            borderRadius: 24,
-            background: 'rgba(22, 163, 74, 0.18)',
-            border: '1.5px solid rgba(22,163,74,0.55)',
-            boxShadow: '0 4px 32px rgba(22,163,74,0.18)',
-          }}
-          className="glass"
-        >
-          <div style={{ fontSize: 48, lineHeight: 1 }}>✅</div>
-          <div style={{
-            fontSize: 18, fontWeight: 700,
-            color: '#4ade80',
-            textAlign: 'center', lineHeight: 1.45,
-          }}>
-            {voiceConfirm}
-          </div>
-        </div>
-      </>
-    )
-  }
-
   return (
     <>
       {/* Backdrop — no blur on Tesla: full-screen blur forces a compositing pass
@@ -160,31 +104,6 @@ export function ReportModal() {
         }}
         className="glass"
       >
-        {/* Voice listening indicator — shown for 3s when opened via Докладвай */}
-        {voiceListening && (
-          <div style={{
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            marginBottom: 14,
-            padding: '8px 14px',
-            borderRadius: 10,
-            background: 'rgba(43,127,255,0.15)',
-            border: '1px solid rgba(43,127,255,0.35)',
-          }}>
-            <span style={{ fontSize: 17, lineHeight: 1 }}>🎤</span>
-            <span style={{ fontSize: 13, fontWeight: 600, color: '#60a5fa' }}>
-              {t('events.voiceListening')}
-            </span>
-            <span style={{
-              minWidth: 22, height: 22, borderRadius: '50%',
-              background: 'rgba(43,127,255,0.25)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 12, fontWeight: 800, color: '#93c5fd',
-            }}>
-              {voiceSeconds}
-            </span>
-          </div>
-        )}
-
         <div style={{
           fontSize: 17, fontWeight: 700,
           color: 'var(--text-primary)',

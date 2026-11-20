@@ -3,7 +3,6 @@
 
 import { useSyncExternalStore, useState, useRef } from 'react'
 import { eventStore } from '@/features/events/eventStore'
-import { openVoiceAssistantForReport } from '@/features/voice/VoiceAssistant'
 import { routeStore } from '@/features/route/routeStore'
 import { langStore, t } from '@/lib/locale'
 import { v8SportEngine, v8MuscleEngine, v8AmgEngine, v8W12Engine } from '@/features/v8sound/v8Engine'
@@ -281,7 +280,7 @@ export function BottomDock() {
       <button
         aria-label={t('dock.report')}
         title={t('dock.report')}
-        onClick={() => { eventStore.openReportModal(); openVoiceAssistantForReport() }}
+        onClick={() => { eventStore.openReportModal() }}
         style={{
           display: 'flex',
           alignItems: 'center',
@@ -306,12 +305,7 @@ export function BottomDock() {
         onPointerLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = '' }}
       >
         <AlertIcon />
-        <span style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1 }}>
-          <span>{t('dock.report')}</span>
-          <span style={{ fontSize: 'clamp(9px, 1.1vh, 11px)', fontWeight: 400, opacity: 0.75, letterSpacing: 0 }}>
-            {t('dock.reportHint')}
-          </span>
-        </span>
+        <span>{t('dock.report')}</span>
       </button>
 
       {/* Route — 30% smaller */}
