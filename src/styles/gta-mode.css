@@ -155,13 +155,6 @@
   background: rgba(139, 66, 255, 0.35);
 }
 
-/* ── 12. Event marker new-pulse — Vice City neon white pulse ──────────────── */
-[data-gta] @keyframes event-new-pulse {
-  0%   { box-shadow: 0 0 0 0 rgba(139, 66, 255, 0.70), 0 2px 8px rgba(0,0,0,0.55); }
-  60%  { box-shadow: 0 0 0 10px rgba(139, 66, 255, 0), 0 2px 8px rgba(0,0,0,0.55); }
-  100% { box-shadow: 0 0 0 0 rgba(139, 66, 255, 0), 0 2px 8px rgba(0,0,0,0.55); }
-}
-
 /* ── 13. Tesla flat-mode overrides for GTA ────────────────────────────────── */
 /* Extend [data-tesla] perf rules so they work correctly in GTA mode too */
 [data-gta][data-tesla] .glass {
