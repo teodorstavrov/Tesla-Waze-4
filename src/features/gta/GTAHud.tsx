@@ -103,6 +103,45 @@ export function GTAHud() {
 
   return (
     <>
+      {/* ── Vice City sunset vignette — edge glow on the map ── */}
+      {gtaActive && (
+        <div
+          aria-hidden="true"
+          style={{
+            position:      'fixed',
+            inset:         0,
+            zIndex:        351,
+            pointerEvents: 'none',
+            background: [
+              'radial-gradient(ellipse at 0% 0%,   rgba(139,66,255,0.42) 0%, transparent 52%)',
+              'radial-gradient(ellipse at 100% 0%,  rgba(243,41,167,0.32) 0%, transparent 50%)',
+              'radial-gradient(ellipse at 0% 100%,  rgba(255,181,46,0.38) 0%, transparent 50%)',
+              'radial-gradient(ellipse at 100% 100%,rgba(139,66,255,0.36) 0%, transparent 52%)',
+              'radial-gradient(ellipse at 50% 100%, rgba(255,100,20,0.28) 0%, transparent 42%)',
+            ].join(','),
+          }}
+        />
+      )}
+
+      {/* ── Vice City logo — replaces standard logo in top-left ── */}
+      {gtaActive && (
+        <img
+          src="/vice-city-logo.png"
+          alt="TesRadar Vice City Edition"
+          style={{
+            position:     'absolute',
+            top:          12,
+            left:         12,
+            zIndex:       402,
+            height:       50,
+            width:        'auto',
+            borderRadius: 10,
+            pointerEvents: 'none',
+            userSelect:   'none',
+          }}
+        />
+      )}
+
       {/* ── Toggle button — always visible, bottom-left ── */}
       <button
         onClick={gtaModeStore.toggle}
@@ -148,7 +187,7 @@ export function GTAHud() {
         )}
       </button>
 
-      {/* ── GTA VI HUD — only when GTA mode active ── */}
+      {/* ── GTA VI HUD badge + WantedLevel — top-center ── */}
       {gtaActive && (
         <div
           style={{
@@ -185,12 +224,7 @@ export function GTAHud() {
             }}>
               GTA VI
             </span>
-            <span style={{
-              width:        1,
-              height:       10,
-              background:   'rgba(139, 66, 255, 0.40)',
-              display:      'inline-block',
-            }} />
+            <span style={{ width: 1, height: 10, background: 'rgba(139,66,255,0.40)', display: 'inline-block' }} />
             <span style={{
               fontSize:      10,
               fontWeight:    700,
@@ -215,12 +249,12 @@ export function GTAHud() {
         </div>
       )}
 
-      {/* ── City Activity + Quality toggle — rendered as right-side panel ── */}
+      {/* ── City Activity + Quality toggle — top-right, below stats card ── */}
       {gtaActive && (
         <div style={{
           position:  'absolute',
           right:     12,
-          bottom:    120,
+          top:       182,
           zIndex:    405,
           display:   'flex',
           flexDirection: 'column',
@@ -228,21 +262,16 @@ export function GTAHud() {
           alignItems: 'flex-end',
           pointerEvents: 'none',
         }}>
-          {/* City Activity mini panel */}
-          <CityActivity
-            police={policeCount}
-            accidents={accidentCount}
-            hazards={hazardCount}
-          />
-
-          {/* Quality toggle — pointer-events back on for this button */}
+          {/* Quality toggle */}
           <button
             style={{
               pointerEvents: 'auto',
               background:    'rgba(8, 13, 32, 0.90)',
-              border:        '1px solid rgba(139, 66, 255, 0.35)',
+              border:        quality === 'full'
+                ? '1px solid rgba(255,181,46,0.50)'
+                : '1px solid rgba(139, 66, 255, 0.35)',
               borderRadius:  8,
-              color:         quality === 'full' ? '#8B42FF' : '#A8B2D1',
+              color:         quality === 'full' ? '#FFB52E' : '#A8B2D1',
               fontSize:      9,
               fontWeight:    700,
               letterSpacing: '0.07em',
@@ -254,8 +283,15 @@ export function GTAHud() {
             onClick={() => gtaModeStore.setQuality(quality === 'full' ? 'lite' : 'full')}
             title={quality === 'full' ? 'Switch to Lite mode (better performance)' : 'Switch to Full mode'}
           >
-            {quality === 'full' ? 'Full' : 'Lite'}
+            {quality === 'full' ? '⚡ Full' : '🔋 Lite'}
           </button>
+
+          {/* City Activity mini panel */}
+          <CityActivity
+            police={policeCount}
+            accidents={accidentCount}
+            hazards={hazardCount}
+          />
         </div>
       )}
     </>

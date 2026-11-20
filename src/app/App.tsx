@@ -11,6 +11,7 @@ import { useSyncExternalStore } from 'react'
 import { LoginGate } from '@/features/auth/LoginGate'
 import { GTAHud } from '@/features/gta/GTAHud'
 import { gtaModeStore } from '@/features/gta/gtaModeStore'
+import { langStore } from '@/lib/locale'
 import { MapShell } from '@/components/MapShell'
 import { HeadingAvatar } from '@/components/HeadingAvatar'
 import { FloatingTitleCard } from '@/components/FloatingTitleCard'
@@ -83,9 +84,11 @@ export function App() {
       const q = gtaModeStore.getQuality()
       if (q === 'lite') document.documentElement.setAttribute('data-gta-lite', '')
       else              document.documentElement.removeAttribute('data-gta-lite')
+      langStore.setLang('en')
     } else {
       document.documentElement.removeAttribute('data-gta')
       document.documentElement.removeAttribute('data-gta-lite')
+      langStore.clearOverride()
     }
   }, [gtaActive])
 

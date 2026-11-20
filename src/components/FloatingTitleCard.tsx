@@ -17,6 +17,7 @@ export function FloatingTitleCard() {
 
   return (
     <div
+      className="floating-title-card"
       style={{
         position: 'absolute',
         top: 12,

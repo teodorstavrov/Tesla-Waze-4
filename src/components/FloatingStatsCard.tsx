@@ -133,7 +133,9 @@ export function FloatingStatsCard() {
   }
 
   return (
-    <div style={{
+    <div
+      className="floating-stats-card"
+      style={{
       position:      'absolute',
       top:           12,
       right:         12,

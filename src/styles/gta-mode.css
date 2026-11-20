@@ -40,7 +40,19 @@
   --gta-glow-cyan:    0 0 14px rgba(0, 217, 255, 0.55);
 }
 
-/* ── 2. App background ────────────────────────────────────────────────────── */
+/* ── 2. Hide standard logo + right controls strip ───────────────────────── */
+/* Standard logo is replaced by Vice City Edition logo rendered in GTAHud */
+[data-gta] .floating-title-card {
+  display: none !important;
+}
+
+/* Right controls hidden by default in GTA mode;
+   tilt buttons (outside .right-controls) remain visible */
+[data-gta] .right-controls {
+  display: none !important;
+}
+
+/* ── 2b. App background ───────────────────────────────────────────────────── */
 [data-gta] body,
 [data-gta] #root > div {
   background: #080D20 !important;
@@ -144,7 +156,16 @@
   box-shadow:    0 5px 24px rgba(0, 0, 0, 0.85) !important;
 }
 
-/* ── 10. Attribution (bottom-right) ───────────────────────────────────────── */
+/* ── 10. СЪБИТИЯТА / EVENTS button (FloatingStatsCard) ────────────────────── */
+/* Restyle the meetup/events button with Vice City sunset palette */
+[data-gta] .floating-stats-card button {
+  background:    linear-gradient(135deg, rgba(139,66,255,0.80) 0%, rgba(243,41,167,0.70) 100%) !important;
+  box-shadow:    0 4px 16px rgba(139,66,255,0.45), 0 0 0 1px rgba(243,41,167,0.30) !important;
+  border:        none !important;
+  color:         #fff !important;
+}
+
+/* ── 10b. Attribution (bottom-right) ──────────────────────────────────────── */
 [data-gta] .maplibregl-ctrl-attrib {
   background: rgba(8, 13, 32, 0.80) !important;
   color:       #A8B2D1 !important;
