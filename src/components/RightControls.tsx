@@ -87,7 +87,7 @@ export function RightControls() {
     <div className="tilt-controls" style={{
       position:      'absolute',
       right:         83,
-      bottom:        90,
+      bottom:        24,
       zIndex:        400,
       display:       'flex',
       flexDirection: 'row',
@@ -225,21 +225,6 @@ export function RightControls() {
         EN
       </button>
 
-      {/* Gear — always visible */}
-      <button
-        className="icon-btn"
-        onClick={uiStore.toggleSettings}
-        title="Settings"
-        aria-label="Settings"
-        style={{
-          width:   63,
-          height:  63,
-          opacity: settingsOpen ? 1 : 0.5,
-          background: settingsOpen ? 'rgba(255,255,255,0.15)' : undefined,
-        }}
-      >
-        <GearIcon />
-      </button>
     </div>
     </>
   )

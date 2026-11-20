@@ -40,11 +40,6 @@
   --gta-glow-cyan:    0 0 14px rgba(0, 217, 255, 0.55);
 }
 
-/* ── 2. Reposition tilt buttons to align with BottomDock (bottom:24) ─────── */
-[data-gta] .tilt-controls {
-  bottom: 24px !important;
-}
-
 /* ── 2b. Hide standard logo + right controls strip ──────────────────────── */
 /* Standard logo is replaced by Vice City Edition logo rendered in GTAHud */
 [data-gta] .floating-title-card {
@@ -146,17 +141,28 @@
   color:         #F329A7 !important;
 }
 
-/* ── 7. GTA VI Mode toggle button in left strip ──────────────────────────── */
-/* When active: magenta glow. Standard mode: subtle. Always no left/right border. */
-[data-gta] .gta-mode-toggle {
+/* ── 7. GTA VI Mode toggle button — always styled with Vice City design ───── */
+/* Applied globally (not under [data-gta]) so it looks GTA-branded in any mode */
+.gta-mode-toggle {
+  background:    rgba(139, 66, 255, 0.18) !important;
+  border-top:    1px solid rgba(243, 41, 167, 0.60) !important;
+  border-bottom: 1px solid rgba(139, 66, 255, 0.60) !important;
+  border-left:   none !important;
+  border-right:  none !important;
   color:         #F329A7 !important;
-  border-top-color:    rgba(243, 41, 167, 0.55) !important;
-  border-bottom-color: rgba(243, 41, 167, 0.55) !important;
-  background:    rgba(243, 41, 167, 0.18) !important;
+  box-shadow:    none !important;
 }
 
-.gta-mode-toggle:not([aria-pressed="true"]) {
-  opacity: 0.55;
+.gta-mode-toggle[aria-pressed="true"] {
+  background:    rgba(243, 41, 167, 0.28) !important;
+  border-top-color:    #F329A7 !important;
+  border-bottom-color: #8B42FF !important;
+  animation: gta-toggle-pulse 2.5s ease-in-out infinite;
+}
+
+[data-tesla] .gta-mode-toggle[aria-pressed="true"] {
+  animation: none !important;
+  box-shadow: 0 0 0 1px rgba(243, 41, 167, 0.60) !important;
 }
 
 /* ── 7b. Report button in GTA mode ───────────────────────────────────────── */

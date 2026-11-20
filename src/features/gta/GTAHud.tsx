@@ -205,23 +205,8 @@ export function GTAHud() {
         </div>
       )}
 
-      {/* ── Gear (settings) button — bottom-right, same row as tilt + Report ── */}
-      <button
-        className="icon-btn"
-        onClick={uiStore.toggleSettings}
-        title="Settings"
-        aria-label="Settings"
-        style={{
-          position:    'absolute',
-          right:       12,
-          bottom:      24,
-          zIndex:      410,
-          width:       63,
-          height:      63,
-        }}
-      >
-        <GtaGearIcon />
-      </button>
+      {/* ── Gear (settings) button — bottom-right, always visible ── */}
+      <GtaSettingsButton />
 
       {/* ── City Activity + Quality toggle — top-left, below Vice City logo ── */}
       {gtaActive && (
@@ -399,6 +384,29 @@ function CityActivity({
         <ActivityRow emoji="⚠️" count={hazards} color="#FFB52E" label="Hazard" />
       )}
     </div>
+  )
+}
+
+function GtaSettingsButton() {
+  const { settingsOpen } = useSyncExternalStore(uiStore.subscribe, uiStore.getState, uiStore.getState)
+  return (
+    <button
+      className="icon-btn"
+      onClick={uiStore.toggleSettings}
+      title="Settings"
+      aria-label="Settings"
+      style={{
+        position:   'absolute',
+        right:      12,
+        bottom:     24,
+        zIndex:     410,
+        width:      63,
+        height:     63,
+        opacity:    settingsOpen ? 1 : 0.5,
+      }}
+    >
+      <GtaGearIcon />
+    </button>
   )
 }
 
