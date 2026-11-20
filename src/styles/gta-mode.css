@@ -79,17 +79,22 @@
   -webkit-backdrop-filter: blur(16px);
 }
 
-/* ── 5. Icon buttons — right controls strip ───────────────────────────────── */
+/* ── 5. Icon buttons — all square buttons in GTA mode ────────────────────── */
+/* No left/right borders so buttons blend into the map; 30% bg transparency */
 [data-gta] .icon-btn {
-  background:    rgba(8, 13, 32, 0.92) !important;
-  border:        1px solid rgba(139, 66, 255, 0.38) !important;
+  background:    rgba(8, 13, 32, 0.30) !important;
+  border-top:    1px solid rgba(139, 66, 255, 0.28) !important;
+  border-bottom: 1px solid rgba(139, 66, 255, 0.28) !important;
+  border-left:   none !important;
+  border-right:  none !important;
   color:         #A8B2D1 !important;
-  box-shadow:    0 2px 10px rgba(0, 0, 0, 0.60) !important;
+  box-shadow:    none !important;
 }
 
 [data-gta] .icon-btn:hover {
-  background:    rgba(139, 66, 255, 0.18) !important;
-  border-color:  rgba(139, 66, 255, 0.70) !important;
+  background:    rgba(139, 66, 255, 0.22) !important;
+  border-top-color:    rgba(139, 66, 255, 0.60) !important;
+  border-bottom-color: rgba(139, 66, 255, 0.60) !important;
   color:         #F5F6FF !important;
 }
 
@@ -99,35 +104,40 @@
 
 [data-gta] .icon-btn.active {
   background:    rgba(243, 41, 167, 0.22) !important;
-  border-color:  #F329A7 !important;
+  border-top-color:    #F329A7 !important;
+  border-bottom-color: #F329A7 !important;
   color:         #F329A7 !important;
 }
 
 /* ── 6. Left controls — large XL buttons ─────────────────────────────────── */
-/* Standard mode: white semi-transparent → GTA mode: dark navy + cyan accent */
 [data-gta] .left-controls-xl .icon-btn {
-  background:    rgba(8, 13, 32, 0.92) !important;
-  border:        1px solid rgba(0, 217, 255, 0.35) !important;
+  background:    rgba(8, 13, 32, 0.30) !important;
+  border-top:    1px solid rgba(255, 181, 46, 0.25) !important;
+  border-bottom: 1px solid rgba(255, 181, 46, 0.25) !important;
+  border-left:   none !important;
+  border-right:  none !important;
   color:         #A8B2D1 !important;
-  box-shadow:    0 2px 10px rgba(0, 0, 0, 0.60) !important;
+  box-shadow:    none !important;
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
 
 [data-gta] .left-controls-xl .icon-btn:hover {
-  background:    rgba(0, 217, 255, 0.14) !important;
-  border-color:  rgba(0, 217, 255, 0.65) !important;
-  color:         #00D9FF !important;
+  background:    rgba(255, 181, 46, 0.14) !important;
+  border-top-color:    rgba(255, 181, 46, 0.55) !important;
+  border-bottom-color: rgba(255, 181, 46, 0.55) !important;
+  color:         #FFB52E !important;
 }
 
 [data-gta] .left-controls-xl .icon-btn:active {
-  background:    rgba(0, 217, 255, 0.22) !important;
+  background:    rgba(255, 181, 46, 0.20) !important;
   transform: scale(0.93) !important;
 }
 
 [data-gta] .left-controls-xl .icon-btn.active {
-  background:    rgba(243, 41, 167, 0.28) !important;
-  border-color:  #F329A7 !important;
+  background:    rgba(243, 41, 167, 0.22) !important;
+  border-top-color:    #F329A7 !important;
+  border-bottom-color: #F329A7 !important;
   color:         #F329A7 !important;
 }
 
@@ -185,14 +195,11 @@
   box-shadow: 0 2px 12px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(139, 66, 255, 0.20) !important;
 }
 
-[data-gta][data-tesla] .icon-btn {
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
-
+[data-gta][data-tesla] .icon-btn,
 [data-gta][data-tesla] .left-controls-xl .icon-btn {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+  box-shadow: none !important;
 }
 
 [data-gta][data-tesla] .tesla-overlay-inner {

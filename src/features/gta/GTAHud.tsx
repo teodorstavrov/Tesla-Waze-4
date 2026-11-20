@@ -385,7 +385,7 @@ function CityActivity({
   accidents: number
   hazards:   number
 }) {
-  if (police === 0 && accidents === 0 && hazards === 0) return null
+  const empty = police === 0 && accidents === 0 && hazards === 0
 
   return (
     <div style={{
@@ -410,6 +410,11 @@ function CityActivity({
       }}>
         City Activity
       </span>
+      {empty && (
+        <span style={{ fontSize: 9, color: '#3A4A6E', letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+          All Quiet
+        </span>
+      )}
       {police > 0 && (
         <ActivityRow emoji="🚔" count={police} color="#3B82F6" label="Police" />
       )}
