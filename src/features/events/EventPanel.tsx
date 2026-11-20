@@ -106,7 +106,7 @@ export function EventPanel() {
         position:      'absolute',
         bottom:        90,
         left:          '50%',
-        transform:     'translateX(-50%) translateY(20vh)',
+        transform:     'translateX(-50%) translateY(10vh)',
         width:         'min(384px, calc(100vw - 24px))',
         zIndex:        500,
       }}

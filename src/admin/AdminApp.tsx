@@ -4,6 +4,7 @@
 
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import type L from 'leaflet'
+import { SPEED_SECTIONS } from '@/features/cameras/sections'
 
 const EVENT_LABELS: Record<string, string> = {
   police:   '🚔 Полиция',
@@ -199,6 +200,7 @@ function Dashboard({ secret }: { secret: string }) {
   const [syncMsg, setSyncMsg] = useState('')
   const [addMode, setAddMode] = useState(false)
   const [showCoverage, setShowCoverage] = useState(false)
+  const [showSections, setShowSections] = useState(false)
   const [selType, setSelType] = useState<EventType>('police')
   const [editingEvent,  setEditingEvent]  = useState<RoadEvent | null>(null)
   const [editingMeetup, setEditingMeetup] = useState<AdminMeetup | null>(null)
@@ -550,6 +552,20 @@ function Dashboard({ secret }: { secret: string }) {
             }}>
             🛰 Teslanav покритие
           </button>
+          {/* Speed sections toggle */}
+          <button
+            onClick={() => setShowSections(v => !v)}
+            style={{
+              position: 'absolute', top: 48, right: 12, zIndex: 1000,
+              padding: '6px 14px', borderRadius: 8, border: '1px solid',
+              borderColor: showSections ? 'rgba(251,191,36,0.8)' : 'rgba(255,255,255,0.15)',
+              background: showSections ? 'rgba(251,191,36,0.15)' : 'rgba(0,0,0,0.55)',
+              color: showSections ? '#fbbf24' : '#aaa',
+              fontSize: 12, fontWeight: 600, cursor: 'pointer',
+              backdropFilter: 'blur(4px)',
+            }}>
+            📏 Средна скорост
+          </button>
           <AdminMap
             events={events}
             userStations={userStations}
@@ -558,6 +574,7 @@ function Dashboard({ secret }: { secret: string }) {
             visitors={visitors}
             addMode={addMode}
             showCoverage={showCoverage}
+            showSections={showSections}
             editingEventId={editingEvent?.id ?? null}
             onMapClick={(lat, lng) => { void addEvent(lat, lng) }}
             onDelete={(id) => { void deleteEvent(id) }}
@@ -1508,6 +1525,7 @@ interface AdminMapProps {
   visitors:         VisitorInfo[]
   addMode:          boolean
   showCoverage:     boolean
+  showSections:     boolean
   editingEventId:   string | null
   onMapClick:       (lat: number, lng: number) => void
   onDelete:         (id: string) => void
@@ -1517,7 +1535,7 @@ interface AdminMapProps {
   onDeleteMeetup:   (id: string) => void
 }
 
-function AdminMap({ events, userStations, comments, meetups, visitors, addMode, showCoverage, editingEventId, onMapClick, onDelete, onEdit, onApproveStation, onRejectStation, onDeleteMeetup }: AdminMapProps) {
+function AdminMap({ events, userStations, comments, meetups, visitors, addMode, showCoverage, showSections, editingEventId, onMapClick, onDelete, onEdit, onApproveStation, onRejectStation, onDeleteMeetup }: AdminMapProps) {
   const containerRef        = useRef<HTMLDivElement>(null)
   const mapRef              = useRef<L.Map | null>(null)
   const markersRef          = useRef<Map<string, L.Marker>>(new Map())
@@ -1527,6 +1545,7 @@ function AdminMap({ events, userStations, comments, meetups, visitors, addMode, 
   const meetupMarkersRef    = useRef<Map<string, L.Marker>>(new Map())
   const visitorLayerRef     = useRef<L.CircleMarker[]>([])
   const coverageLayersRef   = useRef<L.Layer[]>([])
+  const sectionsLayerRef    = useRef<L.Layer[]>([])
   const visitorsRef         = useRef<VisitorInfo[]>(visitors)
   const [mapReady, setMapReady] = useState(false)
   const addModeRef          = useRef(addMode)
@@ -1582,6 +1601,8 @@ function AdminMap({ events, userStations, comments, meetups, visitors, addMode, 
       commentMarkersRef.current.clear()
       visitorLayerRef.current.forEach((m) => m.remove())
       visitorLayerRef.current = []
+      sectionsLayerRef.current.forEach((l) => l.remove())
+      sectionsLayerRef.current = []
     }
   }, [])
 
@@ -1639,6 +1660,73 @@ function AdminMap({ events, userStations, comments, meetups, visitors, addMode, 
       })
     })
   }, [mapReady, showCoverage])
+
+  // Speed sections overlay
+  useEffect(() => {
+    if (!mapReady) return
+    const map = mapRef.current
+    if (!map) return
+
+    void import('leaflet').then((Lm) => {
+      const L = Lm.default
+
+      sectionsLayerRef.current.forEach((l) => l.remove())
+      sectionsLayerRef.current = []
+
+      if (!showSections) return
+
+      // Color by road type
+      const roadColor = (road: string): string => {
+        if (road.startsWith('А1') || road.startsWith('А4')) return '#e31937'
+        if (road.startsWith('АМ Хемус'))  return '#3b82f6'
+        if (road.startsWith('АМ Струма')) return '#22c55e'
+        if (road.startsWith('АМ Европа')) return '#a855f7'
+        if (road.startsWith('Път І-8'))   return '#f97316'
+        if (road.startsWith('Път І'))     return '#f59e0b'
+        return '#94a3b8'
+      }
+
+      // Draw each section: polyline + start/end dots
+      // Only draw forward direction to avoid duplicate lines
+      const drawn = new Set<string>()
+      for (const sec of SPEED_SECTIONS) {
+        const key = [sec.startLat, sec.startLng, sec.endLat, sec.endLng]
+          .map(n => n.toFixed(5)).join('|')
+        const keyRev = [sec.endLat, sec.endLng, sec.startLat, sec.startLng]
+          .map(n => n.toFixed(5)).join('|')
+        if (drawn.has(keyRev)) continue  // already drew the opposite direction
+        drawn.add(key)
+
+        const col = roadColor(sec.road)
+        const lkm = (sec.lengthM / 1000).toFixed(1)
+
+        const line = L.polyline(
+          [[sec.startLat, sec.startLng], [sec.endLat, sec.endLng]],
+          { color: col, weight: 4, opacity: 0.75 }
+        )
+        line.bindTooltip(
+          `<b>${sec.road}</b><br/>${sec.name}<br/>${lkm} km · ${sec.limitKmh} km/h`,
+          { sticky: true, opacity: 0.95 }
+        )
+        line.addTo(map)
+        sectionsLayerRef.current.push(line)
+
+        // Start dot
+        const dotStart = L.circleMarker([sec.startLat, sec.startLng], {
+          radius: 5, color: col, fillColor: '#fff', fillOpacity: 1, weight: 2.5, interactive: false,
+        })
+        dotStart.addTo(map)
+
+        // End dot
+        const dotEnd = L.circleMarker([sec.endLat, sec.endLng], {
+          radius: 5, color: col, fillColor: col, fillOpacity: 0.9, weight: 2, interactive: false,
+        })
+        dotEnd.addTo(map)
+
+        sectionsLayerRef.current.push(dotStart, dotEnd)
+      }
+    })
+  }, [mapReady, showSections])
 
   // Sync markers when events change — revision tracking so edits re-render
   useEffect(() => {

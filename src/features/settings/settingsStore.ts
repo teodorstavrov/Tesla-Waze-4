@@ -7,7 +7,7 @@ export type HeadingMode = 'north-up' | 'course-up'
 
 export const PITCH_STEP = 15
 export const PITCH_MIN  = 0
-export const PITCH_MAX  = 60
+export const PITCH_MAX  = 45
 
 interface Settings {
   showTraffic:          boolean

@@ -37,37 +37,34 @@ const CONFIG = {
   // (ignored for teslanav). Sofia is split into 5 sub-points for full metro coverage.
   groups: {
     cities: [
-      // PRIORITY cities first — scanned before Sofia's heavy block, so they
-      // get fresh (un-throttled) requests and don't end up empty.
-      // Varna is coastal: 3 sub-points + 'wide' sweeps (sea drags auto-skip),
-      // centred on LAND (west of the port) so police aren't missed.
-      { name: 'Varna-C', lat: 43.2080, lon: 27.8850, drags: 'priority' },
-      { name: 'Varna-W', lat: 43.2200, lon: 27.8200, drags: 'priority' }, // west districts / Hemus entry
-      { name: 'Varna-S', lat: 43.1820, lon: 27.9050, drags: 'priority' }, // Asparuhovo / Burgas exit
-      { name: 'Burgas',    lat: 42.5048, lon: 27.4626, drags: 'priority' },
-      { name: 'Plovdiv',   lat: 42.1354, lon: 24.7453, drags: 'priority' },
+      // PRIORITY cities — 12-spoke coverage.
+      // Varna is coastal: 3 sub-points (sea drags auto-skip).
+      { name: 'Varna-C',     lat: 43.2080, lon: 27.8850, drags: 'priority' },
+      { name: 'Varna-W',     lat: 43.2200, lon: 27.5800, drags: 'priority' },
+      { name: 'Varna-S',     lat: 43.0470, lon: 27.5850, drags: 'priority' },
+      { name: 'Burgas',      lat: 42.5048, lon: 27.4626, drags: 'priority' },
+      { name: 'Plovdiv',     lat: 42.1354, lon: 24.7453, drags: 'priority' },
+      { name: 'Blagoevgrad', lat: 42.1577, lon: 23.1219, drags: 'priority' },
 
-      // Sofia: 5 sub-points (center + 4 corners) tile the whole metro + ring road.
-      { name: 'Sofia-C',  lat: 42.6977, lon: 23.3219, drags: 'priority' },
-      { name: 'Sofia-NE', lat: 42.7400, lon: 23.4150, drags: 'wide' },
-      { name: 'Sofia-NW', lat: 42.7400, lon: 23.2300, drags: 'wide' },
-      { name: 'Sofia-SE', lat: 42.6550, lon: 23.4150, drags: 'wide' },
-      { name: 'Sofia-SW', lat: 42.6550, lon: 23.2300, drags: 'wide' },
+      // Sofia: 3 wide zones — NW covers A2 Hemus entry; SE/SW cover metro corners.
+      { name: 'Sofia-NW', lat: 43.0700, lon: 23.2300, drags: 'wide' },
+      { name: 'Sofia-SE', lat: 42.6550, lon: 23.5110, drags: 'wide' },
+      { name: 'Sofia-SW', lat: 42.6550, lon: 22.8140, drags: 'wide' },
 
-      { name: 'Ruse',      lat: 43.8356, lon: 25.9657 },
-      { name: 'Dobrich',   lat: 43.5726, lon: 27.8273 },
-      { name: 'Shumen',    lat: 43.2712, lon: 26.9361 },
+      { name: 'Yambol-Sliven', lat: 42.5856, lon: 26.4163, drags: 'wide' },
+      { name: 'Ruse',          lat: 43.8086, lon: 26.0307 },
+      { name: 'Dobrich',       lat: 43.6446, lon: 27.8273 },
+      { name: 'Shumen',        lat: 43.2712, lon: 26.9361 },
       // V.Tarnovo removed — it's covered by the route group (A2-VelikoTarnovo).
     ],
 
     // A2 "Hemus" corridor (Varna -> Sofia) — out-of-city highway police.
     route: [
-      { name: 'A2-Devnya',     lat: 43.2260, lon: 27.5680 },
-      { name: 'A2-Targovishte',lat: 43.2510, lon: 26.5720 },
+      { name: 'A2-Targovishte',  lat: 43.2510, lon: 26.4420 },
       { name: 'A2-VelikoTarnovo',lat: 43.0757, lon: 25.6172 },
-      { name: 'A2-Sevlievo',   lat: 43.0260, lon: 25.1030 },
-      { name: 'A2-Yablanitsa', lat: 43.0240, lon: 24.1120 },
-      { name: 'A2-Vitinya',    lat: 42.8300, lon: 23.5700 },
+      { name: 'A2-Sevlievo',     lat: 43.0260, lon: 25.1030 },
+      { name: 'A2-Yablanitsa',   lat: 43.0240, lon: 24.1120 },
+      { name: 'A2-Vitinya',      lat: 42.8840, lon: 23.5700 },
     ],
 
     // Netherlands — 3 largest cities (start). Lots of water -> the water/forest
@@ -1264,7 +1261,7 @@ async function main() {
               : arg === 'route'               ? (4 * 60 + 15) * 60 * 1000 // 4 h 15 min
               : null;
 
-  // Cities (20 locations): 3-minute breather between the first 10 and the next 10.
+  // Cities (13 locations): 3-minute breather between the first 10 and the next 10.
   if (arg === 'cities') { midPauseAfter = 10; midPauseMs = 3 * 60 * 1000; }
 
   // Jitter: random 0..jitterMaxMin minutes, so staggered tasks don't hit

@@ -21,6 +21,17 @@ export const SPEED_SECTIONS: SpeedSection[] = [
   // ══ А1 „Тракия" — Sofia → Burgas ════════════════════════════════════════
 
   {
+    id:       'a1-krushuvitsa-vakarel',  // ~approximate (interp. from Вакарел km 24+288)
+    road:     'А1 Тракия',
+    name:     'Крушовица — Вакарел',
+    startLat:  42.582,
+    startLng:  23.665,
+    endLat:    42.550628,
+    endLng:    23.702808,
+    lengthM:   5_600,
+    limitKmh:  140,
+  },
+  {
     id:       'a1-vakarel-ihtiman',
     road:     'А1 Тракия',
     name:     'Вакарел — Ихтиман',
@@ -97,6 +108,51 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     lengthM:   15_100,
     limitKmh:  140,
   },
+  // --- А1 east of Чирпан (new, bgtoll.bg 2025-2026) ---
+  {
+    id:       'a1-chirpan-pamukchii',   // ~approximate (interp. Чирпан km 172 → Кръстина km 344)
+    road:     'А1 Тракия',
+    name:     'Чирпан — Памукчии',
+    startLat:  42.200859,
+    startLng:  25.28097,
+    endLat:    42.440,
+    endLng:    25.735,
+    lengthM:   37_800,
+    limitKmh:  140,
+  },
+  {
+    id:       'a1-zagorе-polsko-padarevo',  // ~approximate
+    road:     'А1 Тракия',
+    name:     'Загоре — Полско пъдарево',
+    startLat:  42.436,
+    startLng:  25.800,
+    endLat:    42.476,
+    endLng:    26.168,
+    lengthM:   39_900,
+    limitKmh:  140,
+  },
+  {
+    id:       'a1-polsko-padarevo-kabile',  // ~approximate
+    road:     'А1 Тракия',
+    name:     'Полско пъдарево — Кабиле',
+    startLat:  42.476,
+    startLng:  26.168,
+    endLat:    42.516,
+    endLng:    26.548,
+    lengthM:   41_300,
+    limitKmh:  140,
+  },
+  {
+    id:       'a1-kabile-vodenicane',   // ~approximate
+    road:     'А1 Тракия',
+    name:     'Кабиле — Воденичане',
+    startLat:  42.516,
+    startLng:  26.548,
+    endLat:    42.537,
+    endLng:    26.737,
+    lengthM:   20_400,
+    limitKmh:  140,
+  },
   {
     id:       'a1-krastina-vetren',
     road:     'А1 Тракия',
@@ -111,6 +167,17 @@ export const SPEED_SECTIONS: SpeedSection[] = [
 
   // ══ А1 „Тракия" — Burgas → Sofia ════════════════════════════════════════
 
+  {
+    id:       'a1-vakarel-krushuvitsa',  // ~approximate
+    road:     'А1 Тракия',
+    name:     'Вакарел — Крушовица',
+    startLat:  42.550628,
+    startLng:  23.702808,
+    endLat:    42.582,
+    endLng:    23.665,
+    lengthM:   5_600,
+    limitKmh:  140,
+  },
   {
     id:       'a1-ihtiman-vakarel',
     road:     'А1 Тракия',
@@ -186,6 +253,51 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     endLat:    42.199753,
     endLng:    25.121266,
     lengthM:   15_100,
+    limitKmh:  140,
+  },
+  // --- А1 east of Памукчии (Burgas→Sofia direction) ---
+  {
+    id:       'a1-pamukchii-chirpan',   // ~approximate
+    road:     'А1 Тракия',
+    name:     'Памукчии — Чирпан',
+    startLat:  42.440,
+    startLng:  25.735,
+    endLat:    42.200859,
+    endLng:    25.28097,
+    lengthM:   37_800,
+    limitKmh:  140,
+  },
+  {
+    id:       'a1-polsko-padarevo-zagorе',  // ~approximate
+    road:     'А1 Тракия',
+    name:     'Полско пъдарево — Загоре',
+    startLat:  42.476,
+    startLng:  26.168,
+    endLat:    42.436,
+    endLng:    25.800,
+    lengthM:   39_900,
+    limitKmh:  140,
+  },
+  {
+    id:       'a1-kabile-polsko-padarevo',  // ~approximate
+    road:     'А1 Тракия',
+    name:     'Кабиле — Полско пъдарево',
+    startLat:  42.516,
+    startLng:  26.548,
+    endLat:    42.476,
+    endLng:    26.168,
+    lengthM:   41_300,
+    limitKmh:  140,
+  },
+  {
+    id:       'a1-vodenicane-kabile',   // ~approximate
+    road:     'А1 Тракия',
+    name:     'Воденичане — Кабиле',
+    startLat:  42.537,
+    startLng:  26.737,
+    endLat:    42.516,
+    endLng:    26.548,
+    lengthM:   20_400,
     limitKmh:  140,
   },
   {
@@ -286,6 +398,17 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     limitKmh:  140,
   },
   {
+    id:       'a3-dolna-gradeshnitsa-sandanski',  // ~approximate (interp. km 129+714)
+    road:     'АМ Струма',
+    name:     'Долна Градешница — Сандански',
+    startLat:  41.687,
+    startLng:  23.189,
+    endLat:    41.573293,
+    endLng:    23.239612,
+    lengthM:   16_400,
+    limitKmh:  140,
+  },
+  {
     id:       'a3-sandanski-damyanitsa',
     road:     'АМ Струма',
     name:     'Сандански — Дамяница',
@@ -305,6 +428,17 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     endLat:    41.419111,
     endLng:    23.333972,
     lengthM:   13_600,
+    limitKmh:  140,
+  },
+  {
+    id:       'a3-dyakovo-reservoir-dyakovo',  // ~approximate (interp. km 49+474, Дупница р-н)
+    road:     'АМ Струма',
+    name:     'яз. Дяково — Дяково',
+    startLat:  42.318,
+    startLng:  23.157,
+    endLat:    42.298,
+    endLng:    23.150,
+    lengthM:   2_960,
     limitKmh:  140,
   },
   {
@@ -333,6 +467,17 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     limitKmh:  140,
   },
   {
+    id:       'a3-sandanski-dolna-gradeshnitsa',  // ~approximate
+    road:     'АМ Струма',
+    name:     'Сандански — Долна Градешница',
+    startLat:  41.573293,
+    startLng:  23.239612,
+    endLat:    41.687,
+    endLng:    23.189,
+    lengthM:   16_400,
+    limitKmh:  140,
+  },
+  {
     id:       'a3-damyanitsa-sandanski',
     road:     'АМ Струма',
     name:     'Дамяница — Сандански',
@@ -352,6 +497,17 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     endLat:    41.51461,
     endLng:    23.271485,
     lengthM:   13_600,
+    limitKmh:  140,
+  },
+  {
+    id:       'a3-dyakovo-dyakovo-reservoir',  // ~approximate
+    road:     'АМ Струма',
+    name:     'Дяково — яз. Дяково',
+    startLat:  42.298,
+    startLng:  23.150,
+    endLat:    42.318,
+    endLng:    23.157,
+    lengthM:   2_960,
     limitKmh:  140,
   },
   {
@@ -673,6 +829,17 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     limitKmh:  90,
   },
   {
+    id:       'i4-moravitsa-omurtag',        // ~approximate (interp. Момин Сбор km 116 → Омуртаг km 204)
+    road:     'Път І-4',
+    name:     'Моравица — Омуртаг',
+    startLat:  43.109,
+    startLng:  26.111,
+    endLat:    43.118197,
+    endLng:    26.415056,
+    lengthM:   37_400,
+    limitKmh:  90,
+  },
+  {
     id:       'i4-omurtag-prolaz',           // ~approximate
     road:     'Път І-4',
     name:     'Омуртаг — Пролаз',
@@ -681,6 +848,17 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     endLat:    43.196646,
     endLng:    26.502398,
     lengthM:   14_600,
+    limitKmh:  90,
+  },
+  {
+    id:       'i4-omurtag-moravitsa',        // ~approximate
+    road:     'Път І-4',
+    name:     'Омуртаг — Моравица',
+    startLat:  43.118197,
+    startLng:  26.415056,
+    endLat:    43.109,
+    endLng:    26.111,
+    lengthM:   37_400,
     limitKmh:  90,
   },
   {
@@ -786,6 +964,17 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     limitKmh:  90,
   },
   {
+    id:       'i5-shipka-kran',              // ~approximate (interp. Шипка км 182 → Казанлък км 199)
+    road:     'Път І-5',
+    name:     'Шипка — Крън',
+    startLat:  42.714,
+    startLng:  25.321,
+    endLat:    42.660,
+    endLng:    25.383,
+    lengthM:   11_600,
+    limitKmh:  90,
+  },
+  {
     id:       'i5-kazanlak-yagoda',          // ~approximate
     road:     'Път І-5',
     name:     'Казанлък — Ягода',
@@ -794,6 +983,17 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     endLat:    42.547573,
     endLng:    25.559393,
     lengthM:   16_300,
+    limitKmh:  90,
+  },
+  {
+    id:       'i5-kran-shipka',              // ~approximate
+    road:     'Път І-5',
+    name:     'Крън — Шипка',
+    startLat:  42.660,
+    startLng:  25.383,
+    endLat:    42.714,
+    endLng:    25.321,
+    lengthM:   11_600,
     limitKmh:  90,
   },
   {
@@ -830,6 +1030,31 @@ export const SPEED_SECTIONS: SpeedSection[] = [
     endLat:    42.487678,
     endLng:    22.927248,
     lengthM:   10_500,
+    limitKmh:  90,
+  },
+
+  // ══ Път І-8 ══════════════════════════════════════════════════════════════
+
+  {
+    id:       'i8-ihtiman-mirovo',           // ~approximate (km 123+404 → 134+876)
+    road:     'Път І-8',
+    name:     'Ихтиман — Мирово',
+    startLat:  42.433,
+    startLng:  23.819,
+    endLat:    42.355,
+    endLng:    23.880,
+    lengthM:   14_900,
+    limitKmh:  90,
+  },
+  {
+    id:       'i8-mirovo-ihtiman',           // ~approximate
+    road:     'Път І-8',
+    name:     'Мирово — Ихтиман',
+    startLat:  42.355,
+    startLng:  23.880,
+    endLat:    42.433,
+    endLng:    23.819,
+    lengthM:   14_900,
     limitKmh:  90,
   },
 
