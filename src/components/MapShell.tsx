@@ -334,6 +334,7 @@ export function MapShell() {
     let _drBearPrev = 0        // bearing before most recent heading change
     let _drBearTs   = 0        // timestamp of most recent heading change
     let _drRafId    = 0        // rAF handle (0 = stopped)
+    let _hasFirstFix = false   // first GPS fix received this session
     let _autoRecenterTimer: ReturnType<typeof setTimeout> | null = null
     let _drTransBear: number | null = null  // bearing to transition FROM on course-up entry
     let _drTransTs  = 0
@@ -440,11 +441,18 @@ export function MapShell() {
 
     // GPS tick: update dead-reckoning state — the rAF loop handles all map movement
     const unsubGps = gpsStore.onPosition((pos) => {
-      // Auto-recenter: if not following and speed > 30 km/h, re-enable follow
       if (!followStore.isFollowing()) {
-        if ((pos.speedKmh ?? 0) >= 30) followStore.setFollowing(true)
-        else return
+        if (!_hasFirstFix) {
+          // First GPS fix ever this session: always center on real position, even if parked.
+          // Without this, a cold start in Varna would show Sofia until the user moves 30+ km/h.
+          followStore.setFollowing(true)
+        } else if ((pos.speedKmh ?? 0) >= 30) {
+          followStore.setFollowing(true)
+        } else {
+          return
+        }
       }
+      _hasFirstFix = true
       const navPos     = getNavPosition()
       const newHeading = getNavBearing() ?? pos.heading ?? _drHeading
       const now        = performance.now()
@@ -486,6 +494,14 @@ export function MapShell() {
     // Apply saved pitch on init
     const initPitch = settingsStore.get().mapPitch
     if (initPitch > 0) map.setPitch(initPitch)
+
+    // If GPS position is already cached (getCurrentPosition raced ahead of this effect),
+    // center the map immediately instead of showing the country default (Sofia).
+    const _initPos = gpsStore.getPosition()
+    if (_initPos) {
+      map.jumpTo({ center: [_initPos.lng, _initPos.lat] })
+      _hasFirstFix = true
+    }
 
     let _prevPitch = initPitch
 
