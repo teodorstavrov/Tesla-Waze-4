@@ -40,7 +40,12 @@
   --gta-glow-cyan:    0 0 14px rgba(0, 217, 255, 0.55);
 }
 
-/* ── 2. Hide standard logo + right controls strip ───────────────────────── */
+/* ── 2. Reposition tilt buttons to align with BottomDock (bottom:24) ─────── */
+[data-gta] .tilt-controls {
+  bottom: 24px !important;
+}
+
+/* ── 2b. Hide standard logo + right controls strip ──────────────────────── */
 /* Standard logo is replaced by Vice City Edition logo rendered in GTAHud */
 [data-gta] .floating-title-card {
   display: none !important;

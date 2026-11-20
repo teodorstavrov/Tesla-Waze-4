@@ -84,7 +84,7 @@ export function RightControls() {
   return (
     <>
     {/* Tilt controls — bottom-right, horizontal, left of right-controls strip */}
-    <div style={{
+    <div className="tilt-controls" style={{
       position:      'absolute',
       right:         83,
       bottom:        90,
