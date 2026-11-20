@@ -8,7 +8,7 @@ import { SatelliteButton } from '@/components/SatelliteButton'
 import { openCountryPicker } from '@/components/CountryPicker'
 import { countryStore } from '@/lib/countryStore'
 import { t, langStore, getLang } from '@/lib/locale'
-import { settingsStore } from '@/features/settings/settingsStore'
+import { settingsStore, PITCH_STEP, PITCH_MIN, PITCH_MAX } from '@/features/settings/settingsStore'
 import { roadworksStore } from '@/features/roadworks/roadworksStore'
 import { uiStore } from '@/features/settings/uiStore'
 import { isPhone } from '@/lib/browser'
@@ -20,6 +20,11 @@ function _pickerIcon(): string {
 }
 
 export function RightControls() {
+  const mapPitch = useSyncExternalStore(
+    settingsStore.subscribe.bind(settingsStore),
+    () => settingsStore.get().mapPitch,
+    () => 0,
+  )
   const countryFlag = useSyncExternalStore(
     countryStore.subscribe.bind(countryStore),
     _pickerIcon,
@@ -77,6 +82,39 @@ export function RightControls() {
   }, [showRoadworks])
 
   return (
+    <>
+    {/* Tilt controls — bottom-right, smaller */}
+    <div style={{
+      position:      'absolute',
+      right:         12,
+      bottom:        80,
+      zIndex:        400,
+      display:       'flex',
+      flexDirection: 'column',
+      gap:           6,
+    }}>
+      <button
+        className="icon-btn"
+        onClick={() => settingsStore.setMapPitch(mapPitch + PITCH_STEP)}
+        disabled={mapPitch >= PITCH_MAX}
+        title={t('controls.tiltUp')}
+        aria-label={t('controls.tiltUp')}
+        style={{ width: 44, height: 44, opacity: mapPitch >= PITCH_MAX ? 0.3 : 1 }}
+      >
+        <TiltUpIcon />
+      </button>
+      <button
+        className="icon-btn"
+        onClick={() => settingsStore.setMapPitch(mapPitch - PITCH_STEP)}
+        disabled={mapPitch <= PITCH_MIN}
+        title={t('controls.tiltDown')}
+        aria-label={t('controls.tiltDown')}
+        style={{ width: 44, height: 44, opacity: mapPitch <= PITCH_MIN ? 0.3 : 1 }}
+      >
+        <TiltDownIcon />
+      </button>
+    </div>
+
     <div
       className="right-controls"
       style={{
@@ -203,6 +241,37 @@ export function RightControls() {
         <GearIcon />
       </button>
     </div>
+    </>
+  )
+}
+
+function TiltUpIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+      <line x1="10" y1="7"  x2="14" y2="7"  />
+      <line x1="7"  y1="12" x2="17" y2="12" />
+      <line x1="4"  y1="17" x2="20" y2="17" />
+      <line x1="10" y1="7"  x2="4"  y2="17" />
+      <line x1="14" y1="7"  x2="20" y2="17" />
+      <polyline points="19,4 21,2 23,4" strokeWidth="1.5" />
+      <line x1="21" y1="2" x2="21" y2="6" strokeWidth="1.5" />
+    </svg>
+  )
+}
+
+function TiltDownIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden="true">
+      <line x1="4" y1="8"  x2="20" y2="8"  />
+      <line x1="4" y1="13" x2="20" y2="13" />
+      <line x1="4" y1="18" x2="20" y2="18" />
+      <line x1="4"  y1="8" x2="4"  y2="18" />
+      <line x1="20" y1="8" x2="20" y2="18" />
+      <polyline points="19,2 21,4 23,2" strokeWidth="1.5" />
+      <line x1="21" y1="4" x2="21" y2="0" strokeWidth="1.5" />
+    </svg>
   )
 }
 
