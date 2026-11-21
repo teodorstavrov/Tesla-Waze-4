@@ -92,9 +92,6 @@ function makeElement(): HTMLDivElement {
           <feDropShadow dx="0" dy="2.5" stdDeviation="2.2" flood-color="rgba(110,0,18,0.95)"/>
         </filter>
       </defs>
-      <!-- Ambient red glow ring -->
-      <circle cx="14" cy="14" r="13" fill="rgba(227,25,55,0.26)"/>
-      <circle cx="14" cy="14" r="12.2" fill="none" stroke="rgba(227,25,55,0.62)" stroke-width="0.9"/>
       <!-- 3D extrusion depth (shifted +1.5px right and +1.5px down) -->
       <polygon points="15.5,4.5 21.5,23.5 15.5,19.5 9.5,23.5" fill="rgba(45,0,8,0.85)"/>
       <!-- Main arrow face: mirror-metallic gradient + drop shadow -->
