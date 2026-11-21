@@ -4,6 +4,24 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-11-21
+
+- **fix(avatar): аватарът стои на GPS локацията при ръчно местене на картата** — след ръчно панване картата остава на новата позиция и аватарът се мести с нея (проектиране на GPS координатите на екрана). Премахнато автоматично центриране след dragend. GPS tick вече не преактивира follow mode — единственото връщане е чрез бутона за локация (ляво горе).
+
+---
+
+## 2026-11-20 (4)
+
+- **feat(gta): Vice City visual polish** — Vice City Edition лого (заменя стандартното в GTA режим); sunset vignette по краищата на картата (лилаво/магента/оранжево); десния панел с бутоните изключен по дефолт в GTA режим; целия GTA режим само на английски (auto-force EN при активиране); City Activity панела и Full/Lite бутона преместени нагоре (top-right, под Events card); EVENTS бутон преоцветен с Vice City градиент.
+
+---
+
+## 2026-11-20 (3)
+
+- **feat: GTA VI Vice City Mode — Phase 1+2** — нов визуален режим, трансформиращ TesRadar в Vice City HUD. Превключва се с бутон 🎮 (долу вляво). Всички промени са скопирани под `[data-gta]`, стандартният режим остава непроменен. Компоненти: `gtaModeStore` (localStorage pub/sub), `GTAHud` (toggle + WantedLevel 5-звезден индикатор от police events + GPS + City Activity панел), `gta-mode.css` (Vice City палитра: #080D20/#8B42FF/#F329A7/#00D9FF), `.map-tiles-gta` CSS filter на map canvas (invert+hue-rotate 210°). Full/Lite качество за Tesla производителност. Нови API заявки: 0.
+
+---
+
 ## 2026-11-20 (2)
 
 - **feat: tilt бутони преместени долу вдясно** — tilt up/down бутоните са преместени от левия стрип в долния десен ъгъл (`bottom: 80, right: 12`), с по-малък размер (44×44 px вместо 63×63 px).

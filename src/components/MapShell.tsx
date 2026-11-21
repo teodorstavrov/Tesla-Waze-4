@@ -173,6 +173,7 @@ export function MapShell() {
     map.on('dragstart', () => {
       if (!followStore.isProgrammaticMove()) {
         followStore.setFollowing(false)
+        if (_autoRecenterTimer !== null) { clearTimeout(_autoRecenterTimer); _autoRecenterTimer = null }
         logger.follow.debug('Follow disabled by drag')
       }
     })
@@ -434,14 +435,9 @@ export function MapShell() {
     function _onDragStart(): void { /* rAF already cancelled by touchstart */ }
     map.on('dragstart', _onDragStart)
 
-    // Auto-recenter: 5s after user stops panning, re-enable follow only if moving ≥ 30 km/h
+    // After manual drag, never auto-recenter — user taps LocationButton to re-follow.
     function _onDragEnd(): void {
-      if (_drTs === 0) return
-      if (_autoRecenterTimer !== null) clearTimeout(_autoRecenterTimer)
-      _autoRecenterTimer = setTimeout(() => {
-        _autoRecenterTimer = null
-        if (_drTs > 0 && _drSpeedMs * 3.6 >= 30) followStore.setFollowing(true)
-      }, 5000)
+      if (_autoRecenterTimer !== null) { clearTimeout(_autoRecenterTimer); _autoRecenterTimer = null }
     }
     map.on('dragend', _onDragEnd)
 
@@ -452,10 +448,8 @@ export function MapShell() {
           // First GPS fix ever this session: always center on real position, even if parked.
           // Without this, a cold start in Varna would show Sofia until the user moves 30+ km/h.
           followStore.setFollowing(true)
-        } else if ((pos.speedKmh ?? 0) >= 30) {
-          followStore.setFollowing(true)
         } else {
-          return
+          return  // User panned away — never auto-recenter; LocationButton re-enables.
         }
       }
       _hasFirstFix = true
