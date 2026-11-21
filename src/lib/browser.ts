@@ -139,6 +139,9 @@ export const isPhone: boolean =
 /** Desktop browser — not Tesla, not a phone/tablet */
 export const isDesktop: boolean = !isTeslaBrowser && !isPhone
 
+/** True on any host other than the production domain — gates preview-only features */
+export const isPreviewEnvironment: boolean = window.location.hostname !== 'tesradar.tech'
+
 /** Passive event options — required for Tesla scroll performance */
 export const PASSIVE: AddEventListenerOptions = { passive: true }
 

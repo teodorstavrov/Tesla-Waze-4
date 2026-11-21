@@ -61,7 +61,7 @@ import { OnlineCounter } from '@/components/OnlineCounter'
 import { CarClock } from '@/components/CarClock'
 import { DeviceModeBanner } from '@/components/DeviceModeBanner'
 import { UpgradeModal } from '@/components/UpgradeModal'
-import { isPhone } from '@/lib/browser'
+import { isPhone, isPreviewEnvironment } from '@/lib/browser'
 import { PricingModal } from '@/components/PricingModal'
 import { VoiceAssistant } from '@/features/voice/VoiceAssistant'
 import { TeslaDebugPanel } from '@/components/TeslaDebugPanel'
@@ -78,6 +78,10 @@ export function App() {
     () => gtaModeStore.isActive(),
     () => false,
   )
+  // Force-disable GTA mode on production in case localStorage has it from a preview session
+  useEffect(() => {
+    if (!isPreviewEnvironment) gtaModeStore.setActive(false)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => {
     if (gtaActive) {
       document.documentElement.setAttribute('data-gta', '')
@@ -222,8 +226,8 @@ export function App() {
       {/* Layer 4: alert toast (above everything) */}
       <AlertToast />
 
-      {/* GTA VI Mode — HUD overlay + toggle button */}
-      <GTAHud />
+      {/* GTA VI Mode — HUD overlay, preview only (hidden on tesradar.tech) */}
+      {isPreviewEnvironment && <GTAHud />}
 
       {/* Voice AI — renders nothing when idle, overlay on demand */}
       <VoiceAssistant />

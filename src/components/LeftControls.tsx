@@ -10,6 +10,7 @@ import { langStore, t, getLang } from '@/lib/locale'
 import { isPremiumEnabled } from '@/lib/featureFlags'
 import { settingsStore } from '@/features/settings/settingsStore'
 import { gtaModeStore } from '@/features/gta/gtaModeStore'
+import { isPreviewEnvironment } from '@/lib/browser'
 
 export function LeftControls() {
   useSyncExternalStore(langStore.subscribe.bind(langStore), getLang, getLang)
@@ -85,27 +86,29 @@ export function LeftControls() {
         </button>
       </div>
 
-      {/* GTA VI Mode toggle — always at bottom of left strip, same width, taller */}
-      <button
-        className={`icon-btn gta-mode-toggle${gtaActive ? ' active' : ''}`}
-        onClick={gtaModeStore.toggle}
-        title={gtaActive ? 'Standard Mode' : 'GTA VI Mode'}
-        aria-label={gtaActive ? 'Switch to Standard Mode' : 'Switch to GTA VI Mode'}
-        aria-pressed={gtaActive}
-        style={{
-          display:       'flex',
-          flexDirection: 'column',
-          alignItems:    'center',
-          justifyContent:'center',
-          gap:           3,
-          height:        80,
-        }}
-      >
-        <span style={{ fontSize: 18, lineHeight: 1 }}>🎮</span>
-        <span style={{ fontSize: 7, fontWeight: 800, letterSpacing: '0.08em', lineHeight: 1, textTransform: 'uppercase' }}>
-          {gtaActive ? 'VICE' : 'GTA VI'}
-        </span>
-      </button>
+      {/* GTA VI Mode toggle — preview only, never shown on tesradar.tech */}
+      {isPreviewEnvironment && (
+        <button
+          className={`icon-btn gta-mode-toggle${gtaActive ? ' active' : ''}`}
+          onClick={gtaModeStore.toggle}
+          title={gtaActive ? 'Standard Mode' : 'GTA VI Mode'}
+          aria-label={gtaActive ? 'Switch to Standard Mode' : 'Switch to GTA VI Mode'}
+          aria-pressed={gtaActive}
+          style={{
+            display:       'flex',
+            flexDirection: 'column',
+            alignItems:    'center',
+            justifyContent:'center',
+            gap:           3,
+            height:        80,
+          }}
+        >
+          <span style={{ fontSize: 18, lineHeight: 1 }}>🎮</span>
+          <span style={{ fontSize: 7, fontWeight: 800, letterSpacing: '0.08em', lineHeight: 1, textTransform: 'uppercase' }}>
+            {gtaActive ? 'VICE' : 'GTA VI'}
+          </span>
+        </button>
+      )}
     </div>
   )
 }

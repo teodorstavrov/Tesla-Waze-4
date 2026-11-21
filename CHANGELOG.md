@@ -6,6 +6,8 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ## 2026-11-21
 
+- **chore(gta): GTA VI режимът скрит на production — само preview** — бутонът 🎮 и целият GTAHud са изцяло скрити на `tesradar.tech`. Видими само в preview URL (`tesla-waze-4-git-main-*.vercel.app`). При зареждане на production GTA режимът се изключва принудително (localStorage чисти се). Нов флаг `isPreviewEnvironment` в `src/lib/browser.ts`.
+
 - **feat(xp): Driver XP точкова система с класация** — нова система за точки, изцяло безплатна (Redis Sorted Set). Награди: репорт +50, потвърждение/отхвърляне +10, дневен бонус +20. Дневни лимити срещу злоупотреба. 30 нива (Lv1–30). Класация топ 50 (кеш 5 мин). XP бадж в горния център на GTA HUD (кликване → класация); City Activity преместен до него. Нови файлове: `api/_lib/db/xpDb.ts`, `api/xp/award.ts`, `api/xp/me.ts`, `api/xp/leaderboard.ts`, `src/features/xp/xpStore.ts`, `src/features/xp/XPPanel.tsx`. Нови Redis заявки: 2–5/ден/потребител — в рамките на free tier.
 - **feat(gta): GTA VI Vice City styled event alerts** — `AlertToast` вече показва Vice City HUD стил при активен GTA режим: тъмен фон `rgba(8,13,32,0.97)`, неонов border и glow в цвета на типа на събитието (полиция=синьо, катастрофа=червено, опасност/строеж=жълто, камера=лилаво, трафик=оранжево). Tesla версията: без transform анимация (compositor-safe). Браузър версия: slide-down анимация. Нови API заявки: 0. — **Phase 3 Improved Event Alerts ✓**
 - **fix(avatar): премахнати цветни ореоли около аватара** — картата е бистра около стрелката; само самата стрелка и сянката й остават.
