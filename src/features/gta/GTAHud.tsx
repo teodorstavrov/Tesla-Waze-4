@@ -15,6 +15,7 @@ import { uiStore } from '@/features/settings/uiStore'
 import type { RoadEvent } from '@/features/events/types'
 import type { GpsPosition } from '@/features/gps/types'
 import { isTeslaBrowser } from '@/lib/browser'
+import { XPBadge, LeaderboardPanel } from '@/features/xp/XPPanel'
 
 // ── gpsStore adapter for useSyncExternalStore ──────────────────────────────
 // gpsStore uses onPosition(cb) subscription; wrap into React-compatible form.
@@ -96,10 +97,11 @@ export function GTAHud() {
 
   // Quality toggle — in GTA mode settings row
   const [showSettings, setShowSettings] = useState(false)
+  const [showLeaderboard, setShowLeaderboard] = useState(false)
 
   // Reset settings panel when mode turns off
   useEffect(() => {
-    if (!gtaActive) setShowSettings(false)
+    if (!gtaActive) { setShowSettings(false); setShowLeaderboard(false) }
   }, [gtaActive])
 
   return (
@@ -143,7 +145,7 @@ export function GTAHud() {
         />
       )}
 
-      {/* ── GTA VI HUD badge + WantedLevel — top-center ── */}
+      {/* ── Top-center column: XP badge · City Activity · Wanted Level ── */}
       {gtaActive && (
         <div
           style={{
@@ -156,75 +158,69 @@ export function GTAHud() {
             flexDirection: 'column',
             alignItems: 'center',
             gap:       6,
-            pointerEvents: 'none',
           }}
         >
-          {/* GTA VI Mode badge */}
+          {/* XP badge — clickable, opens leaderboard */}
+          <XPBadge onOpen={() => setShowLeaderboard(true)} />
+
+          {/* GTA VI / Vice City label (compact) */}
           <div style={{
-            background:    'rgba(8, 13, 32, 0.90)',
-            border:        '1px solid rgba(139, 66, 255, 0.50)',
-            borderRadius:  10,
-            padding:       '3px 14px',
+            background:    'rgba(8, 13, 32, 0.80)',
+            border:        '1px solid rgba(139, 66, 255, 0.35)',
+            borderRadius:  8,
+            padding:       '2px 10px',
             display:       'flex',
             alignItems:    'center',
-            gap:           8,
-            backdropFilter: isTeslaBrowser ? undefined : 'blur(12px)',
-            WebkitBackdropFilter: isTeslaBrowser ? undefined : 'blur(12px)',
+            gap:           6,
+            pointerEvents: 'none',
           }}>
-            <span style={{
-              fontSize:      10,
-              fontWeight:    900,
-              letterSpacing: '0.12em',
-              textTransform: 'uppercase',
-              color:         '#8B42FF',
-            }}>
+            <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#8B42FF' }}>
               GTA VI
             </span>
-            <span style={{ width: 1, height: 10, background: 'rgba(139,66,255,0.40)', display: 'inline-block' }} />
-            <span style={{
-              fontSize:      10,
-              fontWeight:    700,
-              letterSpacing: '0.08em',
-              textTransform: 'uppercase',
-              color:         '#F329A7',
-            }}>
+            <span style={{ width: 1, height: 8, background: 'rgba(139,66,255,0.35)', display: 'inline-block' }} />
+            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#F329A7' }}>
               Vice City
             </span>
             {quality === 'lite' && (
               <>
-                <span style={{ width: 1, height: 10, background: 'rgba(139,66,255,0.40)', display: 'inline-block' }} />
-                <span style={{ fontSize: 8, fontWeight: 700, color: '#A8B2D1', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                <span style={{ width: 1, height: 8, background: 'rgba(139,66,255,0.35)', display: 'inline-block' }} />
+                <span style={{ fontSize: 7, fontWeight: 700, color: '#A8B2D1', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
                   LITE
                 </span>
               </>
             )}
           </div>
 
+          {/* City Activity — moved from top-left to here */}
+          <div style={{ pointerEvents: 'none' }}>
+            <CityActivity police={policeCount} accidents={accidentCount} hazards={hazardCount} />
+          </div>
+
           {/* Wanted Level */}
-          <WantedLevelIndicator level={wantedLevel} />
+          <div style={{ pointerEvents: 'none' }}>
+            <WantedLevelIndicator level={wantedLevel} />
+          </div>
         </div>
+      )}
+
+      {/* Leaderboard overlay */}
+      {gtaActive && showLeaderboard && (
+        <LeaderboardPanel onClose={() => setShowLeaderboard(false)} />
       )}
 
       {/* ── Gear (settings) button — bottom-right, always visible ── */}
       <GtaSettingsButton />
 
-      {/* ── City Activity + Quality toggle — top-left, below Vice City logo ── */}
+      {/* ── Quality toggle — top-left, below Vice City logo ── */}
       {gtaActive && (
         <div style={{
           position:  'absolute',
           left:      12,
           top:       72,
           zIndex:    405,
-          display:   'flex',
-          flexDirection: 'column',
-          gap:       6,
-          alignItems: 'flex-start',
-          pointerEvents: 'none',
         }}>
-          {/* Quality toggle */}
           <button
             style={{
-              pointerEvents: 'auto',
               background:    'rgba(8, 13, 32, 0.90)',
               border:        quality === 'full'
                 ? '1px solid rgba(255,181,46,0.50)'
@@ -244,13 +240,6 @@ export function GTAHud() {
           >
             {quality === 'full' ? '⚡ Full' : '🔋 Lite'}
           </button>
-
-          {/* City Activity mini panel */}
-          <CityActivity
-            police={policeCount}
-            accidents={accidentCount}
-            hazards={hazardCount}
-          />
         </div>
       )}
     </>

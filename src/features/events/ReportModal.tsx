@@ -14,6 +14,7 @@ import { EVENT_EMOJI, EVENT_COLORS } from './types.js'
 import type { EventType } from './types.js'
 import { isTeslaBrowser } from '@/lib/browser'
 import { t, langStore } from '@/lib/locale'
+import { xpStore } from '@/features/xp/xpStore'
 
 const EVENT_TYPES: EventType[] = [
   'police', 'accident', 'hazard', 'camera',
@@ -68,6 +69,7 @@ export function ReportModal() {
 
     await eventStore.report(type, lat, lng)
     audioManager.confirmBeep()
+    xpStore.awardXP('report')
     setSubmitting(false)
     eventStore.closeReportModal()
   }

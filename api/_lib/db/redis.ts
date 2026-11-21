@@ -118,6 +118,40 @@ export const redis = {
     return (await _cmd(['PFCOUNT', key])) as number
   },
 
+  /** ZINCRBY key delta member → new score as number */
+  async zincrby(key: string, delta: number, member: string): Promise<number> {
+    const raw = await _cmd(['ZINCRBY', key, delta, member]) as string
+    return parseFloat(raw)
+  },
+
+  /** ZREVRANGE key start stop WITHSCORES → [{member, score}] */
+  async zrevrangeWithScores(key: string, start: number, stop: number): Promise<Array<{ member: string; score: number }>> {
+    const raw = await _cmd(['ZREVRANGE', key, start, stop, 'WITHSCORES']) as string[] | null
+    if (!raw || raw.length === 0) return []
+    const result: Array<{ member: string; score: number }> = []
+    for (let i = 0; i + 1 < raw.length; i += 2) {
+      result.push({ member: raw[i]!, score: parseFloat(raw[i + 1]!) })
+    }
+    return result
+  },
+
+  /** ZREVRANK key member → 0-indexed rank, or null if not in set */
+  async zrevrank(key: string, member: string): Promise<number | null> {
+    const raw = await _cmd(['ZREVRANK', key, member])
+    return raw === null ? null : (raw as number)
+  },
+
+  /** ZSCORE key member → score, or null if not in set */
+  async zscore(key: string, member: string): Promise<number | null> {
+    const raw = await _cmd(['ZSCORE', key, member]) as string | null
+    return raw === null ? null : parseFloat(raw)
+  },
+
+  /** HGET key field → raw string value, or null */
+  async hget(key: string, field: string): Promise<string | null> {
+    return (await _cmd(['HGET', key, field])) as string | null
+  },
+
   /** Send multiple commands in one HTTP request (Upstash pipeline).
    *  Returns results in the same order as commands. */
   async pipeline(commands: (string | number)[][]): Promise<unknown[]> {

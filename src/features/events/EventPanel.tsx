@@ -16,6 +16,7 @@ import { audioManager } from '@/features/audio/audioManager'
 import { isTeslaBrowser } from '@/lib/browser'
 import { t, langStore } from '@/lib/locale'
 import { useThemeStore } from '@/features/theme/store'
+import { xpStore } from '@/features/xp/xpStore'
 
 export function EventPanel() {
   // Subscribe to lang changes so labels re-render on country switch
@@ -69,6 +70,7 @@ export function EventPanel() {
     setConfirming(true)
     audioManager.confirmBeep()
     await eventStore.confirm(event!.id)
+    xpStore.awardXP('confirm')
     setConfirming(false)
     eventStore.selectEvent(null)
   }
@@ -78,6 +80,7 @@ export function EventPanel() {
     setDenying(true)
     audioManager.uiBeep()
     await eventStore.deny(event!.id)
+    xpStore.awardXP('deny')
     setDenying(false)
     eventStore.selectEvent(null)
   }
