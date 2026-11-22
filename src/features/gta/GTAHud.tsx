@@ -160,32 +160,57 @@ export function GTAHud() {
             gap:           6,
           }}
         >
-          {/* Row 1: GTA VI | Vice City label */}
-          <div style={{
-            background:    'rgba(8, 13, 32, 0.80)',
-            border:        '1px solid rgba(139, 66, 255, 0.35)',
-            borderRadius:  8,
-            padding:       '2px 10px',
-            display:       'flex',
-            alignItems:    'center',
-            gap:           6,
-            pointerEvents: 'none',
-          }}>
-            <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#8B42FF' }}>
-              GTA VI
-            </span>
-            <span style={{ width: 1, height: 8, background: 'rgba(139,66,255,0.35)', display: 'inline-block' }} />
-            <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#F329A7' }}>
-              Vice City
-            </span>
-            {quality === 'lite' && (
-              <>
-                <span style={{ width: 1, height: 8, background: 'rgba(139,66,255,0.35)', display: 'inline-block' }} />
-                <span style={{ fontSize: 7, fontWeight: 700, color: '#A8B2D1', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                  LITE
-                </span>
-              </>
-            )}
+          {/* Row 1: GTA VI | Vice City label + search button */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+            <div style={{
+              background:    'rgba(8, 13, 32, 0.80)',
+              border:        '1px solid rgba(139, 66, 255, 0.35)',
+              borderRadius:  8,
+              padding:       '2px 10px',
+              display:       'flex',
+              alignItems:    'center',
+              gap:           6,
+              pointerEvents: 'none',
+            }}>
+              <span style={{ fontSize: 9, fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#8B42FF' }}>
+                GTA VI
+              </span>
+              <span style={{ width: 1, height: 8, background: 'rgba(139,66,255,0.35)', display: 'inline-block' }} />
+              <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#F329A7' }}>
+                Vice City
+              </span>
+              {quality === 'lite' && (
+                <>
+                  <span style={{ width: 1, height: 8, background: 'rgba(139,66,255,0.35)', display: 'inline-block' }} />
+                  <span style={{ fontSize: 7, fontWeight: 700, color: '#A8B2D1', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                    LITE
+                  </span>
+                </>
+              )}
+            </div>
+            {/* Search button — same height as label panel */}
+            <button
+              onClick={() => window.dispatchEvent(new Event('open-search'))}
+              title="Search"
+              aria-label="Search"
+              style={{
+                background:    'rgba(8, 13, 32, 0.80)',
+                border:        '1px solid rgba(139, 66, 255, 0.35)',
+                borderRadius:  8,
+                padding:       '2px 8px',
+                display:       'flex',
+                alignItems:    'center',
+                justifyContent: 'center',
+                cursor:        'pointer',
+                touchAction:   'manipulation',
+                color:         '#8B42FF',
+              }}
+            >
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" aria-hidden="true">
+                <circle cx="11" cy="11" r="7" />
+                <line x1="16.5" y1="16.5" x2="22" y2="22" />
+              </svg>
+            </button>
           </div>
 
           {/* Row 2: XP badge + City Activity side by side */}

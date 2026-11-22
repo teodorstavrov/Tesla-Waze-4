@@ -78,6 +78,13 @@ export function SearchBar() {
     setFavorites([])
   }, [])
 
+  // ── External open trigger (e.g. from GTA HUD search button) ────────
+  useEffect(() => {
+    function onOpenSearch() { openSearch() }
+    window.addEventListener('open-search', onOpenSearch)
+    return () => window.removeEventListener('open-search', onOpenSearch)
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
   // ── Close on click outside ───────────────────────────────────────
   useEffect(() => {
     if (!open) return
