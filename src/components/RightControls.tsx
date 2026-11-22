@@ -204,6 +204,23 @@ export function RightControls() {
         </div>
       )}
 
+      {/* Settings gear — always visible */}
+      <button
+        className="icon-btn"
+        onClick={uiStore.toggleSettings}
+        title="Settings"
+        aria-label="Settings"
+        aria-pressed={settingsOpen}
+        style={{
+          width:      63,
+          height:     63,
+          opacity:    settingsOpen ? 1 : 0.5,
+          background: settingsOpen ? 'rgba(255,255,255,0.12)' : undefined,
+        }}
+      >
+        <GearIcon />
+      </button>
+
       {/* EN translate toggle — always visible, independent of country selection */}
       <button
         className="icon-btn"
