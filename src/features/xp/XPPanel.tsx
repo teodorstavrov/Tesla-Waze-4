@@ -7,7 +7,7 @@
 // City Activity is rendered alongside this in GTAHud.tsx.
 
 import { useSyncExternalStore, useState, useEffect, useCallback } from 'react'
-import { xpStore, xpProgress, type LeaderboardEntry } from './xpStore'
+import { xpStore, xpToasts, xpProgress, type LeaderboardEntry, type XPToastEntry } from './xpStore'
 import { authStore } from '@/features/auth/authStore'
 import { isTeslaBrowser } from '@/lib/browser'
 
@@ -354,6 +354,104 @@ function LeaderboardRow({
       }}>
         {xp.toLocaleString()}
       </span>
+    </div>
+  )
+}
+
+// ── XP Toast notification stack ───────────────────────────────────────────
+
+const ACTION_LABEL: Record<XPToastEntry['action'], string> = {
+  report:  'Репорт изпратен',
+  confirm: 'Репорт потвърден',
+  deny:    'Репорт отхвърлен',
+  daily:   'Дневен бонус',
+}
+
+const ACTION_ICON: Record<XPToastEntry['action'], string> = {
+  report:  '📍',
+  confirm: '👍',
+  deny:    '👎',
+  daily:   '🌅',
+}
+
+function XPToastItem({ toast, onDismiss }: { toast: XPToastEntry; onDismiss: () => void }) {
+  const [visible, setVisible] = useState(false)
+
+  useEffect(() => {
+    // Trigger enter animation on next frame
+    const raf = requestAnimationFrame(() => setVisible(true))
+    return () => cancelAnimationFrame(raf)
+  }, [])
+
+  return (
+    <div
+      onClick={onDismiss}
+      style={{
+        display:        'flex',
+        alignItems:     'center',
+        gap:            8,
+        background:     'rgba(8,13,32,0.95)',
+        border:         '1px solid rgba(139,66,255,0.50)',
+        borderRadius:   10,
+        padding:        '7px 12px',
+        cursor:         'pointer',
+        touchAction:    'manipulation',
+        backdropFilter: isTeslaBrowser ? undefined : 'blur(12px)',
+        WebkitBackdropFilter: isTeslaBrowser ? undefined : 'blur(12px)',
+        boxShadow:      '0 0 18px rgba(139,66,255,0.20)',
+        transform:      visible ? 'translateX(0)' : 'translateX(60px)',
+        opacity:        visible ? 1 : 0,
+        transition:     'transform 0.25s ease, opacity 0.25s ease',
+        pointerEvents:  'auto',
+      }}
+    >
+      <span style={{ fontSize: 14, lineHeight: 1 }}>{ACTION_ICON[toast.action]}</span>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <span style={{
+          fontSize: 8, fontWeight: 800, letterSpacing: '0.10em',
+          textTransform: 'uppercase', color: '#8B42FF', lineHeight: 1,
+        }}>
+          {ACTION_LABEL[toast.action]}
+        </span>
+        <span style={{
+          fontSize: 14, fontWeight: 900, color: '#FFB52E',
+          letterSpacing: '-0.01em', lineHeight: 1,
+        }}>
+          +{toast.delta} XP
+        </span>
+      </div>
+    </div>
+  )
+}
+
+export function XPToastStack() {
+  const toasts = useSyncExternalStore(
+    xpToasts.subscribe.bind(xpToasts),
+    xpToasts.getAll.bind(xpToasts),
+    xpToasts.getAll.bind(xpToasts),
+  )
+
+  if (toasts.length === 0) return null
+
+  return (
+    <div style={{
+      position:      'fixed',
+      right:         12,
+      bottom:        90,
+      zIndex:        500,
+      display:       'flex',
+      flexDirection: 'column',
+      gap:           8,
+      alignItems:    'flex-end',
+      pointerEvents: 'none',
+    }}>
+      {toasts.map((t) => (
+        <XPToastItem
+          key={t.id}
+          toast={t}
+          onDismiss={() => xpToasts.dismiss(t.id)}
+        />
+      ))}
     </div>
   )
 }

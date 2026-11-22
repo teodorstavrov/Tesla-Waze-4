@@ -15,7 +15,7 @@ import { uiStore } from '@/features/settings/uiStore'
 import type { RoadEvent } from '@/features/events/types'
 import type { GpsPosition } from '@/features/gps/types'
 import { isTeslaBrowser } from '@/lib/browser'
-import { XPBadge, LeaderboardPanel } from '@/features/xp/XPPanel'
+import { XPBadge, LeaderboardPanel, XPToastStack } from '@/features/xp/XPPanel'
 
 // ── gpsStore adapter for useSyncExternalStore ──────────────────────────────
 // gpsStore uses onPosition(cb) subscription; wrap into React-compatible form.
@@ -232,6 +232,9 @@ export function GTAHud() {
       {gtaActive && showLeaderboard && (
         <LeaderboardPanel onClose={() => setShowLeaderboard(false)} />
       )}
+
+      {/* XP toast notifications — bottom-right, GTA mode only */}
+      {gtaActive && <XPToastStack />}
 
       {/* ── Gear (settings) button — bottom-right, always visible ── */}
       <GtaSettingsButton />

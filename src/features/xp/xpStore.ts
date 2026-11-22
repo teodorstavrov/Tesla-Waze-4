@@ -6,6 +6,40 @@
 
 import { authStore } from '@/features/auth/authStore'
 
+// ── XP Toast notifications ────────────────────────────────────────────────
+export interface XPToastEntry {
+  id:     number
+  delta:  number
+  action: 'report' | 'confirm' | 'deny' | 'daily'
+}
+
+let _toastSeq = 0
+let _toasts: XPToastEntry[] = []
+const _toastListeners = new Set<() => void>()
+
+function _notifyToasts(): void { _toastListeners.forEach((fn) => fn()) }
+
+export const xpToasts = {
+  getAll: (): readonly XPToastEntry[] => _toasts,
+  subscribe(fn: () => void): () => void {
+    _toastListeners.add(fn)
+    return () => _toastListeners.delete(fn)
+  },
+  push(action: XPToastEntry['action'], delta: number): void {
+    const id = ++_toastSeq
+    _toasts = [..._toasts, { id, delta, action }]
+    _notifyToasts()
+    setTimeout(() => {
+      _toasts = _toasts.filter((t) => t.id !== id)
+      _notifyToasts()
+    }, 10_000)
+  },
+  dismiss(id: number): void {
+    _toasts = _toasts.filter((t) => t.id !== id)
+    _notifyToasts()
+  },
+}
+
 export interface XPState {
   xp:    number
   level: number
@@ -125,13 +159,14 @@ export const xpStore = {
       body:    JSON.stringify({ email: creds.email, pin: creds.pin, action }),
     }).then(async (r) => {
       if (!r.ok) return
-      const data = await r.json() as { xp?: number; level?: number; capped?: boolean }
+      const data = await r.json() as { xp?: number; level?: number; delta?: number; capped?: boolean }
       if (data.capped) {
         // Server capped — revert optimistic delta
         const reverted = _state.xp - delta
         _setState({ xp: Math.max(0, reverted), level: xpToLevel(Math.max(0, reverted)) })
       } else if (data.xp !== undefined) {
         _setState({ xp: data.xp, level: data.level ?? xpToLevel(data.xp) })
+        xpToasts.push(action, data.delta ?? delta)
       }
     }).catch(() => { /* network error — keep optimistic value */ })
   },
