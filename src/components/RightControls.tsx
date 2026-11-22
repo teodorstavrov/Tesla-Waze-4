@@ -212,8 +212,8 @@ export function RightControls() {
         aria-label="Settings"
         aria-pressed={settingsOpen}
         style={{
-          width:      63,
-          height:     63,
+          width:      44,
+          height:     44,
           opacity:    settingsOpen ? 1 : 0.5,
           background: settingsOpen ? 'rgba(255,255,255,0.12)' : undefined,
         }}
