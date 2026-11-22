@@ -5,7 +5,7 @@ import { gtaModeStore } from '@/features/gta/gtaModeStore'
 import { openRatingModal } from '@/components/RatingModal'
 import { openSupportModal } from '@/components/SupportModal'
 import { openLockSoundModal } from '@/components/LockSoundModal'
-import { isTeslaBrowser } from '@/lib/browser'
+import { isTeslaBrowser, isPreviewEnvironment } from '@/lib/browser'
 import { t, getLang, langStore } from '@/lib/locale'
 
 export function FloatingTitleCard() {
@@ -125,6 +125,33 @@ export function FloatingTitleCard() {
               <path d="M13.73 21a2 2 0 0 1-3.46 0" />
             </svg>
           </button>
+
+          {/* GTA VI Edition toggle — preview only */}
+          {isPreviewEnvironment && (
+            <button
+              onClick={gtaModeStore.toggle}
+              aria-label="Switch to GTA VI Edition Mode"
+              aria-pressed={false}
+              style={{
+                height: 'clamp(28px, 4vh, 42px)',
+                padding: '0 10px',
+                borderRadius: 10,
+                background: 'linear-gradient(135deg, rgba(139,66,255,0.18) 0%, rgba(243,41,167,0.12) 100%)',
+                border: '1px solid rgba(139,66,255,0.50)',
+                cursor: 'pointer',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 1,
+                touchAction: 'manipulation',
+                opacity: 0.75,
+              }}
+            >
+              <span style={{ fontSize: 7, fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#8B42FF', lineHeight: 1 }}>GTA VI</span>
+              <span style={{ fontSize: 6, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: '#F329A7', lineHeight: 1 }}>Edition</span>
+            </button>
+          )}
         </>
       )}
     </div>

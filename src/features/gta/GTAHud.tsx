@@ -196,6 +196,31 @@ export function GTAHud() {
               <path d="M13.73 21a2 2 0 0 1-3.46 0" />
             </svg>
           </button>
+
+          {/* GTA VI Edition toggle — exit GTA mode */}
+          <button
+            onClick={gtaModeStore.toggle}
+            aria-label="Exit GTA VI Edition Mode"
+            aria-pressed={true}
+            style={{
+              height: 36,
+              padding: '0 10px',
+              borderRadius: 10,
+              background: 'linear-gradient(135deg, rgba(139,66,255,0.40) 0%, rgba(243,41,167,0.30) 100%)',
+              border: '1px solid rgba(243,41,167,0.70)',
+              cursor: 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 1,
+              touchAction: 'manipulation',
+              boxShadow: '0 0 10px rgba(243,41,167,0.30)',
+            }}
+          >
+            <span style={{ fontSize: 7, fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#00D9FF', lineHeight: 1 }}>GTA VI</span>
+            <span style={{ fontSize: 6, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: '#F329A7', lineHeight: 1 }}>Edition</span>
+          </button>
         </div>
       )}
 

@@ -9,16 +9,9 @@ import { openPricingModal } from '@/components/PricingModal'
 import { langStore, t, getLang } from '@/lib/locale'
 import { isPremiumEnabled } from '@/lib/featureFlags'
 import { settingsStore } from '@/features/settings/settingsStore'
-import { gtaModeStore } from '@/features/gta/gtaModeStore'
-import { isPreviewEnvironment } from '@/lib/browser'
 
 export function LeftControls() {
   useSyncExternalStore(langStore.subscribe.bind(langStore), getLang, getLang)
-  const gtaActive = useSyncExternalStore(
-    gtaModeStore.subscribe.bind(gtaModeStore),
-    () => gtaModeStore.isActive(),
-    () => false,
-  )
   const headingMode = useSyncExternalStore(
     settingsStore.subscribe.bind(settingsStore),
     () => settingsStore.get().headingMode,
@@ -86,37 +79,7 @@ export function LeftControls() {
         </button>
       </div>
 
-      {/* GTA VI Mode toggle — preview only, never shown on tesradar.tech */}
-      {isPreviewEnvironment && (
-        <button
-          className={`icon-btn gta-mode-toggle${gtaActive ? ' active' : ''}`}
-          onClick={gtaModeStore.toggle}
-          title={gtaActive ? 'Standard Mode' : 'GTA VI Mode'}
-          aria-label={gtaActive ? 'Switch to Standard Mode' : 'Switch to GTA VI Mode'}
-          aria-pressed={gtaActive}
-          style={{
-            display:        'flex',
-            flexDirection:  'column',
-            alignItems:     'center',
-            justifyContent: 'center',
-            gap:            2,
-            height:         40,
-            background:     gtaActive
-              ? 'linear-gradient(135deg, rgba(139,66,255,0.45) 0%, rgba(243,41,167,0.35) 100%)'
-              : 'linear-gradient(135deg, rgba(139,66,255,0.18) 0%, rgba(243,41,167,0.12) 100%)',
-            border:         gtaActive
-              ? '1px solid rgba(243,41,167,0.75)'
-              : '1px solid rgba(139,66,255,0.50)',
-            color:          gtaActive ? '#F329A7' : '#8B42FF',
-            boxShadow:      gtaActive ? '0 0 10px rgba(243,41,167,0.35)' : undefined,
-          }}
-        >
-          <span style={{ fontSize: 13, lineHeight: 1 }}>🎮</span>
-          <span style={{ fontSize: 6, fontWeight: 800, letterSpacing: '0.08em', lineHeight: 1, textTransform: 'uppercase' }}>
-            {gtaActive ? 'VICE' : 'GTA VI'}
-          </span>
-        </button>
-      )}
+      {/* GTA VI Mode toggle moved to FloatingTitleCard / GTAHud top-left row */}
     </div>
   )
 }
