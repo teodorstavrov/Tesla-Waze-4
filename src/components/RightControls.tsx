@@ -53,7 +53,7 @@ export function RightControls() {
     roadworksStore.getState,
     roadworksStore.getState,
   )
-  const { showRightControls, settingsOpen } = useSyncExternalStore(
+  const { showRightControls } = useSyncExternalStore(
     uiStore.subscribe,
     uiStore.getState,
     uiStore.getState,
@@ -204,23 +204,6 @@ export function RightControls() {
         </div>
       )}
 
-      {/* Settings gear — always visible */}
-      <button
-        className="icon-btn"
-        onClick={uiStore.toggleSettings}
-        title="Settings"
-        aria-label="Settings"
-        aria-pressed={settingsOpen}
-        style={{
-          width:      44,
-          height:     44,
-          opacity:    settingsOpen ? 1 : 0.5,
-          background: settingsOpen ? 'rgba(255,255,255,0.12)' : undefined,
-        }}
-      >
-        <GearIcon />
-      </button>
-
       {/* EN translate toggle — always visible, independent of country selection */}
       <button
         className="icon-btn"
@@ -322,16 +305,6 @@ function FacebookIcon() {
   return (
     <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.313 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.886v2.268h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/>
-    </svg>
-  )
-}
-
-function GearIcon() {
-  return (
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
     </svg>
   )
 }

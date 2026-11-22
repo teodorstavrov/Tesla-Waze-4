@@ -496,8 +496,8 @@ function GtaSettingsButton() {
         right:      12,
         bottom:     24,
         zIndex:     410,
-        width:      63,
-        height:     63,
+        width:      44,
+        height:     44,
         opacity:    settingsOpen ? 1 : 0.5,
       }}
     >
