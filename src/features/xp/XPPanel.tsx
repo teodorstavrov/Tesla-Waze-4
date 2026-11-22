@@ -50,70 +50,61 @@ export function XPBadge({ onOpen }: { onOpen: () => void }) {
       title="Driver XP — tap for leaderboard"
       style={{
         pointerEvents:   'auto',
-        background:      'rgba(8,13,32,0.92)',
-        border:          `1px solid ${color}55`,
-        borderRadius:    12,
-        padding:         '5px 14px 5px 10px',
+        background:      'rgba(8,13,32,0.90)',
+        border:          '1px solid rgba(139, 66, 255, 0.35)',
+        borderRadius:    10,
+        padding:         '6px 10px',
         display:         'flex',
-        alignItems:      'center',
-        gap:             8,
+        flexDirection:   'column',
+        gap:             3,
+        minWidth:        72,
         cursor:          'pointer',
         touchAction:     'manipulation',
         backdropFilter:  isTeslaBrowser ? undefined : 'blur(12px)',
         WebkitBackdropFilter: isTeslaBrowser ? undefined : 'blur(12px)',
-        boxShadow:       isTeslaBrowser ? undefined : `0 0 16px ${color}30`,
-        minWidth:        120,
       }}
     >
-      {/* Hexagon XP icon */}
-      <svg width="30" height="34" viewBox="0 0 30 34" fill="none" aria-hidden="true">
-        <polygon
-          points="15,1 28,8 28,26 15,33 2,26 2,8"
-          fill={`${color}22`}
-          stroke={color}
-          strokeWidth="1.5"
-        />
-        <text x="15" y="20" textAnchor="middle" fill={color}
-          fontSize="9" fontWeight="800" letterSpacing="0.5" fontFamily="monospace">
-          XP
-        </text>
-      </svg>
+      {/* Header label */}
+      <span style={{
+        fontSize:      7,
+        fontWeight:    800,
+        letterSpacing: '0.10em',
+        textTransform: 'uppercase',
+        color:         '#8B42FF',
+        marginBottom:  1,
+      }}>
+        Driver XP
+      </span>
 
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 1 }}>
-        {/* XP number */}
-        <span style={{
-          fontSize:      14,
-          fontWeight:    900,
-          color:         '#E8ECF5',
-          letterSpacing: '-0.02em',
-          lineHeight:    1,
-          fontVariantNumeric: 'tabular-nums',
-        }}>
+      {/* XP row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+        <span style={{ fontSize: 11, lineHeight: 1 }}>⭐</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color: '#E8ECF5', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
           {xp.toLocaleString()}
         </span>
+        <span style={{ fontSize: 8, color: '#A8B2D1', letterSpacing: '0.05em', lineHeight: 1 }}>XP</span>
+      </div>
 
-        {/* Level + progress bar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-          <span style={{
-            fontSize:      9,
-            fontWeight:    700,
-            color,
-            letterSpacing: '0.08em',
-            textTransform: 'uppercase',
-          }}>
-            Lv.{level}
-          </span>
-          {/* Progress bar */}
-          <div style={{ width: 36, height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.10)' }}>
-            <div style={{
-              height:       '100%',
-              width:        `${progress * 100}%`,
-              borderRadius: 2,
-              background:   color,
-              transition:   'width 0.4s ease',
-            }} />
-          </div>
-        </div>
+      {/* Level row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+        <span style={{ fontSize: 11, lineHeight: 1 }}>🏆</span>
+        <span style={{ fontSize: 11, fontWeight: 700, color, lineHeight: 1 }}>
+          {level}
+        </span>
+        <span style={{ fontSize: 8, color: '#A8B2D1', letterSpacing: '0.05em', lineHeight: 1, textTransform: 'uppercase' }}>
+          {levelLabel(level)}
+        </span>
+      </div>
+
+      {/* Progress bar */}
+      <div style={{ width: '100%', height: 3, borderRadius: 2, background: 'rgba(255,255,255,0.10)', marginTop: 1 }}>
+        <div style={{
+          height:       '100%',
+          width:        `${progress * 100}%`,
+          borderRadius: 2,
+          background:   color,
+          transition:   'width 0.4s ease',
+        }} />
       </div>
     </button>
   )
