@@ -213,6 +213,7 @@ export function EventPanel() {
             {/* Actions — only when opened by proximity engine */}
             {showVoting && <div style={{ display: 'flex', gap: 6 }}>
               <button
+                className="event-confirm-btn"
                 onClick={() => { void handleConfirm() }}
                 disabled={confirming || denying}
                 style={{
@@ -226,6 +227,7 @@ export function EventPanel() {
                 👍 {t('events.confirm')}{event.confirms > 0 ? ` (${event.confirms})` : ''}
               </button>
               <button
+                className="event-deny-btn"
                 onClick={() => { void handleDeny() }}
                 disabled={confirming || denying}
                 style={{

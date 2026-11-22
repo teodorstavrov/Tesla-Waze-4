@@ -1,6 +1,7 @@
 // ─── Top-left branding card ─────────────────────────────────────────────
 import { useSyncExternalStore } from 'react'
 import { routeStore } from '@/features/route/routeStore'
+import { gtaModeStore } from '@/features/gta/gtaModeStore'
 import { openRatingModal } from '@/components/RatingModal'
 import { openSupportModal } from '@/components/SupportModal'
 import { openLockSoundModal } from '@/components/LockSoundModal'
@@ -12,6 +13,11 @@ export function FloatingTitleCard() {
   const routeActive = useSyncExternalStore(
     routeStore.subscribe.bind(routeStore),
     () => routeStore.getState().status === 'ok',
+    () => false,
+  )
+  const gtaActive = useSyncExternalStore(
+    gtaModeStore.subscribe.bind(gtaModeStore),
+    () => gtaModeStore.isActive(),
     () => false,
   )
 
@@ -30,11 +36,18 @@ export function FloatingTitleCard() {
         WebkitUserSelect: 'none',
       }}
     >
-      <img
-        src="/new-medium_tran_blue.png"
-        alt="TesRadar"
-        style={{ height: 'clamp(36px, 6vh, 54px)', width: 'auto', display: 'block', borderRadius: 12 }}
-      />
+      {/* Standard logo — hidden in GTA mode (Vice City logo shown by GTAHud) */}
+      {!gtaActive && (
+        <img
+          src="/new-medium_tran_blue.png"
+          alt="TesRadar"
+          style={{ height: 'clamp(36px, 6vh, 54px)', width: 'auto', display: 'block', borderRadius: 12 }}
+        />
+      )}
+      {/* In GTA mode: spacer matching Vice City logo width so buttons don't overlap it */}
+      {gtaActive && (
+        <div style={{ width: 'clamp(70px, 11vh, 108px)', flexShrink: 0 }} aria-hidden="true" />
+      )}
 
       {/* Hide rating + support buttons during navigation — TurnInstruction sits below */}
       {!routeActive && (

@@ -410,6 +410,7 @@ export function VehicleProfileModal() {
 
       {/* Modal card — wide split layout */}
       <div
+        className="vehicle-modal-card"
         role="dialog" aria-modal="true" aria-label={t('vehicleProfile.dialogLabel')}
         style={{
           position: 'relative', zIndex: 1,
@@ -427,7 +428,7 @@ export function VehicleProfileModal() {
         }}
       >
         {/* ── LEFT PANEL ─────────────────────────────────────────────── */}
-        <div style={{
+        <div className="vehicle-modal-left" style={{
           width: '42%',
           flexShrink: 0,
           background: 'linear-gradient(160deg, #1a1a28 0%, #12121e 100%)',
@@ -439,7 +440,7 @@ export function VehicleProfileModal() {
         }}>
           {/* Header */}
           <div>
-            <div style={{ fontSize: isTeslaBrowser ? 10 : 11, fontWeight: 700, color: '#e31937', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: isTeslaBrowser ? 5 : 6 }}>
+            <div className="vehicle-brand-label" style={{ fontSize: isTeslaBrowser ? 10 : 11, fontWeight: 700, color: '#e31937', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: isTeslaBrowser ? 5 : 6 }}>
               TesRadar
             </div>
             <div style={{ fontSize: isTeslaBrowser ? 'clamp(14px, 2.3vh, 19px)' : 'clamp(16px, 2.7vh, 22px)', fontWeight: 700, color: '#f2f2f2', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
@@ -803,6 +804,7 @@ export function VehicleProfileModal() {
               {t('vehicleProfile.later')}
             </button>
             <button
+              className={canSave ? 'vehicle-save-btn vehicle-save-btn--active' : 'vehicle-save-btn'}
               onClick={handleSave}
               disabled={!canSave}
               style={{

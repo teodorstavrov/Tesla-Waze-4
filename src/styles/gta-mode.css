@@ -40,11 +40,9 @@
   --gta-glow-cyan:    0 0 14px rgba(0, 217, 255, 0.55);
 }
 
-/* ── 2b. Hide standard logo + right controls strip ──────────────────────── */
-/* Standard logo is replaced by Vice City Edition logo rendered in GTAHud */
-[data-gta] .floating-title-card {
-  display: none !important;
-}
+/* ── 2b. Standard logo replaced by Vice City logo — keep card visible for buttons ── */
+/* FloatingTitleCard stays in DOM so Rating/Support/Lock buttons are accessible.
+   The standard <img> is hidden via React (gtaActive check), not CSS. */
 
 /* Right controls hidden by default in GTA mode;
    tilt buttons (outside .right-controls) remain visible */
@@ -291,4 +289,101 @@
 [data-tesla] .gta-toggle-active {
   animation: none !important;
   box-shadow: 0 0 0 1px rgba(243, 41, 167, 0.60) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════════════════
+   GTA POPUP PANELS — Vice City styled buttons & components
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── FloatingTitleCard: Rating / Support / Lock buttons in GTA mode ──────── */
+[data-gta] .floating-title-card button {
+  background:    rgba(8, 13, 32, 0.88) !important;
+  border:        1px solid rgba(139, 66, 255, 0.40) !important;
+  box-shadow:    none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+  opacity:       0.80 !important;
+}
+[data-gta] .floating-title-card button:active {
+  transform: scale(0.93);
+  opacity:   1 !important;
+}
+
+/* ── EventPanel confirm / deny buttons ──────────────────────────────────── */
+[data-gta] .event-confirm-btn {
+  background: rgba(0, 217, 255, 0.14) !important;
+  border-color: rgba(0, 217, 255, 0.60) !important;
+  color: #00D9FF !important;
+}
+[data-gta] .event-confirm-btn:active {
+  background: rgba(0, 217, 255, 0.28) !important;
+}
+[data-gta] .event-deny-btn {
+  background: rgba(255, 64, 92, 0.14) !important;
+  border-color: rgba(255, 64, 92, 0.55) !important;
+  color: #FF405C !important;
+}
+[data-gta] .event-deny-btn:active {
+  background: rgba(255, 64, 92, 0.28) !important;
+}
+
+/* ── RoutePanel: Start button ────────────────────────────────────────────── */
+[data-gta] .route-start-btn {
+  background: linear-gradient(135deg, #8B42FF 0%, #F329A7 100%) !important;
+  box-shadow: 0 4px 20px rgba(139, 66, 255, 0.50) !important;
+  border: none !important;
+}
+[data-gta] .route-start-btn:active {
+  transform: scale(0.98);
+  box-shadow: 0 2px 10px rgba(139, 66, 255, 0.35) !important;
+}
+
+/* ── RoutePanel: Route alternative pills ─────────────────────────────────── */
+[data-gta] .route-pill {
+  background: rgba(8, 13, 32, 0.60) !important;
+  border-color: rgba(139, 66, 255, 0.28) !important;
+  color: #A8B2D1 !important;
+}
+[data-gta] .route-pill--active {
+  background: rgba(139, 66, 255, 0.22) !important;
+  border-color: rgba(139, 66, 255, 0.80) !important;
+  color: #BF9FFF !important;
+}
+[data-gta] .route-pill:active {
+  transform: scale(0.96);
+}
+
+/* ── RoutePanel: Via Hemus ────────────────────────────────────────────────── */
+[data-gta] .route-via-hemus {
+  background: rgba(8, 13, 32, 0.60) !important;
+  border-color: rgba(255, 181, 46, 0.30) !important;
+  color: #A8B2D1 !important;
+}
+[data-gta] .route-via-hemus--active {
+  background: rgba(255, 181, 46, 0.14) !important;
+  border-color: rgba(255, 181, 46, 0.75) !important;
+  color: #FFB52E !important;
+}
+
+/* ── VehicleProfileModal ─────────────────────────────────────────────────── */
+[data-gta] .vehicle-modal-card {
+  background: rgba(6, 10, 26, 0.99) !important;
+  border-color: rgba(139, 66, 255, 0.40) !important;
+  box-shadow: 0 32px 80px rgba(0, 0, 0, 0.90), 0 0 0 1px rgba(139, 66, 255, 0.15) !important;
+}
+[data-gta] .vehicle-modal-left {
+  background: linear-gradient(160deg, rgba(14, 10, 40, 1) 0%, rgba(6, 10, 26, 1) 100%) !important;
+  border-right-color: rgba(139, 66, 255, 0.20) !important;
+}
+[data-gta] .vehicle-brand-label {
+  color: #8B42FF !important;
+}
+[data-gta] .vehicle-save-btn {
+  background: rgba(139, 66, 255, 0.25) !important;
+  color: rgba(255, 255, 255, 0.35) !important;
+}
+[data-gta] .vehicle-save-btn--active {
+  background: linear-gradient(135deg, #8B42FF 0%, #F329A7 100%) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 16px rgba(139, 66, 255, 0.45) !important;
 }

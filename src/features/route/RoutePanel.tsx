@@ -232,6 +232,7 @@ export function RoutePanel() {
                 {routes.map((r, i) => (
                   <button
                     key={i}
+                    className={i === activeRouteIndex ? 'route-pill route-pill--active' : 'route-pill'}
                     onClick={() => routeStore.selectRoute(i)}
                     style={{
                       flex: 1,
@@ -256,6 +257,7 @@ export function RoutePanel() {
               </div>
 
               <button
+                className={viaHemus ? 'route-via-hemus route-via-hemus--active' : 'route-via-hemus'}
                 onClick={() => { void routeStore.toggleViaHemus() }}
                 style={{
                   width: '100%',
@@ -348,6 +350,7 @@ export function RoutePanel() {
           {/* Start button — only in preview mode */}
           {mode === 'preview' && (
             <button
+              className="route-start-btn"
               onClick={handleStart}
               aria-label={t('route.start')}
               style={{
