@@ -373,7 +373,7 @@ function WantedLevelIndicator({ level }: { level: number }) {
           <StarIcon
             key={star}
             filled={star <= level}
-            color={star <= level ? starColors[level] : '#1E2847'}
+            color={star <= level ? starColors[level] : '#3D5080'}
           />
         ))}
       </div>
@@ -383,7 +383,7 @@ function WantedLevelIndicator({ level }: { level: number }) {
         fontWeight:    800,
         letterSpacing: '0.12em',
         textTransform: 'uppercase',
-        color:         level > 0 ? activeColor : '#3A4A6E',
+        color:         level > 0 ? activeColor : '#5A6A8E',
         lineHeight:    1,
       }}>
         {label}
