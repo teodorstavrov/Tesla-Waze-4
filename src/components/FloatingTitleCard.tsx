@@ -53,14 +53,14 @@ export function FloatingTitleCard() {
             title={t('controls.rateApp')}
             aria-label={t('controls.rateApp')}
             style={{
-              width: 'clamp(28px, 4vh, 42px)', height: 'clamp(28px, 4vh, 42px)',
-              borderRadius: 10,
+              width: 'clamp(20px, 2.8vh, 29px)', height: 'clamp(20px, 2.8vh, 29px)',
+              borderRadius: 7,
               background: isTeslaBrowser ? 'rgba(13,13,19,0.97)' : 'rgba(18,18,26,0.82)',
               border: '1px solid rgba(255,255,255,0.14)',
               backdropFilter: isTeslaBrowser ? undefined : 'blur(10px)',
               WebkitBackdropFilter: isTeslaBrowser ? undefined : 'blur(10px)',
               color: '#fbbf24',
-              fontSize: 'clamp(14px, 2.2vh, 20px)',
+              fontSize: 'clamp(10px, 1.5vh, 14px)',
               lineHeight: 1,
               cursor: 'pointer',
               display: 'flex',
@@ -78,14 +78,14 @@ export function FloatingTitleCard() {
             title={t('controls.support')}
             aria-label={t('controls.support')}
             style={{
-              width: 'clamp(28px, 4vh, 42px)', height: 'clamp(28px, 4vh, 42px)',
-              borderRadius: 10,
+              width: 'clamp(20px, 2.8vh, 29px)', height: 'clamp(20px, 2.8vh, 29px)',
+              borderRadius: 7,
               background: isTeslaBrowser ? 'rgba(13,13,19,0.97)' : 'rgba(18,18,26,0.82)',
               border: '1px solid rgba(255,255,255,0.14)',
               backdropFilter: isTeslaBrowser ? undefined : 'blur(10px)',
               WebkitBackdropFilter: isTeslaBrowser ? undefined : 'blur(10px)',
               color: '#f87171',
-              fontSize: 'clamp(13px, 2vh, 18px)',
+              fontSize: 'clamp(9px, 1.4vh, 13px)',
               lineHeight: 1,
               cursor: 'pointer',
               display: 'flex',
@@ -103,8 +103,8 @@ export function FloatingTitleCard() {
             title="Tesla Lock Sounds"
             aria-label="Tesla Lock Sounds"
             style={{
-              width: 'clamp(28px, 4vh, 42px)', height: 'clamp(28px, 4vh, 42px)',
-              borderRadius: 10,
+              width: 'clamp(20px, 2.8vh, 29px)', height: 'clamp(20px, 2.8vh, 29px)',
+              borderRadius: 7,
               background: isTeslaBrowser ? 'rgba(13,13,19,0.97)' : 'rgba(18,18,26,0.82)',
               border: '1px solid rgba(255,255,255,0.14)',
               backdropFilter: isTeslaBrowser ? undefined : 'blur(10px)',
@@ -119,7 +119,7 @@ export function FloatingTitleCard() {
               opacity: 0.5,
             }}
           >
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
               <path d="M13.73 21a2 2 0 0 1-3.46 0" />

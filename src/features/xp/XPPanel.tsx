@@ -56,8 +56,8 @@ export function XPBadge({ onOpen }: { onOpen: () => void }) {
         padding:         '6px 10px',
         display:         'flex',
         flexDirection:   'column',
+        justifyContent:  'space-between',
         gap:             3,
-        minWidth:        72,
         cursor:          'pointer',
         touchAction:     'manipulation',
         backdropFilter:  isTeslaBrowser ? undefined : 'blur(12px)',
@@ -76,24 +76,12 @@ export function XPBadge({ onOpen }: { onOpen: () => void }) {
         Driver XP
       </span>
 
-      {/* XP row */}
+      {/* XP count */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-        <span style={{ fontSize: 11, lineHeight: 1 }}>⭐</span>
         <span style={{ fontSize: 11, fontWeight: 700, color: '#E8ECF5', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
           {xp.toLocaleString()}
         </span>
         <span style={{ fontSize: 8, color: '#A8B2D1', letterSpacing: '0.05em', lineHeight: 1 }}>XP</span>
-      </div>
-
-      {/* Level row */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-        <span style={{ fontSize: 11, lineHeight: 1 }}>🏆</span>
-        <span style={{ fontSize: 11, fontWeight: 700, color, lineHeight: 1 }}>
-          {level}
-        </span>
-        <span style={{ fontSize: 8, color: '#A8B2D1', letterSpacing: '0.05em', lineHeight: 1, textTransform: 'uppercase' }}>
-          {levelLabel(level)}
-        </span>
       </div>
 
       {/* Progress bar */}

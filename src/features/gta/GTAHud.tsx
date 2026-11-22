@@ -292,12 +292,10 @@ export function GTAHud() {
             </button>
           </div>
 
-          {/* Row 2: XP badge + City Activity side by side */}
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, pointerEvents: 'auto' }}>
+          {/* Row 2: XP badge + City Activity — CSS grid forces equal width & height */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', alignItems: 'stretch', gap: 6, pointerEvents: 'auto' }}>
             <XPBadge onOpen={() => setShowLeaderboard(true)} />
-            <div style={{ pointerEvents: 'none' }}>
-              <CityActivity police={policeCount} accidents={accidentCount} hazards={hazardCount} />
-            </div>
+            <CityActivity police={policeCount} accidents={accidentCount} hazards={hazardCount} />
           </div>
 
           {/* Row 3: Watch Out / Wanted Level */}
@@ -451,7 +449,7 @@ function CityActivity({
       display:       'flex',
       flexDirection: 'column',
       gap:           3,
-      minWidth:      72,
+      pointerEvents: 'none',
       backdropFilter: isTeslaBrowser ? undefined : 'blur(12px)',
       WebkitBackdropFilter: isTeslaBrowser ? undefined : 'blur(12px)',
     }}>
