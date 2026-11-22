@@ -44,13 +44,9 @@ export function FloatingTitleCard() {
           style={{ height: 'clamp(36px, 6vh, 54px)', width: 'auto', display: 'block', borderRadius: 12 }}
         />
       )}
-      {/* In GTA mode: spacer matching Vice City logo width so buttons don't overlap it */}
-      {gtaActive && (
-        <div style={{ width: 'clamp(70px, 11vh, 108px)', flexShrink: 0 }} aria-hidden="true" />
-      )}
 
-      {/* Hide rating + support buttons during navigation — TurnInstruction sits below */}
-      {!routeActive && (
+      {/* Rating/Support/Lock buttons — in GTA mode these live in GTAHud next to the logo */}
+      {!gtaActive && !routeActive && (
         <>
           <button
             onClick={openRatingModal}

@@ -16,6 +16,9 @@ import type { RoadEvent } from '@/features/events/types'
 import type { GpsPosition } from '@/features/gps/types'
 import { isTeslaBrowser } from '@/lib/browser'
 import { XPBadge, LeaderboardPanel, XPToastStack } from '@/features/xp/XPPanel'
+import { openRatingModal } from '@/components/RatingModal'
+import { openSupportModal } from '@/components/SupportModal'
+import { openLockSoundModal } from '@/components/LockSoundModal'
 
 // ── gpsStore adapter for useSyncExternalStore ──────────────────────────────
 // gpsStore uses onPosition(cb) subscription; wrap into React-compatible form.
@@ -126,22 +129,74 @@ export function GTAHud() {
         />
       )}
 
-      {/* ── Vice City logo — replaces standard logo in top-left ── */}
+      {/* ── Vice City logo + action buttons — top-left row ── */}
       {gtaActive && (
-        <img
-          src="/vice-city-logo.webp"
-          alt="TesRadar Vice City Edition"
-          style={{
-            position:     'absolute',
-            top:          12,
-            left:         12,
-            zIndex:       402,
-            height:       64,
-            width:        'auto',
-            pointerEvents: 'none',
-            userSelect:   'none',
-          }}
-        />
+        <div style={{
+          position:    'absolute',
+          top:         12,
+          left:        12,
+          zIndex:      402,
+          display:     'flex',
+          alignItems:  'center',
+          gap:         8,
+          userSelect:  'none',
+          WebkitUserSelect: 'none',
+        }}>
+          <img
+            src="/vice-city-logo.webp"
+            alt="TesRadar Vice City Edition"
+            style={{ height: 54, width: 'auto', pointerEvents: 'none' }}
+          />
+          {/* Rating / Support / Lock buttons — same line as logo */}
+          <button
+            onClick={openRatingModal}
+            title="Оцени TesRadar"
+            aria-label="Оцени TesRadar"
+            style={{
+              width: 36, height: 36, borderRadius: 10,
+              background: 'rgba(8,13,32,0.88)',
+              border: '1px solid rgba(139,66,255,0.40)',
+              color: '#fbbf24', fontSize: 16, lineHeight: 1,
+              cursor: 'pointer', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', touchAction: 'manipulation',
+              opacity: 0.80,
+            }}
+          >★</button>
+          <button
+            onClick={openSupportModal}
+            title="Подкрепи проекта"
+            aria-label="Подкрепи проекта"
+            style={{
+              width: 36, height: 36, borderRadius: 10,
+              background: 'rgba(8,13,32,0.88)',
+              border: '1px solid rgba(139,66,255,0.40)',
+              color: '#f87171', fontSize: 15, lineHeight: 1,
+              cursor: 'pointer', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', touchAction: 'manipulation',
+              opacity: 0.80,
+            }}
+          >♥</button>
+          <button
+            onClick={openLockSoundModal}
+            title="Tesla Lock Sounds"
+            aria-label="Tesla Lock Sounds"
+            style={{
+              width: 36, height: 36, borderRadius: 10,
+              background: 'rgba(8,13,32,0.88)',
+              border: '1px solid rgba(139,66,255,0.40)',
+              color: 'rgba(255,255,255,0.75)',
+              cursor: 'pointer', display: 'flex', alignItems: 'center',
+              justifyContent: 'center', touchAction: 'manipulation',
+              opacity: 0.80,
+            }}
+          >
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+              stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+          </button>
+        </div>
       )}
 
       {/* ── Top-center column: GTA VI label · XP+CityActivity row · Watch Out ── */}
