@@ -95,16 +95,24 @@ export function LeftControls() {
           aria-label={gtaActive ? 'Switch to Standard Mode' : 'Switch to GTA VI Mode'}
           aria-pressed={gtaActive}
           style={{
-            display:       'flex',
-            flexDirection: 'column',
-            alignItems:    'center',
-            justifyContent:'center',
-            gap:           3,
-            height:        80,
+            display:        'flex',
+            flexDirection:  'column',
+            alignItems:     'center',
+            justifyContent: 'center',
+            gap:            2,
+            height:         40,
+            background:     gtaActive
+              ? 'linear-gradient(135deg, rgba(139,66,255,0.45) 0%, rgba(243,41,167,0.35) 100%)'
+              : 'linear-gradient(135deg, rgba(139,66,255,0.18) 0%, rgba(243,41,167,0.12) 100%)',
+            border:         gtaActive
+              ? '1px solid rgba(243,41,167,0.75)'
+              : '1px solid rgba(139,66,255,0.50)',
+            color:          gtaActive ? '#F329A7' : '#8B42FF',
+            boxShadow:      gtaActive ? '0 0 10px rgba(243,41,167,0.35)' : undefined,
           }}
         >
-          <span style={{ fontSize: 18, lineHeight: 1 }}>🎮</span>
-          <span style={{ fontSize: 7, fontWeight: 800, letterSpacing: '0.08em', lineHeight: 1, textTransform: 'uppercase' }}>
+          <span style={{ fontSize: 13, lineHeight: 1 }}>🎮</span>
+          <span style={{ fontSize: 6, fontWeight: 800, letterSpacing: '0.08em', lineHeight: 1, textTransform: 'uppercase' }}>
             {gtaActive ? 'VICE' : 'GTA VI'}
           </span>
         </button>

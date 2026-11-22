@@ -145,25 +145,22 @@ export function GTAHud() {
         />
       )}
 
-      {/* ── Top-center column: XP badge · City Activity · Wanted Level ── */}
+      {/* ── Top-center column: GTA VI label · XP+CityActivity row · Watch Out ── */}
       {gtaActive && (
         <div
           style={{
-            position:  'absolute',
-            top:       12,
-            left:      '50%',
-            transform: 'translateX(-50%)',
-            zIndex:    405,
-            display:   'flex',
+            position:      'absolute',
+            top:           12,
+            left:          '50%',
+            transform:     'translateX(-50%)',
+            zIndex:        405,
+            display:       'flex',
             flexDirection: 'column',
-            alignItems: 'center',
-            gap:       6,
+            alignItems:    'center',
+            gap:           6,
           }}
         >
-          {/* XP badge — clickable, opens leaderboard */}
-          <XPBadge onOpen={() => setShowLeaderboard(true)} />
-
-          {/* GTA VI / Vice City label (compact) */}
+          {/* Row 1: GTA VI | Vice City label */}
           <div style={{
             background:    'rgba(8, 13, 32, 0.80)',
             border:        '1px solid rgba(139, 66, 255, 0.35)',
@@ -191,12 +188,15 @@ export function GTAHud() {
             )}
           </div>
 
-          {/* City Activity — moved from top-left to here */}
-          <div style={{ pointerEvents: 'none' }}>
-            <CityActivity police={policeCount} accidents={accidentCount} hazards={hazardCount} />
+          {/* Row 2: XP badge + City Activity side by side */}
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, pointerEvents: 'auto' }}>
+            <XPBadge onOpen={() => setShowLeaderboard(true)} />
+            <div style={{ pointerEvents: 'none' }}>
+              <CityActivity police={policeCount} accidents={accidentCount} hazards={hazardCount} />
+            </div>
           </div>
 
-          {/* Wanted Level */}
+          {/* Row 3: Watch Out / Wanted Level */}
           <div style={{ pointerEvents: 'none' }}>
             <WantedLevelIndicator level={wantedLevel} />
           </div>
