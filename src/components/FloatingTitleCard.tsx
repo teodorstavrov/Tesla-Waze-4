@@ -128,29 +128,49 @@ export function FloatingTitleCard() {
 
           {/* GTA VI Edition toggle — preview only */}
           {isPreviewEnvironment && (
-            <button
-              onClick={gtaModeStore.toggle}
-              aria-label="Switch to GTA VI Edition Mode"
-              aria-pressed={false}
-              style={{
-                height: 'clamp(28px, 4vh, 42px)',
-                padding: '0 10px',
-                borderRadius: 10,
-                background: 'linear-gradient(135deg, rgba(139,66,255,0.18) 0%, rgba(243,41,167,0.12) 100%)',
-                border: '1px solid rgba(139,66,255,0.50)',
-                cursor: 'pointer',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 1,
-                touchAction: 'manipulation',
-                opacity: 0.75,
-              }}
-            >
-              <span style={{ fontSize: 7, fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#8B42FF', lineHeight: 1 }}>GTA VI</span>
-              <span style={{ fontSize: 6, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: '#F329A7', lineHeight: 1 }}>Edition</span>
-            </button>
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={gtaModeStore.toggle}
+                aria-label="Switch to GTA VI Edition Mode"
+                aria-pressed={false}
+                style={{
+                  height: 'clamp(28px, 4vh, 42px)',
+                  padding: '0 10px',
+                  borderRadius: 10,
+                  background: 'linear-gradient(135deg, rgba(139,66,255,0.55) 0%, rgba(243,41,167,0.42) 100%)',
+                  border: '1px solid rgba(243,41,167,0.75)',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 1,
+                  touchAction: 'manipulation',
+                  boxShadow: '0 0 10px rgba(139,66,255,0.35)',
+                }}
+              >
+                <span style={{ fontSize: 7, fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#E0CFFF', lineHeight: 1 }}>GTA VI</span>
+                <span style={{ fontSize: 6, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: '#F329A7', lineHeight: 1 }}>Edition</span>
+              </button>
+              {/* NEW badge — top-right corner */}
+              <span style={{
+                position:      'absolute',
+                top:           -6,
+                right:         -8,
+                background:    '#FFB52E',
+                color:         '#080D20',
+                fontSize:      6,
+                fontWeight:    900,
+                letterSpacing: '0.08em',
+                textTransform: 'uppercase',
+                borderRadius:  4,
+                padding:       '1px 4px',
+                lineHeight:    1.4,
+                pointerEvents: 'none',
+              }}>
+                NEW
+              </span>
+            </div>
           )}
         </>
       )}
