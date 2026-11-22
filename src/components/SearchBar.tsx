@@ -12,6 +12,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useSyncExternalStore } from 'react'
 import { t, getLang, langStore } from '@/lib/locale'
+import { gtaModeStore } from '@/features/gta/gtaModeStore'
 import { getMap } from '@/components/MapShell'
 import { evStore } from '@/features/ev/evStore'
 import { routeStore } from '@/features/route/routeStore'
@@ -38,6 +39,11 @@ const SOURCE_COLOR: Record<string, string> = {
 
 export function SearchBar() {
   useSyncExternalStore(langStore.subscribe.bind(langStore), getLang, getLang)
+  const gtaActive = useSyncExternalStore(
+    gtaModeStore.subscribe.bind(gtaModeStore),
+    () => gtaModeStore.isActive(),
+    () => false,
+  )
   const [open, setOpen]         = useState(false)
   const [query, setQuery]       = useState('')
   const [results, setResults]   = useState<SearchResult[]>([])
@@ -239,14 +245,17 @@ export function SearchBar() {
     >
       {!open
         ? (
-          <button
-            className="icon-btn"
-            onClick={openSearch}
-            aria-label={t('search.open')}
-            title={t('search.searchTitle')}
-          >
-            <SearchIcon />
-          </button>
+          /* In GTA mode the trigger button lives in GTAHud — hide the default one */
+          !gtaActive && (
+            <button
+              className="icon-btn"
+              onClick={openSearch}
+              aria-label={t('search.open')}
+              title={t('search.searchTitle')}
+            >
+              <SearchIcon />
+            </button>
+          )
         )
         : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
