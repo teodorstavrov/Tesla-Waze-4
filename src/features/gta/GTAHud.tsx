@@ -153,10 +153,10 @@ export function GTAHud() {
             title="Оцени TesRadar"
             aria-label="Оцени TesRadar"
             style={{
-              width: 36, height: 36, borderRadius: 10,
+              width: 25, height: 25, borderRadius: 7,
               background: 'rgba(8,13,32,0.88)',
               border: '1px solid rgba(139,66,255,0.40)',
-              color: '#fbbf24', fontSize: 16, lineHeight: 1,
+              color: '#fbbf24', fontSize: 11, lineHeight: 1,
               cursor: 'pointer', display: 'flex', alignItems: 'center',
               justifyContent: 'center', touchAction: 'manipulation',
               opacity: 0.80,
@@ -167,10 +167,10 @@ export function GTAHud() {
             title="Подкрепи проекта"
             aria-label="Подкрепи проекта"
             style={{
-              width: 36, height: 36, borderRadius: 10,
+              width: 25, height: 25, borderRadius: 7,
               background: 'rgba(8,13,32,0.88)',
               border: '1px solid rgba(139,66,255,0.40)',
-              color: '#f87171', fontSize: 15, lineHeight: 1,
+              color: '#f87171', fontSize: 11, lineHeight: 1,
               cursor: 'pointer', display: 'flex', alignItems: 'center',
               justifyContent: 'center', touchAction: 'manipulation',
               opacity: 0.80,
@@ -181,7 +181,7 @@ export function GTAHud() {
             title="Tesla Lock Sounds"
             aria-label="Tesla Lock Sounds"
             style={{
-              width: 36, height: 36, borderRadius: 10,
+              width: 25, height: 25, borderRadius: 7,
               background: 'rgba(8,13,32,0.88)',
               border: '1px solid rgba(139,66,255,0.40)',
               color: 'rgba(255,255,255,0.75)',
@@ -190,7 +190,7 @@ export function GTAHud() {
               opacity: 0.80,
             }}
           >
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="none"
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
               stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
               <path d="M13.73 21a2 2 0 0 1-3.46 0" />
