@@ -129,16 +129,15 @@ export function GTAHud() {
       {/* ── Vice City logo — replaces standard logo in top-left ── */}
       {gtaActive && (
         <img
-          src="/vice-city-logo.png"
+          src="/vice-city-logo.webp"
           alt="TesRadar Vice City Edition"
           style={{
             position:     'absolute',
             top:          12,
             left:         12,
             zIndex:       402,
-            height:       50,
+            height:       64,
             width:        'auto',
-            borderRadius: 10,
             pointerEvents: 'none',
             userSelect:   'none',
           }}
