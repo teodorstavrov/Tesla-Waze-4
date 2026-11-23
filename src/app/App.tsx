@@ -6,9 +6,10 @@
 // Phase 14: auto dark/light theme + onboarding.
 // Phase 21: turn-by-turn navigation HUD + voice directions.
 
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useSyncExternalStore } from 'react'
 import { LoginGate } from '@/features/auth/LoginGate'
+import { authStore } from '@/features/auth/authStore'
 import { GTAHud } from '@/features/gta/GTAHud'
 import { gtaModeStore } from '@/features/gta/gtaModeStore'
 import { langStore } from '@/lib/locale'
@@ -82,6 +83,8 @@ export function App() {
   useEffect(() => {
     if (!isPreviewEnvironment) gtaModeStore.setActive(false)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const gtaMountedRef = useRef(false)
   useEffect(() => {
     if (gtaActive) {
       document.documentElement.setAttribute('data-gta', '')
@@ -93,6 +96,16 @@ export function App() {
       document.documentElement.removeAttribute('data-gta')
       document.documentElement.removeAttribute('data-gta-lite')
       langStore.clearOverride()
+    }
+    // Track mode switch (skip initial mount — only track deliberate user switches)
+    if (!gtaMountedRef.current) { gtaMountedRef.current = true; return }
+    const creds = authStore.getCreds()
+    if (creds) {
+      void fetch('/api/track-mode', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ email: creds.email, pin: creds.pin, mode: gtaActive ? 'gta' : 'standard' }),
+      }).catch(() => null)
     }
   }, [gtaActive])
 

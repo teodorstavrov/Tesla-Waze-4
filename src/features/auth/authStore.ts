@@ -117,7 +117,8 @@ async function resendPin(email: string): Promise<{ ok: boolean; error?: string }
 }
 
 export const authStore = {
-  getState: () => _state,
+  getState:  () => _state,
+  getCreds:  getSaved,
   subscribe: (fn: Listener) => { _listeners.add(fn); return () => _listeners.delete(fn) },
   init,
   login,

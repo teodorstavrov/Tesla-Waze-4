@@ -635,10 +635,16 @@ interface AdminUser {
   country:    string
   createdAt:  string
   drip?: {
-    sent:    Record<string, string>         // email № → ISO time sent
-    planned: Record<string, string | null>  // email № → YYYY-MM-DD, null = skipped
+    sent:    Record<string, string>
+    planned: Record<string, string | null>
     unsubscribed?: boolean
   }
+  modeStats?: {
+    gta:      number
+    standard: number
+    last:     'gta' | 'standard'
+    lastSeen: number
+  } | null
 }
 
 function fmtDripDate(iso: string): string {
@@ -675,7 +681,29 @@ function DripCell({ drip }: { drip?: AdminUser['drip'] }) {
   )
 }
 
-type UserSortKey = 'createdAt' | 'country' | 'name'
+type UserSortKey = 'createdAt' | 'country' | 'name' | 'mode'
+
+function ModeBadge({ ms }: { ms: AdminUser['modeStats'] }) {
+  if (!ms) return <span style={{ color: '#444' }}>—</span>
+  const isGta = ms.last === 'gta'
+  const color = isGta ? '#F329A7' : '#2979ff'
+  const bg    = isGta ? 'rgba(243,41,167,0.12)' : 'rgba(41,121,255,0.12)'
+  const label = isGta ? '🎮 GTA6' : '🗺 Standard'
+  const gtaN  = ms.gta      || 0
+  const stdN  = ms.standard || 0
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+      <span style={{ fontSize: 11, fontWeight: 700, padding: '2px 8px', borderRadius: 6, background: bg, color, letterSpacing: '0.04em', display: 'inline-block' }}>
+        {label}
+      </span>
+      <span style={{ fontSize: 10, color: '#555', letterSpacing: '0.03em' }}>
+        {gtaN > 0 && <span style={{ color: '#F329A788' }}>{gtaN} GTA</span>}
+        {gtaN > 0 && stdN > 0 && <span style={{ color: '#444' }}> · </span>}
+        {stdN > 0 && <span style={{ color: '#2979ff88' }}>{stdN} Std</span>}
+      </span>
+    </div>
+  )
+}
 
 const COUNTRY_EMOJI_MAP: Record<string, string> = {
   BG: '🇧🇬', NL: '🇳🇱', DE: '🇩🇪', BE: '🇧🇪', SE: '🇸🇪', FI: '🇫🇮', FR: '🇫🇷',
@@ -689,6 +717,11 @@ function getCountryEmoji(cc: string): string {
 
 function sortUsers(list: AdminUser[], key: UserSortKey, asc: boolean): AdminUser[] {
   return [...list].sort((a, b) => {
+    if (key === 'mode') {
+      const va = a.modeStats?.last ?? 'standard'
+      const vb = b.modeStats?.last ?? 'standard'
+      return asc ? va.localeCompare(vb) : vb.localeCompare(va)
+    }
     const va = String(a[key] ?? '')
     const vb = String(b[key] ?? '')
     return asc ? va.localeCompare(vb) : vb.localeCompare(va)
@@ -779,10 +812,21 @@ function UsersView({ secret }: { secret: string }) {
           <div style={{ color: '#f87171', fontSize: 14, padding: '12px 0' }}>⚠ {error}</div>
         )}
 
-        {!loading && !error && (
+        {!loading && !error && (() => {
+          // Mode stats aggregation
+          const withMode  = users.filter((u) => u.modeStats)
+          const gtaUsers  = withMode.filter((u) => u.modeStats!.last === 'gta').length
+          const stdUsers  = withMode.filter((u) => u.modeStats!.last === 'standard').length
+          const gtaSess   = withMode.reduce((s, u) => s + (u.modeStats!.gta      || 0), 0)
+          const stdSess   = withMode.reduce((s, u) => s + (u.modeStats!.standard || 0), 0)
+          const totalSess = gtaSess + stdSess
+          const gtaPct    = totalSess > 0 ? Math.round(gtaSess  / totalSess * 100) : 0
+          const stdPct    = totalSess > 0 ? Math.round(stdSess  / totalSess * 100) : 0
+
+          return (
           <>
             {/* Dashboard tiles */}
-            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 20 }}>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
               <div style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 10, padding: '14px 20px', minWidth: 110 }}>
                 <div style={{ fontSize: 11, color: '#888', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 6 }}>Общо</div>
                 <div style={{ fontSize: 28, fontWeight: 700, color: '#fff' }}>{users.length}</div>
@@ -800,6 +844,39 @@ function UsersView({ secret }: { secret: string }) {
               ))}
             </div>
 
+            {/* Mode distribution */}
+            {withMode.length > 0 && (
+              <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 10, padding: '16px 20px', marginBottom: 20 }}>
+                <div style={{ fontSize: 11, color: '#666', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 14 }}>
+                  Режим на употреба — {withMode.length} проследени потребителя
+                </div>
+                <div style={{ display: 'flex', gap: 24, flexWrap: 'wrap', marginBottom: 14 }}>
+                  {/* Standard tile */}
+                  <div>
+                    <div style={{ fontSize: 11, color: '#2979ff', letterSpacing: '0.06em', marginBottom: 4 }}>🗺 STANDARD</div>
+                    <div style={{ fontSize: 24, fontWeight: 700, color: '#fff' }}>{stdUsers}</div>
+                    <div style={{ fontSize: 11, color: '#555', marginTop: 2 }}>{stdSess} сесии · {stdPct}%</div>
+                  </div>
+                  {/* GTA tile */}
+                  <div>
+                    <div style={{ fontSize: 11, color: '#F329A7', letterSpacing: '0.06em', marginBottom: 4 }}>🎮 GTA VI</div>
+                    <div style={{ fontSize: 24, fontWeight: 700, color: '#fff' }}>{gtaUsers}</div>
+                    <div style={{ fontSize: 11, color: '#555', marginTop: 2 }}>{gtaSess} сесии · {gtaPct}%</div>
+                  </div>
+                </div>
+                {/* Distribution bar */}
+                <div style={{ height: 8, borderRadius: 4, overflow: 'hidden', background: 'rgba(255,255,255,0.06)', display: 'flex' }}>
+                  <div style={{ width: `${stdPct}%`, background: '#2979ff', transition: 'width 0.4s ease' }} title={`Standard ${stdPct}%`} />
+                  <div style={{ width: `${gtaPct}%`, background: 'linear-gradient(90deg,#8B42FF,#F329A7)', transition: 'width 0.4s ease' }} title={`GTA6 ${gtaPct}%`} />
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4 }}>
+                  <span style={{ fontSize: 10, color: '#2979ff88' }}>Standard {stdPct}%</span>
+                  <span style={{ fontSize: 10, color: '#F329A788' }}>GTA VI {gtaPct}%</span>
+                </div>
+              </div>
+            )}
+
+
             {/* Table */}
             <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.09)', borderRadius: 10, overflow: 'hidden' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -816,6 +893,9 @@ function UsersView({ secret }: { secret: string }) {
                     <th style={{ ...thBase, color: sortKey === 'createdAt' ? '#e31937' : '#888' }} onClick={() => toggleSort('createdAt')}>
                       Регистриран {sortKey === 'createdAt' ? (sortAsc ? '↑' : '↓') : ''}
                     </th>
+                    <th style={{ ...thBase, color: sortKey === 'mode' ? '#e31937' : '#888' }} onClick={() => toggleSort('mode')}>
+                      Режим {sortKey === 'mode' ? (sortAsc ? '↑' : '↓') : ''}
+                    </th>
                     <th style={{ ...thBase, color: '#888', cursor: 'default' }}>Имейли от курса</th>
                   </tr>
                 </thead>
@@ -829,6 +909,9 @@ function UsersView({ secret }: { secret: string }) {
                       <td style={{ ...tdBase, color: '#888' }}>
                         {u.createdAt ? new Date(Number(u.createdAt)).toLocaleDateString('bg-BG') : '—'}
                       </td>
+                      <td style={{ ...tdBase, whiteSpace: 'normal' }}>
+                        <ModeBadge ms={u.modeStats} />
+                      </td>
                       <td style={{ ...tdBase, whiteSpace: 'normal', maxWidth: 380 }}>
                         <DripCell drip={u.drip} />
                       </td>
@@ -836,7 +919,7 @@ function UsersView({ secret }: { secret: string }) {
                   ))}
                   {sorted.length === 0 && (
                     <tr>
-                      <td colSpan={6} style={{ ...tdBase, textAlign: 'center', color: '#888', padding: '36px 12px' }}>
+                      <td colSpan={7} style={{ ...tdBase, textAlign: 'center', color: '#888', padding: '36px 12px' }}>
                         Няма регистрирани потребители
                       </td>
                     </tr>
@@ -845,7 +928,8 @@ function UsersView({ secret }: { secret: string }) {
               </table>
             </div>
           </>
-        )}
+          )
+        })()}
       </div>
     </div>
   )

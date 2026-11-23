@@ -45,14 +45,34 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
   users.sort((a, b) => (b.createdAt > a.createdAt ? 1 : -1))
 
   // Re-engage course: what each user has received (drip:{email}) and what is planned.
+  // Also fetch mode_stats hash in the same pipeline.
   let sentRaw: unknown[] = []
+  let modeRaw: unknown   = null
   try {
-    sentRaw = await redis.pipeline([['SMEMBERS', UNSUB_SET], ...users.map((u) => ['HGETALL', dripKey(u.email)])])
+    const pipeline: [string, ...string[]][] = [
+      ['SMEMBERS', UNSUB_SET],
+      ...users.map((u): [string, ...string[]] => ['HGETALL', dripKey(u.email)]),
+      ['HGETALL', 'mode_stats'],
+    ]
+    const results = await redis.pipeline(pipeline)
+    modeRaw = results.pop() ?? null
+    sentRaw = results
   } catch {
     sentRaw = []
   }
   const unsubList = sentRaw.shift()
   const unsub = new Set(Array.isArray(unsubList) ? unsubList.map(String) : [])
+
+  // Parse mode_stats: either an object { email: jsonString } or already parsed
+  const modeStats: Record<string, { gta: number; standard: number; last: string; lastSeen: number }> = {}
+  if (modeRaw && typeof modeRaw === 'object' && !Array.isArray(modeRaw)) {
+    for (const [k, v] of Object.entries(modeRaw as Record<string, unknown>)) {
+      try {
+        const ms = typeof v === 'string' ? JSON.parse(v) : v
+        if (ms && typeof ms === 'object') modeStats[k] = ms as typeof modeStats[string]
+      } catch { /* skip */ }
+    }
+  }
 
   const withDrip = users.map((u, i) => {
     const sent: Record<string, string> = {}
@@ -62,7 +82,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     } else if (r && typeof r === 'object') {
       Object.assign(sent, r as Record<string, string>)
     }
-    return { ...u, drip: { sent, planned: plannedDates(u.createdAt, u.country, u.email), unsubscribed: unsub.has(u.email.toLowerCase()) } }
+    return {
+      ...u,
+      drip:      { sent, planned: plannedDates(u.createdAt, u.country, u.email), unsubscribed: unsub.has(u.email.toLowerCase()) },
+      modeStats: modeStats[u.email] ?? null,
+    }
   })
 
   res.status(200).json({ users: withDrip })
