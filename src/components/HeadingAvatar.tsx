@@ -57,6 +57,7 @@ const SNAP_DIST_M = 60
 // ── GTA VI map marker ─────────────────────────────────────────────────────────
 
 interface _GtaRank { color: string; bg0: string; bg1: string; sunglasses: boolean; crown: boolean; pulse: boolean }
+interface _RankMeta { name: string; color: string; next: string | null; nextColor: string | null; nextMin: number | null }
 
 function _gtaRank(xp: number): _GtaRank {
   if (xp >= 5000) return { color: '#F329A7', bg0: '#1a0018', bg1: '#0a0010', sunglasses: true,  crown: true,  pulse: true  }
@@ -64,6 +65,46 @@ function _gtaRank(xp: number): _GtaRank {
   if (xp >= 500)  return { color: '#8B42FF', bg0: '#180a2e', bg1: '#0a0518', sunglasses: true,  crown: false, pulse: false }
   if (xp >= 100)  return { color: '#00D9FF', bg0: '#001e2e', bg1: '#000d1a', sunglasses: true,  crown: false, pulse: false }
   return                  { color: '#6B7280', bg0: '#1c1c1c', bg1: '#111111', sunglasses: false, crown: false, pulse: false }
+}
+
+function _rankMeta(xp: number): _RankMeta {
+  if (xp >= 5000) return { name: 'VICE LORD',  color: '#F329A7', next: null,         nextColor: null,      nextMin: null }
+  if (xp >= 1500) return { name: 'CAPTAIN',    color: '#FFB52E', next: 'VICE LORD',  nextColor: '#F329A7', nextMin: 5000 }
+  if (xp >= 500)  return { name: 'LIEUTENANT', color: '#8B42FF', next: 'CAPTAIN',    nextColor: '#FFB52E', nextMin: 1500 }
+  if (xp >= 100)  return { name: 'DRIVER',     color: '#00D9FF', next: 'LIEUTENANT', nextColor: '#8B42FF', nextMin: 500  }
+  return                  { name: 'CIVILIAN',   color: '#6B7280', next: 'DRIVER',     nextColor: '#00D9FF', nextMin: 100  }
+}
+
+function _buildTooltip(tooltip: HTMLElement, xp: number): void {
+  const m = _rankMeta(xp)
+  const c = m.color
+  const glow = c + '55'
+  const needed = m.nextMin !== null ? m.nextMin - xp : 0
+  const nextHtml = m.next !== null
+    ? `<div style="font-size:9px;color:rgba(255,255,255,0.35);letter-spacing:1.5px;margin-top:8px">NEXT RANK</div>
+       <div style="font-size:11px;font-weight:700;color:${m.nextColor!};letter-spacing:2px;margin-top:2px">${m.next}</div>
+       <div style="font-size:9px;color:rgba(255,255,255,0.4);margin-top:3px">${needed} XP needed</div>`
+    : `<div style="font-size:10px;color:#FFB52E;letter-spacing:1.5px;margin-top:8px">★ MAX RANK ★</div>`
+  tooltip.style.cssText = `
+    display:block;position:absolute;
+    bottom:calc(100% + 10px);left:50%;transform:translateX(-50%);
+    background:rgba(8,13,32,0.96);
+    border:1.5px solid ${c};border-radius:10px;
+    padding:10px 16px 12px;min-width:150px;
+    text-align:center;
+    box-shadow:0 4px 24px rgba(0,0,0,0.7),0 0 14px ${glow};
+    pointer-events:none;z-index:200;white-space:nowrap;
+    font-family:monospace;
+  `
+  tooltip.innerHTML = `
+    <div style="font-size:14px;font-weight:900;letter-spacing:2.5px;color:${c}">${m.name}</div>
+    <div style="font-size:10px;color:rgba(255,255,255,0.35);letter-spacing:1px;margin-top:2px">${xp} XP</div>
+    <div style="height:1px;background:rgba(255,255,255,0.07);margin:7px -6px 0"></div>
+    ${nextHtml}
+    <div style="position:absolute;bottom:-7px;left:50%;transform:translateX(-50%);
+      width:0;height:0;border-left:7px solid transparent;border-right:7px solid transparent;
+      border-top:7px solid ${c}"></div>
+  `
 }
 
 function _gtaSVG(xp: number): string {
@@ -123,13 +164,18 @@ function _gtaSVG(xp: number): string {
 }
 
 function _updateArrow(el: HTMLDivElement): void {
-  const wrap = el.querySelector<HTMLElement>('.gps-avatar-arrow')
+  const wrap    = el.querySelector<HTMLElement>('.gps-avatar-arrow')
+  const tooltip = el.querySelector<HTMLElement>('.gps-rank-tooltip')
   if (!wrap) return
   const isGta = document.documentElement.hasAttribute('data-gta')
   if (isGta) {
-    wrap.innerHTML = _gtaSVG(xpStore.getState().xp)
-    wrap.style.filter = `drop-shadow(0 0 6px ${_gtaRank(xpStore.getState().xp).color})`
+    el.style.pointerEvents = 'auto'
+    const xp = xpStore.getState().xp
+    wrap.innerHTML   = _gtaSVG(xp)
+    wrap.style.filter = `drop-shadow(0 0 6px ${_gtaRank(xp).color})`
   } else {
+    el.style.pointerEvents = 'none'
+    if (tooltip) tooltip.style.display = 'none'
     wrap.style.filter = ''
     wrap.innerHTML = _stdArrowSVG()
   }
@@ -176,7 +222,8 @@ function makeElement(): HTMLDivElement {
     'pointer-events:none',
     'z-index:10',
   ].join(';')
-  root.innerHTML = `<div class="gps-avatar-arrow" style="transform:rotate(0deg);transform-origin:50% 50%"></div>`
+  root.innerHTML = `<div class="gps-avatar-arrow" style="transform:rotate(0deg);transform-origin:50% 50%"></div>
+<div class="gps-rank-tooltip" style="display:none"></div>`
   return root
 }
 
@@ -297,6 +344,21 @@ export function HeadingAvatar() {
       if (document.documentElement.hasAttribute('data-gta')) _updateArrow(el)
     })
 
+    // Tap on GTA marker → show rank tooltip for 4 s, then auto-dismiss.
+    let tooltipTimer: ReturnType<typeof setTimeout> | null = null
+    function onMarkerTap(e: Event): void {
+      if (!document.documentElement.hasAttribute('data-gta')) return
+      e.stopPropagation()
+      const tooltip = el.querySelector<HTMLElement>('.gps-rank-tooltip')
+      if (!tooltip) return
+      const isVisible = tooltip.style.display === 'block'
+      if (isVisible) { tooltip.style.display = 'none'; return }
+      _buildTooltip(tooltip, xpStore.getState().xp)
+      if (tooltipTimer) clearTimeout(tooltipTimer)
+      tooltipTimer = setTimeout(() => { tooltip.style.display = 'none' }, 4000)
+    }
+    el.addEventListener('click', onMarkerTap)
+
     // When following: avatar is pinned to the padded center (map pans underneath).
     // When not following (user panned/zoomed): avatar tracks GPS coordinates on
     // every map render frame so it stays over the actual GPS location on screen.
@@ -407,6 +469,8 @@ export function HeadingAvatar() {
       unsubSettings()
       unsubXp()
       gtaObserver.disconnect()
+      el.removeEventListener('click', onMarkerTap)
+      if (tooltipTimer) clearTimeout(tooltipTimer)
       map.off('render', updateAvatarPosition)
       window.removeEventListener('resize', onResize)
       el.remove()
