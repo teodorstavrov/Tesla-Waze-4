@@ -77,12 +77,15 @@ export function XPBadge({ onOpen }: { onOpen: () => void }) {
         Driver XP
       </span>
 
-      {/* XP count */}
+      {/* XP count + level */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
         <span style={{ fontSize: 11, fontWeight: 700, color: '#E8ECF5', lineHeight: 1, fontVariantNumeric: 'tabular-nums' }}>
           {xp.toLocaleString()}
         </span>
         <span style={{ fontSize: 8, color: '#A8B2D1', letterSpacing: '0.05em', lineHeight: 1 }}>XP</span>
+        <span style={{ fontSize: 8, fontWeight: 700, color: color, letterSpacing: '0.04em', lineHeight: 1, marginLeft: 2 }}>
+          LV{level}
+        </span>
       </div>
 
       {/* Progress bar */}
