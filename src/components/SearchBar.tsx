@@ -238,7 +238,7 @@ export function SearchBar() {
         top: 12,
         left: '50%',
         transform: 'translateX(-50%)',
-        zIndex: 400,
+        zIndex: open ? 500 : 400,
         width: open ? 'min(380px, calc(100vw - 24px))' : 'auto',
         transition: 'width 0.18s ease',
       }}
