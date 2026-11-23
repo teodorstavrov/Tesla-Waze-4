@@ -64,7 +64,7 @@ export function AlertToast() {
             right:           0,
             zIndex:          1000,
             padding:         '8px 16px',
-            background:      'rgba(8,13,32,0.97)',
+            background:      `linear-gradient(135deg, ${gtaTheme.glow} 0%, rgba(8,13,32,0.92) 65%)`,
             borderBottom:    `2px solid ${gtaTheme.border}`,
             display:         'flex',
             alignItems:      'center',
@@ -75,17 +75,17 @@ export function AlertToast() {
           <div style={{ flex: 1 }}>
             <span style={{
               fontSize: 10, fontWeight: 800, letterSpacing: '0.12em',
-              textTransform: 'uppercase', color: gtaTheme.label,
+              textTransform: 'uppercase', color: '#FFFFFF',
             }}>
               {label}
             </span>
             {text ? (
-              <span style={{ fontSize: 10, color: '#A8B2D1', marginLeft: 6 }}>{text}</span>
+              <span style={{ fontSize: 10, color: '#E8ECF5', marginLeft: 6 }}>{text}</span>
             ) : null}
           </div>
           {distLabel && (
             <span style={{
-              fontSize: 11, fontWeight: 700, color: gtaTheme.label,
+              fontSize: 11, fontWeight: 700, color: '#FFFFFF',
               letterSpacing: '0.06em',
             }}>
               {distLabel}
@@ -106,7 +106,7 @@ export function AlertToast() {
           right:           0,
           zIndex:          1000,
           padding:         '8px 16px',
-          background:      'rgba(8,13,32,0.97)',
+          background:      `linear-gradient(135deg, ${gtaTheme.glow} 0%, rgba(8,13,32,0.92) 65%)`,
           borderBottom:    `2px solid ${gtaTheme.border}`,
           boxShadow:       `0 0 24px ${gtaTheme.glow}, 0 4px 16px rgba(0,0,0,0.6)`,
           display:         'flex',
@@ -122,17 +122,17 @@ export function AlertToast() {
         <div style={{ flex: 1 }}>
           <span style={{
             fontSize: 10, fontWeight: 800, letterSpacing: '0.12em',
-            textTransform: 'uppercase', color: gtaTheme.label,
+            textTransform: 'uppercase', color: '#FFFFFF',
           }}>
             {label}
           </span>
           {text ? (
-            <span style={{ fontSize: 10, color: '#A8B2D1', marginLeft: 6 }}>{text}</span>
+            <span style={{ fontSize: 10, color: '#E8ECF5', marginLeft: 6 }}>{text}</span>
           ) : null}
         </div>
         {distLabel && (
           <span style={{
-            fontSize: 11, fontWeight: 700, color: gtaTheme.label,
+            fontSize: 11, fontWeight: 700, color: '#FFFFFF',
             letterSpacing: '0.06em',
           }}>
             {distLabel}

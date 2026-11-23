@@ -197,30 +197,6 @@ export function GTAHud() {
             </svg>
           </button>
 
-          {/* GTA VI Edition toggle — exit GTA mode */}
-          <button
-            onClick={gtaModeStore.toggle}
-            aria-label="Exit GTA VI Edition Mode"
-            aria-pressed={true}
-            style={{
-              height: 36,
-              padding: '0 10px',
-              borderRadius: 10,
-              background: 'linear-gradient(135deg, rgba(139,66,255,0.40) 0%, rgba(243,41,167,0.30) 100%)',
-              border: '1px solid rgba(243,41,167,0.70)',
-              cursor: 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 1,
-              touchAction: 'manipulation',
-              boxShadow: '0 0 10px rgba(243,41,167,0.30)',
-            }}
-          >
-            <span style={{ fontSize: 7, fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#00D9FF', lineHeight: 1 }}>GTA VI</span>
-            <span style={{ fontSize: 6, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: '#F329A7', lineHeight: 1 }}>Edition</span>
-          </button>
         </div>
       )}
 
@@ -316,13 +292,16 @@ export function GTAHud() {
       {/* ── Gear (settings) button — bottom-right, always visible ── */}
       <GtaSettingsButton />
 
-      {/* ── Quality toggle — top-left, below Vice City logo ── */}
+      {/* ── Quality toggle + Standard Edition — top-left, below Vice City logo ── */}
       {gtaActive && (
         <div style={{
           position:  'absolute',
           left:      12,
           top:       72,
           zIndex:    405,
+          display:   'flex',
+          gap:       6,
+          alignItems: 'center',
         }}>
           <button
             style={{
@@ -344,6 +323,31 @@ export function GTAHud() {
             title={quality === 'full' ? 'Switch to Lite mode (better performance)' : 'Switch to Full mode'}
           >
             {quality === 'full' ? '⚡ Full' : '🔋 Lite'}
+          </button>
+
+          {/* Standard Edition — exit GTA mode (15% smaller than original 36px = 31px) */}
+          <button
+            onClick={gtaModeStore.toggle}
+            aria-label="Exit GTA VI Edition Mode"
+            aria-pressed={true}
+            style={{
+              height:        31,
+              padding:       '0 9px',
+              borderRadius:  8,
+              background:    'linear-gradient(135deg, rgba(139,66,255,0.40) 0%, rgba(243,41,167,0.30) 100%)',
+              border:        '1px solid rgba(243,41,167,0.70)',
+              cursor:        'pointer',
+              display:       'flex',
+              flexDirection: 'column',
+              alignItems:    'center',
+              justifyContent: 'center',
+              gap:           1,
+              touchAction:   'manipulation',
+              boxShadow:     '0 0 8px rgba(243,41,167,0.25)',
+            }}
+          >
+            <span style={{ fontSize: 6, fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#E0CFFF', lineHeight: 1 }}>Standard</span>
+            <span style={{ fontSize: 5, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: '#F329A7', lineHeight: 1 }}>Edition</span>
           </button>
         </div>
       )}
