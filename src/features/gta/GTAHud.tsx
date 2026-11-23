@@ -304,25 +304,36 @@ export function GTAHud() {
           alignItems: 'center',
         }}>
           <button
-            style={{
-              background:    'rgba(8, 13, 32, 0.90)',
-              border:        quality === 'full'
-                ? '1px solid rgba(255,181,46,0.50)'
-                : '1px solid rgba(139, 66, 255, 0.35)',
-              borderRadius:  8,
-              color:         quality === 'full' ? '#FFB52E' : '#A8B2D1',
-              fontSize:      9,
-              fontWeight:    700,
-              letterSpacing: '0.07em',
-              textTransform: 'uppercase',
-              padding:       '4px 10px',
-              cursor:        'pointer',
-              touchAction:   'manipulation',
-            }}
             onClick={() => gtaModeStore.setQuality(quality === 'full' ? 'lite' : 'full')}
             title={quality === 'full' ? 'Switch to Lite mode (better performance)' : 'Switch to Full mode'}
+            style={{
+              height:        31,
+              padding:       '0 9px',
+              borderRadius:  8,
+              background:    quality === 'full'
+                ? 'linear-gradient(135deg, rgba(255,181,46,0.35) 0%, rgba(139,66,255,0.25) 100%)'
+                : 'linear-gradient(135deg, rgba(139,66,255,0.35) 0%, rgba(0,217,255,0.20) 100%)',
+              border:        quality === 'full'
+                ? '1px solid rgba(255,181,46,0.65)'
+                : '1px solid rgba(139,66,255,0.65)',
+              cursor:        'pointer',
+              display:       'flex',
+              flexDirection: 'column',
+              alignItems:    'center',
+              justifyContent: 'center',
+              gap:           1,
+              touchAction:   'manipulation',
+              boxShadow:     quality === 'full'
+                ? '0 0 8px rgba(255,181,46,0.20)'
+                : '0 0 8px rgba(139,66,255,0.20)',
+            }}
           >
-            {quality === 'full' ? '⚡ Full' : '🔋 Lite'}
+            <span style={{ fontSize: 6, fontWeight: 900, letterSpacing: '0.12em', textTransform: 'uppercase', color: quality === 'full' ? '#FFB52E' : '#00D9FF', lineHeight: 1 }}>
+              {quality === 'full' ? '⚡ Full' : '🔋 Lite'}
+            </span>
+            <span style={{ fontSize: 5, fontWeight: 700, letterSpacing: '0.10em', textTransform: 'uppercase', color: quality === 'full' ? '#F329A7' : '#8B42FF', lineHeight: 1 }}>
+              Quality
+            </span>
           </button>
 
           {/* Standard Edition — exit GTA mode (15% smaller than original 36px = 31px) */}
