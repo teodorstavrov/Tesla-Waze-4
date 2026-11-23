@@ -205,7 +205,7 @@ export function LeaderboardPanel({ onClose }: { onClose: () => void }) {
           }}>
             <LeaderboardRow
               rank={myRank ?? '—'}
-              name={myName ? `${myName.split(' ')[0]} (ти)` : '(ти)'}
+              name={myName ? `${myName.split(' ')[0]} (you)` : '(you)'}
               xp={myXP}
               level={myLevel}
               isMe
@@ -220,14 +220,14 @@ export function LeaderboardPanel({ onClose }: { onClose: () => void }) {
               padding: 32, textAlign: 'center',
               color: '#5A6A8E', fontSize: 11, letterSpacing: '0.08em',
             }}>
-              ЗАРЕЖДА…
+              LOADING…
             </div>
           ) : entries.length === 0 ? (
             <div style={{
               padding: 32, textAlign: 'center',
               color: '#5A6A8E', fontSize: 11,
             }}>
-              Все още няма данни. Изпрати репорт за да влезеш в класацията!
+              No data yet. Submit a report to enter the leaderboard!
             </div>
           ) : (
             entries.map((e) => (
@@ -255,7 +255,7 @@ export function LeaderboardPanel({ onClose }: { onClose: () => void }) {
           textAlign:   'center',
         }}>
           <span style={{ fontSize: 8, color: '#3A4A6E', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-            XP за: репорт +50 · потвърждение +10 · дневен бонус +20
+            XP: report +50 · confirm +10 · daily bonus +20
           </span>
         </div>
       </div>
@@ -349,10 +349,10 @@ function LeaderboardRow({
 // ── XP Toast notification stack ───────────────────────────────────────────
 
 const ACTION_LABEL: Record<XPToastEntry['action'], string> = {
-  report:  'Репорт изпратен',
-  confirm: 'Репорт потвърден',
-  deny:    'Репорт отхвърлен',
-  daily:   'Дневен бонус',
+  report:  'Report sent',
+  confirm: 'Report confirmed',
+  deny:    'Report denied',
+  daily:   'Daily bonus',
 }
 
 const ACTION_ICON: Record<XPToastEntry['action'], string> = {
