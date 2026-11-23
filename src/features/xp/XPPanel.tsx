@@ -10,6 +10,7 @@ import { useSyncExternalStore, useState, useEffect, useCallback } from 'react'
 import { xpStore, xpToasts, xpProgress, type LeaderboardEntry, type XPToastEntry } from './xpStore'
 import { authStore } from '@/features/auth/authStore'
 import { isTeslaBrowser } from '@/lib/browser'
+import { audioManager } from '@/features/audio/audioManager'
 
 // ── Level badge colours ───────────────────────────────────────────────────
 function levelColor(level: number): string {
@@ -366,6 +367,7 @@ function XPToastItem({ toast, onDismiss }: { toast: XPToastEntry; onDismiss: () 
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
+    audioManager.uiBeep()
     // Trigger enter animation on next frame
     const raf = requestAnimationFrame(() => setVisible(true))
     return () => cancelAnimationFrame(raf)

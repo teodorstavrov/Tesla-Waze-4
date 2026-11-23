@@ -5,7 +5,7 @@
 // Alternative route pills for switching between OSRM alternatives.
 // Phase 26: expandable list of EV stations along the route.
 
-import { useState, useEffect, type CSSProperties } from 'react'
+import { useState, useEffect, useRef, type CSSProperties } from 'react'
 import { useSyncExternalStore } from 'react'
 import { routeStore } from './routeStore.js'
 import { followStore } from '@/features/follow/followStore'
@@ -19,6 +19,7 @@ import { estimateArrivalBattery } from '@/features/planning/estimator'
 import { PremiumBadge } from '@/components/PremiumBadge'
 import { TripSummaryBanner } from '@/components/TripSummaryBanner'
 import { isPhone } from '@/lib/browser'
+import { audioManager } from '@/features/audio/audioManager'
 
 export function RoutePanel() {
   // Re-render on country/language change
@@ -32,6 +33,15 @@ export function RoutePanel() {
     )
 
   const [dismissed, setDismissed] = useState(false)
+  const prevStatusRef = useRef(status)
+
+  // Beep when route panel first appears (status transitions to 'ok' or 'loading')
+  useEffect(() => {
+    if (prevStatusRef.current === 'idle' && (status === 'ok' || status === 'loading')) {
+      audioManager.uiBeep()
+    }
+    prevStatusRef.current = status
+  }, [status])
 
   // Battery arrival estimate — uses live battery session state (not just profile)
   const [vehicleProfile, setVehicleProfile] = useState(() => vehicleProfileStore.get())

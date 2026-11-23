@@ -10,6 +10,7 @@ import { useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { isTeslaBrowser } from '@/lib/browser'
 import { t, langStore } from '@/lib/locale'
+import { audioManager } from '@/features/audio/audioManager'
 
 // ── Melody catalog (matches filenames in public/sounds/) ───────────────
 const SOUNDS = [
@@ -54,6 +55,7 @@ export function LockSoundModal() {
     setPlaying(null)
     setEmail('')
     setError('')
+    audioManager.uiBeep()
     setOpen(true)
     if (isTeslaBrowser) {
       setShown(true)

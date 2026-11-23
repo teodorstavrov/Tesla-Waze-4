@@ -11,6 +11,7 @@ import { useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { isTeslaBrowser } from '@/lib/browser'
 import { t, getLang, langStore } from '@/lib/locale'
+import { audioManager } from '@/features/audio/audioManager'
 
 // ── Types ──────────────────────────────────────────────────────────────
 
@@ -40,6 +41,7 @@ export function SupportModal({ qrImageUrl, donationLink }: SupportModalProps) {
   useSyncExternalStore(langStore.subscribe.bind(langStore), getLang, getLang)
 
   _open = () => {
+    audioManager.uiBeep()
     setOpen(true)
     if (isTeslaBrowser) {
       setShown(true)

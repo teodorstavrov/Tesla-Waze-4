@@ -6,6 +6,7 @@ import { useState, useEffect, useCallback, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { isTeslaBrowser } from '@/lib/browser'
 import { getLang, langStore } from '@/lib/locale'
+import { audioManager } from '@/features/audio/audioManager'
 
 let _open:  (() => void) | null = null
 let _close: (() => void) | null = null
@@ -73,6 +74,7 @@ export function RatingModal() {
   const [stats,   setStats]   = useState<RatingStats | null>(null)
 
   _open = () => {
+    audioManager.uiBeep()
     setOpen(true)
     setHovered(0); setSelected(0); setComment(''); setName(''); setEmail(''); setCountry(''); setCity(''); setState('idle'); setErrMsg('')
     if (isTeslaBrowser) {

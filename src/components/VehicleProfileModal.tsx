@@ -5,6 +5,7 @@
 
 import { useState, useEffect, useCallback, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
+import { audioManager } from '@/features/audio/audioManager'
 import { vehicleProfileStore } from '@/features/planning/store'
 import { batteryStore } from '@/features/planning/batteryStore'
 import { TESLA_MODELS, getYearsForModel, getTrimsForYear } from '@/features/planning/vehicleConfig'
@@ -333,6 +334,7 @@ export function VehicleProfileModal() {
       setMsGroup(null); setMsBat(null); setMsDrv(null)
     }
     setPerfMode(settingsStore.get().performanceMode)
+    audioManager.uiBeep()
     setOpen(true)
     if (isTeslaBrowser) {
       setShown(true)
