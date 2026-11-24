@@ -182,32 +182,7 @@ function _updateArrow(el: HTMLDivElement): void {
 }
 
 function _stdArrowSVG(): string {
-  return `<svg width="${ICON_SIZE}" height="${ICON_SIZE}" viewBox="0 0 28 28" fill="none" aria-hidden="true">
-      <defs>
-        <linearGradient id="nav-ag" x1="14" y1="3" x2="14" y2="22" gradientUnits="userSpaceOnUse">
-          <stop offset="0%"   stop-color="#ffcdd2"/>
-          <stop offset="14%"  stop-color="#ff4d5e"/>
-          <stop offset="40%"  stop-color="#e31937"/>
-          <stop offset="58%"  stop-color="#f0364f"/>
-          <stop offset="80%"  stop-color="#8c0d1b"/>
-          <stop offset="100%" stop-color="#4a0610"/>
-        </linearGradient>
-        <linearGradient id="nav-gl" x1="8" y1="3" x2="20" y2="20" gradientUnits="userSpaceOnUse">
-          <stop offset="0%"   stop-color="rgba(255,255,255,0.68)"/>
-          <stop offset="38%"  stop-color="rgba(255,255,255,0.22)"/>
-          <stop offset="70%"  stop-color="rgba(255,255,255,0.04)"/>
-          <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
-        </linearGradient>
-        <filter id="nav-as" x="-40%" y="-20%" width="180%" height="160%">
-          <feDropShadow dx="0" dy="2.5" stdDeviation="2.2" flood-color="rgba(110,0,18,0.95)"/>
-        </filter>
-      </defs>
-      <polygon points="15.5,4.5 21.5,23.5 15.5,19.5 9.5,23.5" fill="rgba(45,0,8,0.85)"/>
-      <polygon points="14,3 20,22 14,18 8,22" fill="url(#nav-ag)" filter="url(#nav-as)"/>
-      <polygon points="14,3 20,22 14,18 8,22" fill="url(#nav-gl)"/>
-      <polygon points="14,3 16.5,9.5 14,8.5 11.5,9.5" fill="rgba(255,255,255,0.78)"/>
-      <polygon points="14,3 20,22 14,18 8,22" fill="none" stroke="rgba(255,255,255,0.88)" stroke-width="1.5" stroke-linejoin="round"/>
-    </svg>`
+  return `<img src="/avatar-std.png" width="${ICON_SIZE}" height="${ICON_SIZE}" alt="" aria-hidden="true" draggable="false" style="display:block">`
 }
 
 // ── DOM factory ───────────────────────────────────────────────────────────────
