@@ -62,6 +62,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       ? rawReportedAt
       : null
 
+    // Allow Waze sync to pass the original confirms count from Waze's nComments/reportRating.
+    const rawConfirms = Number((body as { confirms?: unknown })?.confirms)
+    const importConfirms = (Number.isInteger(rawConfirms) && rawConfirms >= 0) ? rawConfirms : 0
+
     const now = new Date()
     const event: RoadEvent = {
       id:          crypto.randomUUID(),
@@ -71,7 +75,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       description: description?.replace(/<[^>]*>/g, '').trim().slice(0, 200) ?? null,
       reportedAt:  customReportedAt ?? now.toISOString(),
       expiresAt:   new Date(now.getTime() + lifetimeMs).toISOString(),
-      confirms:    0,
+      confirms:    importConfirms,
       denies:      0,
       permanent:   true,
       source,

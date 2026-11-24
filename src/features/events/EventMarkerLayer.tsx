@@ -17,11 +17,51 @@ import type { RoadEvent } from './types.js'
 
 const NEW_THRESHOLD_MS = 2 * 60 * 1000
 
+// ── Vote badge (confirms ✓ / denies ✗) ───────────────────────────────────────
+
+function _updateVoteBadge(el: HTMLElement, confirms: number, denies: number): void {
+  if (confirms === 0 && denies === 0) {
+    el.style.display = 'none'
+    return
+  }
+  el.style.display = 'flex'
+  const parts: string[] = []
+  if (confirms > 0) parts.push(`<span style="color:#22c55e;letter-spacing:0">✓${confirms}</span>`)
+  if (denies > 0)   parts.push(`<span style="color:#ef4444;letter-spacing:0">✗${denies}</span>`)
+  el.innerHTML = parts.join('<span style="color:rgba(255,255,255,0.22);font-size:7px"> · </span>')
+}
+
+function _makeVoteBadge(confirms: number, denies: number): HTMLDivElement {
+  const badge = document.createElement('div')
+  badge.className = 'evt-vote-badge'
+  badge.style.cssText = [
+    'position:absolute',
+    'bottom:-17px',
+    'left:50%',
+    'transform:translateX(-50%)',
+    'display:flex',
+    'gap:2px',
+    'align-items:center',
+    'background:rgba(8,13,32,0.92)',
+    'border-radius:8px',
+    'padding:1px 5px',
+    'border:1px solid rgba(255,255,255,0.14)',
+    'font-size:9px',
+    'font-weight:700',
+    'line-height:1.3',
+    'white-space:nowrap',
+    'font-family:monospace',
+  ].join(';')
+  _updateVoteBadge(badge, confirms, denies)
+  return badge
+}
+
 // Waze-style police badge SVG: orange ring → white separator → blue circle → officer illustration
-function makePoliceElement(animation: string): HTMLDivElement {
+function makePoliceElement(animation: string, confirms: number, denies: number): HTMLDivElement {
   const wrap = document.createElement('div')
   wrap.className = 'marker-scale-wrap'
   wrap.style.cursor = 'pointer'
+  wrap.style.position = 'relative'
   // SVG uses drop-shadow filter instead of box-shadow (works on non-rectangular shapes)
   wrap.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="46" height="46" viewBox="0 0 46 46"
       style="display:block;filter:drop-shadow(0 2px 5px rgba(0,0,0,0.6));animation:${animation}">
@@ -53,6 +93,7 @@ function makePoliceElement(animation: string): HTMLDivElement {
     <polygon points="23,34 23.6,35.8 25.5,35.8 24.1,36.9 24.6,38.7 23,37.6 21.4,38.7 21.9,36.9 20.5,35.8 22.4,35.8"
       fill="#fbbf24"/>
   </svg>`
+  wrap.appendChild(_makeVoteBadge(confirms, denies))
   return wrap
 }
 
@@ -66,7 +107,7 @@ function makeElement(event: RoadEvent): HTMLDivElement {
     : 'none'
 
   if (event.type === 'police') {
-    return makePoliceElement(animation)
+    return makePoliceElement(animation, event.confirms, event.denies)
   }
 
   const bg     = `${color}22`
@@ -76,6 +117,7 @@ function makeElement(event: RoadEvent): HTMLDivElement {
   const wrap = document.createElement('div')
   wrap.className = 'marker-scale-wrap'
   wrap.style.cursor = 'pointer'
+  wrap.style.position = 'relative'
 
   const inner = document.createElement('div')
   inner.style.cssText = [
@@ -88,6 +130,7 @@ function makeElement(event: RoadEvent): HTMLDivElement {
   ].join(';')
   inner.textContent = emoji
   wrap.appendChild(inner)
+  wrap.appendChild(_makeVoteBadge(event.confirms, event.denies))
   return wrap
 }
 
@@ -110,7 +153,12 @@ export function EventMarkerLayer() {
         }
 
         for (const event of events) {
-          if (registry.has(event.id)) continue
+          if (registry.has(event.id)) {
+            // Live-update vote badge when confirms/denies change after confirm/deny action
+            const badge = registry.get(event.id)!.getElement()?.querySelector<HTMLElement>('.evt-vote-badge')
+            if (badge) _updateVoteBadge(badge, event.confirms, event.denies)
+            continue
+          }
 
           const el = makeElement(event)
           el.addEventListener('click', () => {
