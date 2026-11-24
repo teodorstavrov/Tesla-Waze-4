@@ -4,6 +4,16 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-11-24
+
+- **feat(avatar): стандартен аватар сменен с PNG** — червената SVG стрелка в standard mode е заменена с `tesradar_gta6_avatar_54x54.png` (нов файл `public/avatar-std.png`). GTA6 аватарът (rank-based SVG) остава непроменен.
+- **feat(markers): vote badge на всеки event маркер** — малка пилюла залепена за горния десен ъгъл на иконата показва брой потвърждения (`✓N` зелено) и/или отхвърляния (`✗N` червено). Скрита при 0/0. Обновява се live след confirm/deny без пре-рендерване на маркера. Admin POST `/api/admin/events` вече приема `confirms` поле за import от Waze (`nComments`).
+- **feat(xp): LV ниво в XP badge** — `LV{level}` се показва до XP броя в Driver XP бадж-а в GTA HUD.
+- **feat(gta): tap на GTA аватар → rank tooltip** — показва ранг (CIVILIAN → VICE LORD), XP, следващ ранг и нужни точки. Автоматично изчезва след 4 сек.
+- **feat(admin): mode статистики в Users панел** — за всеки потребител се вижда кой режим използва (Standard/GTA6) с брой сесии и дата. Обща разпределителна статистика горе в таблото.
+
+---
+
 ## 2026-11-21
 
 - **chore(gta): GTA VI режимът скрит на production — само preview** — бутонът 🎮 и целият GTAHud са изцяло скрити на `tesradar.tech`. Видими само в preview URL (`tesla-waze-4-git-main-*.vercel.app`). При зареждане на production GTA режимът се изключва принудително (localStorage чисти се). Нов флаг `isPreviewEnvironment` в `src/lib/browser.ts`.
