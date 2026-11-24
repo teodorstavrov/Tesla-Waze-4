@@ -13,6 +13,8 @@ import { openCountryPicker } from '@/components/CountryPicker'
 import { openTermsModal } from '@/components/TermsModal'
 import { countryStore } from '@/lib/countryStore'
 import { langStore, getLang, t } from '@/lib/locale'
+import { isPreviewEnvironment } from '@/lib/browser'
+import { GTA_INFO_EVENT } from '@/features/gta/GTAHud'
 
 const FB_GROUP_URL = 'https://www.facebook.com/groups/1496658052161240'
 
@@ -213,6 +215,18 @@ function PanelContent() {
       {/* Divider */}
       <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '4px 0' }} />
 
+      {/* GTA VI Mode Info — preview env only */}
+      {isPreviewEnvironment && (
+        <Row
+          icon={<GtaInfoIcon />}
+          label="GTA VI Mode Info"
+          onToggle={() => {
+            uiStore.closeSettings()
+            window.dispatchEvent(new Event(GTA_INFO_EVENT))
+          }}
+        />
+      )}
+
       {/* Terms & Privacy */}
       <Row
         icon={<TermsIcon />}
@@ -412,6 +426,17 @@ function TermsIcon() {
       <line x1="9" y1="13" x2="15" y2="13" />
       <line x1="9" y1="17" x2="15" y2="17" />
       <line x1="9" y1="9" x2="11" y2="9" />
+    </svg>
+  )
+}
+
+function GtaInfoIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none"
+      stroke="#8B42FF" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="8" x2="12" y2="12" />
+      <line x1="12" y1="16" x2="12.01" y2="16" strokeWidth="2.5" />
     </svg>
   )
 }

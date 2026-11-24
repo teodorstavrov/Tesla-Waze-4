@@ -7,6 +7,11 @@
 // WantedLevel is computed from existing eventStore + gpsStore.
 // No new API calls or polling — purely derived from live data.
 
+// Dispatched by Settings → GTAHud shows the info panel.
+export const GTA_INFO_EVENT = 'open-gta-info'
+
+const GTA_ONBOARD_KEY = 'tesradar:gtaOnboarded'
+
 import { useSyncExternalStore, useState, useEffect } from 'react'
 import { gtaModeStore } from './gtaModeStore'
 import { eventStore } from '@/features/events/eventStore'
@@ -101,11 +106,23 @@ export function GTAHud() {
   // Quality toggle — in GTA mode settings row
   const [showSettings, setShowSettings] = useState(false)
   const [showLeaderboard, setShowLeaderboard] = useState(false)
+  const [showOnboarding, setShowOnboarding] = useState(false)
 
-  // Reset settings panel when mode turns off
+  // First activation → show onboarding once; subsequent activations skip it.
   useEffect(() => {
-    if (!gtaActive) { setShowSettings(false); setShowLeaderboard(false) }
+    if (gtaActive && !localStorage.getItem(GTA_ONBOARD_KEY)) {
+      localStorage.setItem(GTA_ONBOARD_KEY, '1')
+      setShowOnboarding(true)
+    }
+    if (!gtaActive) { setShowSettings(false); setShowLeaderboard(false); setShowOnboarding(false) }
   }, [gtaActive])
+
+  // Settings "GTA VI Mode Info" button → open info panel via custom event.
+  useEffect(() => {
+    function onOpenInfo() { setShowOnboarding(true) }
+    window.addEventListener(GTA_INFO_EVENT, onOpenInfo)
+    return () => window.removeEventListener(GTA_INFO_EVENT, onOpenInfo)
+  }, [])
 
   return (
     <>
@@ -289,6 +306,9 @@ export function GTAHud() {
       {/* XP toast notifications — bottom-right, GTA mode only */}
       {gtaActive && <XPToastStack />}
 
+      {/* Onboarding / info panel — first activation or triggered from Settings */}
+      {showOnboarding && <GTAOnboardingPanel onDismiss={() => setShowOnboarding(false)} />}
+
       {/* ── Gear (settings) button — bottom-right, always visible ── */}
       <GtaSettingsButton />
 
@@ -363,6 +383,179 @@ export function GTAHud() {
         </div>
       )}
     </>
+  )
+}
+
+// ── GTA VI Onboarding / Info panel ────────────────────────────────────────
+
+const _INFO_FEATURES = [
+  {
+    icon: '⭐',
+    color: '#FFB52E',
+    title: 'WANTED LEVEL',
+    desc: '5-star police proximity indicator. Stars light up as police get closer — from ALL CLEAR to DANGER.',
+  },
+  {
+    icon: '🏆',
+    color: '#8B42FF',
+    title: 'DRIVER XP',
+    desc: 'Report events +50 XP, confirm/deny +10 XP, daily bonus +20 XP. Level up from CIVILIAN to VICE LORD.',
+  },
+  {
+    icon: '🚨',
+    color: '#F329A7',
+    title: 'CITY ACTIVITY',
+    desc: 'Live count of police, accidents and hazards in your area. Tap the XP badge for the global leaderboard.',
+  },
+  {
+    icon: '🎮',
+    color: '#00D9FF',
+    title: 'GTA AVATAR',
+    desc: 'Your map avatar evolves as your rank grows. Tap it to see your current rank and XP progress.',
+  },
+] as const
+
+function GTAOnboardingPanel({ onDismiss }: { onDismiss: () => void }) {
+  return (
+    <div
+      style={{
+        position:       'fixed',
+        inset:          0,
+        zIndex:         950,
+        display:        'flex',
+        flexDirection:  'column',
+        alignItems:     'center',
+        justifyContent: 'center',
+        background:     'rgba(4,7,20,0.97)',
+        padding:        '20px 24px',
+        overflowY:      'auto',
+      }}
+    >
+      {/* Corner vignettes */}
+      <div
+        aria-hidden="true"
+        style={{
+          position:      'absolute',
+          inset:         0,
+          pointerEvents: 'none',
+          background: [
+            'radial-gradient(ellipse at 0% 0%,   rgba(139,66,255,0.38) 0%, transparent 46%)',
+            'radial-gradient(ellipse at 100% 0%,  rgba(243,41,167,0.28) 0%, transparent 42%)',
+            'radial-gradient(ellipse at 0% 100%,  rgba(255,181,46,0.32) 0%, transparent 44%)',
+            'radial-gradient(ellipse at 100% 100%,rgba(139,66,255,0.30) 0%, transparent 46%)',
+          ].join(','),
+        }}
+      />
+
+      {/* Logo + title */}
+      <div style={{ textAlign: 'center', marginBottom: 22, position: 'relative' }}>
+        <img
+          src="/vice-city-logo.webp"
+          alt="Vice City Edition"
+          style={{ height: 52, marginBottom: 10, pointerEvents: 'none' }}
+        />
+        <div style={{
+          fontSize:      10,
+          fontWeight:    900,
+          letterSpacing: '0.20em',
+          textTransform: 'uppercase',
+          color:         '#8B42FF',
+          marginBottom:  5,
+        }}>
+          WELCOME TO
+        </div>
+        <div style={{
+          fontSize:               20,
+          fontWeight:             900,
+          letterSpacing:          '0.07em',
+          textTransform:          'uppercase',
+          background:             'linear-gradient(90deg, #8B42FF 0%, #F329A7 100%)',
+          WebkitBackgroundClip:   'text',
+          WebkitTextFillColor:    'transparent',
+        }}>
+          VICE CITY EDITION
+        </div>
+        <div style={{
+          fontSize:      10,
+          color:         '#5A6A8E',
+          marginTop:     5,
+          letterSpacing: '0.07em',
+        }}>
+          GTA VI · themed navigation HUD
+        </div>
+      </div>
+
+      {/* Feature cards — 2 × 2 grid */}
+      <div style={{
+        display:             'grid',
+        gridTemplateColumns: '1fr 1fr',
+        gap:                 10,
+        width:               '100%',
+        maxWidth:            600,
+        marginBottom:        24,
+        position:            'relative',
+      }}>
+        {_INFO_FEATURES.map((f) => (
+          <div
+            key={f.title}
+            style={{
+              background:   'rgba(10,16,42,0.95)',
+              border:       `1px solid ${f.color}38`,
+              borderRadius: 12,
+              padding:      '14px 16px',
+              display:      'flex',
+              flexDirection: 'column',
+              gap:           7,
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 22, lineHeight: 1 }}>{f.icon}</span>
+              <span style={{
+                fontSize:      9,
+                fontWeight:    900,
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                color:         f.color,
+                lineHeight:    1.2,
+              }}>
+                {f.title}
+              </span>
+            </div>
+            <div style={{
+              fontSize:   10,
+              color:      '#A8B2D1',
+              lineHeight: 1.55,
+            }}>
+              {f.desc}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Dismiss */}
+      <button
+        onClick={onDismiss}
+        style={{
+          position:       'relative',
+          height:         54,
+          padding:        '0 44px',
+          borderRadius:   12,
+          background:     'linear-gradient(135deg, #8B42FF 0%, #F329A7 100%)',
+          border:         'none',
+          color:          '#fff',
+          fontSize:       14,
+          fontWeight:     900,
+          letterSpacing:  '0.15em',
+          textTransform:  'uppercase',
+          cursor:         'pointer',
+          touchAction:    'manipulation',
+          boxShadow:      '0 0 28px rgba(139,66,255,0.45)',
+          minWidth:       230,
+        }}
+      >
+        LET'S GO →
+      </button>
+    </div>
   )
 }
 
