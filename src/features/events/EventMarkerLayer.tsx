@@ -19,16 +19,34 @@ const NEW_THRESHOLD_MS = 2 * 60 * 1000
 
 // ── Vote badge (confirms ✓ / denies ✗) ───────────────────────────────────────
 
+const _PILL_BASE = [
+  'display:inline-flex',
+  'align-items:center',
+  'justify-content:center',
+  'border-radius:7px',
+  'padding:1px 4px',
+  'font-size:9px',
+  'font-weight:800',
+  'line-height:1.2',
+  'white-space:nowrap',
+  'font-family:monospace',
+  'min-width:14px',
+].join(';')
+
 function _updateVoteBadge(el: HTMLElement, confirms: number, denies: number): void {
   if (confirms === 0 && denies === 0) {
     el.style.display = 'none'
     return
   }
   el.style.display = 'flex'
-  const parts: string[] = []
-  if (confirms > 0) parts.push(`<span style="color:#22c55e;letter-spacing:0">✓${confirms}</span>`)
-  if (denies > 0)   parts.push(`<span style="color:#ef4444;letter-spacing:0">✗${denies}</span>`)
-  el.innerHTML = parts.join('<span style="color:rgba(255,255,255,0.22);font-size:7px"> · </span>')
+  const pills: string[] = []
+  if (confirms > 0) pills.push(
+    `<span style="${_PILL_BASE};background:rgba(22,163,74,0.90);color:#fff;border:1px solid rgba(0,0,0,0.25)">✓${confirms}</span>`
+  )
+  if (denies > 0) pills.push(
+    `<span style="${_PILL_BASE};background:rgba(220,38,38,0.90);color:#fff;border:1px solid rgba(0,0,0,0.25)">✗${denies}</span>`
+  )
+  el.innerHTML = pills.join('')
 }
 
 function _makeVoteBadge(confirms: number, denies: number): HTMLDivElement {
@@ -36,21 +54,14 @@ function _makeVoteBadge(confirms: number, denies: number): HTMLDivElement {
   badge.className = 'evt-vote-badge'
   badge.style.cssText = [
     'position:absolute',
-    'bottom:-17px',
-    'left:50%',
-    'transform:translateX(-50%)',
+    'top:-5px',
+    'right:-6px',
     'display:flex',
+    'flex-direction:column',
     'gap:2px',
-    'align-items:center',
-    'background:rgba(8,13,32,0.92)',
-    'border-radius:8px',
-    'padding:1px 5px',
-    'border:1px solid rgba(255,255,255,0.14)',
-    'font-size:9px',
-    'font-weight:700',
-    'line-height:1.3',
-    'white-space:nowrap',
-    'font-family:monospace',
+    'align-items:flex-end',
+    'pointer-events:none',
+    'z-index:2',
   ].join(';')
   _updateVoteBadge(badge, confirms, denies)
   return badge
