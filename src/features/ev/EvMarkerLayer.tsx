@@ -53,11 +53,17 @@ function makeStationElement(s: NormalizedStation, nearRoute = false): HTMLDivEle
     ? '0 0 0 2px rgba(168,85,247,0.3), 0 3px 12px rgba(0,0,0,0.6)'
     : nearRoute ? '0 0 0 2px #FFD700, 0 3px 12px rgba(0,0,0,0.6)' : '0 3px 12px rgba(0,0,0,0.55)'
 
+  // outer: MapLibre anchors here — explicit size keeps anchor math correct
+  const outer = document.createElement('div')
+  outer.style.cssText = 'width:44px;height:44px;cursor:pointer'
+
+  // inner: CSS viewport-scale lives here — isolated from MapLibre's translate on outer
   const wrap = document.createElement('div')
   wrap.className = 'marker-scale-wrap'
-  wrap.style.cssText = 'width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer'
+  wrap.style.cssText = 'width:44px;height:44px;display:flex;align-items:center;justify-content:center'
 
   const inner = document.createElement('div')
+  inner.className = 'ev-station-inner'
   inner.style.cssText = [
     'width:34px', 'height:34px', 'border-radius:50%',
     `background:${color}`, `opacity:${opacity}`,
@@ -69,7 +75,8 @@ function makeStationElement(s: NormalizedStation, nearRoute = false): HTMLDivEle
   ].join(';')
   inner.textContent = icon
   wrap.appendChild(inner)
-  return wrap
+  outer.appendChild(wrap)
+  return outer
 }
 
 function updateStationElement(el: HTMLDivElement, s: NormalizedStation, nearRoute: boolean): void {
@@ -85,7 +92,7 @@ function updateStationElement(el: HTMLDivElement, s: NormalizedStation, nearRout
     ? '0 0 0 2px rgba(168,85,247,0.3), 0 3px 12px rgba(0,0,0,0.6)'
     : nearRoute ? '0 0 0 2px #FFD700, 0 3px 12px rgba(0,0,0,0.6)' : '0 3px 12px rgba(0,0,0,0.55)'
 
-  const inner = el.firstElementChild as HTMLElement | null
+  const inner = el.querySelector<HTMLElement>('.ev-station-inner')
   if (!inner) return
   inner.style.background = color
   inner.style.opacity = `${opacity}`
@@ -145,9 +152,15 @@ function makeClusterElement(count: number, maxPower: number | null): HTMLDivElem
   const color = clusterColor(maxPower)
   const size  = r * 2
 
+  // outer: MapLibre anchors here — explicit size keeps anchor math correct
+  const outer = document.createElement('div')
+  outer.style.cssText = `width:${size}px;height:${size}px;cursor:pointer`
+
+  // inner: CSS viewport-scale lives here — isolated from MapLibre's translate on outer
   const wrap = document.createElement('div')
   wrap.className = 'marker-scale-wrap'
   const inner = document.createElement('div')
+  inner.className = 'ev-cluster-inner'
   inner.style.cssText = [
     `width:${size}px`, `height:${size}px`, 'border-radius:50%',
     `background:${color}`, 'opacity:0.88',
@@ -155,18 +168,19 @@ function makeClusterElement(count: number, maxPower: number | null): HTMLDivElem
     'box-shadow:0 2px 8px rgba(0,0,0,0.45)',
     'display:flex', 'align-items:center', 'justify-content:center',
     `font-size:${count >= 100 ? 10 : 12}px`, 'font-weight:700', 'color:#fff',
-    'line-height:1', 'cursor:pointer',
+    'line-height:1',
   ].join(';')
   inner.textContent = `${count}`
   wrap.appendChild(inner)
-  return wrap
+  outer.appendChild(wrap)
+  return outer
 }
 
 function updateClusterElement(el: HTMLDivElement, count: number, maxPower: number | null): void {
   const r     = clusterRadius(count)
   const color = clusterColor(maxPower)
   const size  = r * 2
-  const inner = el.firstElementChild as HTMLElement | null
+  const inner = el.querySelector<HTMLElement>('.ev-cluster-inner')
   if (!inner) return
   inner.style.width = `${size}px`
   inner.style.height = `${size}px`

@@ -6,6 +6,7 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ## 2026-11-24
 
+- **fix(markers): маркерите и аватарът стоят точно на географските си локации** — MapLibre пише `element.style.transform = translate(...)` директно върху предадения елемент, което overwrite-ваше CSS класа `.marker-scale-wrap { transform: scale(S) }`. Добавен outer wrapper за всички маркери (EventMarker, Camera, Section, EV станции, EV клъстери, SavedPlaces, Route) — MapLibre anchor-ва и translate-ва outer-а; CSS scale се прилага на inner div-а, без конфликт. `updateStationElement` и `updateClusterElement` вече намират inner елемента чрез `querySelector('.ev-station-inner')` / `querySelector('.ev-cluster-inner')`. HeadingAvatar не е MapLibre маркер — ползва `style.left/top`, без промяна.
 - **feat(avatar): стандартен аватар сменен с PNG** — червената SVG стрелка в standard mode е заменена с `tesradar_gta6_avatar_54x54.png` (нов файл `public/avatar-std.png`). GTA6 аватарът (rank-based SVG) остава непроменен.
 - **feat(markers): vote badge на всеки event маркер** — малка пилюла залепена за горния десен ъгъл на иконата показва брой потвърждения (`✓N` зелено) и/или отхвърляния (`✗N` червено). Скрита при 0/0. Обновява се live след confirm/deny без пре-рендерване на маркера. Admin POST `/api/admin/events` вече приема `confirms` поле за import от Waze (`nComments`).
 - **feat(xp): LV ниво в XP badge** — `LV{level}` се показва до XP броя в Driver XP бадж-а в GTA HUD.

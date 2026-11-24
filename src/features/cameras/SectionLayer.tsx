@@ -61,9 +61,14 @@ const DASH_IDLE    = [8, 6]
 const DASH_SOLID   = [1, 0]
 
 function makePinElement(section: SpeedSection): HTMLDivElement {
+  // outer: MapLibre anchors here — explicit size keeps anchor math correct
+  const outer = document.createElement('div')
+  outer.style.cssText = 'pointer-events:none;user-select:none;width:32px;height:32px'
+
+  // inner: CSS viewport-scale lives here — isolated from MapLibre's translate on outer
   const wrap = document.createElement('div')
   wrap.className = 'marker-scale-wrap'
-  wrap.style.cssText = 'pointer-events:none;user-select:none;width:32px;height:32px'
+  wrap.style.cssText = 'width:32px;height:32px'
 
   const pin = document.createElement('div')
   pin.style.cssText = [
@@ -85,7 +90,8 @@ function makePinElement(section: SpeedSection): HTMLDivElement {
   pin.appendChild(icon)
   pin.appendChild(lbl)
   wrap.appendChild(pin)
-  return wrap
+  outer.appendChild(wrap)
+  return outer
 }
 
 function lineGeoJSON(coords: [number, number][]): GeoJSON.Feature<GeoJSON.LineString> {

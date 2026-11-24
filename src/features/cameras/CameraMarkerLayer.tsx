@@ -19,9 +19,14 @@ const VIEWPORT_PAD = 0.05
 
 function makeCameraElement(cam: SpeedCamera): HTMLDivElement {
   const speed = cam.maxspeed
+  // outer: MapLibre anchors here — explicit size keeps anchor math correct
+  const outer = document.createElement('div')
+  outer.style.cssText = 'width:44px;height:44px;cursor:pointer'
+
+  // inner: CSS viewport-scale lives here — isolated from MapLibre's translate on outer
   const wrap = document.createElement('div')
   wrap.className = 'marker-scale-wrap'
-  wrap.style.cssText = 'width:44px;height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer'
+  wrap.style.cssText = 'width:44px;height:44px;display:flex;align-items:center;justify-content:center'
 
   const sign = document.createElement('div')
   sign.style.cssText = [
@@ -46,7 +51,8 @@ function makeCameraElement(cam: SpeedCamera): HTMLDivElement {
   }
 
   wrap.appendChild(sign)
-  return wrap
+  outer.appendChild(wrap)
+  return outer
 }
 
 function buildCameraPopupEl(cam: SpeedCamera): HTMLElement {

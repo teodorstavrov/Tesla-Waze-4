@@ -17,9 +17,13 @@ const PLACE_CONFIG: Record<PlaceType, { emoji: string; color: string; labelKey: 
 
 function makeElement(type: PlaceType): HTMLDivElement {
   const { emoji, color } = PLACE_CONFIG[type]
+  // outer: MapLibre anchors here — explicit size keeps anchor math correct
+  const outer = document.createElement('div')
+  outer.style.cssText = 'width:44px;height:44px;cursor:pointer'
+
+  // inner: CSS viewport-scale lives here — isolated from MapLibre's translate on outer
   const el = document.createElement('div')
   el.className = 'marker-scale-wrap'
-  el.style.cursor = 'pointer'
 
   const inner = document.createElement('div')
   inner.style.cssText = [
@@ -32,7 +36,8 @@ function makeElement(type: PlaceType): HTMLDivElement {
   ].join(';')
   inner.textContent = emoji
   el.appendChild(inner)
-  return el
+  outer.appendChild(el)
+  return outer
 }
 
 function buildPopupContent(

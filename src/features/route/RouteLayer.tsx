@@ -18,6 +18,11 @@ import { isTeslaBrowser } from '@/lib/browser'
 const MAX_ALT = 2
 
 function makeDestElement(): HTMLDivElement {
+  // outer: MapLibre anchors here — explicit size keeps anchor math correct
+  const outer = document.createElement('div')
+  outer.style.cssText = 'width:32px;height:32px'
+
+  // inner: CSS viewport-scale lives here — isolated from MapLibre's translate on outer
   const wrap = document.createElement('div')
   wrap.className = 'marker-scale-wrap'
   const circle = document.createElement('div')
@@ -30,7 +35,8 @@ function makeDestElement(): HTMLDivElement {
   ].join(';')
   circle.textContent = '🏁'
   wrap.appendChild(circle)
-  return wrap
+  outer.appendChild(wrap)
+  return outer
 }
 
 function drawPolyline(

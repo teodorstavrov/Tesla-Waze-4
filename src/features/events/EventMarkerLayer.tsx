@@ -69,12 +69,16 @@ function _makeVoteBadge(confirms: number, denies: number): HTMLDivElement {
 
 // Waze-style police badge SVG: orange ring → white separator → blue circle → officer illustration
 function makePoliceElement(animation: string, confirms: number, denies: number): HTMLDivElement {
-  const wrap = document.createElement('div')
-  wrap.className = 'marker-scale-wrap'
-  wrap.style.cursor = 'pointer'
-  wrap.style.position = 'relative'
+  // outer: MapLibre anchors here via transform:translate — explicit size keeps anchor math correct
+  const outer = document.createElement('div')
+  outer.style.cssText = 'position:relative;width:46px;height:46px;cursor:pointer'
+
+  // inner: CSS viewport-scale lives here — isolated from MapLibre's translate on outer
+  const inner = document.createElement('div')
+  inner.className = 'marker-scale-wrap'
+  inner.style.cssText = 'width:46px;height:46px'
   // SVG uses drop-shadow filter instead of box-shadow (works on non-rectangular shapes)
-  wrap.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="46" height="46" viewBox="0 0 46 46"
+  inner.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="46" height="46" viewBox="0 0 46 46"
       style="display:block;filter:drop-shadow(0 2px 5px rgba(0,0,0,0.6));animation:${animation}">
     <!-- Orange outer ring -->
     <circle cx="23" cy="23" r="22.5" fill="#f97316"/>
@@ -104,8 +108,10 @@ function makePoliceElement(animation: string, confirms: number, denies: number):
     <polygon points="23,34 23.6,35.8 25.5,35.8 24.1,36.9 24.6,38.7 23,37.6 21.4,38.7 21.9,36.9 20.5,35.8 22.4,35.8"
       fill="#fbbf24"/>
   </svg>`
-  wrap.appendChild(_makeVoteBadge(confirms, denies))
-  return wrap
+
+  outer.appendChild(inner)
+  outer.appendChild(_makeVoteBadge(confirms, denies))
+  return outer
 }
 
 function makeElement(event: RoadEvent): HTMLDivElement {
@@ -125,12 +131,13 @@ function makeElement(event: RoadEvent): HTMLDivElement {
   const border = `2px solid ${color}`
   const shadow = '0 2px 8px rgba(0,0,0,0.55)'
 
-  const wrap = document.createElement('div')
-  wrap.className = 'marker-scale-wrap'
-  wrap.style.cursor = 'pointer'
-  wrap.style.position = 'relative'
+  // outer: MapLibre anchors here via transform:translate — explicit size keeps anchor math correct
+  const outer = document.createElement('div')
+  outer.style.cssText = 'position:relative;width:36px;height:36px;cursor:pointer'
 
+  // inner: CSS viewport-scale lives here — isolated from MapLibre's translate on outer
   const inner = document.createElement('div')
+  inner.className = 'marker-scale-wrap'
   inner.style.cssText = [
     'width:36px', 'height:36px', 'border-radius:50%',
     `background:${bg}`, `border:${border}`,
@@ -140,9 +147,9 @@ function makeElement(event: RoadEvent): HTMLDivElement {
     `animation:${animation}`,
   ].join(';')
   inner.textContent = emoji
-  wrap.appendChild(inner)
-  wrap.appendChild(_makeVoteBadge(event.confirms, event.denies))
-  return wrap
+  outer.appendChild(inner)
+  outer.appendChild(_makeVoteBadge(event.confirms, event.denies))
+  return outer
 }
 
 export function EventMarkerLayer() {
