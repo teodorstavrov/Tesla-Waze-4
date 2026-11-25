@@ -1,3 +1,6 @@
+/* Orbitron — futuristic display font for Vice City UI elements */
+@import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&display=swap');
+
 /* ═══════════════════════════════════════════════════════════════════════════
    GTA VI MODE — VICE CITY
    All rules scoped under [data-gta] so Standard Mode is untouched.
@@ -163,21 +166,39 @@
   box-shadow: 0 0 0 1px rgba(243, 41, 167, 0.60) !important;
 }
 
-/* ── 7b. Report button in GTA mode ───────────────────────────────────────── */
-/* Match other buttons style: no left/right border, 30% bg, but wider + reddish */
+/* ── 7b. Report button in GTA mode — Neon Outline (Vice City) ───────────── */
 [data-gta] .report-btn {
-  background:    rgba(200, 20, 40, 0.30) !important;
-  border-radius: 10px !important;
-  border-top:    1px solid rgba(227, 25, 55, 0.50) !important;
-  border-bottom: 1px solid rgba(227, 25, 55, 0.50) !important;
-  border-left:   none !important;
-  border-right:  none !important;
-  box-shadow:    none !important;
-  color:         rgba(255, 190, 200, 0.95) !important;
+  background:    rgba(4, 7, 20, 0.55) !important;
+  border:        2px solid #F329A7 !important;
+  border-radius: 9999px !important;
+  color:         #F329A7 !important;
+  font-family:   'Orbitron', 'Rajdhani', sans-serif !important;
+  letter-spacing: 0.10em !important;
+  text-shadow:   0 0 8px rgba(243, 41, 167, 0.85) !important;
+  animation:     report-neon-pulse 2s ease-in-out infinite !important;
+  opacity:       1 !important;
 }
 
 [data-gta] .report-btn:active {
   transform: scale(0.96) !important;
+}
+
+@keyframes report-neon-pulse {
+  0%,  100% { box-shadow: 0 0 10px rgba(243, 41, 167, 0.40), inset 0 0  6px rgba(243, 41, 167, 0.06); }
+  50%        { box-shadow: 0 0 28px rgba(243, 41, 167, 0.85), inset 0 0 14px rgba(243, 41, 167, 0.14); }
+}
+
+/* Tesla: no animation — static glow instead */
+[data-gta][data-tesla] .report-btn {
+  animation:  none !important;
+  box-shadow: 0 0 14px rgba(243, 41, 167, 0.50) !important;
+}
+
+/* Lite quality: no glow */
+[data-gta][data-gta-lite] .report-btn {
+  animation:  none !important;
+  box-shadow: none !important;
+  text-shadow: none !important;
 }
 
 /* ── 7c. GPS avatar ────────────────────────────────────────────────────────── */
