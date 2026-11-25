@@ -6,6 +6,9 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ## 2026-11-25
 
+- **feat(gta): GTA VI Mode пуснат в production (tesradar.tech)** — премахнати всички `isPreviewEnvironment` ограничения. GTA VI Edition бутонът в FloatingTitleCard, GTAHud overlay-ят и "GTA VI Mode Info" бутонът в Settings вече работят на живо за всички потребители.
+- **feat(dock): Report бутон — Neon Outline в GTA6 режим** — тъмен фон, `2px solid #F329A7` magenta border, Orbitron шрифт, пулсиращ glow animation (`report-neon-pulse`, 2s). Tesla flat mode: статичен glow без анимация.
+- **feat(gta): автоматичен Rate панел на 10-то активиране на GTA6** — `localStorage` ключ `tesradar:gtaActivations` брои включванията; на точно 10-то отваряне Vice City styled Rate панелът изскача след 1.8 сек.
 - **feat(rating): Vice City Edition оценка в GTA6 режим** — `Rate TesRadar` панелът вече показва Vice City styled UI когато GTA6 режимът е активен: тъмен фон `rgba(4,7,20,0.98)`, лилав border с glow, GTA VI badge, gradient заглавие "Rate Vice City Edition", purple→magenta submit бутон. Оценките се пазят в отделни Redis ключове (`rating:gta6:sum/count`) и не се смесват с общите TesRadar оценки. Имейл нотификацията съдържа subject с "GTA VI · Vice City Edition" и лилав HTML badge. GET `/api/rating?mode=gta6` връща само GTA6 статистиките.
 
 ---
