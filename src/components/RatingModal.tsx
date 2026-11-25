@@ -1,12 +1,14 @@
 // ─── Rating Modal ──────────────────────────────────────────────────────
 // Quick 1–5 star rating popup. Opened via openRatingModal().
 // Language-aware: switches BG↔EN with country/langStore.
+// GTA6 mode: Vice City styled UI + separate Redis stats + gta6 email tag.
 
 import { useState, useEffect, useCallback, useSyncExternalStore } from 'react'
 import { createPortal } from 'react-dom'
 import { isTeslaBrowser } from '@/lib/browser'
 import { getLang, langStore } from '@/lib/locale'
 import { audioManager } from '@/features/audio/audioManager'
+import { gtaModeStore } from '@/features/gta/gtaModeStore'
 
 let _open:  (() => void) | null = null
 let _close: (() => void) | null = null
@@ -72,9 +74,13 @@ export function RatingModal() {
   const [state,   setState]   = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const [errMsg,  setErrMsg]  = useState('')
   const [stats,   setStats]   = useState<RatingStats | null>(null)
+  // Capture GTA mode at open time — doesn't change while modal is open
+  const [isGta,   setIsGta]   = useState(false)
 
   _open = () => {
     audioManager.uiBeep()
+    const gta = gtaModeStore.isActive()
+    setIsGta(gta)
     setOpen(true)
     setHovered(0); setSelected(0); setComment(''); setName(''); setEmail(''); setCountry(''); setCity(''); setState('idle'); setErrMsg('')
     if (isTeslaBrowser) {
@@ -82,8 +88,8 @@ export function RatingModal() {
     } else {
       requestAnimationFrame(() => requestAnimationFrame(() => setShown(true)))
     }
-    // Fetch aggregate in background
-    fetch('/api/rating')
+    // Fetch GTA6-specific or general aggregate
+    fetch(gta ? '/api/rating?mode=gta6' : '/api/rating')
       .then((r) => r.json() as Promise<RatingStats>)
       .then(setStats)
       .catch(() => { /* non-fatal */ })
@@ -120,6 +126,7 @@ export function RatingModal() {
           email:   email.trim(),
           country: country.trim(),
           city:    city.trim(),
+          ...(isGta && { mode: 'gta6' }),
         }),
       })
       const data = await res.json() as { ok?: boolean; error?: string }
@@ -142,8 +149,19 @@ export function RatingModal() {
       {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-static-element-interactions */}
       <div onClick={close} style={{
         position: 'absolute', inset: 0,
-        background: 'rgba(0,0,0,0.82)',
+        background: isGta ? 'rgba(2,4,14,0.92)' : 'rgba(0,0,0,0.82)',
       }} />
+
+      {/* GTA corner vignettes on backdrop */}
+      {isGta && (
+        <div aria-hidden="true" style={{
+          position: 'absolute', inset: 0, pointerEvents: 'none',
+          background: [
+            'radial-gradient(ellipse at 0% 0%,   rgba(139,66,255,0.28) 0%, transparent 42%)',
+            'radial-gradient(ellipse at 100% 100%,rgba(243,41,167,0.22) 0%, transparent 40%)',
+          ].join(','),
+        }} />
+      )}
 
       {/* Card */}
       <div style={{
@@ -151,9 +169,13 @@ export function RatingModal() {
         width: 'min(380px, calc(100vw - 40px))',
         padding: '28px 24px 24px',
         borderRadius: 20,
-        background: 'rgba(18,18,26,0.96)',
-        border: '1px solid rgba(255,255,255,0.12)',
-        boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
+        background: isGta ? 'rgba(4,7,20,0.98)' : 'rgba(18,18,26,0.96)',
+        border: isGta
+          ? '1px solid rgba(139,66,255,0.45)'
+          : '1px solid rgba(255,255,255,0.12)',
+        boxShadow: isGta
+          ? '0 24px 64px rgba(0,0,0,0.6), 0 0 40px rgba(139,66,255,0.15)'
+          : '0 24px 64px rgba(0,0,0,0.6)',
         display: 'flex', flexDirection: 'column', gap: 20,
         opacity: shown ? 1 : 0,
         transform: shown ? 'scale(1)' : 'scale(0.96)',
@@ -163,17 +185,30 @@ export function RatingModal() {
         <button onClick={close} aria-label={s.close} style={{
           position: 'absolute', top: 14, right: 14,
           width: 34, height: 34, borderRadius: 10,
-          background: 'rgba(255,255,255,0.07)', border: '1px solid rgba(255,255,255,0.1)',
-          color: 'rgba(255,255,255,0.5)', cursor: 'pointer', fontSize: 18,
+          background: isGta ? 'rgba(139,66,255,0.12)' : 'rgba(255,255,255,0.07)',
+          border: isGta ? '1px solid rgba(139,66,255,0.30)' : '1px solid rgba(255,255,255,0.1)',
+          color: isGta ? 'rgba(139,66,255,0.8)' : 'rgba(255,255,255,0.5)',
+          cursor: 'pointer', fontSize: 18,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>×</button>
 
         {state === 'sent' ? (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14, padding: '12px 0' }}>
-            <div style={{ fontSize: 48 }}>🙏</div>
-            <div style={{ fontSize: 17, fontWeight: 700, color: '#f2f2f2', textAlign: 'center' }}>
-              {s.thankYou}
-            </div>
+            <div style={{ fontSize: 48 }}>{isGta ? '🏆' : '🙏'}</div>
+            {isGta ? (
+              <div style={{
+                fontSize: 15, fontWeight: 900, letterSpacing: '0.08em', textTransform: 'uppercase',
+                background: 'linear-gradient(90deg, #8B42FF, #F329A7)',
+                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                textAlign: 'center',
+              }}>
+                Vice City Rating Submitted!
+              </div>
+            ) : (
+              <div style={{ fontSize: 17, fontWeight: 700, color: '#f2f2f2', textAlign: 'center' }}>
+                {s.thankYou}
+              </div>
+            )}
             <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.45)', textAlign: 'center' }}>
               {'⭐'.repeat(selected)} {selected}/5
             </div>
@@ -181,12 +216,43 @@ export function RatingModal() {
         ) : (
           <>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: 18, fontWeight: 700, color: '#f2f2f2', marginBottom: 4 }}>
-                {s.title}
-              </div>
-              <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
-                {s.subtitle}
-              </div>
+              {isGta ? (
+                <>
+                  {/* GTA6 mode indicator badge */}
+                  <div style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 5,
+                    padding: '3px 10px', borderRadius: 6, marginBottom: 10,
+                    background: 'rgba(139,66,255,0.15)',
+                    border: '1px solid rgba(139,66,255,0.40)',
+                  }}>
+                    <span style={{ fontSize: 11 }}>🎮</span>
+                    <span style={{
+                      fontSize: 8, fontWeight: 900, letterSpacing: '0.14em',
+                      textTransform: 'uppercase', color: '#8B42FF',
+                    }}>GTA VI · VICE CITY EDITION</span>
+                  </div>
+                  <div style={{
+                    fontSize: 18, fontWeight: 900, letterSpacing: '0.05em',
+                    background: 'linear-gradient(90deg, #8B42FF, #F329A7)',
+                    WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
+                    marginBottom: 4,
+                  }}>
+                    Rate Vice City Edition
+                  </div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.35)' }}>
+                    Your rating helps improve the GTA VI experience
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: 18, fontWeight: 700, color: '#f2f2f2', marginBottom: 4 }}>
+                    {s.title}
+                  </div>
+                  <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)' }}>
+                    {s.subtitle}
+                  </div>
+                </>
+              )}
 
               {/* Aggregate stats */}
               {stats !== null && (
@@ -300,11 +366,15 @@ export function RatingModal() {
               disabled={!selected || state === 'sending'}
               style={{
                 width: '100%', padding: '15px 0', borderRadius: 14, border: 'none',
-                background: selected ? '#e31937' : 'rgba(255,255,255,0.1)',
+                background: selected
+                  ? (isGta ? 'linear-gradient(90deg, #8B42FF, #F329A7)' : '#e31937')
+                  : 'rgba(255,255,255,0.1)',
                 color: selected ? '#fff' : 'rgba(255,255,255,0.3)',
                 fontSize: 16, fontWeight: 700, cursor: selected ? 'pointer' : 'default',
                 touchAction: 'manipulation', transition: 'background 0.15s ease',
                 opacity: state === 'sending' ? 0.6 : 1,
+                letterSpacing: isGta && selected ? '0.04em' : undefined,
+                textTransform: isGta ? 'uppercase' : undefined,
               }}
             >
               {state === 'sending' ? s.sending : selected ? s.submitActive(selected) : s.submitIdle}

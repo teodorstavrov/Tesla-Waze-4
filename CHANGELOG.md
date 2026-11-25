@@ -4,6 +4,12 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-11-25
+
+- **feat(rating): Vice City Edition оценка в GTA6 режим** — `Rate TesRadar` панелът вече показва Vice City styled UI когато GTA6 режимът е активен: тъмен фон `rgba(4,7,20,0.98)`, лилав border с glow, GTA VI badge, gradient заглавие "Rate Vice City Edition", purple→magenta submit бутон. Оценките се пазят в отделни Redis ключове (`rating:gta6:sum/count`) и не се смесват с общите TesRadar оценки. Имейл нотификацията съдържа subject с "GTA VI · Vice City Edition" и лилав HTML badge. GET `/api/rating?mode=gta6` връща само GTA6 статистиките.
+
+---
+
 ## 2026-11-24
 
 - **feat(gta): GTA VI Mode onboarding панел** — при първа активация на GTA6 режима се показва full-screen Vice City styled панел с обяснение на 4-те основни функции: Wanted Level (★★★★★ police proximity), Driver XP (level up от CIVILIAN до VICE LORD), City Activity (live брой събития) и GTA Avatar (еволюира с ранга). Вижда се само веднъж (localStorage `tesradar:gtaOnboarded`). Достъпен повторно чрез нов бутон "GTA VI Mode Info" в Settings панела (само на preview env).

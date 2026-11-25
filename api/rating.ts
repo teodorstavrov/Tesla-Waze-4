@@ -1,11 +1,12 @@
 // ─── GET  /api/rating  — public aggregate (avg + count) ──────────────
 // ─── POST /api/rating  — submit rating (1–5 stars + optional comment) ─
 //
-// Ratings are stored in Redis as two keys:
-//   rating:sum   — running INCRBYFLOAT total
-//   rating:count — INCR vote count
+// Ratings are stored in Redis as two key pairs:
+//   rating:sum / rating:count          — general TesRadar ratings
+//   rating:gta6:sum / rating:gta6:count — GTA VI Vice City Edition ratings
 //
-// Rate limit: 1 POST per IP per day.
+// Pass ?mode=gta6 (GET) or { mode: 'gta6' } (POST body) for GTA6 mode.
+// Rate limit: 1 POST per IP per day (shared across modes).
 
 import type { VercelRequest, VercelResponse } from '@vercel/node'
 import { rateLimit } from './_lib/utils/rateLimit.js'
@@ -18,8 +19,10 @@ const FROM_EMAIL     = 'TesRadar <noreply@tesradar.tech>'
 
 const STARS = ['', '⭐', '⭐⭐', '⭐⭐⭐', '⭐⭐⭐⭐', '⭐⭐⭐⭐⭐']
 
-const REDIS_SUM_KEY   = 'rating:sum'
-const REDIS_COUNT_KEY = 'rating:count'
+function redisKeys(mode: string | undefined): { sum: string; count: string } {
+  if (mode === 'gta6') return { sum: 'rating:gta6:sum', count: 'rating:gta6:count' }
+  return { sum: 'rating:sum', count: 'rating:count' }
+}
 
 export default async function handler(req: VercelRequest, res: VercelResponse): Promise<void> {
   res.setHeader('Access-Control-Allow-Origin', '*')
@@ -35,10 +38,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
         res.status(200).json({ avg: null, count: 0 }); return
       }
 
+      const mode = req.query['mode'] as string | undefined
+      const { sum: sumKey, count: countKey } = redisKeys(mode)
+
       // INCR/INCRBYFLOAT store raw strings (not JSON), read directly.
       const [sumResult, countResult] = await redis.pipeline([
-        ['GET', REDIS_SUM_KEY],
-        ['GET', REDIS_COUNT_KEY],
+        ['GET', sumKey],
+        ['GET', countKey],
       ])
 
       const count = parseInt(String(countResult ?? '0'), 10) || 0
@@ -69,6 +75,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     const email   = String(body?.email   ?? '').trim().slice(0, 200)
     const country = String(body?.country ?? '').trim().slice(0, 100)
     const city    = String(body?.city    ?? '').trim().slice(0, 100)
+    const mode    = body?.mode === 'gta6' ? 'gta6' : undefined
+    const isGta6  = mode === 'gta6'
 
     if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
       res.status(400).json({ error: 'Невалидна оценка' }); return
@@ -77,9 +85,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
     // Store in Redis (best-effort — don't fail the request if Redis is down)
     if (isRedisConfigured()) {
       try {
+        const { sum: sumKey, count: countKey } = redisKeys(mode)
         await redis.pipeline([
-          ['INCRBYFLOAT', REDIS_SUM_KEY,   rating],
-          ['INCR',        REDIS_COUNT_KEY],
+          ['INCRBYFLOAT', sumKey,   rating],
+          ['INCR',        countKey],
         ])
       } catch (redisErr) {
         console.error('[rating] Redis write failed:', redisErr)
@@ -88,12 +97,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
 
     // Send email notification
     if (!RESEND_API_KEY) {
-      console.log('[rating] Would send:', { rating, comment })
+      console.log('[rating] Would send:', { rating, comment, mode })
       res.status(200).json({ ok: true }); return
     }
 
-    const stars   = STARS[rating] ?? ''
-    const subject = `TesRadar — Оценка ${rating}/5 ${stars}${name ? ` от ${name}` : ''}`
+    const stars = STARS[rating] ?? ''
+
+    const subject = isGta6
+      ? `TesRadar GTA VI · Vice City Edition — Оценка ${rating}/5 ${stars}${name ? ` от ${name}` : ''}`
+      : `TesRadar — Оценка ${rating}/5 ${stars}${name ? ` от ${name}` : ''}`
 
     const metaLines = [
       name    && `Име: ${name}`,
@@ -107,8 +119,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse): 
       ? `<p style="color:#888;font-size:13px;">${metaLines.join('<br>')}</p>`
       : ''
 
-    const text = `Оценка: ${rating}/5 ${stars}${metaText}${comment ? `\n\nКоментар: ${comment}` : ''}`
-    const html = `<h2>${stars} ${rating}/5</h2>${metaHtml}${comment ? `<p><b>Коментар:</b> ${comment.replace(/\n/g, '<br>')}</p>` : ''}`
+    const gtaBadgeHtml = isGta6
+      ? `<div style="display:inline-block;padding:3px 10px;border-radius:6px;background:rgba(139,66,255,0.15);border:1px solid rgba(139,66,255,0.4);margin-bottom:12px;font-size:11px;font-weight:900;letter-spacing:0.14em;color:#8B42FF;">🎮 GTA VI · VICE CITY EDITION</div><br>`
+      : ''
+
+    const text = `${isGta6 ? '[GTA VI Vice City Edition]\n' : ''}Оценка: ${rating}/5 ${stars}${metaText}${comment ? `\n\nКоментар: ${comment}` : ''}`
+    const html = `${gtaBadgeHtml}<h2>${stars} ${rating}/5</h2>${metaHtml}${comment ? `<p><b>Коментар:</b> ${comment.replace(/\n/g, '<br>')}</p>` : ''}`
 
     const emailRes = await fetch('https://api.resend.com/emails', {
       method:  'POST',
