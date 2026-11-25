@@ -5,7 +5,7 @@ import { gtaModeStore } from '@/features/gta/gtaModeStore'
 import { openRatingModal } from '@/components/RatingModal'
 import { openSupportModal } from '@/components/SupportModal'
 import { openLockSoundModal } from '@/components/LockSoundModal'
-import { isTeslaBrowser, isPreviewEnvironment } from '@/lib/browser'
+import { isTeslaBrowser } from '@/lib/browser'
 import { t, getLang, langStore } from '@/lib/locale'
 
 export function FloatingTitleCard() {
@@ -126,9 +126,8 @@ export function FloatingTitleCard() {
             </svg>
           </button>
 
-          {/* GTA VI Edition toggle — preview only */}
-          {isPreviewEnvironment && (
-            <div style={{ position: 'relative' }}>
+          {/* GTA VI Edition toggle */}
+          <div style={{ position: 'relative' }}>
               <button
                 onClick={gtaModeStore.toggle}
                 aria-label="Switch to GTA VI Edition Mode"
@@ -171,9 +170,9 @@ export function FloatingTitleCard() {
                 NEW
               </span>
             </div>
-          )}
         </>
       )}
     </div>
   )
 }
+

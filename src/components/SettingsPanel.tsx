@@ -13,7 +13,6 @@ import { openCountryPicker } from '@/components/CountryPicker'
 import { openTermsModal } from '@/components/TermsModal'
 import { countryStore } from '@/lib/countryStore'
 import { langStore, getLang, t } from '@/lib/locale'
-import { isPreviewEnvironment } from '@/lib/browser'
 import { GTA_INFO_EVENT } from '@/features/gta/GTAHud'
 
 const FB_GROUP_URL = 'https://www.facebook.com/groups/1496658052161240'
@@ -215,17 +214,15 @@ function PanelContent() {
       {/* Divider */}
       <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', margin: '4px 0' }} />
 
-      {/* GTA VI Mode Info — preview env only */}
-      {isPreviewEnvironment && (
-        <Row
-          icon={<GtaInfoIcon />}
-          label="GTA VI Mode Info"
-          onToggle={() => {
-            uiStore.closeSettings()
-            window.dispatchEvent(new Event(GTA_INFO_EVENT))
-          }}
-        />
-      )}
+      {/* GTA VI Mode Info */}
+      <Row
+        icon={<GtaInfoIcon />}
+        label="GTA VI Mode Info"
+        onToggle={() => {
+          uiStore.closeSettings()
+          window.dispatchEvent(new Event(GTA_INFO_EVENT))
+        }}
+      />
 
       {/* Terms & Privacy */}
       <Row
