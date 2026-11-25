@@ -7,6 +7,7 @@ import { routeStore } from '@/features/route/routeStore'
 import { langStore, t } from '@/lib/locale'
 import { v8SportEngine, v8MuscleEngine, v8AmgEngine, v8W12Engine } from '@/features/v8sound/v8Engine'
 import { v8HeaderEngine } from '@/features/v8sound/audioEngine'
+import { gtaModeStore } from '@/features/gta/gtaModeStore'
 
 export function BottomDock() {
   // Re-render on language change so button labels update
@@ -105,6 +106,8 @@ export function BottomDock() {
 
   const [engineToast, setEngineToast] = useState(false)
   const engineToastTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const isGta = useSyncExternalStore(gtaModeStore.subscribe.bind(gtaModeStore), gtaModeStore.isActive, gtaModeStore.isActive)
 
   const [noRouteMsg, setNoRouteMsg] = useState(false)
   const noRouteMsgTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -289,17 +292,20 @@ export function BottomDock() {
           padding: '0 clamp(10px, 2.5vh, 32px)',
           height: 'clamp(48px, calc((100vh - 195px) / 7 * 0.94), 83px)',
           borderRadius: 'clamp(24px, calc((100vh - 195px) / 7 * 0.47), 42px)',
-          background: '#e31937',
-          border: 'none',
-          color: '#fff',
+          background: isGta ? 'rgba(4,7,20,0.55)' : '#e31937',
+          border: isGta ? '2px solid #F329A7' : 'none',
+          color: isGta ? '#F329A7' : '#fff',
           fontSize: 'clamp(11px, 1.8vh, 16px)',
           fontWeight: 700,
           letterSpacing: '0.04em',
           cursor: 'pointer',
-          boxShadow: '0 6px 28px rgba(227,25,55,0.45)',
+          boxShadow: isGta
+            ? '0 0 18px rgba(243,41,167,0.55), inset 0 0 10px rgba(243,41,167,0.08)'
+            : '0 6px 28px rgba(227,25,55,0.45)',
           touchAction: 'manipulation',
-          opacity: 0.7,
+          opacity: 0.9,
           whiteSpace: 'nowrap',
+          textShadow: isGta ? '0 0 8px rgba(243,41,167,0.8)' : 'none',
         }}
         onPointerDown={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = 'scale(0.96)' }}
         onPointerUp={(e) => { (e.currentTarget as HTMLButtonElement).style.transform = '' }}
