@@ -9,6 +9,7 @@ const TIKTOK   = 'https://www.tiktok.com/@tesradar'
 const FACEBOOK = 'https://www.facebook.com/groups/1496658052161240'
 
 export type Lang = 'bg' | 'en'
+export type MailId = number | 'gta6'
 type Block = string | { ul: string[] } | { ol: string[] }
 interface Mail {
   subject: string
@@ -27,8 +28,26 @@ const NEUTRAL_EMAIL_2 = new Set(['BE', 'DE', 'FR'])
 
 // ── Texts ─────────────────────────────────────────────────────────────
 
-function mailBg(n: number): Mail {
+function mailBg(n: MailId): Mail {
   switch (n) {
+    case 'gta6': return {
+      subject: '{name}, TesRadar вече има GTA VI режим 🎮',
+      pre: 'Vice City на картата: Wanted ниво, XP точки и ранг до VICE LORD.',
+      body: [
+        'Здравей, {name}!',
+        'Пуснахме най-голямата промяна в TesRadar досега: GTA VI режим. Картата става Vice City HUD с неонови цветове, а всеки твой доклад ти носи точки и ранг.',
+        { ul: [
+          '<b>Wanted Level:</b> 5 звезди, които светват, когато наближаваш полиция. От ALL CLEAR до DANGER.',
+          '<b>Driver XP:</b> докладвай събитие +50 XP, потвърди или отхвърли +10 XP, всеки ден +20 XP. Изкачвай се от CIVILIAN до VICE LORD.',
+          '<b>Класация:</b> топ 50 шофьори. Докосни XP значката и виж къде си.',
+          '<b>GTA аватар:</b> стрелката ти на картата се променя с ранга. Докосни я, за да видиш колко ти остава до следващия.',
+          '<b>City Activity:</b> колко полиция, катастрофи и опасности има около теб в момента.',
+        ] },
+        'Как да го включиш: докосни бутона „GTA VI Edition“ горе на картата. Режимът е на английски. На по-стара Tesla превключи на Lite за по-плавна картина.',
+        'Кажи ни как ти се струва: в GTA режима има отделна оценка „Vice City Edition“.',
+      ],
+      cta: 'Включи GTA VI режима',
+    }
     case 1: return {
       subject: '{name}, 60 секунди до първия ти маршрут в TesRadar',
       pre: 'Три стъпки, за да работи всичко в браузъра на Tesla.',
@@ -182,9 +201,28 @@ function mailBg(n: number): Mail {
   }
 }
 
-function mailEn(n: number, country: string): Mail {
+function mailEn(n: MailId, country: string): Mail {
   const cc = String(country || '').trim().toUpperCase()
   switch (n) {
+    case 'gta6': return {
+      subject: '{name}, TesRadar now has a GTA VI mode 🎮',
+      pre: 'Vice City on your map: Wanted level, XP points and ranks up to VICE LORD.',
+      body: [
+        'Hi {name}!',
+        'We just shipped the biggest change to TesRadar so far: GTA VI mode. The map turns into a Vice City HUD with neon colours, and every report you make earns you points and rank.',
+        { ul: [
+          NEUTRAL_EMAIL_2.has(cc)
+            ? '<b>City Activity:</b> a live count of accidents, hazards and other events around you.'
+            : '<b>Wanted Level:</b> 5 stars that light up as you get closer to police. From ALL CLEAR to DANGER.',
+          '<b>Driver XP:</b> report an event +50 XP, confirm or dismiss one +10 XP, daily bonus +20 XP. Climb from CIVILIAN to VICE LORD.',
+          '<b>Leaderboard:</b> the top 50 drivers. Tap the XP badge to see where you stand.',
+          '<b>GTA avatar:</b> your arrow on the map changes with your rank. Tap it to see how far you are from the next one.',
+        ] },
+        'How to turn it on: tap the “GTA VI Edition” button at the top of the map. On an older Tesla, switch to Lite for smoother graphics.',
+        'Tell us what you think: GTA mode has its own “Vice City Edition” rating.',
+      ],
+      cta: 'Turn on GTA VI mode',
+    }
     case 1: return {
       subject: '{name}, 60 seconds to your first TesRadar route',
       pre: 'Three steps to get everything working in your Tesla browser.',
@@ -354,14 +392,14 @@ function mailEn(n: number, country: string): Mail {
 
 const UI = {
   bg: {
-    from:   'Теодор от TesRadar <noreply@tesradar.tech>',
+    from:   'TesRadar <noreply@tesradar.tech>',
     social: 'Последвай TesRadar за кратки видеа, нови функции и новини от общността:',
     fbLabel: 'Facebook група',
     why:    'Получаваш този имейл, защото си регистриран в TesRadar.',
     unsub:  'Отпиши се',
   },
   en: {
-    from:   'Teodor from TesRadar <noreply@tesradar.tech>',
+    from:   'TesRadar <noreply@tesradar.tech>',
     social: 'Follow TesRadar for short videos, new features and community news:',
     fbLabel: 'Facebook group',
     why:    'You are receiving this because you registered for TesRadar.',
@@ -395,14 +433,14 @@ export interface RenderedMail {
   headers: Record<string, string>
 }
 
-export function renderMail(n: number, user: { name: string; email: string; country: string }): RenderedMail {
+export function renderMail(n: MailId, user: { name: string; email: string; country: string }): RenderedMail {
   const lang  = langFor(user.country)
   const mail  = lang === 'bg' ? mailBg(n) : mailEn(n, user.country)
   const ui    = UI[lang]
   const first = (user.name || '').trim().split(/\s+/)[0] || (lang === 'bg' ? 'приятелю' : 'there')
   const nameH = esc(first)
   const fill  = (s: string) => s.replace(/\{name\}/g, nameH)
-  const link  = `${SITE}/?utm_source=email&utm_medium=drip&utm_campaign=reengage_2026q4&utm_content=e${n}`
+  const link  = `${SITE}/?utm_source=email&utm_medium=drip&utm_campaign=reengage_2026q4&utm_content=${typeof n === 'number' ? `e${n}` : n}`
   const unsub = unsubUrl(user.email)
   const p     = 'margin:0 0 14px;font-size:16px;line-height:1.55;color:#14171c'
 

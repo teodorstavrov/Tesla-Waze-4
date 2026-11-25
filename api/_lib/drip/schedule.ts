@@ -70,6 +70,14 @@ function offWeekend(ms: number): number {
   return ms
 }
 
+/**
+ * Pause for the GTA VI announcement (decided 25 Nov 2026): every course date
+ * after Thu 26 Nov moves one week later. Emails due on or before 26 Nov keep
+ * their dates.
+ */
+export const DRIP_SHIFT_AFTER = '2026-11-26'
+export const DRIP_SHIFT_DAYS  = 7
+
 /** Planned send date (YYYY-MM-DD, UTC) per email number; null = skipped for this user. */
 export function plannedDates(createdAt: number | string, country: string, email = ''): Record<number, string | null> {
   const created  = Number(createdAt)
@@ -89,7 +97,9 @@ export function plannedDates(createdAt: number | string, country: string, email 
         : offWeekend(regDay + m.offset * DAY)
     if (!existing && prev !== null && d < prev + 2 * DAY) d = offWeekend(prev + 2 * DAY)
     prev = d
-    out[m.n] = new Date(d).toISOString().slice(0, 10)
+    let iso = new Date(d).toISOString().slice(0, 10)
+    if (iso > DRIP_SHIFT_AFTER) iso = new Date(d + DRIP_SHIFT_DAYS * DAY).toISOString().slice(0, 10)
+    out[m.n] = iso
   }
   return out
 }
@@ -146,4 +156,30 @@ export function nextDue(
     return { n: m.n, planned: p }
   }
   return null                                       // course finished
+}
+
+// ─── One-off announcements ─────────────────────────────────────────────
+// Sent to every eligible user once, outside the 10-email course. Stored in the
+// same drip:{email} hash under `key`. Wave A gets it on phases[0], wave B on
+// phases[1]; the owner's test inboxes one day before. A late run can still
+// catch up until `until`.
+
+export interface Announcement { key: string; preview: string; phases: [string, string]; until: string }
+
+export const ANNOUNCEMENTS: ReadonlyArray<Announcement> = [
+  { key: 'gta6', preview: '2026-11-27', phases: ['2026-11-28', '2026-11-29'], until: '2026-12-01' },
+]
+
+export function announcementDue(
+  user: { email: string },
+  sent: Record<string, string>,
+  today: string,
+): Announcement | null {
+  const email = user.email.trim().toLowerCase()
+  for (const a of ANNOUNCEMENTS) {
+    if (sent[a.key]) continue
+    const start = DRIP_PREVIEW.has(email) ? a.preview : a.phases[dripWave(email)]
+    if (today >= start && today <= a.until) return a
+  }
+  return null
 }

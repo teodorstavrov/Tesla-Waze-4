@@ -676,6 +676,11 @@ function DripCell({ drip }: { drip?: AdminUser['drip'] }) {
           следващ №{next} · {fmtDripDate(drip.planned[next] as string)}
         </span>
       )}
+      {drip.sent['gta6'] && (
+        <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 6px', borderRadius: 5, background: 'rgba(243,41,167,0.15)', color: '#F329A7' }}>
+          GTA6 · {fmtDripDate(drip.sent['gta6'])}
+        </span>
+      )}
       {sent.length === 0 && !next && <span style={{ color: '#555' }}>—</span>}
     </div>
   )
