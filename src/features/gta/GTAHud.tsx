@@ -10,7 +10,9 @@
 // Dispatched by Settings → GTAHud shows the info panel.
 export const GTA_INFO_EVENT = 'open-gta-info'
 
-const GTA_ONBOARD_KEY = 'tesradar:gtaOnboarded'
+const GTA_ONBOARD_KEY    = 'tesradar:gtaOnboarded'
+const GTA_ACTIVATIONS_KEY = 'tesradar:gtaActivations'
+const GTA_RATE_AT         = 10  // pop rating modal on this activation count
 
 import { useSyncExternalStore, useState, useEffect } from 'react'
 import { gtaModeStore } from './gtaModeStore'
@@ -108,11 +110,20 @@ export function GTAHud() {
   const [showLeaderboard, setShowLeaderboard] = useState(false)
   const [showOnboarding, setShowOnboarding] = useState(false)
 
-  // First activation → show onboarding once; subsequent activations skip it.
+  // On each GTA mode activation: onboarding (first time) + rating nudge (10th time).
   useEffect(() => {
-    if (gtaActive && !localStorage.getItem(GTA_ONBOARD_KEY)) {
-      localStorage.setItem(GTA_ONBOARD_KEY, '1')
-      setShowOnboarding(true)
+    if (gtaActive) {
+      if (!localStorage.getItem(GTA_ONBOARD_KEY)) {
+        localStorage.setItem(GTA_ONBOARD_KEY, '1')
+        setShowOnboarding(true)
+      }
+      const prev  = parseInt(localStorage.getItem(GTA_ACTIVATIONS_KEY) ?? '0', 10)
+      const next  = prev + 1
+      localStorage.setItem(GTA_ACTIVATIONS_KEY, String(next))
+      if (next === GTA_RATE_AT) {
+        // Small delay so the GTA HUD finishes animating in first
+        setTimeout(() => { openRatingModal() }, 1800)
+      }
     }
     if (!gtaActive) { setShowSettings(false); setShowLeaderboard(false); setShowOnboarding(false) }
   }, [gtaActive])
