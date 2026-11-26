@@ -201,6 +201,53 @@
   text-shadow: none !important;
 }
 
+/* ── 7d. Engine Simulator button in GTA mode — Vice City Neon ──────────────── */
+/* Full neon outline overrides the top/bottom-only border from .icon-btn */
+[data-gta] .icon-btn.engine-sim-btn {
+  border-left:   1.5px solid currentColor !important;
+  border-right:  1.5px solid currentColor !important;
+  border-top:    1.5px solid currentColor !important;
+  border-bottom: 1.5px solid currentColor !important;
+}
+
+/* Pulsing glow when any engine mode is active */
+[data-gta] .icon-btn.engine-sim-btn.engine-sim-active {
+  animation: engine-gta-pulse 2s ease-in-out infinite;
+}
+
+@keyframes engine-gta-pulse {
+  0%, 100% { filter: brightness(1.0); }
+  50%       { filter: brightness(1.35); }
+}
+
+/* Tesla: static, no animation */
+[data-gta][data-tesla] .icon-btn.engine-sim-btn.engine-sim-active {
+  animation: none !important;
+}
+
+/* ── 7e. Route button in GTA mode — Vice City Neon ─────────────────────────── */
+[data-gta] .icon-btn.route-nav-btn {
+  border-left:   1.5px solid currentColor !important;
+  border-right:  1.5px solid currentColor !important;
+  border-top:    1.5px solid currentColor !important;
+  border-bottom: 1.5px solid currentColor !important;
+}
+
+/* Active route: extra magenta glow pulse */
+[data-gta] .icon-btn.route-nav-btn.route-nav-btn--active {
+  animation: route-gta-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes route-gta-pulse {
+  0%, 100% { filter: brightness(1.0); }
+  50%       { filter: brightness(1.4); }
+}
+
+/* Tesla: static, no animation */
+[data-gta][data-tesla] .icon-btn.route-nav-btn.route-nav-btn--active {
+  animation: none !important;
+}
+
 /* ── 7c. GPS avatar ────────────────────────────────────────────────────────── */
 [data-gta] .gps-avatar-circle {
   background:  #00D9FF !important;

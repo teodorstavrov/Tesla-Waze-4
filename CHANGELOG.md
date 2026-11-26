@@ -4,6 +4,11 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-11-26
+
+- **fix(markers): полицейски и event маркери фиксирани на географските им локации** — маркерите вече не се движат при въртене на картата и не се появяват във вода (Варненско езеро). Коренна причина: `position:relative` inline стил на outer wrapper-а overwrite-ваше MapLibre's `position:absolute`, слагайки маркерите в document flow вместо да се transform-ират абсолютно. Премахнат `position:relative` от outer div-овете в `makePoliceElement` и `makeElement`. Добавени `rotationAlignment: 'viewport'` и `pitchAlignment: 'viewport'` на Marker constructor-а.
+- **feat(dock): Engine Simulator и Route бутони в GTA6 стил** — в GTA6 режим двата бутона вземат Vice City неон третиране: тъмен фон `rgba(4,7,20,0.65)`, пълен неон outline (cyan `#00D9FF` idle, magenta `#F329A7` за активен Route, engine accent цветовете запазени). Пулсиращ `filter:brightness` анимация на активен Engine и активен Route. Tesla flat режим: без анимация.
+
 ## 2026-11-25
 
 - **feat(gta): GTA VI Mode пуснат в production (tesradar.tech)** — премахнати всички `isPreviewEnvironment` ограничения. GTA VI Edition бутонът в FloatingTitleCard, GTAHud overlay-ят и "GTA VI Mode Info" бутонът в Settings вече работят на живо за всички потребители.

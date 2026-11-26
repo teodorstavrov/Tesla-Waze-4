@@ -7,6 +7,7 @@ import { routeStore } from '@/features/route/routeStore'
 import { langStore, t } from '@/lib/locale'
 import { v8SportEngine, v8MuscleEngine, v8AmgEngine, v8W12Engine } from '@/features/v8sound/v8Engine'
 import { v8HeaderEngine } from '@/features/v8sound/audioEngine'
+import { gtaModeStore } from '@/features/gta/gtaModeStore'
 
 export function BottomDock() {
   // Re-render on language change so button labels update
@@ -15,6 +16,12 @@ export function BottomDock() {
   const routeActive = useSyncExternalStore(
     routeStore.subscribe.bind(routeStore),
     () => routeStore.getState().status !== 'idle',
+    () => false,
+  )
+
+  const isGta = useSyncExternalStore(
+    gtaModeStore.subscribe.bind(gtaModeStore),
+    () => gtaModeStore.isActive(),
     () => false,
   )
 
@@ -176,7 +183,7 @@ export function BottomDock() {
         )}
         <div style={{ position: 'relative', display: 'inline-block' }}>
           <button
-            className="icon-btn"
+            className={`icon-btn engine-sim-btn${v8Mode !== 'off' ? ' engine-sim-active' : ''}`}
             onClick={handleV8Cycle}
             title={v8Label}
             aria-label={v8Label}
@@ -184,7 +191,8 @@ export function BottomDock() {
             style={{
               width: 'clamp(34px, calc((100vh - 195px) / 7 * 0.658), 58px)', height: 'clamp(34px, calc((100vh - 195px) / 7 * 0.658), 58px)',
               borderRadius: 'clamp(7px, calc((100vh - 195px) / 7 * 0.1134), 11px)',
-              background:  v8Mode === 'muscle' ? 'rgba(245,158,11,0.25)'
+              background:  isGta ? 'rgba(4,7,20,0.65)'
+                         : v8Mode === 'muscle' ? 'rgba(245,158,11,0.25)'
                          : v8Mode === 'sport'  ? 'rgba(227,25,55,0.25)'
                          : v8Mode === 'header' ? 'rgba(16,185,129,0.25)'
                          : v8Mode === 's63'   ? 'rgba(139,92,246,0.25)'
@@ -195,14 +203,22 @@ export function BottomDock() {
                          : v8Mode === 'header' ? '#10b981'
                          : v8Mode === 's63'   ? '#8b5cf6'
                          : v8Mode === 'w12'   ? '#eab308'
+                         : isGta ? '#00D9FF'
                          : 'rgba(255,255,255,0.3)',
               color:       v8Mode === 'muscle' ? '#f59e0b'
                          : v8Mode === 'sport'  ? '#e31937'
                          : v8Mode === 'header' ? '#10b981'
                          : v8Mode === 's63'   ? '#8b5cf6'
                          : v8Mode === 'w12'   ? '#eab308'
+                         : isGta ? '#00D9FF'
                          : '#111',
-              boxShadow:   v8Mode === 'muscle' ? '0 0 0 3px rgba(245,158,11,0.25)'
+              boxShadow:   isGta && v8Mode === 'muscle' ? '0 0 16px rgba(245,158,11,0.60)'
+                         : isGta && v8Mode === 'sport'  ? '0 0 16px rgba(227,25,55,0.60)'
+                         : isGta && v8Mode === 'header' ? '0 0 16px rgba(16,185,129,0.60)'
+                         : isGta && v8Mode === 's63'   ? '0 0 16px rgba(139,92,246,0.60)'
+                         : isGta && v8Mode === 'w12'   ? '0 0 16px rgba(234,179,8,0.60)'
+                         : isGta ? '0 0 14px rgba(0,217,255,0.45)'
+                         : v8Mode === 'muscle' ? '0 0 0 3px rgba(245,158,11,0.25)'
                          : v8Mode === 'sport'  ? '0 0 0 3px rgba(227,25,55,0.25)'
                          : v8Mode === 'header' ? '0 0 0 3px rgba(16,185,129,0.25)'
                          : v8Mode === 's63'   ? '0 0 0 3px rgba(139,92,246,0.25)'
@@ -335,14 +351,21 @@ export function BottomDock() {
           </div>
         )}
         <button
-          className="icon-btn"
+          className={`icon-btn route-nav-btn${routeActive ? ' route-nav-btn--active' : ''}`}
           style={{
             width: 'clamp(34px, calc((100vh - 195px) / 7 * 0.658), 58px)', height: 'clamp(34px, calc((100vh - 195px) / 7 * 0.658), 58px)',
             borderRadius: 'clamp(7px, calc((100vh - 195px) / 7 * 0.1134), 11px)',
-            background: routeActive ? 'rgba(43,127,255,0.5)' : 'rgba(255,255,255,0.5)',
-            borderColor: routeActive ? '#2B7FFF' : 'rgba(255,255,255,0.3)',
-            color: routeActive ? '#fff' : '#111',
-            boxShadow: routeActive ? '0 0 0 3px rgba(43,127,255,0.3)' : '0 2px 12px rgba(0,0,0,0.18)',
+            background: isGta ? 'rgba(4,7,20,0.65)'
+                       : routeActive ? 'rgba(43,127,255,0.5)' : 'rgba(255,255,255,0.5)',
+            borderColor: isGta && routeActive ? '#F329A7'
+                        : isGta ? '#00D9FF'
+                        : routeActive ? '#2B7FFF' : 'rgba(255,255,255,0.3)',
+            color: isGta && routeActive ? '#F329A7'
+                  : isGta ? '#00D9FF'
+                  : routeActive ? '#fff' : '#111',
+            boxShadow: isGta && routeActive ? '0 0 18px rgba(243,41,167,0.65)'
+                      : isGta ? '0 0 14px rgba(0,217,255,0.45)'
+                      : routeActive ? '0 0 0 3px rgba(43,127,255,0.3)' : '0 2px 12px rgba(0,0,0,0.18)',
           }}
           title={routeActive ? t('route.cancel') : t('dock.route')}
           aria-label={routeActive ? t('route.cancel') : t('dock.route')}
