@@ -151,7 +151,7 @@ export function EventPanel() {
                 </div>
                 {timeLine && (
                   <div style={{
-                    fontSize: 11, color: isDark ? 'rgba(255,255,255,0.4)' : 'rgba(0,0,0,0.5)',
+                    fontSize: 11, color: isDark ? 'rgba(255,255,255,0.72)' : 'rgba(0,0,0,0.65)',
                     marginTop: 3, lineHeight: 1.4, letterSpacing: '0.01em',
                   }}>
                     {timeLine}
