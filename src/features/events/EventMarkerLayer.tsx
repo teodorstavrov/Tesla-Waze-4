@@ -71,7 +71,7 @@ function _makeVoteBadge(confirms: number, denies: number): HTMLDivElement {
 function makePoliceElement(animation: string, confirms: number, denies: number): HTMLDivElement {
   // outer: MapLibre anchors here via transform:translate — explicit size keeps anchor math correct
   const outer = document.createElement('div')
-  outer.style.cssText = 'position:relative;width:46px;height:46px;cursor:pointer'
+  outer.style.cssText = 'width:46px;height:46px;cursor:pointer'
 
   // inner: CSS viewport-scale lives here — isolated from MapLibre's translate on outer
   const inner = document.createElement('div')
@@ -133,7 +133,7 @@ function makeElement(event: RoadEvent): HTMLDivElement {
 
   // outer: MapLibre anchors here via transform:translate — explicit size keeps anchor math correct
   const outer = document.createElement('div')
-  outer.style.cssText = 'position:relative;width:36px;height:36px;cursor:pointer'
+  outer.style.cssText = 'width:36px;height:36px;cursor:pointer'
 
   // inner: CSS viewport-scale lives here — isolated from MapLibre's translate on outer
   const inner = document.createElement('div')
@@ -184,7 +184,12 @@ export function EventMarkerLayer() {
             logger.events.debug('Event selected', { id: event.id, type: event.type })
           })
 
-          const marker = new maplibregl.Marker({ element: el, anchor: 'center' })
+          const marker = new maplibregl.Marker({
+            element: el,
+            anchor: 'center',
+            rotationAlignment: 'viewport',
+            pitchAlignment: 'viewport',
+          })
             .setLngLat([event.lng, event.lat])
             .addTo(map)
 
