@@ -392,7 +392,7 @@ function XPToastItem({ toast, onDismiss }: { toast: XPToastEntry; onDismiss: () 
         backdropFilter: isTeslaBrowser ? undefined : 'blur(12px)',
         WebkitBackdropFilter: isTeslaBrowser ? undefined : 'blur(12px)',
         boxShadow:      '0 0 18px rgba(139,66,255,0.20)',
-        transform:      visible ? 'translateX(0)' : 'translateX(60px)',
+        transform:      visible ? 'translateY(0)' : 'translateY(-8px)',
         opacity:        visible ? 1 : 0,
         transition:     'transform 0.25s ease, opacity 0.25s ease',
         pointerEvents:  'auto',
@@ -428,14 +428,10 @@ export function XPToastStack() {
 
   return (
     <div style={{
-      position:      'fixed',
-      right:         12,
-      bottom:        90,
-      zIndex:        500,
       display:       'flex',
       flexDirection: 'column',
-      gap:           8,
-      alignItems:    'flex-end',
+      gap:           6,
+      alignItems:    'center',
       pointerEvents: 'none',
     }}>
       {toasts.map((t) => (

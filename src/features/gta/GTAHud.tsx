@@ -306,6 +306,9 @@ export function GTAHud() {
           <div style={{ pointerEvents: 'none' }}>
             <WantedLevelIndicator level={wantedLevel} />
           </div>
+
+          {/* Row 4: XP toast notifications — below wanted panel */}
+          <XPToastStack />
         </div>
       )}
 
@@ -313,9 +316,6 @@ export function GTAHud() {
       {gtaActive && showLeaderboard && (
         <LeaderboardPanel onClose={() => setShowLeaderboard(false)} />
       )}
-
-      {/* XP toast notifications — bottom-right, GTA mode only */}
-      {gtaActive && <XPToastStack />}
 
       {/* Onboarding / info panel — first activation or triggered from Settings */}
       {showOnboarding && <GTAOnboardingPanel onDismiss={() => setShowOnboarding(false)} />}
