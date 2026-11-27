@@ -17,11 +17,18 @@ import { isTeslaBrowser } from '@/lib/browser'
 import { t, langStore } from '@/lib/locale'
 import { useThemeStore } from '@/features/theme/store'
 import { xpStore } from '@/features/xp/xpStore'
+import { gtaModeStore } from '@/features/gta/gtaModeStore'
 
 export function EventPanel() {
   // Subscribe to lang changes so labels re-render on country switch
   useSyncExternalStore(langStore.subscribe, langStore.getLang, langStore.getLang)
   const isDark = useThemeStore((s) => s.theme === 'dark')
+  // GTA mode forces dark glass regardless of theme — text must be light
+  const isGta = useSyncExternalStore(
+    gtaModeStore.subscribe.bind(gtaModeStore),
+    () => gtaModeStore.isActive(),
+    () => false,
+  )
 
   const event = useSyncExternalStore(
     eventStore.subscribe.bind(eventStore),
@@ -151,7 +158,7 @@ export function EventPanel() {
                 </div>
                 {timeLine && (
                   <div style={{
-                    fontSize: 11, color: isDark ? 'rgba(255,255,255,0.72)' : 'rgba(0,0,0,0.65)',
+                    fontSize: 11, color: (isDark || isGta) ? 'rgba(255,255,255,0.72)' : 'rgba(0,0,0,0.65)',
                     marginTop: 3, lineHeight: 1.4, letterSpacing: '0.01em',
                   }}>
                     {timeLine}
