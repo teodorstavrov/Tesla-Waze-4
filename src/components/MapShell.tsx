@@ -347,6 +347,23 @@ export function MapShell() {
     let _drTransTs  = 0
     let _prevHeadingMode = settingsStore.get().headingMode
 
+    // ── Auto-zoom by speed ────────────────────────────────────────
+    const AUTO_ZOOM_RESUME_MS = 30_000  // ms after manual zoom before auto resumes
+    const AUTO_ZOOM_ALPHA     = 0.04    // interpolation factor per rAF frame (~1.5 s full transit)
+    let _autoZoomTarget  = 15           // zoom level derived from speed (updated on GPS tick)
+    let _autoZoomDisplay = -1           // current interpolated zoom (-1 = init from map)
+    let _userZoomedAt    = 0            // wall-clock timestamp of last user-initiated zoom
+    let _programmaticZoom = false       // true while rAF jumpTo is active (suppresses handler)
+
+    function _speedToZoom(kmh: number): number {
+      if (kmh <= 0)   return 16
+      if (kmh <= 20)  return 16
+      if (kmh <= 50)  return 15
+      if (kmh <= 90)  return 14
+      if (kmh <= 120) return 13.5
+      return 13
+    }
+
     const BEAR_SMOOTH_MS = 300   // ms to blend sudden bearing changes between GPS ticks
     const MODE_ANIM_MS   = 450   // ms for mode-switch rotation animation
 
@@ -377,6 +394,16 @@ export function MapShell() {
         const { lat, lng, bearing } = _predict(now)
         const mode       = _prevHeadingMode   // cached — avoids localStorage on every frame
         const containerH = map.getContainer().offsetHeight
+
+        // Auto-zoom: interpolate toward speed target unless user zoomed recently
+        let zoomOpt: { zoom?: number } = {}
+        if (Date.now() - _userZoomedAt > AUTO_ZOOM_RESUME_MS) {
+          if (_autoZoomDisplay < 0) _autoZoomDisplay = map.getZoom()
+          _autoZoomDisplay += AUTO_ZOOM_ALPHA * (_autoZoomTarget - _autoZoomDisplay)
+          zoomOpt = { zoom: _autoZoomDisplay }
+        }
+
+        _programmaticZoom = true
         if (mode === 'course-up') {
           let mapBearing = courseUpMapBearing(bearing)
           // Smooth the initial rotation when entering course-up from north-up
@@ -389,14 +416,17 @@ export function MapShell() {
             center:  [lng, lat],
             bearing: mapBearing,
             padding: { top: Math.round(containerH * 0.4), bottom: 0, left: 0, right: 0 },
+            ...zoomOpt,
           })
         } else {
           map.jumpTo({
             center:  [lng, lat],
             bearing: 0,
             padding: { top: 0, bottom: 0, left: 0, right: 0 },
+            ...zoomOpt,
           })
         }
+        _programmaticZoom = false
         _drRafId = requestAnimationFrame(frame)
       }
       _drRafId = requestAnimationFrame(frame)
@@ -461,12 +491,22 @@ export function MapShell() {
         _drBearPrev = _drHeading
         _drBearTs   = now
       }
-      _drLat     = navPos?.lat ?? pos.lat
-      _drLng     = navPos?.lng ?? pos.lng
-      _drHeading = newHeading
-      _drSpeedMs = (pos.speedKmh ?? 0) / 3.6
-      _drTs      = now
+      _drLat          = navPos?.lat ?? pos.lat
+      _drLng          = navPos?.lng ?? pos.lng
+      _drHeading      = newHeading
+      _drSpeedMs      = (pos.speedKmh ?? 0) / 3.6
+      _autoZoomTarget = _speedToZoom(pos.speedKmh ?? 0)
+      _drTs           = now
       _startRaf()
+    })
+
+    // Detect user-initiated zoom so auto-zoom pauses for AUTO_ZOOM_RESUME_MS.
+    // _programmaticZoom is true during the rAF jumpTo calls, suppressing this.
+    map.on('zoomstart', () => {
+      if (!_programmaticZoom) {
+        _userZoomedAt    = Date.now()
+        _autoZoomDisplay = map.getZoom()   // sync display from wherever user left off
+      }
     })
 
     // Disable two-finger rotation — course-up mode drives bearing via GPS/snap;
@@ -476,6 +516,8 @@ export function MapShell() {
     // Re-enable follow → resume rAF; animate bearing if in course-up and map has drifted
     const unsubFollow = followStore.subscribe((following) => {
       if (following && _drTs > 0) {
+        // Re-sync display zoom so we start interpolating from where the map is now
+        if (_autoZoomDisplay >= 0) _autoZoomDisplay = map.getZoom()
         // When follow re-enables in course-up mode (e.g. after fitBounds or user drag),
         // the map may be at bearing=0 (north-up). Animate back to course-up bearing
         // the same way the settings switch does, so there's no instant snap.
