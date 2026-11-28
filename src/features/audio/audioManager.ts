@@ -128,6 +128,36 @@ export const audioManager = {
   /** @deprecated alias */
   siren(_durationS = 3): void { audioManager.policeChime() },
 
+  /** Radar-detector style alert — 3 short ascending tones (~350 ms total).
+   *  Alternative to policeChime for drivers who prefer a discrete beep
+   *  over a continuous siren sweep. */
+  radarBeep(): void {
+    if (_state.muted || !_state.canUseAudio || !_ctx) return
+    if (_ctx.state === 'suspended') {
+      void _ctx.resume().then(() => { if (_ctx?.state === 'running') audioManager.radarBeep() })
+      return
+    }
+    try {
+      const t      = _ctx.currentTime
+      const tones: [number, number][] = [[880, 0], [1100, 0.13], [1320, 0.26]]
+      for (const [freq, offset] of tones) {
+        const osc  = _ctx.createOscillator()
+        const gain = _ctx.createGain()
+        osc.connect(gain)
+        gain.connect(_ctx.destination)
+        osc.frequency.value = freq
+        osc.type = 'sine'
+        gain.gain.setValueAtTime(0.001,  t + offset)
+        gain.gain.linearRampToValueAtTime(0.30, t + offset + 0.018)
+        gain.gain.exponentialRampToValueAtTime(0.001, t + offset + 0.095)
+        osc.start(t + offset)
+        osc.stop(t + offset + 0.095)
+      }
+    } catch (err) {
+      logger.audio.warn('radarBeep failed', err)
+    }
+  },
+
   /** Short attention beep before speech. Freq in Hz, duration in ms. */
   beep(freq = 880, durationMs = 120): void {
     if (_state.muted || !_state.canUseAudio || !_ctx) return

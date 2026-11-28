@@ -9,12 +9,15 @@ export const PITCH_STEP = 15
 export const PITCH_MIN  = 0
 export const PITCH_MAX  = 45
 
+export type PoliceAlertSound = 'siren' | 'radar'
+
 interface Settings {
   showTraffic:          boolean
   performanceMode:      PerformanceMode
   headingMode:          HeadingMode
   mapPitch:             number
   avgSpeedSections:     boolean
+  policeAlertSound:     PoliceAlertSound
 }
 
 const STORAGE_KEY = 'teslaradar:settings'
@@ -24,6 +27,7 @@ const DEFAULTS: Settings = {
   headingMode:          'north-up',
   mapPitch:             45,
   avgSpeedSections:     true,
+  policeAlertSound:     'siren',
 }
 
 type Listener = () => void
@@ -56,6 +60,13 @@ export const settingsStore = {
   toggleAvgSpeedSections(): void {
     const s = _load()
     s.avgSpeedSections = !s.avgSpeedSections
+    _save(s)
+    _emit()
+  },
+
+  togglePoliceAlertSound(): void {
+    const s = _load()
+    s.policeAlertSound = s.policeAlertSound === 'siren' ? 'radar' : 'siren'
     _save(s)
     _emit()
   },

@@ -70,6 +70,11 @@ function PanelContent() {
     () => settingsStore.get().avgSpeedSections,
     () => true,
   )
+  const policeAlertSound = useSyncExternalStore(
+    settingsStore.subscribe.bind(settingsStore),
+    () => settingsStore.get().policeAlertSound,
+    () => 'siren' as const,
+  )
   const { theme, mapMode, toggleNight, toggleSatellite } = useThemeStore()
   const isNight     = theme === 'dark' && mapMode === 'normal'
   const isSatellite = mapMode === 'satellite'
@@ -166,6 +171,17 @@ function PanelContent() {
         state={showAvgSpeed}
         stateColor="#3b82f6"
         onToggle={() => settingsStore.toggleAvgSpeedSections()}
+      />
+
+      {/* Police alert sound */}
+      <Row
+        icon={<PoliceAlertIcon isRadar={policeAlertSound === 'radar'} />}
+        label={policeAlertSound === 'radar'
+          ? t('settings.policeAlertRadar')
+          : t('settings.policeAlertSiren')}
+        state={policeAlertSound === 'radar'}
+        stateColor="#f59e0b"
+        onToggle={() => settingsStore.togglePoliceAlertSound()}
       />
 
       {/* Night / Day mode */}
@@ -313,6 +329,26 @@ function TrafficIcon({ active }: { active: boolean }) {
       <circle cx="12" cy="7"  r="2" fill={active ? '#ef4444' : 'currentColor'} stroke="none" opacity={active ? 1 : 0.3} />
       <circle cx="12" cy="12" r="2" fill={active ? '#eab308' : 'currentColor'} stroke="none" opacity={active ? 1 : 0.3} />
       <circle cx="12" cy="17" r="2" fill={active ? '#22c55e' : 'currentColor'} stroke="none" opacity={active ? 1 : 0.3} />
+    </svg>
+  )
+}
+
+function PoliceAlertIcon({ isRadar }: { isRadar: boolean }) {
+  const c = isRadar ? '#f59e0b' : '#3b82f6'
+  return isRadar ? (
+    // Radar detector icon: horizontal waves / signal arcs
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+      stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M5 12a7 7 0 0 1 14 0" opacity="0.5" />
+      <path d="M8 12a4 4 0 0 1 8 0" opacity="0.75" />
+      <circle cx="12" cy="12" r="1.5" fill={c} stroke="none" />
+    </svg>
+  ) : (
+    // Siren icon: a simple bell/alarm shape
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+      stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" fill={`${c}18`} />
+      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
     </svg>
   )
 }

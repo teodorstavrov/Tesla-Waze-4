@@ -16,6 +16,7 @@ import { haversineMeters } from '@/lib/geo'
 import { logger } from '@/lib/logger'
 import { isTeslaBrowser } from '@/lib/browser'
 import { t, getLang } from '@/lib/locale'
+import { settingsStore } from '@/features/settings/settingsStore'
 import type { EventType } from '@/features/events/types'
 
 // Map lang code → BCP 47 speech synthesis locale
@@ -178,7 +179,13 @@ function _onPosition(): void {
         && !eventStore.isSelfReported(event.id) && _isInDirectionOfTravel(pos, event)) {
       const text = t('alerts.policeClose')
       logger.audio.info('Police close warning (zone entry)', { distM: Math.round(distM) })
-      audioManager.policeChime()
+      if (settingsStore.get().policeAlertSound === 'radar') {
+        audioManager.radarBeep()
+        // Play a second burst 400 ms later for the close-range alert
+        setTimeout(() => audioManager.radarBeep(), 400)
+      } else {
+        audioManager.policeChime()
+      }
       if (!isTeslaBrowser) setTimeout(() => audioManager.speak(text, _ttsLang()), 600)
       _showToast(event.type, event.id, text, Math.round(distM))
     }
