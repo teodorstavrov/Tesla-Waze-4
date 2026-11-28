@@ -76,11 +76,11 @@ export function TurnInstruction() {
 
   if (status !== 'ok' || !route) return null
 
-  // Positioned to the right of the 88px left-controls column:
-  // left: 12 (column start) + 88 (button width) + 8 (gap) = 108px
-  // top: aligned with the heading-toggle button (first in the column, near top)
-  const TOP  = 76
-  const LEFT = 108
+  // Positioned to the right of the GTA quality/standard-edition buttons:
+  // left: 12 (start) + ~108px (two buttons + gap) + 10px gap = 130
+  // top: same row as GTA quality/standard-edition buttons (72)
+  const TOP  = 72
+  const LEFT = 130
 
   // ── Arrived ──────────────────────────────────────────────────────────
   if (arrived) {
