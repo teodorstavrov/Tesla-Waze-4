@@ -14,6 +14,7 @@ interface Settings {
   performanceMode:      PerformanceMode
   headingMode:          HeadingMode
   mapPitch:             number
+  avgSpeedSections:     boolean
 }
 
 const STORAGE_KEY = 'teslaradar:settings'
@@ -22,6 +23,7 @@ const DEFAULTS: Settings = {
   performanceMode:      'auto',
   headingMode:          'north-up',
   mapPitch:             45,
+  avgSpeedSections:     true,
 }
 
 type Listener = () => void
@@ -47,6 +49,13 @@ export const settingsStore = {
   toggleTraffic(): void {
     const s = _load()
     s.showTraffic = !s.showTraffic
+    _save(s)
+    _emit()
+  },
+
+  toggleAvgSpeedSections(): void {
+    const s = _load()
+    s.avgSpeedSections = !s.avgSpeedSections
     _save(s)
     _emit()
   },

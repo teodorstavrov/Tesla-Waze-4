@@ -28,7 +28,9 @@ const PREWARN_M       = 2000  // show approach warning when 2km from start
 const NEARBY_KM       = 10    // only process sections within 10km (pre-filter)
 const WARN_COOLDOWN_S = 30    // re-warn at most every 30s if still over limit
 const MIN_SPEED_KMH   = 5     // ignore GPS noise below 5 km/h
-const DEVIATION_M     = 50    // abandon if car deviates >50m from section centerline
+// Curved motorways regularly deviate 100-200m from the straight camera-to-camera
+// line. The original 50m was causing frequent false abandons on bends.
+const DEVIATION_M     = 150   // abandon if car deviates >150m from section centerline
 const DEVIATION_MIN_ENTRY_M = 300 // only check deviation once 300m inside (avoids on-ramp false positives)
 
 // ── Geometry helper ───────────────────────────────────────────────────
@@ -107,6 +109,13 @@ export const sectionStore = {
   subscribe(fn: Listener): () => void {
     _listeners.add(fn)
     return () => { _listeners.delete(fn) }
+  },
+  /** Manually dismiss the active session panel (X button during traversal). */
+  dismissSession(): void {
+    _emaAvg = null
+    _lastEmittedAvg = -1; _lastEmittedDistBkt = -1; _lastEmittedWarned = false
+    _state = { ..._state, session: null }
+    _emit()
   },
   /** Manually dismiss the exit summary card (X button). */
   clearLastExit(): void {
@@ -322,8 +331,14 @@ function _onPosition(pos: GpsPosition): void {
 
     // Normal exit at END camera (forward or mid-section traversal).
     if (!sess.reversed && distToEnd <= EXIT_M) {
-      const elapsedFinalS = (now - sess.enteredAt) / 1000
-      const distForAvg    = sess.offsetM > 0 ? sess.distM : sess.section.lengthM
+      // Project elapsed time to the moment the car actually crosses the end camera
+      // (we're still distToEnd metres away when this fires — without the projection
+      // the final avg is under-read by ~2-5 km/h on the last 200m of the section).
+      const speedMs2    = Math.max((pos.speedKmh ?? 60) / 3.6, 2)
+      const timeToEndMs = Math.round((distToEnd / speedMs2) * 1000)
+      const elapsedFinalS = (now + timeToEndMs - sess.enteredAt) / 1000
+      // For mid-section entries include the remaining distance in the numerator too
+      const distForAvg = sess.offsetM > 0 ? sess.distM + distToEnd : sess.section.lengthM
       const finalAvg = elapsedFinalS > 0
         ? Math.round((distForAvg / elapsedFinalS) * 3.6)
         : sess.avgKmh
@@ -398,12 +413,17 @@ function _onPosition(pos: GpsPosition): void {
       _preWarnedIds.delete(section.id)
       _emaAvg = null
       _lastEmittedAvg = -1; _lastEmittedDistBkt = -1; _lastEmittedWarned = false
+      // Adjust enteredAt so the logical start aligns with the entry camera,
+      // not 350m before it. Without this correction the timer starts early and
+      // avg speed is under-reported by ~3-8 km/h on short sections (5-6km).
+      const speedMs  = Math.max((pos.speedKmh ?? 60) / 3.6, 2)
+      const enteredAt = Date.now() + Math.round((distToStart / speedMs) * 1000)
       _state = {
         session: {
           section,
-          enteredAt: Date.now(),
+          enteredAt,
           distM:     0,
-          offsetM:   0,    // entered at the start camera
+          offsetM:   0,
           reversed:  false,
           avgKmh:    0,
           warned:    false,
@@ -439,7 +459,7 @@ function _onPosition(pos: GpsPosition): void {
     const isMidSection =
       distToStart > ENTRY_M &&
       distToEnd   > EXIT_M  &&
-      distToStart + distToEnd <= section.lengthM * 1.4 &&
+      distToStart + distToEnd <= section.lengthM * 1.6 &&
       headingAligned &&
       !isReverseBlocked
     if (isMidSection) {

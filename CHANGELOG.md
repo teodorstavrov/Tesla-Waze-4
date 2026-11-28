@@ -4,6 +4,16 @@ All notable changes to TesRadar, organized by date (newest first).
 
 ---
 
+## 2026-11-28
+
+- **fix(nav): TurnInstruction панелът преместен надясно и нагоре** — координати (76,108) → (72,130) за изравняване с Full Quality / Standard Edition бутоните в GTA режим.
+- **fix(gta): XP toast нотификации позиционирани под Wanted Level панела** — преместени от fixed bottom-right в top-center HUD колоната като Row 4 след WantedLevelIndicator. Анимацията е `translateY(-8px)` вместо `translateX(60px)`.
+- **fix(events): timeLine текст нечетим в GTA режим при светла тема** — добавена `isGta` проверка: `(isDark || isGta)` вместо само `isDark`. GTA режимът форсира тъмен glass фон (`--glass-bg: rgba(8,13,32,0.95)`) независимо от React темата.
+- **fix(nav): Rating/Support/GTA/Lock бутони се виждат по време на навигация** — премахнато `!routeActive &&` условие от FloatingTitleCard.
+- **feat(sections): X бутон за затваряне на ActiveView панела** — добавен `dismissSession()` в `sectionStore` и ✕ бутон в `ActiveView` горе вдясно.
+- **feat(settings): превключвател за изключване на средна скорост в отсечка** — нов toggle "Средна скорост в отсечка" в Settings панела; `avgSpeedSections` в `settingsStore` (default: on); `sectionEngine` стартира/спира реактивно при промяна.
+- **fix(sections): алгоритъм за средна скорост оправен** — 4 корекции: (1) `DEVIATION_M` 50→150 за криволичещи магистрали; (2) `enteredAt` се изчислява напред `distToStart/speedMs` секунди за точен старт на таймера; (3) threshold за mid-section detection 1.4→1.6 за дълги отсечки; (4) при изход се добавя `distToEnd/speedMs` за проектиране до точното преминаване на крайната камера.
+
 ## 2026-11-26
 
 - **fix(markers): полицейски и event маркери фиксирани на географските им локации** — маркерите вече не се движат при въртене на картата и не се появяват във вода (Варненско езеро). Коренна причина: `position:relative` inline стил на outer wrapper-а overwrite-ваше MapLibre's `position:absolute`, слагайки маркерите в document flow вместо да се transform-ират абсолютно. Премахнат `position:relative` от outer div-овете в `makePoliceElement` и `makeElement`. Добавени `rotationAlignment: 'viewport'` и `pitchAlignment: 'viewport'` на Marker constructor-а.

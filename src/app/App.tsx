@@ -35,6 +35,7 @@ import { CameraMarkerLayer } from '@/features/cameras/CameraMarkerLayer'
 import { SectionLayer } from '@/features/cameras/SectionLayer'
 import { SectionCard } from '@/features/cameras/SectionCard'
 import { sectionEngine } from '@/features/cameras/sectionEngine'
+import { settingsStore } from '@/features/settings/settingsStore'
 import { RouteLayer } from '@/features/route/RouteLayer'
 import { SavedPlacesLayer } from '@/features/places/SavedPlacesLayer'
 import { RoadworksLayer } from '@/features/roadworks/RoadworksLayer'
@@ -122,7 +123,13 @@ export function App() {
   // Start proximity alert engine once on mount (not in render body — side-effect safety)
   useEffect(() => { alertEngine.start() }, [])
   useEffect(() => { batteryTracker.start() }, [])
-  useEffect(() => { sectionEngine.start() }, [])
+  useEffect(() => {
+    if (settingsStore.get().avgSpeedSections) sectionEngine.start()
+    return settingsStore.subscribe(() => {
+      if (settingsStore.get().avgSpeedSections) sectionEngine.start()
+      else sectionEngine.stop()
+    })
+  }, [])
   useEffect(() => { teslaPoller.start() }, [])
   // Tesla connection: check status on app load + handle OAuth redirect result
   useEffect(() => {

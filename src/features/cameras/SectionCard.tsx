@@ -129,10 +129,27 @@ function ActiveView({ session }: { session: SectionSession }) {
           color: 'var(--text-secondary)',
           textTransform: 'uppercase', letterSpacing: '0.08em',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+          flex: 1,
         }}>
           {section.road} · {section.name}
         </span>
         <PremiumBadge feature="average_speed_sections" />
+        <button
+          onClick={() => sectionStore.dismissSession()}
+          aria-label="Close"
+          style={{
+            width: Math.round(26*S), height: Math.round(26*S),
+            borderRadius: 6, flexShrink: 0,
+            background: 'rgba(255,255,255,0.08)',
+            border: '1px solid rgba(255,255,255,0.15)',
+            color: 'rgba(255,255,255,0.55)',
+            fontSize: 13, fontWeight: 700, lineHeight: 1,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            cursor: 'pointer', touchAction: 'manipulation',
+          }}
+        >
+          ✕
+        </button>
       </div>
 
       <div style={{

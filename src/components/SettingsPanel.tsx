@@ -65,6 +65,11 @@ function PanelContent() {
     filterStore.getState,
     filterStore.getState,
   )
+  const showAvgSpeed = useSyncExternalStore(
+    settingsStore.subscribe.bind(settingsStore),
+    () => settingsStore.get().avgSpeedSections,
+    () => true,
+  )
   const { theme, mapMode, toggleNight, toggleSatellite } = useThemeStore()
   const isNight     = theme === 'dark' && mapMode === 'normal'
   const isSatellite = mapMode === 'satellite'
@@ -152,6 +157,15 @@ function PanelContent() {
         state={showRoadworks}
         stateColor="#f97316"
         onToggle={() => roadworksStore.toggle()}
+      />
+
+      {/* Average speed sections */}
+      <Row
+        icon={<AvgSpeedIcon active={showAvgSpeed} />}
+        label={t('settings.avgSpeedSections')}
+        state={showAvgSpeed}
+        stateColor="#3b82f6"
+        onToggle={() => settingsStore.toggleAvgSpeedSections()}
       />
 
       {/* Night / Day mode */}
@@ -299,6 +313,17 @@ function TrafficIcon({ active }: { active: boolean }) {
       <circle cx="12" cy="7"  r="2" fill={active ? '#ef4444' : 'currentColor'} stroke="none" opacity={active ? 1 : 0.3} />
       <circle cx="12" cy="12" r="2" fill={active ? '#eab308' : 'currentColor'} stroke="none" opacity={active ? 1 : 0.3} />
       <circle cx="12" cy="17" r="2" fill={active ? '#22c55e' : 'currentColor'} stroke="none" opacity={active ? 1 : 0.3} />
+    </svg>
+  )
+}
+
+function AvgSpeedIcon({ active }: { active: boolean }) {
+  const c = active ? '#3b82f6' : 'currentColor'
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none"
+      stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2z" fill={active ? '#3b82f614' : 'none'} />
+      <polyline points="12 6 12 12 16 14" stroke={c} strokeWidth="2" />
     </svg>
   )
 }
