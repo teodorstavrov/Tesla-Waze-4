@@ -1,6 +1,5 @@
 // ─── Top-left branding card ─────────────────────────────────────────────
 import { useSyncExternalStore } from 'react'
-import { routeStore } from '@/features/route/routeStore'
 import { gtaModeStore } from '@/features/gta/gtaModeStore'
 import { openRatingModal } from '@/components/RatingModal'
 import { openSupportModal } from '@/components/SupportModal'
@@ -10,11 +9,6 @@ import { t, getLang, langStore } from '@/lib/locale'
 
 export function FloatingTitleCard() {
   useSyncExternalStore(langStore.subscribe.bind(langStore), getLang, getLang)
-  const routeActive = useSyncExternalStore(
-    routeStore.subscribe.bind(routeStore),
-    () => routeStore.getState().status === 'ok',
-    () => false,
-  )
   const gtaActive = useSyncExternalStore(
     gtaModeStore.subscribe.bind(gtaModeStore),
     () => gtaModeStore.isActive(),
@@ -46,7 +40,7 @@ export function FloatingTitleCard() {
       )}
 
       {/* Rating/Support/Lock buttons — in GTA mode these live in GTAHud next to the logo */}
-      {!gtaActive && !routeActive && (
+      {!gtaActive && (
         <>
           <button
             onClick={openRatingModal}
